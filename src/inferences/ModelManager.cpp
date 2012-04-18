@@ -40,6 +40,7 @@ void ModelManager::notifyOptimalModelFound() {
 		return;
 	}
 	optimalmodelfound = true;
+	nbmodelsfound = 1;
 	auto temp = models.back();
 	models.pop_back();
 	deleteList<Model>(models);

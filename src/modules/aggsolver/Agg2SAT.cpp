@@ -44,7 +44,7 @@ MiniSatPP::Lit mapToPBLit(Lit lit){
 
 //Any literal that is larger than maxvar was newly introduced by the transformation, so should be mapped to nVars()+lit
 Lit mapFromPBLit(MiniSatPP::Lit lit, int maxopbvar, int nvars){
-	auto v = MiniSatPP::var(lit) + (MiniSatPP::var(lit) > maxopbvar ? nvars - maxopbvar: 0);
+	auto v = MiniSatPP::var(lit) + (MiniSatPP::var(lit) > maxopbvar ? nvars - maxopbvar +1 : 0);
 	return mkLit(v, sign(lit));
 }
 

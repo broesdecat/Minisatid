@@ -17,6 +17,7 @@
 #include "external/SearchMonitor.hpp"
 #include "constraintvisitors/FlatZincRewriter.hpp"
 #include "constraintvisitors/ECNFPrinter.hpp"
+#include "constraintvisitors/CNFPrinter.hpp"
 #include "constraintvisitors/ECNFGraphPrinter.hpp"
 #include "constraintvisitors/HumanReadableParsingPrinter.hpp"
 #include "external/Printer.hpp"
@@ -148,7 +149,7 @@ void ModelExpand::innerExecute() {
 	}
 	if (_solutions->getNbModelsFound() == 0) {
 		_solutions->notifyUnsat();
-		// TODO notify the space that it is unsat? getSpace()->...
+		getSpace()->notifyUnsat();
 	}
 	if (terminateRequested()) {
 		printer->notifySolvingAborted();
@@ -327,8 +328,6 @@ bool ModelExpand::invalidateAgg(litlist& invalidation, OptimStatement& optim) {
 	return false;
 }
 
-// TODO handle minimizeVar
-
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
  *
@@ -439,7 +438,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
-			getSolver().backtrackTo(0); // NOTE: necessary because missing REVERSE TRAIL! TODO
+			getSolver().backtrackTo(0); // TODO: necessary because missing REVERSE TRAIL!
 			agg->reInitializeAgg();
 			break;
 		}
@@ -527,6 +526,11 @@ void Transform::innerExecute() {
 	}
 	case TheoryPrinting::ECNF: {
 		RealECNFPrinter<ostream> pr(getSpace()->getEngine(), output);
+		getSolver().accept(pr);
+		break;
+	}
+	case TheoryPrinting::CNF: {
+		RealCNFPrinter<ostream> pr(getSpace()->getEngine(), output);
 		getSolver().accept(pr);
 		break;
 	}

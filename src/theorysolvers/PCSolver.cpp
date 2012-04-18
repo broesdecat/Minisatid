@@ -474,7 +474,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 			break;
 		}
 	}
-	// TODO add other necessary calls (toString unfinished constraints, ...)
+	// TODO any missing calls? (unfinished constraints in propagatorfactory, ...)
 	getEventQueue().accept(visitor);
 }
 
@@ -485,21 +485,3 @@ std::string PCSolver::toString(const Lit& lit) const {
 int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas() + optimization.size();
 }
-
-// @pre: decision level = 0
-// FIXME add CNF printing too!
-/*void PCSolver::printTheory(ostream& stream){
- stringstream ss;
- std::set<Var> printedvars;
- int nbclauses = 0;
- nbclauses += getSATSolver()->printECNF(ss, printedvars);
- if(modes().tocnf){
- getEventQueue().printECNF(ss, printedvars);
- getParent().printTranslation(ss, printedvars);
- stream <<"p ecnf\n";
- }else{
- stream <<"p cnf " <<printedvars.size()+1 <<" " <<nbclauses <<"\n";
- }
- stream <<ss.str();
- clog <<"Currently not printing out any other constructs than clauses from the theory.";
- }*/

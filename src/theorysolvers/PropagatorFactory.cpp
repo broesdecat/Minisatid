@@ -433,6 +433,13 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 			AggStorage::addStorage(getEnginep());
 		}
 		AggStorage::getStorage()->add(set, aggs);
+		if(finishedparsing){ // TODO bit ugly to have to add it here!
+			auto satval = execute(*AggStorage::getStorage());
+			AggStorage::resetStorage();
+			if(satval==SATVAL::UNSAT){
+				return satval;
+			}
+		}
 	}
 	if (aggs.size() == 0) {
 		return SATVAL::POS_SAT;

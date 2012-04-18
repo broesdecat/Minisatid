@@ -472,7 +472,6 @@ public:
 	}
 };
 
-// FIXME add callback again?
 class LazyGroundingCommand {
 private:
 	bool allreadyground;

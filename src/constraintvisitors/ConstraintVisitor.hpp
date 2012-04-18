@@ -18,7 +18,6 @@ namespace MinisatID{
 
 class LiteralPrinter;
 
-// TODO name visitor is wrong, is there is no hierarchy which is visited!
 class ConstraintVisitor {
 private:
 	LiteralPrinter* solver; // NOTE: does not have ownership

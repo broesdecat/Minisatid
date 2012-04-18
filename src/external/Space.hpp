@@ -60,6 +60,7 @@ public:
 	SearchEngine* getEngine() const { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
 
+	void notifyUnsat();
 	bool isCertainlyUnsat() const;
 
 	void notifyInferenceExecuted(){

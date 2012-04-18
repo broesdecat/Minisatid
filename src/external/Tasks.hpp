@@ -113,10 +113,10 @@ private:
 	SATVAL invalidateModel(const litlist& clause);
 
 	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
-	Weight latestaggoptimum; // FIXME move to modelmanager;
-	Lit latestlistoptimum; // FIXME move to modelmanager;
-	int latestsubsetsize;// FIXME move to modelmanager;
-	litlist savedinvalidation; // FIXME move to modelmanager;
+	Weight latestaggoptimum;
+	Lit latestlistoptimum;
+	int latestsubsetsize;
+	litlist savedinvalidation;
 	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
 	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
 	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
@@ -142,7 +142,7 @@ private:
 	void innerExecute();
 };
 
-enum class TheoryPrinting { ECNF, FZ, HUMAN, ECNFGRAPH };
+enum class TheoryPrinting { CNF, ECNF, FZ, HUMAN, ECNFGRAPH };
 
 class Transform: public SpaceTask {
 private:

@@ -7,7 +7,7 @@
 #ifndef STATISTICSPRINTER_HPP_
 #define STATISTICSPRINTER_HPP_
 
-// TODO propagatorvisitor
+// Add propagatorvisitor
 
 
 #endif /* STATISTICSPRINTER_HPP_ */

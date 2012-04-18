@@ -106,11 +106,8 @@ public:
 	virtual void visit(const CPBinaryRelVar&);
 	virtual void visit(const CPSumWeighted&);
 
-	virtual void notifyStart() {} // TODO implement?
-	virtual void notifyEnd() {} // TODO implement? close streams, ... (maybe also implement notifyend and innernotifyend to guarentee closing?
-
-
-	void	finishParsing	();
+	virtual void notifyStart() {}
+	virtual void notifyEnd();
 
 protected:
 	std::ostream& getOutput();

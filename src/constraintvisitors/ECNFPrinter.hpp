@@ -16,7 +16,6 @@
 
 namespace MinisatID {
 
-// TODO print the translation too!
 template<typename Stream>
 class RealECNFPrinter: public ConstraintAdditionMonitor<Stream> {
 private:
@@ -29,8 +28,11 @@ public:
 	virtual ~RealECNFPrinter() {
 	}
 
-	void notifyStart(){}
+	void notifyStart(){
+		target() <<"p ecnf\n";
+	}
 	void notifyEnd(){
+		// TODO printTranslation(ss, printedvars);
 		target().flush();
 	}
 
@@ -48,7 +50,7 @@ public:
 	}
 
 	void visit(const Rule& rule) {
-		target() << (rule.conjunctive ? "C" : "D") << " " << toString(mkPosLit(rule.head)) << " ";
+		target() << (rule.conjunctive ? "C" : "D") <<rule.definitionID << " <- " << toString(mkPosLit(rule.head)) << " ";
 		for (uint i = 0; i < rule.body.size(); ++i) {
 			target() << toString(rule.body[i]) << " ";
 		}
@@ -64,29 +66,44 @@ public:
 	}
 
 	void visit(const Aggregate& agg) {
-		target() << "Added aggregate " <<toString(mkPosLit(agg.head)) << " " << (agg.sem == AggSem::COMP ? "<=>" : "<-");
-		if (agg.sem == AggSem::DEF) {
-			target() << "(" << agg.defID << ")";
+		target() << agg.type;
+		switch(agg.sem){
+		case AggSem::DEF:
+			target() <<"D";
+			break;
+		case AggSem::COMP:
+			target() <<"C";
+			break;
+		case AggSem::IMPLICATION:
+			target() <<"I";
+			break;
 		}
-		target() << " " << agg.type;
-		target() << "( set" << agg.setID << " )" << (agg.sign == AggSign::UB ? "=<" : ">=") << agg.bound;
-		target() << "\n";
+
+		target() <<(agg.sign == AggSign::UB ? "G" : "L") <<" " <<toString(mkPosLit(agg.head)) <<" " <<agg.setID <<" " <<agg.bound << " 0\n";
 	}
 
 	void visit(const Implication&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const MinimizeOrderedList&) {
-		throw idpexception("Not yet implemented."); // TODO
+	void visit(const MinimizeOrderedList& mnm) {
+		target() <<"Mnmlist ";
+		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
+			target() <<toString(*i) <<" ";
+		}
+		target() <<"0\n";
 	}
-	void visit(const MinimizeSubset&) {
-		throw idpexception("Not yet implemented."); // TODO
+	void visit(const MinimizeSubset& mnm) {
+		target() <<"Mnmsubset ";
+		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
+			target() <<toString(*i) <<" ";
+		}
+		target() <<"0\n";
 	}
-	void visit(const MinimizeAgg&) {
-		throw idpexception("Not yet implemented."); // TODO
+	void visit(const MinimizeAgg& mnm) {
+		target() <<"Mnmagg " <<mnm.type <<" " <<mnm.setid <<" 0\n";
 	}
-	void visit(const MinimizeVar&) {
-		throw idpexception("Not yet implemented."); // TODO
+	void visit(const MinimizeVar& mnm) {
+		target() <<"Mnmvar " <<mnm.varID <<" 0\n";
 	}
 	void visit(const Symmetry&) {
 		throw idpexception("Not yet implemented."); // TODO

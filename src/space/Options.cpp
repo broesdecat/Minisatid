@@ -84,8 +84,8 @@ string SolverOption::getPrimesFile() const{
 }
 
 void SolverOption::print(std::ostream& so) const{
-//	so << "inference: " 		<<inference<<"\n"; // TODO
-//	so << "format: " 			<<format <<"\n"; // TODO
+//	so << "inference: " 		<<inference<<"\n"; TODO
+//	so << "format: " 			<<format <<"\n";
 	so << "verbosity: "			<<verbosity <<"\n";
 	so << "randomseed: "		<<randomseed <<"\n";
 	so << "nbmodels: " 			<<nbmodels <<"\n";
@@ -98,10 +98,9 @@ void SolverOption::print(std::ostream& so) const{
 	so << "tocnf: " 			<<tocnf <<"\n";
 	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
-	//so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";
 	so << "var_decay: " 		<<var_decay <<"\n";
-	//	so << "polarity: " 			<<polarity <<"\n";  // TODO
+//	so << "polarity: " 			<<polarity <<"\n";
 	so << "bumpaggonnotify: " 	<<bumpaggonnotify <<"\n";
 	so << "bumpidonstart: " 	<<bumpidonstart <<"\n";
 	so << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<"\n";

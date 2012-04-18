@@ -55,7 +55,6 @@ enum class Inference {
 
 // General options for all inferences
 class SolverOption {
-	//TODO prevent unauthorised access by getters and setters (e.g. primesfile should NEVER be accessed directly)
 public:
 	Inference inference;
 	InputFormat format;

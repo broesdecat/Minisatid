@@ -34,9 +34,10 @@ litlist getLiterals(const WLSet& set){
 }
 
 /**
- * TODO add support for constructs not present in Flatzinc
+ * Missing support for constructs not present in FlatZinc: TODO
  * 		minimum, maximum and product optimization
  * 		subset minimization support
+ * 		symmetries
  * 		count and alldiff (peter will have transformations for these)
  * 		recursively defined aggregates
  */
@@ -461,7 +462,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 	for (uint i = 0; i < set.wl.size(); ++i) {
 		auto weight = set.wl[i].getWeight();
 
-		if (weight == 1) { // FIXME ugly hack to prevent problems with the equivalence of the intvar with the maxvalue (preventing the bool var to become false)
+		if (weight == 1) { // TODO ugly hack to prevent problems with the equivalence of the intvar with the maxvalue (preventing the bool var to become false)
 			continue;
 		}
 
@@ -495,7 +496,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::finishParsing() {
+void FlatZincRewriter<Stream>::notifyEnd() {
 	state = SolverState::FINISHING;
 
 	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
@@ -523,6 +524,7 @@ void FlatZincRewriter<Stream>::finishParsing() {
 	} else {
 		getOutput() << "solve satisfy;\n";
 	}
+	getOutput().flush();
 }
 
 // ADDITION METHODS
@@ -697,7 +699,7 @@ void FlatZincRewriter<Stream>::visit(const WLSet& set) {
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const Symmetry&) {
-	throw idpexception("Symmetries are unsupported by flatzinc.\n"); // TODO maybe they are?
+	throw idpexception("Symmetries are unsupported by flatzinc.\n");
 }
 
 template<typename Stream>

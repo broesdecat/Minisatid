@@ -132,7 +132,11 @@ int main(int argc, char** argv) {
 					tp = TheoryPrinting::HUMAN;
 					break;
 				case OutputFormat::FODOT:
-					tp = TheoryPrinting::ECNF;
+					if(modes.tocnf){
+						tp = TheoryPrinting::CNF;
+					}else{
+						tp = TheoryPrinting::ECNF;
+					}
 					break;
 				default:
 					throw notYetImplemented("Cannot print the theory in ASP.\n");
@@ -177,11 +181,11 @@ int main(int argc, char** argv) {
 	} else if (d != NULL) {
 		if (d->getOptions().verbosity > 1) {
 			// TODO auto transform = Transform(d, TheoryPrinting::STATS, clog); // Is NOT a constraintvisitor, but a propagatorvisitor!
-			// TODO transform.execute();
+			// transform.execute();
 		}
 		delete (d);
 	}
-	if(not cleanexit){ // TODO there is some issue with aborting and afterwards deleting the data, should investigate this
+	if(not cleanexit){
 		exit(returnvalue);
 	}
 	return returnvalue;
@@ -289,13 +293,9 @@ void doModelGeneration(pwls d) {
 static void noMoreMem() {
 //Tries to reduce the memory of the solver by reducing the number of learned clauses
 //This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).
-	bool reducedmem = false;
-//TODO try to reduce solver clause base
-	if (!reducedmem) {
-		abortcode = SIGABRT;
-		clog << ">>> Signal handled: out of memory\n";
-		longjmp(main_loop, 1);
-	}
+	abortcode = SIGABRT;
+	clog << ">>> Signal handled: out of memory\n";
+	longjmp(main_loop, 1);
 }
 
 static void SIGFPE_handler(int) {

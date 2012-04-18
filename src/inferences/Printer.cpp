@@ -90,7 +90,7 @@ void Printer::addModel(Model * const model) {
 			}
 			getTranslator()->printHeader(output);
 		}
-		getTranslator()->printModel(output, *model); // TODO only prints literals known to the translator, gives strange results sometimes
+		getTranslator()->printModel(output, *model);
 	}
 	if (not optimizing) {
 		printNbModels(clog, modelmanager->getNbModelsFound(), modes.verbosity);

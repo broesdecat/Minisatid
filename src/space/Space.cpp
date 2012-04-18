@@ -51,6 +51,10 @@ void Space::addMonitor(PropAndBackMonitor* m) {
 	monitor->addMonitor(m);
 }
 
+void Space::notifyUnsat(){
+	engine->notifyUnsat();
+}
+
 bool Space::isCertainlyUnsat() const {
 	return engine->satState() == SATVAL::UNSAT;
 }
