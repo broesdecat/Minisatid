@@ -84,10 +84,11 @@ private:
 	std::set<ReverseTrailElem> savedrootlits;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
-	CRef reason(Var x) const;
 	void removeClause(CRef cr); // Detach and free a clause.
 	void checkedEnqueue(Lit p, CRef from = CRef_Undef); // Enqueue a literal if it is not already true
 public:
+	CRef reason(Var x) const;
+
 	bool isUnsat() const {
 		return not ok;
 	}
@@ -178,9 +179,7 @@ public:
 		throw MinisatID::idpexception("Invalid operation on propagator.");
 	}
 
-	bool isDecided(Var v) {
-		return var(trail[trail_lim[getLevel(v) - 1]]) == v;
-	}
+	bool isDecided(Var v);
 
 	int getLevel(Var x) const;
 

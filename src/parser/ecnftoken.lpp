@@ -82,6 +82,11 @@ WHITESPACE	[\t\r ]*
 <theory>"\n"	{charPos = 1; lineNo++; /*     */}
 
 <theory>"|"		{ADJ; return DELIM;}
+<theory>"["		{ADJ; return SYMMSTART;}
+<theory>"]"		{ADJ; return SYMMEND;}
+<theory>"("		{ADJ; return CYCLESTART;}
+<theory>")"		{ADJ; return CYCLEEND;}
+<theory>","		{ADJ; return SYMMDELIM;}
 
 <theory>^"INTVAR"	{ADJ; return INTVAR;}
 <theory>^"INTVARDOM" {ADJ; return INTVARDOM;}

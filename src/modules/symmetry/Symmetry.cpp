@@ -10,17 +10,30 @@
 #include "Symmetry.hpp"
 
 #include "satsolver/SATSolver.hpp" // TODO remove dependency (for querying clause info)
-
+#include "utils/Print.hpp"
 using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
-SymmetryData::SymmetryData(const Symmetry& symmetry): sym(symmetry){
-	for(auto i=sym.symmetry.cbegin(); i!=sym.symmetry.cend(); ++i){
-		if(i->first!=i->second){
-			continue;
+SymmetryData::SymmetryData(const Symmetry& symmetry) {
+	for (auto cycle = symmetry.symmetry.cbegin(); cycle != symmetry.symmetry.cend(); ++cycle) {
+		MAssert((*cycle).size()>1);
+		Lit previousLit;
+		Lit firstLit;
+		bool first = true;
+		for (auto currentLit = cycle->cbegin(); currentLit != cycle->cend(); ++currentLit) {
+			if (first) {
+				firstLit = *currentLit;
+				previousLit = firstLit;
+				first = false;
+			} else {
+				sym[previousLit] = *currentLit;
+				inverse[*currentLit] = previousLit;
+				previousLit = *currentLit;
+			}
 		}
-		inverse.symmetry[i->second] = i->first;
+		sym[previousLit] = firstLit;
+		inverse[firstLit] = previousLit;
 	}
 }
 
@@ -30,10 +43,10 @@ SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
 	reasonOfPermInactive = lit_Undef;
 	nextToPropagate = 0;
 
-	for(auto i=symmetry.getSymmetryMap().cbegin(); i!=symmetry.getSymmetryMap().cend(); ++i){
+	for (auto i = symmetry.getSymmetryMap().cbegin(); i != symmetry.getSymmetryMap().cend(); ++i) {
 		getPCSolver().accept(this, i->first, PRIORITY::FAST);
 
-		if(useVarOrderOptimization() && i->first==(not i->second)){ // phase-changing optimization
+		if (useVarOrderOptimization() && i->first == (not i->second)) { // phase-changing optimization
 			getPCSolver().varReduceActivity(var(i->first));
 		}
 	}
@@ -45,20 +58,20 @@ SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
 
 void SymmetryPropagator::print() {
 	// TODO print
-/*	printf("Symmetry: %i - neededForActive: %i\n", getId(), amountNeededForActive);
-	for (int i = 0; i < sym.size(); ++i) {
-		if (sym[i] != toLit(i)) {
-			printf("%i->%i | ", i, toInt(sym[i]));
-		}
-	}
-	printf("\n notifiedLits: ");
-	for (int i = 0; i < notifiedLits.size(); ++i) {
-		printf("%i:", toInt(notifiedLits[i]));
-		getPCSolver().testPrintValue(notifiedLits[i]);
-		printf(" | ");
-	}
-	printf("\n");
-	printf("amountNeededForActive: %i | firstNotPropagated: %i\n", amountNeededForActive, nextToPropagate);*/
+	/*	printf("Symmetry: %i - neededForActive: %i\n", getId(), amountNeededForActive);
+	 for (int i = 0; i < sym.size(); ++i) {
+	 if (sym[i] != toLit(i)) {
+	 printf("%i->%i | ", i, toInt(sym[i]));
+	 }
+	 }
+	 printf("\n notifiedLits: ");
+	 for (int i = 0; i < notifiedLits.size(); ++i) {
+	 printf("%i:", toInt(notifiedLits[i]));
+	 getPCSolver().testPrintValue(notifiedLits[i]);
+	 printf(" | ");
+	 }
+	 printf("\n");
+	 printf("amountNeededForActive: %i | firstNotPropagated: %i\n", amountNeededForActive, nextToPropagate);*/
 }
 
 #define getLit(clause, nb) (getPCSolver().getClauseLit(clause, nb))
@@ -79,7 +92,7 @@ bool SymmetryPropagator::getSymmetricalClause(std::vector<Lit>& in_clause, std::
 void SymmetryPropagator::getSymmetricalClause(const rClause& in_clause, std::vector<Lit>& out_clause) {
 	auto insize = getPCSolver().getClauseSize(in_clause);
 	out_clause.clear();
-	for (int i = insize-1; i >= 0; --i) {
+	for (int i = insize - 1; i >= 0; --i) {
 		out_clause.push_back(getSymmetrical(getLit(in_clause, i)));
 	}
 }
@@ -95,6 +108,7 @@ void SymmetryPropagator::getSortedSymmetricalClause(const rClause& in_clause, st
 	int first = 0;
 	int second = 1;
 	out_clause.clear();
+
 	out_clause.push_back(getSymmetrical(getLit(in_clause, 0)));
 	for (int i = 1; i < insize; ++i) {
 		out_clause.push_back(getSymmetrical(getLit(in_clause, i)));
@@ -128,7 +142,8 @@ Lit SymmetryPropagator::getNextToPropagate() {
 	if (!isActive() && not useInactivePropagationOptimization()) {
 		return lit_Undef;
 	}
-	while (nextToPropagate < notifiedLits.size() && (getPCSolver().isDecided(var(notifiedLits[nextToPropagate])) || value(getSymmetrical(notifiedLits[nextToPropagate])) == l_True)) {
+	while (nextToPropagate < notifiedLits.size()
+			&& (getPCSolver().isDecided(var(notifiedLits[nextToPropagate])) || value(getSymmetrical(notifiedLits[nextToPropagate])) == l_True)) {
 		++nextToPropagate;
 	}
 	if (nextToPropagate == notifiedLits.size()) {
@@ -174,33 +189,35 @@ bool SymmetryPropagator::canPropagate(Lit l) {
 	return true;
 }
 
-rClause SymmetryPropagator::notifypropagate(){
-	while(hasNextProp()){
+rClause SymmetryPropagator::notifypropagate() {
+	while (hasNextProp()) {
 		auto p = getNextProp();
-		notifyEnqueued(p);
+		if (getSymmetrical(p) != p) {
+			notifyEnqueued(p);
+		}
 	}
 	auto confl = nullPtrClause;
 	// weakly active symmetry propagation: the condition qhead==trail.size() makes sure symmetry propagation is executed after unit propagation
 	Lit orig = lit_Undef;
-	if(isActive()){
+	if (isActive()) {
 		orig = getNextToPropagate();
-		if(orig!=lit_Undef){
+		if (orig != lit_Undef) {
 			confl = propagateSymmetrical(orig);
 		}
-	}//else{
-		//if(useInactivePropagationOptimization()){
-		//	inactiveSyms.push(sym);
-		//}
-	//}
-	// TODO in fact, want to only propagate active symmetries first (which is cheap) and possibly later check the inactive ones too
-	// Should implement as dynamic priority change of propagator
-	//for( int i=inactiveSyms.size()-1; useInactivePropagationOptimization() && qhead==trail.size() && confl==CRef_Undef && i>=0; --i){
-	//	Symmetry* sym = inactiveSyms[i];
-	//	Lit orig = sym->getNextToPropagate();
-	//	if(orig!=lit_Undef){
-	//		confl = propagateSymmetrical(sym,orig);
-	//	}
-	//}
+	} //else{
+	  //if(useInactivePropagationOptimization()){
+	  //	inactiveSyms.push(sym);
+	  //}
+	  //}
+	  // TODO in fact, want to only propagate active symmetries first (which is cheap) and possibly later check the inactive ones too
+	  // Should implement as dynamic priority change of propagator
+	  //for( int i=inactiveSyms.size()-1; useInactivePropagationOptimization() && qhead==trail.size() && confl==CRef_Undef && i>=0; --i){
+	  //	Symmetry* sym = inactiveSyms[i];
+	  //	Lit orig = sym->getNextToPropagate();
+	  //	if(orig!=lit_Undef){
+	  //		confl = propagateSymmetrical(sym,orig);
+	  //	}
+	  //}
 	return confl;
 }
 
@@ -214,6 +231,7 @@ void SymmetryPropagator::notifyEnqueued(const Lit& l) {
 	}
 	auto inverse = getInverse(l);
 	auto symmetrical = getSymmetrical(l);
+
 	if (getPCSolver().isDecided(var(inverse))) {
 		if (value(inverse) == l_True) { //invar: value(l)==l_True
 			--amountNeededForActive;
@@ -233,7 +251,7 @@ void SymmetryPropagator::notifyEnqueued(const Lit& l) {
 }
 
 // Store activity and number of needed literals
-void SymmetryPropagator::notifyNewDecisionLevel(){
+void SymmetryPropagator::notifyNewDecisionLevel() {
 	activityTrail.push_back(reasonOfPermInactive);
 	amountNeededTrail.push_back(amountNeededForActive);
 	notifiedLitTrail.push_back(notifiedLits);
@@ -243,11 +261,11 @@ void SymmetryPropagator::notifyNewDecisionLevel(){
 void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit&) {
 	nextToPropagate = 0;
 	reasonOfPermInactive = activityTrail[untillevel];
-	activityTrail.resize(untillevel+1);
+	activityTrail.resize(untillevel + 1);
 	amountNeededForActive = amountNeededTrail[untillevel];
-	amountNeededTrail.resize(untillevel+1);
+	amountNeededTrail.resize(untillevel + 1);
 	notifiedLits = notifiedLitTrail[untillevel];
-	notifiedLitTrail.resize(untillevel+1);
+	notifiedLitTrail.resize(untillevel + 1);
 }
 
 bool SymmetryPropagator::isActive() {
@@ -290,32 +308,38 @@ bool SymmetryPropagator::testIsPermanentlyInactive(const std::vector<Lit>& trail
 	return false;
 }
 
-rClause SymmetryPropagator::propagateSymmetrical(const Lit& l){
+rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
+	MAssert(isActive());
 	MAssert(value(getSymmetrical(l))!=l_True);
 
 	Disjunction implic;
-	if(getPCSolver().getLevel(var(l))==0){
+	if (getPCSolver().getLevel(var(l)) == 0) {
 		implic.literals.push_back(getSymmetrical(l));
 		implic.literals.push_back(~l);
-	}else{
+	} else {
 		auto reason = getPCSolver().getExplanation(l);
 		MAssert(reason!=CRef_Undef);
 		getSortedSymmetricalClause(reason, implic.literals);
 	}
 	auto symlit = implic.literals[0];
 	auto neglit = implic.literals[1];
+
+	auto level = getPCSolver().getLevel(var(neglit));
+	if (getPCSolver().getCurrentDecisionLevel() > level) {
+		getPCSolver().backtrackTo(level); // TODO check: Backtrack verplicht om de watches op het juiste moment op de clause te zetten
+	}
 	MAssert(value(symlit)!=l_True);
 	MAssert(value(neglit)==l_False);
 
 	auto clause = getPCSolver().createClause(implic, true);
-	if(value(symlit)==l_Undef){
-		if(addPropagationClauses()){
+	if (value(symlit) == l_Undef) {
+		if (addPropagationClauses()) {
 			getPCSolver().addLearnedClause(clause);
 		}
-		getPCSolver().setTrue(symlit,this, clause);
-	}else{
+		getPCSolver().setTrue(symlit, this, clause);
+	} else {
 		MAssert(value(symlit)==l_False);
-		if(addConflictClauses()){
+		if (addConflictClauses()) {
 			getPCSolver().addLearnedClause(clause);
 		}
 		return clause;
@@ -323,54 +347,53 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l){
 	return nullPtrClause;
 }
 
-void SymmetryPropagator::testSymmetry(){
+bool SymmetryPropagator::testSymmetry() {
 	auto nbclauses = getPCSolver().getSATSolver()->nbClauses();
-	for(int i=0; i<nbclauses; ++i){
+	for (int i = 0; i < nbclauses; ++i) {
 		auto cref = getPCSolver().getSATSolver()->getClause(i);
 		std::set<Lit> orig_set;
 		std::set<Lit> sym_set;
-		for(int j=0; j<getPCSolver().getClauseSize(cref);++j){
+		for (int j = 0; j < getPCSolver().getClauseSize(cref); ++j) {
 			auto lit = getPCSolver().getClauseLit(cref, j);
 			orig_set.insert(lit);
 			sym_set.insert(getSymmetrical(lit));
 		}
-		bool hasSymmetrical = sym_set==orig_set;
-		for(int j=0; !hasSymmetrical && j<nbclauses; ++j){
+		bool hasSymmetrical = sym_set == orig_set;
+		for (int j = 0; !hasSymmetrical && j < nbclauses; ++j) {
 			auto symmcref = getPCSolver().getSATSolver()->getClause(j);
 			sym_set.clear();
-			if(getPCSolver().getClauseSize(cref)==getPCSolver().getClauseSize(symmcref)){
-				for(int k=0; k<getPCSolver().getClauseSize(cref); ++k){
+			if (getPCSolver().getClauseSize(cref) == getPCSolver().getClauseSize(symmcref)) {
+				for (int k = 0; k < getPCSolver().getClauseSize(cref); ++k) {
 					sym_set.insert(getInverse(getPCSolver().getClauseLit(symmcref, k)));
 				}
-				hasSymmetrical = sym_set==orig_set;
+				hasSymmetrical = sym_set == orig_set;
 			}
-		}
-		MAssert(hasSymmetrical);
+		}MAssert(hasSymmetrical);
 	}
+	return true;
 }
 
-void SymmetryPropagator::testActivityForSymmetries(){
+void SymmetryPropagator::testActivityForSymmetries() {
 	const auto& trail = getPCSolver().getTrail();
-	if(isPermanentlyInactive()!=testIsPermanentlyInactive(trail) ){
+	if (isPermanentlyInactive() != testIsPermanentlyInactive(trail)) {
 		printf("ERROR: not sure if a symmetry is permanently inactive...\n");
-		printf("symmetry says: %i - ",isPermanentlyInactive() );
-		printf("test says: %i\n",testIsPermanentlyInactive(trail) );
+		printf("symmetry says: %i - ", isPermanentlyInactive());
+		printf("test says: %i\n", testIsPermanentlyInactive(trail));
 		print();
 		// TODO printtrail
 		MAssert(false);
 	}
-	if(isActive()!=testIsActive(trail) ){
+	if (isActive() != testIsActive(trail)) {
 		printf("ERROR: not sure if a symmetry is active...\n");
-		printf("symmetry says: %i - ",isActive() );
-		printf("test says: %i\n",testIsActive(trail) );
+		printf("symmetry says: %i - ", isActive());
+		printf("test says: %i\n", testIsActive(trail));
 		print();
-		for(uint j=0; j<trail.size(); ++j){
-			printf("%i | %i | %i\n",getPCSolver().getLevel(var(trail[j])),toInt(trail[j]),getPCSolver().isDecided(var(trail[j])));
+		for (uint j = 0; j < trail.size(); ++j) {
+			printf("%i | %i | %i\n", getPCSolver().getLevel(var(trail[j])), toInt(trail[j]), getPCSolver().isDecided(var(trail[j])));
 		}
 		MAssert(false);
 	}
 }
-
 
 // Symmetry is a commented line with cycles.
 // The line starts with "c", followed by a blank, followed by the permutation cycles comprised of literals, followed by a blank followed by a zero.

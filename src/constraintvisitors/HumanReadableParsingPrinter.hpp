@@ -104,12 +104,16 @@ public:
 	void visit(const Symmetry& symm){
 		target() <<"Added symmetry:\n\t";
 		bool begin = true;
-		for(auto i=symm.symmetry.cbegin(); i!=symm.symmetry.cend(); ++i){
-			if(not begin){
-				target() <<", ";
+		for(auto i=symm.symmetry.cbegin(); i<symm.symmetry.cend(); ++i){
+			target() <<"[";
+			for(auto j=i->cbegin(); j<i->cend(); ++j){
+				if(not begin){
+					target() <<", ";
+				}
+				begin = false;
+				target() <<toString(*j, getPrinter());
 			}
-			begin = false;
-			target() <<toString((*i).first, getPrinter()) <<"->" <<toString((*i).second, getPrinter());
+			target() <<"]";
 		}
 		target() <<"\n";
 	}

@@ -452,21 +452,19 @@ struct CPElement: public ID {
 class Symmetry: public ID {
 public:
 	// INVAR: the keys are unique
-	std::map<Lit, Lit> symmetry;
+	std::vector<std::vector<Literal> > symmetry;
+	Symmetry(std::vector<std::vector<Literal> > s) : symmetry(s){
 
-	Symmetry() {
-	}
-	Symmetry(const std::map<Lit, Lit>& symmetry)
-			: symmetry(symmetry) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
 		std::vector<Atom> atoms;
-		for (auto i = symmetry.cbegin(); i != symmetry.cend(); ++i) {
-			atoms.push_back(var(i->first));
-			atoms.push_back(var(i->second));
+		for (auto i = symmetry.cbegin(); i < symmetry.cend(); ++i) {
+			for (auto j = i->cbegin(); j < i->cend(); ++j) {
+				atoms.push_back(var(*j));
+			}
 		}
 		return atoms;
 	}
