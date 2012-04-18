@@ -266,7 +266,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 
 	tempagglist aggs;
 	AggBound bound(AggSign::UB, Weight(0));
-	aggs.push_back(new TempAgg(mkNegLit(head), bound, AggSem::IMPLICATION, formula.type));
+	aggs.push_back(new TempAgg(mkNegLit(head), bound, AggSem::OR, formula.type));
 	finishSet(set, aggs, true, formula.priority);
 }
 

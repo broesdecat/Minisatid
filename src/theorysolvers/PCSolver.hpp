@@ -210,6 +210,8 @@ public:
 	Lit getClauseLit(rClause cr, int i) const;
 
 	// State saving
+private:
+	bool saved;
 public:
 	void saveState();
 	void resetState();

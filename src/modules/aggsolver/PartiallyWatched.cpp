@@ -46,7 +46,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	AggSign sign = getAgg()[0]->getSign();
 	for(auto i=getAgg().cbegin(); i<getAgg().cend(); ++i) {
 		MAssert((*i)->getSign()==sign);
-		MAssert((*i)->getSem()==AggSem::IMPLICATION);
+		MAssert((*i)->getSem()==AggSem::OR);
 	}
 #endif
 
@@ -110,7 +110,7 @@ void GenPWAgg::propagate(const Lit&, Watch* ws, int) {
 
 void GenPWAgg::backtrack(int untillevel) {
 	proplist.clear();
-	// FIXME only reconstruct when necessary!!!
+	// FIXME only reconstruct when necessary!!!: when more propagations would ensue than last time and backtracking occurs over that, only then reconstruct
 	bool propagations = false;
 	auto confl = reconstructSet(propagations, NULL, false);
 	MAssert(confl==nullPtrClause);

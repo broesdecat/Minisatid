@@ -42,6 +42,7 @@ SolverOption::SolverOption():
 		aggclausesaving(2),
 		selectOneFromUFS(false),
 		tocnf(false),
+		splitagg(false),
 		watchesratio(0.75),
 		primesfile(""),
 		rand_var_freq(getDefaultRandfreq()),
@@ -96,6 +97,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "double check cycles: "	<<checkcyclefreeness <<"\n";
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
 	so << "tocnf: " 			<<tocnf <<"\n";
+	so << "splitagg: " 			<<splitagg <<"\n";
 	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";

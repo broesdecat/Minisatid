@@ -35,7 +35,7 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 #ifdef CPSUPPORT
 				cpsolver(NULL),
 #endif
-				factory(NULL), trail(new TimeTrail()), terminate(false), printer(printer), queue(NULL) {
+				factory(NULL), trail(new TimeTrail()), terminate(false), saved(false), printer(printer), queue(NULL) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -409,13 +409,18 @@ bool PCSolver::isDecided(Var var) {
 }
 
 void PCSolver::saveState() {
+	saved = true;
 	getEventQueue().saveState();
 	getSolver().saveState();
 }
 
 void PCSolver::resetState() {
-	getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
-	getEventQueue().resetState();
+	if(saved){
+		getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
+								// So NEVER make the searchengine "EV_STATEFUL"!
+		getEventQueue().resetState();
+	}
+	saved = false;
 }
 
 // PRINT METHODS

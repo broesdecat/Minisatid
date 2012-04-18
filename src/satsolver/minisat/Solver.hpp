@@ -100,7 +100,6 @@ public:
 private:
 	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
 	bool addClause_(vec<Lit>& ps);
-	bool saved;
 public:
 	void saveState();
 	void resetState();

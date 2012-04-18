@@ -44,7 +44,9 @@ void EventQueue::saveState(){
 	newpropagators.clear();
 	auto props = event2propagator.at(EV_STATEFUL);
 	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
-		props[i]->saveState();
+		if(props[i]->isPresent()){
+			props[i]->saveState();
+		}
 	}
 }
 void EventQueue::resetState(){
@@ -55,7 +57,9 @@ void EventQueue::resetState(){
 	savingstate = false;
 	auto props = event2propagator.at(EV_STATEFUL);
 	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
-		props[i]->resetState();
+		if(props[i]->isPresent()){
+			props[i]->resetState();
+		}
 	}
 }
 

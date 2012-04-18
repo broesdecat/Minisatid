@@ -54,7 +54,7 @@ void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
 		case AggSem::COMP:
 			clog <<"<=> ";
 			break;
-		case AggSem::IMPLICATION:
+		case AggSem::OR:
 			clog <<"| ";
 			break;
 	}

@@ -201,7 +201,7 @@ rClause TypedSet::notifyFullAssignmentFound() {
 				MinisatID::print(10, **j, true);
 			}
 			auto headval = value((*j)->getHead());
-			if((*j)->getSem()==AggSem::IMPLICATION) {
+			if((*j)->getSem()==AggSem::OR) {
 				MAssert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
 			} else {
 				MAssert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));

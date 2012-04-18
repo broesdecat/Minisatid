@@ -74,7 +74,7 @@ public:
 		case AggSem::COMP:
 			target() <<"C";
 			break;
-		case AggSem::IMPLICATION:
+		case AggSem::OR:
 			target() <<"I";
 			break;
 		}

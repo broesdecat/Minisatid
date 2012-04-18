@@ -70,6 +70,7 @@ public:
 	int idclausesaving, aggclausesaving;
 	bool selectOneFromUFS;
 	bool tocnf;
+	bool splitagg;
 	double watchesratio;
 	std::string primesfile;
 	double rand_var_freq, var_decay;

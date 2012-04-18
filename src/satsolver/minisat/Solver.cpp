@@ -65,7 +65,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 Solver::Solver(PCSolver* s, bool oneshot) :
 		Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()), var_decay(
 				opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), needsimplify(true), backtracked(
-				true),saved(false),
+				true),
 
 		clause_decay(opt_clause_decay), luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_init_act(
 				opt_rnd_init_act), garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
@@ -442,8 +442,8 @@ void Solver::detachClause(CRef cr, bool strict) {
 }
 
 // Store the entailed literals and save all new clauses, both in learnts and clauses
+// NOTE: never call directly from within!
 void Solver::saveState() {
-	saved = true;
 	// Reset stored info
 	if (trail_lim.size() > 0) {
 		roottraillim = trail_lim[0];
@@ -472,9 +472,8 @@ void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
 }
 
 // Reset always backtracks to 0 if there are new entailed literals
+// NOTE: never call directly from within!
 void Solver::resetState() {
-	MAssert(saved);
-	saved = false;
 	if (verbosity > 3) {
 		clog << ">>> Resetting the state.\n";
 	}
@@ -1273,7 +1272,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 		MAssert(not assumpset);
 	}
 	if (not oneshot && assumpset) {
-		resetState();
+		getPCSolver().resetState();
 	}
 	cancelUntil(0);
 	assumptions.clear();
@@ -1284,7 +1283,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 	}
 	//clog <<"\n";
 	if (not oneshot) {
-		saveState();
+		getPCSolver().saveState();
 	}
 	assumpset = true;
 }
@@ -1292,7 +1291,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve(bool nosearch) {
 	if (not assumpset) {
-		saveState(); // NOTE: to assure that the state has been saved exactly once
+		getPCSolver().saveState(); // NOTE: to assure that the state has been saved exactly once
 	}
 	assumpset = true;
 

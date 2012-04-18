@@ -21,12 +21,8 @@
 using namespace std;
 using namespace MinisatID;
 
-typedef Agg* pagg;
-typedef Watch* pw;
-
 FWAgg::FWAgg(TypedSet* set) :
 		AggPropagator(set) {
-
 }
 
 void FWAgg::initialize(bool& unsat, bool& sat) {
@@ -39,7 +35,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 
 	int counter = 0;
 	for (auto i = getSet().getAggNonConst().cbegin(); !unsat && i < getSet().getAggNonConst().cend();) {
-		pagg agg = (*i);
+		auto agg = (*i);
 		if (not agg->isOptim()) {
 			lbool result = initialize(*agg);
 			if (result == l_True) {
@@ -83,7 +79,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 lbool FWAgg::initialize(const Agg& agg) {
 	rClause confl = nullPtrClause;
 
-	lbool hv = canPropagateHead(agg, getCC(), getCP());
+	auto hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;
 	if (hv != l_Undef) {
 		alwaystrue = true;
@@ -203,15 +199,23 @@ rClause FWAgg::propagateAtEndOfQueue() {
 	for (auto i = fwobj.headindex.cbegin(); confl == nullPtrClause && i < fwobj.headindex.cend(); ++i) {
 		auto agg = getSet().getAgg()[*i];
 		MAssert(agg->getSet()->getAgg()[agg->getIndex()]==agg && *i == agg->getIndex());
-		lbool headval = value(agg->getHead());
+		auto headval = value(agg->getHead());
 		MAssert(headval!=l_Undef);
-		confl = propagateSpecificAtEnd(*agg, headval == l_True);
+		bool requiredaggvalue = headval==l_True;
+		if(agg->getSem()==AggSem::OR){
+			if(headval==l_True){
+				continue;
+			}else{
+				requiredaggvalue = true;
+			}
+		}
+		confl = propagateSpecificAtEnd(*agg, requiredaggvalue);
 	}
 
 	if (changedcc || changedcp) {
 		//TODO find aggregate with most stringent bound and only propagate that one!
 		for (auto i = getSet().getAgg().cbegin(); confl == nullPtrClause && i < getSet().getAgg().cend(); ++i) {
-			const Agg& pa = **i;
+			const auto& pa = **i;
 
 			if (getSet().verbosity() >= 6) {
 				clog << "Propagating into aggr: ";
@@ -219,27 +223,37 @@ rClause FWAgg::propagateAtEndOfQueue() {
 				clog << ", CC = " << getCC() << ", CP = " << getCP() << "\n";
 			}
 
-			lbool hv = value(pa.getHead());
+			auto headval = value(pa.getHead());
+			auto requiredaggvalue = headval;
+			if(pa.getSem()==AggSem::OR){
+				if(headval==l_True){
+					requiredaggvalue = l_Undef;
+				}else if(headval==l_False){
+					requiredaggvalue = l_True;
+				}
+			}
 
 			//TODO ugly
-			if (hv == l_True && pa.getSign() == AggSign::LB && !changedcp) {
+			if (requiredaggvalue == l_True && pa.getSign() == AggSign::LB && !changedcp) {
 				continue;
 			}
-			if (hv == l_True && pa.getSign() == AggSign::UB && !changedcc) {
+			if (requiredaggvalue == l_True && pa.getSign() == AggSign::UB && !changedcc) {
 				continue;
 			}
-			if (hv == l_False && pa.getSign() == AggSign::LB && !changedcc) {
+			if (requiredaggvalue == l_False && pa.getSign() == AggSign::LB && !changedcc) {
 				continue;
 			}
-			if (hv == l_False && pa.getSign() == AggSign::UB && !changedcp) {
+			if (requiredaggvalue == l_False && pa.getSign() == AggSign::UB && !changedcp) {
 				continue;
 			}
 
-			lbool result = canPropagateHead(pa, getCC(), getCP());
-			if (hv != l_Undef) {
+			auto result = canPropagateHead(pa, getCC(), getCP());
+			if (requiredaggvalue != l_Undef) {
 				if (result == l_Undef) {
-					confl = propagateSpecificAtEnd(pa, hv == l_True);
-				} else if (hv != result) {
+					confl = propagateSpecificAtEnd(pa, requiredaggvalue == l_True);
+				} else if (pa.getSem()!=AggSem::OR && requiredaggvalue != result) { // FIXME check why duplication necessary!
+					confl = getSet().notifySolver(new HeadReason(pa, result == l_True ? pa.getHead() : not pa.getHead()));
+				}  else if (pa.getSem()==AggSem::OR && requiredaggvalue == result) {
 					confl = getSet().notifySolver(new HeadReason(pa, result == l_True ? pa.getHead() : not pa.getHead()));
 				}
 			} else if (result != l_Undef) {
@@ -256,10 +270,10 @@ lbool MinisatID::canPropagateHead(const Agg& agg, const Weight& CC, const Weight
 	//	return headvalue[agg.getIndex()];
 	//}
 
-	lbool result = l_Undef;
+	auto result = l_Undef;
 
 	//add if derived: headproptime[agg.getIndex()] = getStack().size();
-	const Weight& b = agg.getCertainBound();
+	auto b = agg.getCertainBound();
 	if (agg.hasUB()) {
 		if (CC > b) {
 			result = l_False;
@@ -271,6 +285,14 @@ lbool MinisatID::canPropagateHead(const Agg& agg, const Weight& CC, const Weight
 			result = l_True;
 		} else if (CP < b) {
 			result = l_False;
+		}
+	}
+
+	if(agg.getSem()==AggSem::OR){
+		if(result==l_True){
+			result = l_Undef;
+		}else if(result==l_False){
+			result = l_True;
 		}
 	}
 
@@ -329,15 +351,23 @@ bool comparePropagationInfoByWeights(const PropagationInfo& one, const Propagati
 	return one.getWeight() < two.getWeight();
 }
 void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
-	const Agg& agg = ar.getAgg();
-	const Lit& head = agg.getHead();
+	auto agg = ar.getAgg();
+	auto head = agg.getHead();
 
-	bool caseone = false;
+	bool requiredaggvalue = false;
 	if (ar.isHeadReason()) {
-		caseone = head != ar.getPropLit(); // NOTE: check the REQUESTED head value, not its real value
+		requiredaggvalue = head != ar.getPropLit(); // NOTE: check the REQUESTED head value, not its real value
+		if(agg.getSem()==AggSem::OR){
+			requiredaggvalue = not requiredaggvalue;
+		}
 	} else {
-		caseone = value(head) == l_True;
+		requiredaggvalue = value(head) == l_True;
+		if(agg.getSem()==AggSem::OR){
+			requiredaggvalue = value(head) == l_False;
+		}
 	}
+
+	auto caseone = requiredaggvalue;
 
 	Weight min, max;
 	min = getSet().getType().getMinPossible(getSet());
@@ -499,15 +529,15 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
 rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	//if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return nullPtrClause; }
 
-	rClause confl = nullPtrClause;
+	auto confl = nullPtrClause;
 	if (headtrue && agg.hasUB()) {
-		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin();
-				confl == nullPtrClause && i < getSet().getWL().rend() && agg.getCertainBound() < i->getWeight(); ++i) {
+		for (auto i = getSet().getWL().rbegin(); confl == nullPtrClause && i < getSet().getWL().rend() && agg.getCertainBound() < i->getWeight();
+				++i) {
 			confl = getSet().notifySolver(new SetLitReason(agg, i->getLit(), i->getWeight(), false));
 		}
 	} else if (!headtrue && agg.hasLB()) {
-		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin();
-				confl == nullPtrClause && i < getSet().getWL().rend() && agg.getCertainBound() <= i->getWeight(); ++i) {
+		for (auto i = getSet().getWL().rbegin(); confl == nullPtrClause && i < getSet().getWL().rend() && agg.getCertainBound() <= i->getWeight();
+				++i) {
 			confl = getSet().notifySolver(new SetLitReason(agg, i->getLit(), i->getWeight(), false));
 		}
 	}
@@ -571,11 +601,11 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 }
 
 void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
-	const Agg& agg = ar.getAgg();
-	const Lit& head = agg.getHead();
+	auto agg = ar.getAgg();
+	auto head = agg.getHead();
 
 	bool search = true, one, inset = false;
-	Weight bound = agg.getCertainBound();
+	auto bound = agg.getCertainBound();
 	if (not ar.isHeadReason()) {
 		lits.push_back(value(head) == l_True ? ~head : head);
 		if (value(head) == l_True) {
@@ -595,7 +625,11 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 			}
 		}
 	} else {
-		if (not sign(ar.getPropLit())) { // NOTE: check the REQUESTED head value, not the real value!
+		auto reqhead = not sign(ar.getPropLit());
+		if(agg.getSem()==AggSem::OR){
+			reqhead = not reqhead;
+		}
+		if (reqhead) { // NOTE: check the REQUESTED head value, not the real value!
 			if (agg.hasLB()) {
 				//find one larger or eq and inset
 				one = true;
@@ -745,15 +779,15 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	//=> add a check that does not do propagations if the derived weight bound is the same
 	//=> add a check that if only cp or cc is adapted, only aggs with such bound are checked!
 
-/*#ifdef DEBUG
-	bool allknown = true;
-	for (auto u = wls.cbegin(); allknown && u < wls.cend(); ++u) {
-		if((*u).getWeight()>=weightbound && value((*u).getLit())==l_Undef) {
-			allknown = false;
-		}
-	}
-	MAssert(c!=nullPtrClause || allknown);
-#endif*/
+	/*#ifdef DEBUG
+	 bool allknown = true;
+	 for (auto u = wls.cbegin(); allknown && u < wls.cend(); ++u) {
+	 if((*u).getWeight()>=weightbound && value((*u).getLit())==l_Undef) {
+	 allknown = false;
+	 }
+	 }
+	 MAssert(c!=nullPtrClause || allknown);
+	 #endif*/
 
 	return c;
 }
@@ -784,7 +818,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 	//Calculate the total negative weight to make all weights positive
 	vwl wlits2;
 	auto kb = getSet().getKnownBound();
-	Weight totalneg(kb<0?kb:0);
+	Weight totalneg(kb < 0 ? kb : 0);
 	for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
 		if (i->getWeight() < 0) {
 			totalneg -= i->getWeight();

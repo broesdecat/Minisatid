@@ -36,7 +36,7 @@ enum class AggSign {
 };
 // Sign of the bound of the aggregate
 enum class AggSem {
-	COMP, DEF, IMPLICATION
+	COMP, DEF, OR
 };
 // Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
