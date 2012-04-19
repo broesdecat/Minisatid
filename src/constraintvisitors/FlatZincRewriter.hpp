@@ -60,7 +60,6 @@ private:
 	std::vector<MinimizeVar> 			savedvar; // To be added AFTER initialization
 	std::vector<MinimizeAgg>			savedagg; // To be added AFTER initialization
 	std::vector<MinimizeOrderedList> 	savedlistmnmz; // To be added AFTER initialization
-	std::vector<MinimizeSubset> 		savedsubsetmnmz; // To be added AFTER initialization
 
 	std::vector<Aggregate> savedaggs;
 	std::vector<BinRel> savedbinrels;
@@ -94,17 +93,14 @@ public:
 	virtual void visit(const WLSet&);
 	virtual void visit(const Aggregate&);
 	virtual void visit(const MinimizeOrderedList&);
-	virtual void visit(const MinimizeSubset&);
 	virtual void visit(const MinimizeVar&);
 	virtual void visit(const MinimizeAgg&);
-	virtual void visit(const Symmetry&);
 	virtual void visit(const IntVarEnum&);
 	virtual void visit(const IntVarRange&);
-	virtual void visit(const CPAllDiff&);
 	virtual void visit(const CPBinaryRel&);
-	virtual void visit(const CPCount&);
 	virtual void visit(const CPBinaryRelVar&);
 	virtual void visit(const CPSumWeighted&);
+	// TODO additional constraints
 
 	virtual void notifyStart() {}
 	virtual void notifyEnd();

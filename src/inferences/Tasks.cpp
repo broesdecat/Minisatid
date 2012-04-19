@@ -90,6 +90,10 @@ bool ModelExpand::isUnsat() const {
 	return _solutions->isUnsat();
 }
 
+litlist ModelExpand::getUnsatExplanation() const{
+	return getSolver().getUnsatExplanation();
+}
+
 void ModelExpand::notifySolvingAborted() {
 	printer->notifySolvingAborted();
 }
@@ -424,8 +428,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			add(Disjunction( { latestlistoptimum }), getSolver());
 			break;
 		case Optim::SUBSET: {
-			WLSet set;
-			set.setID = getSolver().newSetID();
+			WLSet set(getSolver().newSetID());
 			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
 				set.wl.push_back( { *i, 1 });
 			}

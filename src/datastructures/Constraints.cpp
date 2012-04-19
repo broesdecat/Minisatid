@@ -107,8 +107,7 @@ class ExtAdd<Rule, Engine> {
 template<typename Engine>
 class ExtAdd<WLSet, Engine> {
 	void extAdd(ConstraintAdditionInterface<Engine>& space, const WLSet& obj) {
-		WLSet set;
-		set.setID = obj.setID;
+		WLSet set(obj.setID);
 		for (auto i = obj.wl.cbegin(); i < obj.wl.cend(); ++i) {
 			set.wl.push_back(WLtuple(checkLit((*i).l, space.getRemapper()), (*i).w));
 		}

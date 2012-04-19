@@ -66,46 +66,6 @@ public:
 		}
 		target() << "[color=green];\n";
 	}
-
-	void visit(const Aggregate&) {
-		throw notYetImplemented("Printing ecnfgraph of reified aggregate.");
-	}
-	void visit(const MinimizeOrderedList&) {
-		throw notYetImplemented("Printing ecnfgraph of minimize ordered list.");
-	}
-	void visit(const MinimizeSubset&) {
-		throw notYetImplemented("Printing ecnfgraph of minimize subset.");
-	}
-	void visit(const MinimizeAgg&) {
-		throw notYetImplemented("Printing ecnfgraph of minimize aggregate.");
-	}
-	void visit(const MinimizeVar&) {
-		throw notYetImplemented("Printing ecnfgraph of minimize variable.");
-	}
-	void visit(const Symmetry&) {
-		throw notYetImplemented("Printing ecnfgraph of symmetrye.");
-	}
-	void visit(const IntVarRange&) {
-		throw notYetImplemented("Printing ecnfgraph of range int var.");
-	}
-	void visit(const IntVarEnum&) {
-		throw notYetImplemented("Printing ecnfgraph of enum int var.");
-	}
-	void visit(const CPAllDiff&) {
-		throw notYetImplemented("Printing ecnfgraph of alldifferent.");
-	}
-	void visit(const CPBinaryRel&) {
-		throw notYetImplemented("Printing ecnfgraph of cp binary relation op int.");
-	}
-	void visit(const CPCount&) {
-		throw notYetImplemented("Printing ecnfgraph of cp count.");
-	}
-	void visit(const CPBinaryRelVar&) {
-		throw notYetImplemented("Printing ecnfgraph of cp binary relation op var.");
-	}
-	void visit(const CPSumWeighted&) {
-		throw notYetImplemented("Printing ecnfgraph of weighted cp sum.");
-	}
 };
 
 }

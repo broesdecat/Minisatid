@@ -51,9 +51,6 @@ extern char * 	yytext;
 
 void yyerror(const char* msg);
 	
-bool negatemod = false;
-int cnfcurrentmodid = 0;
-Atom cnfcurrenthead(-1);
 std::vector<int> modalops;
 std::vector<MinisatID::Literal> heads;
 
@@ -185,7 +182,7 @@ void checkVersion(ECNF_VERSION version);
 
 
 /*
- * Decides whether to use (modal) CNF, ECNF or modal ECNF format
+ * Decides whether to use CNF or ECNF
  */
 init	:	CNF	number number 
 				{ atoms = $2; clauses = $3; } 
@@ -201,19 +198,18 @@ header	: 	/*empty*/
 		
 // CNF THEORY
 		
-cnftheory	
-		: 	cnfclause
+cnftheory:	/*empty*/
+		| 	cnftheory cnfclause
+		|	cnftheory symmetryblock
 		;
 			
-cnfclause	
-		: /*empty*/
-		| 	cnfclause body ZERO	
-			{	
-				Disjunction clause;
-				clause.literals = *$2;
-				CR(clause);
-				delete $2;
-			}
+cnfclause: 	body ZERO	
+				{	
+					Disjunction clause;
+					clause.literals = *$1;
+					CR(clause);
+					delete $1;
+				}
 		;
 			
 //---------------------------------------------		
@@ -347,9 +343,7 @@ set		:	SETDEFN NUMBER body ZERO
 
 wset	:	WSETDEFN NUMBER	wbody ZERO	
 			{	
-				WLSet set;
-				set.setID = cID($2);
-				set.wl = *$3;
+				WLSet set(cID($2), *$3);
 				delete $2; delete $3;
 				CR(set);
 			}

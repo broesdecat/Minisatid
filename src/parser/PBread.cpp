@@ -71,10 +71,8 @@ template<class T> void DefaultCallback<T>::beginObjective() {
  * callback called after we've read the objective function
  */
 template<class T> void DefaultCallback<T>::endObjective() {
-	setid++;
-	wset.setID = setid;
 	extAdd(getSolver(), wset);
-	wset = WLSet();
+	wset = WLSet(++setid);
 
 	extAdd(getSolver(), MinimizeAgg(1, setid, AggType::SUM));
 }
@@ -106,10 +104,8 @@ template<class T> void DefaultCallback<T>::beginConstraint() {
 }
 
 template<class T> void DefaultCallback<T>::endConstraint() {
-	setid++;
-	wset.setID = setid;
 	extAdd(getSolver(), wset);
-	wset = WLSet();
+	wset = WLSet(++setid);
 
 	Disjunction clause;
 	Aggregate agg(dummyhead, setid, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1);

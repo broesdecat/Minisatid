@@ -9,13 +9,15 @@
 
 #include "Symmetry.hpp"
 
-#include "satsolver/SATSolver.hpp" // TODO remove dependency (for querying clause info)
+#include "satsolver/SATSolver.hpp"
 #include "utils/Print.hpp"
+
 using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
-SymmetryData::SymmetryData(const Symmetry& symmetry) {
+SymmetryData::SymmetryData(const Symmetry& symmetry) :
+		symm(symmetry) {
 	for (auto cycle = symmetry.symmetry.cbegin(); cycle != symmetry.symmetry.cend(); ++cycle) {
 		MAssert((*cycle).size()>1);
 		Lit previousLit;
@@ -37,6 +39,10 @@ SymmetryData::SymmetryData(const Symmetry& symmetry) {
 	}
 }
 
+void SymmetryPropagator::accept(ConstraintVisitor& visitor) {
+	visitor.visit(symmetry.getSymmetry());
+}
+
 SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym) :
 		Propagator(solver, "symmetry propagator"), symmetry(sym) {
 	amountNeededForActive = 0;
@@ -46,55 +52,176 @@ SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym) :
 	for (auto i = symmetry.getSymmetryMap().cbegin(); i != symmetry.getSymmetryMap().cend(); ++i) {
 		getPCSolver().accept(this, i->first, PRIORITY::FAST);
 
-		if (useVarOrderOptimization() && i->first == (not i->second)) { // phase-changing optimization
+		// Var-order optimization
+		if (i->first == (not i->second)) { // phase-changing optimization
 			getPCSolver().varReduceActivity(var(i->first));
 		}
 	}
 
-#ifdef DEBUG
-	testSymmetry();
-#endif
-}
-
-void SymmetryPropagator::print() {
-	// TODO print
-	/*	printf("Symmetry: %i - neededForActive: %i\n", getId(), amountNeededForActive);
-	 for (int i = 0; i < sym.size(); ++i) {
-	 if (sym[i] != toLit(i)) {
-	 printf("%i->%i | ", i, toInt(sym[i]));
-	 }
-	 }
-	 printf("\n notifiedLits: ");
-	 for (int i = 0; i < notifiedLits.size(); ++i) {
-	 printf("%i:", toInt(notifiedLits[i]));
-	 getPCSolver().testPrintValue(notifiedLits[i]);
-	 printf(" | ");
-	 }
-	 printf("\n");
-	 printf("amountNeededForActive: %i | firstNotPropagated: %i\n", amountNeededForActive, nextToPropagate);*/
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_DECISIONLEVEL);
 }
 
 #define getLit(clause, nb) (getPCSolver().getClauseLit(clause, nb))
 #define lowerLevel(x, y) (getPCSolver().getLevel(var(x))<getPCSolver().getLevel(var(y)))
 
-bool SymmetryPropagator::getSymmetricalClause(std::vector<Lit>& in_clause, std::vector<Lit>& out_clause) {
-	out_clause = in_clause;
-	bool mapstoitself = true;
-	for (int i = in_clause.size() - 1; i >= 0; --i) {
-		if (getSymmetrical(in_clause[i]) != out_clause[i]) {
-			out_clause[i] = getSymmetrical(in_clause[i]);
-			mapstoitself = false;
+rClause SymmetryPropagator::notifypropagate() {
+	while (hasNextProp()) {
+		auto p = getNextProp();
+		if (getSymmetrical(p) != p) {
+			notifyEnqueued(p);
 		}
 	}
-	return not mapstoitself;
+	auto confl = nullPtrClause;
+	// weakly active symmetry propagation: the condition qhead==trail.size() makes sure symmetry propagation is executed after unit propagation
+	Lit orig = lit_Undef;
+	if (isActive()) {
+		orig = getNextToPropagate();
+		if (orig != lit_Undef) {
+			confl = propagateSymmetrical(orig);
+		}
+	}
+	return confl;
 }
 
-void SymmetryPropagator::getSymmetricalClause(const rClause& in_clause, std::vector<Lit>& out_clause) {
-	auto insize = getPCSolver().getClauseSize(in_clause);
-	out_clause.clear();
-	for (int i = insize - 1; i >= 0; --i) {
-		out_clause.push_back(getSymmetrical(getLit(in_clause, i)));
+void SymmetryPropagator::notifyEnqueued(const Lit& l) {
+	// Start with latest not yet propagated literals
+	MAssert(getSymmetrical(l) != l);
+	MAssert(value(l) == l_True);
+	notifiedLits.push_back(l);
+
+#ifdef DEBUG
+	set<Var> unique;
+	for(auto i=notifiedLits.cbegin(); i<notifiedLits.cend(); ++i){
+		auto it = unique.find(var(*i));
+		MAssert(it==unique.cend());
+		unique.insert(var(*i));
 	}
+#endif
+
+	if (isPermanentlyInactive()) {
+		return;
+	}
+	auto inverse = getInverse(l);
+	auto symmetrical = getSymmetrical(l);
+
+	if (getPCSolver().isDecided(var(inverse))) {
+		if (value(inverse) == l_True) { //invar: value(l)==l_True
+			--amountNeededForActive;
+		} else {
+			MAssert(getPCSolver().value(inverse) == l_False);
+			reasonOfPermInactive = l;
+		}
+	}
+	if (getPCSolver().isDecided(var(l))) {
+		if (value(symmetrical) == l_Undef) {
+			++amountNeededForActive;
+		} else if (value(symmetrical) == l_False) {
+			reasonOfPermInactive = l;
+		}
+		// else value(symmetrical) is true
+	}
+}
+
+Lit SymmetryPropagator::getNextToPropagate() {
+	if (not isActive()) {
+		return lit_Undef;
+	}
+
+#ifdef DEBUG
+	set<Var> unique;
+	for(auto i=notifiedLits.cbegin(); i<notifiedLits.cend(); ++i){
+		auto it = unique.find(var(*i));
+		MAssert(it==unique.cend());
+		unique.insert(var(*i));
+	}
+#endif
+
+#ifdef DEBUG
+	for(auto j=notifiedLits.cbegin(); j<notifiedLits.cend(); ++j) {
+		MAssert(value(*j)!=l_Undef);
+	}
+#endif
+
+	while (nextToPropagate < notifiedLits.size()
+			&& (getPCSolver().isDecided(var(notifiedLits[nextToPropagate])) || value(getSymmetrical(notifiedLits[nextToPropagate])) == l_True)) {
+		++nextToPropagate;
+	}
+	MAssert(isActive());
+	if (nextToPropagate == notifiedLits.size()) {
+		return lit_Undef;
+	} else {
+		return notifiedLits[nextToPropagate];
+	}
+}
+
+// Store activity and number of needed literals
+void SymmetryPropagator::notifyNewDecisionLevel() {
+	activityTrail.push_back(reasonOfPermInactive);
+	amountNeededTrail.push_back(amountNeededForActive);
+	notifiedLitTrail.push_back(notifiedLits);
+	notifiedLits.clear();
+}
+
+// Reset activity and number of needed literals
+void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit& l) {
+	nextToPropagate = 0;
+	reasonOfPermInactive = activityTrail[untillevel];
+	activityTrail.resize(untillevel + 1);
+	amountNeededForActive = amountNeededTrail[untillevel];
+	amountNeededTrail.resize(untillevel + 1);
+	notifiedLits = notifiedLitTrail[untillevel];
+	notifiedLitTrail.resize(untillevel + 1);
+#ifdef DEBUG
+	for(auto i=notifiedLitTrail.cbegin(); i<notifiedLitTrail.cend(); ++i) {
+		for(auto j=(*i).cbegin(); j<(*i).cend(); ++j) {
+			MAssert(value(*j)!=l_Undef);
+		}
+	}
+	for(auto j=notifiedLits.cbegin(); j<notifiedLits.cend(); ++j) {
+		MAssert(value(*j)!=l_Undef);
+	}
+#endif
+	Propagator::notifyBacktrack(untillevel, l);
+}
+
+bool SymmetryPropagator::isActive() {
+	return amountNeededForActive == 0 && not isPermanentlyInactive(); // Laatste test is nodig voor phase change symmetries
+}
+
+bool SymmetryPropagator::isPermanentlyInactive() {
+	return reasonOfPermInactive != lit_Undef;
+}
+
+rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
+	MAssert(isActive());
+	MAssert(value(getSymmetrical(l))!=l_True);
+
+	Disjunction implic;
+	if (getPCSolver().getLevel(var(l)) == 0) {
+		implic.literals.push_back(getSymmetrical(l));
+		implic.literals.push_back(~l);
+	} else {
+		auto reason = getPCSolver().getExplanation(l);
+		MAssert(reason!=CRef_Undef);
+		getSortedSymmetricalClause(reason, implic.literals);
+	}
+	auto symlit = implic.literals[0];
+	MAssert(value(symlit)!=l_True);
+
+	auto clause = nullPtrClause;
+	if (value(symlit) == l_Undef) {
+		add(implic, getPCSolver());
+		if (getPCSolver().isUnsat()) { // FIXME add methods should return the conflict clause if applicable
+			clause = getPCSolver().createClause(implic, true);
+			getPCSolver().addLearnedClause(clause);
+			return clause;
+		}
+	} else {
+		clause = getPCSolver().createClause(implic, true);
+		getPCSolver().addLearnedClause(clause);
+	}
+	return clause;
 }
 
 //	@pre:	in_clause is clause without true literals
@@ -136,173 +263,4 @@ void SymmetryPropagator::getSortedSymmetricalClause(const rClause& in_clause, st
 		out_clause[1] = out_clause[second];
 		out_clause[second] = temp;
 	}
-}
-
-Lit SymmetryPropagator::getNextToPropagate() {
-	if (!isActive() && not useInactivePropagationOptimization()) {
-		return lit_Undef;
-	}
-	while (nextToPropagate < notifiedLits.size()
-			&& (getPCSolver().isDecided(var(notifiedLits[nextToPropagate])) || value(getSymmetrical(notifiedLits[nextToPropagate])) == l_True)) {
-		++nextToPropagate;
-	}
-	if (nextToPropagate == notifiedLits.size()) {
-		return lit_Undef;
-	} else if (isActive()) {
-		return notifiedLits[nextToPropagate];
-	} else {
-		MAssert(useInactivePropagationOptimization());
-		auto nextToPropagateInactive = nextToPropagate;
-		while (nextToPropagateInactive < notifiedLits.size() && not canPropagate(notifiedLits[nextToPropagateInactive])) {
-			++nextToPropagateInactive;
-		}
-		if (nextToPropagateInactive == notifiedLits.size()) {
-			return lit_Undef;
-		} else {
-			return notifiedLits[nextToPropagateInactive];
-		}
-	}
-}
-
-bool SymmetryPropagator::canPropagate(Lit l) {
-	if (getPCSolver().isDecided(var(l)) || value(getSymmetrical(l)) == l_True) {
-		return false;
-	}
-	if (getPCSolver().getLevel(var(l)) == 0) {
-		return true;
-	}
-	auto cref = getPCSolver().getExplanation(l);
-	MAssert(cref!=nullPtrClause);
-	bool noUndefYet = true;
-	for (int i = 0; i < getPCSolver().getClauseSize(cref); ++i) {
-		auto confllit = getLit(cref, i);
-		if (value(getSymmetrical(confllit)) == l_True) {
-			return false;
-		} else if (value(getSymmetrical(confllit)) == l_Undef) {
-			if (noUndefYet) {
-				noUndefYet = false;
-			} else {
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-rClause SymmetryPropagator::notifypropagate() {
-	while (hasNextProp()) {
-		auto p = getNextProp();
-		if (getSymmetrical(p) != p) {
-			notifyEnqueued(p);
-		}
-	}
-	auto confl = nullPtrClause;
-	// weakly active symmetry propagation: the condition qhead==trail.size() makes sure symmetry propagation is executed after unit propagation
-	Lit orig = lit_Undef;
-	if (isActive()) {
-		orig = getNextToPropagate();
-		if (orig != lit_Undef) {
-			confl = propagateSymmetrical(orig);
-		}
-
-	} //else{
-	  //if(useInactivePropagationOptimization()){
-	  //	inactiveSyms.push(sym);
-	  //}
-	  //}
-	  // TODO in fact, want to only propagate active symmetries first (which is cheap) and possibly later check the inactive ones too
-	  // Should implement as dynamic priority change of propagator
-	  //for( int i=inactiveSyms.size()-1; useInactivePropagationOptimization() && qhead==trail.size() && confl==CRef_Undef && i>=0; --i){
-	  //	Symmetry* sym = inactiveSyms[i];
-	  //	Lit orig = sym->getNextToPropagate();
-	  //	if(orig!=lit_Undef){
-	  //		confl = propagateSymmetrical(sym,orig);
-	  //	}
-	  //}
-	return confl;
-}
-
-void SymmetryPropagator::notifyEnqueued(const Lit& l) {
-	// Start with latest not yet propagated literals
-	MAssert(getSymmetrical(l) != l);
-	MAssert(value(l) == l_True);
-	notifiedLits.push_back(l);
-	if (isPermanentlyInactive()) {
-		return;
-	}
-	auto inverse = getInverse(l);
-	auto symmetrical = getSymmetrical(l);
-
-	if (getPCSolver().isDecided(var(inverse))) {
-		if (value(inverse) == l_True) { //invar: value(l)==l_True
-			--amountNeededForActive;
-		} else {
-			MAssert(getPCSolver().value(inverse) == l_False);
-			reasonOfPermInactive = l;
-		}
-	}
-	if (getPCSolver().isDecided(var(l))) {
-		if (value(symmetrical) == l_Undef) {
-			++amountNeededForActive;
-		} else if (value(symmetrical) == l_False) {
-			reasonOfPermInactive = l;
-		}
-		// else value(symmetrical) is true
-	}
-}
-
-// Store activity and number of needed literals
-void SymmetryPropagator::notifyNewDecisionLevel() {
-	activityTrail.push_back(reasonOfPermInactive);
-	amountNeededTrail.push_back(amountNeededForActive);
-	notifiedLitTrail.push_back(notifiedLits);
-}
-
-// Reset activity and number of needed literals
-void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit& l) {
-	nextToPropagate = 0;
-	reasonOfPermInactive = activityTrail[untillevel];
-	activityTrail.resize(untillevel + 1);
-	amountNeededForActive = amountNeededTrail[untillevel];
-	amountNeededTrail.resize(untillevel + 1);
-	notifiedLits = notifiedLitTrail[untillevel];
-	notifiedLitTrail.resize(untillevel + 1);
-	Propagator::notifyBacktrack(untillevel, l);
-}
-
-bool SymmetryPropagator::isActive() {
-	return amountNeededForActive == 0 && not isPermanentlyInactive(); // Laatste test is nodig voor phase change symmetries
-}
-
-bool SymmetryPropagator::isPermanentlyInactive() {
-	return reasonOfPermInactive != lit_Undef;
-}
-
-rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
-	MAssert(isActive());
-	MAssert(value(getSymmetrical(l))!=l_True);
-
-	Disjunction implic;
-	if (getPCSolver().getLevel(var(l)) == 0) {
-		implic.literals.push_back(getSymmetrical(l));
-		implic.literals.push_back(~l);
-	} else {
-		auto reason = getPCSolver().getExplanation(l);
-		MAssert(reason!=CRef_Undef);
-		getSortedSymmetricalClause(reason, implic.literals);
-	}
-	auto symlit = implic.literals[0];
-	auto neglit = implic.literals[1];
-	MAssert(value(symlit)!=l_True);
-	MAssert(value(neglit)==l_False);
-
-	auto clause = getPCSolver().createClause(implic, true);
-	getPCSolver().addLearnedClause(clause);
-	if (value(symlit) == l_Undef) {
-		getPCSolver().setTrue(symlit, this, clause);
-		clause = nullPtrClause;
-	} else {
-		getPCSolver().addLearnedClause(clause);
-	}
-	return clause;
 }

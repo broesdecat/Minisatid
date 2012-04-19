@@ -68,6 +68,7 @@ public:
 
 	void setAssumptions(const litlist& assumps);
 	lbool solve(bool search);
+	litlist getUnsatExplanation() const;
 
 	litlist getEntailedLiterals() const;
 	bool moreModelsPossible() const;

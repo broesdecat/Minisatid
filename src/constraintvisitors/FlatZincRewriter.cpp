@@ -391,7 +391,7 @@ uint FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::addOptimization() {
-	if(savedvar.size()+savedlistmnmz.size()+savedsubsetmnmz.size()+savedagg.size()>1){
+	if(savedvar.size()+savedlistmnmz.size()+savedagg.size()>1){
 		throw idpexception("Transformation to flatzinc does not support prioritized optimization.");
 	}
 	uint optimvar = 0;
@@ -434,8 +434,6 @@ uint FlatZincRewriter<Stream>::addOptimization() {
 			addBinRel(getVarName(optimvar), ss.str(), *i, EqType::EQ);
 			currentvalue++;
 		}
-	} else if (savedsubsetmnmz.size()>0) {
-		throw idpexception("Subset minimization is not supported by the FlatZinc language.");
 	} else {
 		MAssert(savedvar.size()>0);
 		throw notYetImplemented("Optimization of a CP variable is not yet implemented.\n");
@@ -698,11 +696,6 @@ void FlatZincRewriter<Stream>::visit(const WLSet& set) {
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const Symmetry&) {
-	throw idpexception("Symmetries are unsupported by flatzinc.\n");
-}
-
-template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const Aggregate& origagg) {
 	check(origagg.head);
 
@@ -744,14 +737,6 @@ void FlatZincRewriter<Stream>::visit(const Aggregate& origagg) {
 		}
 		constraints << ";\n";
 	}
-}
-
-template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const MinimizeSubset& sentence) {
-	MAssert(isParsing());
-	hasoptim = true;
-	check(sentence.literals);
-	savedsubsetmnmz.push_back(sentence);
 }
 
 template<typename Stream>
@@ -843,16 +828,6 @@ void FlatZincRewriter<Stream>::visit(const CPSumWeighted& sum) {
 	MAssert(isParsing());
 	check(sum.head);
 	savedcpsums.push_back(sum);
-}
-
-template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const CPCount&) {
-	throw idpexception("Count constraints are not yet supported by the flatzinc backend.");
-}
-
-template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const CPAllDiff&) {
-	throw idpexception("Alldifferent is not yet supported by the flatzinc backend.");
 }
 
 // Explicit instantiations. Note, apparently, they have to be AT THE END of the cpp

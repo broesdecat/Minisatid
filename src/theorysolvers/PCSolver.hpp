@@ -184,6 +184,7 @@ public:
 	 */
 	void setAssumptions(const litlist& assumps);
 	lbool solve(bool search);
+	litlist getUnsatExplanation() const;
 	void finishParsing();
 	void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause); // Enqueue a literal. Assumes value of literal is undefined
 	void notifySetTrue(const Lit& p);

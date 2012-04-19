@@ -13,6 +13,7 @@
 #include <vector>
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 
 namespace MinisatID {
 
@@ -20,6 +21,7 @@ class PCSolver;
 
 class SymmetryData {
 private:
+	Symmetry symm; // Stored for convenience, could be dropped
 	std::map<Lit, Lit> sym, inverse; // Maps a literal, by its numeric equiv, to its sym/inverse literal.
 public:
 	SymmetryData(const Symmetry& symmetry);
@@ -47,6 +49,10 @@ public:
 	const std::map<Lit, Lit>& getSymmetryMap() const {
 		return sym;
 	}
+
+	const Symmetry& getSymmetry() const {
+		return symm;
+	}
 };
 
 // Symmetry -- a class to represent a symmetry:
@@ -65,24 +71,19 @@ public:
 	SymmetryPropagator(PCSolver* solver, const Symmetry& sym);
 
 	// Propagator methods
-	virtual void 	accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
-	virtual rClause getExplanation(const Lit&) { throw idpexception("Error, invalid code path."); }	// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
+	virtual void accept(ConstraintVisitor& visitor);
+	virtual rClause getExplanation(const Lit&) {
+		throw idpexception("Error, invalid code path.");
+	} // Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
 	// PRESENT is set to true if aggregate propagations should be done
 	virtual void notifyNewDecisionLevel();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause notifypropagate();
-	virtual int getNbOfFormulas() const { return symmetry.getSymmetryMap().size(); }
+	virtual int getNbOfFormulas() const {
+		return symmetry.getSymmetryMap().size();
+	}
 
 private:
-	bool addPropagationClauses() const {
-		return true;
-	}
-	bool addConflictClauses() const {
-		return true;
-	}
-	bool useVarOrderOptimization() const {
-		return false; // TODO is this always on?
-	}
 	Lit getSymmetrical(const Lit& l) const {
 		return symmetry.getSymmetrical(l);
 	}
@@ -95,21 +96,9 @@ private:
 
 	void notifyEnqueued(const Lit& p);
 
-	bool canPropagate(Lit l);
-
 	bool isActive();
 
 	bool isPermanentlyInactive();
-
-	bool useInactivePropagationOptimization() const { // See notifyPropagate for info
-		return false;
-	}
-
-	void print();
-
-	bool getSymmetricalClause(std::vector<Lit>& in_clause, std::vector<Lit>& out_clause);
-
-	void getSymmetricalClause(const rClause& in_clause, std::vector<Lit>& out_clause);
 
 	//	@pre:	in_clause is clause without true literals
 	//	@post: 	out_clause is one of three options, depending on the number of unknown literals:

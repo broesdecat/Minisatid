@@ -57,58 +57,6 @@ public:
 		nbconstraints++;
 		target() << "0\n";
 	}
-
-	void visit(const Rule&) {
-		throw idpexception("Not supported in CNF.");
-	}
-
-	void visit(const WLSet&) {
-		throw idpexception("Not supported in CNF.");
-	}
-
-	void visit(const Aggregate&) {
-		throw idpexception("Not supported in CNF.");
-	}
-
-	void visit(const Implication&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const MinimizeOrderedList&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const MinimizeSubset&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const MinimizeAgg&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const MinimizeVar&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const Symmetry&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const IntVarRange&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const IntVarEnum&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const CPAllDiff&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const CPBinaryRel&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const CPCount&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const CPBinaryRelVar&) {
-		throw idpexception("Not supported in CNF.");
-	}
-	void visit(const CPSumWeighted&) {
-		throw idpexception("Not supported in CNF.");
-	}
 };
 
 }

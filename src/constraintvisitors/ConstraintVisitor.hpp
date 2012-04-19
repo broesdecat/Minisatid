@@ -44,24 +44,61 @@ public:
 	virtual void notifyStart() = 0;
 	virtual void notifyEnd() = 0;
 
-	virtual void visit(const Disjunction&) = 0;
-	virtual void visit(const Implication&) = 0;
-	virtual void visit(const Rule&) = 0;
-	virtual void visit(const WLSet&) = 0;
-	virtual void visit(const Aggregate&) = 0;
-	virtual void visit(const MinimizeOrderedList&) = 0;
-	virtual void visit(const MinimizeSubset&) = 0;
-	virtual void visit(const MinimizeVar&) = 0;
-	virtual void visit(const MinimizeAgg&) = 0;
-	virtual void visit(const Symmetry&) = 0;
-	virtual void visit(const IntVarEnum&) = 0;
-	virtual void visit(const IntVarRange&) = 0;
-	virtual void visit(const CPAllDiff&) = 0;
-	virtual void visit(const CPBinaryRel&) = 0;
-	virtual void visit(const CPCount&) = 0;
-	virtual void visit(const CPBinaryRelVar&) = 0;
-	virtual void visit(const CPSumWeighted&) = 0;
-	virtual void visit(const CPElement&) = 0;
+	// TODO add visitor name
+	virtual void visit(const Disjunction&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const Implication&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const Rule&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const WLSet&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const Aggregate&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const MinimizeOrderedList&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const MinimizeSubset&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const MinimizeVar&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const MinimizeAgg&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const Symmetry&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const IntVarEnum&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const IntVarRange&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const CPAllDiff&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const CPBinaryRel&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const CPCount&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const CPBinaryRelVar&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const CPSumWeighted&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
+	virtual void visit(const CPElement&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
 	virtual void visit(const LazyGroundLit&){
 		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
 	}

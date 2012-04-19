@@ -71,7 +71,7 @@ namespace MinisatID{
 	template<class T>
 	void printSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(inputformat==InputFormat::OPB){
+			if(inputformat==InputFormat::OPB && outputformat!=OutputFormat::PLAIN){
 				stream<<"s SATISFIABLE\n";
 			}else if(outputformat==OutputFormat::ASP){
 				stream <<"ANSWER SET FOUND\n";
@@ -84,7 +84,7 @@ namespace MinisatID{
 	template<class T>
 	void printUnSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(inputformat==InputFormat::OPB){
+			if(inputformat==InputFormat::OPB && outputformat!=OutputFormat::PLAIN){
 				stream<<"s UNSATISFIABLE\n";
 			}else if(outputformat==OutputFormat::ASP){
 				stream <<"INCONSISTENT\n";

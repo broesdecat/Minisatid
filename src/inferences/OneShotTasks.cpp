@@ -1,6 +1,7 @@
 #include "external/OneShotTasks.hpp"
 #include "external/Tasks.hpp"
 #include "external/Space.hpp"
+#include "constraintvisitors/ECNFPrinter.hpp"
 #include "space/SearchEngine.hpp"
 #include "theorysolvers/PropagatorFactory.hpp"
 #include "datastructures/InternalAdd.hpp"
@@ -13,18 +14,20 @@ void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction) {
 	Disjunction extended(disjunction);
 	auto newvar = space->getEngine()->newVar();
 	extended.literals.push_back(mkPosLit(newvar));
-	MAssert(id2Marker.find(maxid)==id2Marker.cend());
-	id2Marker[maxid] = newvar;
+	id2constr[maxid] = new Disjunction(disjunction);
+	marker2ids[newvar].push_back(disjunction.id);
 	markerAssumptions.push_back(mkNegLit(newvar));
 	add(extended, *space->getEngine());
 }
-// TODO other constraints
+// TODO other constraints:
 /*
  * Idee van bart: in plaats van de andere constraints aan te passen en te moeten zoeken naar waar en hoeveel markers er nodig zijn,
  * zorgen we enkel dat elke propagator als hij een explanation genereert, daar zijn marker literal aan toevoegt.
  * Voor bepaalde propagators kunnen we dat dan verder specialiseren, bvb definities.
  * => in getExplanation van PCSolver.
  * => so for each other constraint, give it a marker literal and the ids of its associated constraints (in propagatorfactory)
+ *
+ * SO: handle by overwriting add and createclause methods, so that they can take a marker literal if applicable
  */
 
 void OneShotUnsatCoreExtraction::innerExecute() {
@@ -32,6 +35,15 @@ void OneShotUnsatCoreExtraction::innerExecute() {
 	auto mx = ModelExpand(space, mxoptions, markerAssumptions);
 	mx.execute();
 	MAssert(mx.getSolutions().size()==0);
+	auto explan = mx.getUnsatExplanation();
+	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog);
+	clog <<"Unsat core: \n";
+	for(auto i=explan.cbegin(); i<explan.cend(); ++i){
+		for(auto j=marker2ids[var(*i)].cbegin(); j<marker2ids[var(*i)].cend(); ++j){
+			clog <<"\t";
+			id2constr[*j]->accept(&printer);
+		}
+	}
 	// TODO  rest
 }
 

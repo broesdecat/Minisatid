@@ -103,6 +103,7 @@ public:
 	bool isSat() const;
 	bool isUnsat() const;
 	void notifySolvingAborted();
+	litlist getUnsatExplanation() const;
 
 private:
 	void innerExecute();

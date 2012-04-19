@@ -252,7 +252,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 		} else {
 			uncheckedEnqueue(ps[0]);
 		}
-		return ok = (propagate() == CRef_Undef);
+		return ok = (propagate() == CRef_Undef); // FIXME add methods should return the conflict clause if applicable
 	} else {
 		CRef cr = ca.alloc(ps, false);
 		addToClauses(cr, false);
@@ -845,13 +845,23 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 			} else {
 				auto& c = ca[reason(x)];
 				for (int j = 1; j < c.size(); j++)
-					if (getLevel(var(c[j])) > 0) seen[var(c[j])] = 1;
+					if (getLevel(var(c[j])) > 0){
+						seen[var(c[j])] = 1;
+					}
 			}
 			seen[x] = 0;
 		}
 	}
 
 	seen[var(p)] = 0;
+}
+
+litlist Solver::getUnsatExplanation() const{
+	litlist list;
+	for(int i=0; i<conflict.size(); ++i){
+		list.push_back(conflict[i]);
+	}
+	return list;
 }
 
 void Solver::checkedEnqueue(Lit p, CRef from) {
@@ -876,6 +886,9 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 }
 
 bool Solver::isDecided(Var v) {
+	if(value(mkPosLit(v))==l_Undef){
+		return false;
+	}
 	auto level = getLevel(v);
 	MAssert(level >= 0 || level <= decisionLevel());
 	return var(trail[trail_lim[getLevel(v)-1]]) == v;
@@ -1361,7 +1374,7 @@ void Solver::printClause(CRef rc) const {
 	bool begin = true;
 	for (int i = 0; i < c.size(); i++) {
 		if (not begin) {
-			clog << " & ";
+			clog << " | ";
 		}
 		begin = false;
 		clog << toString(c[i]);

@@ -129,6 +129,9 @@ public:
 	void visit(const CPSumWeighted&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
+	void visit(const CPElement&) {
+		throw idpexception("Not yet implemented."); // TODO
+	}
 };
 
 }

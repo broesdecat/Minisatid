@@ -15,8 +15,7 @@ namespace MinisatID{
 	int ID::nextid = 1;
 
 	WLSet createSet(int setid, const std::vector<Lit>& literals, const Weight& w){
-		WLSet set;
-		set.setID = setid;
+		WLSet set(setid);
 		for(auto i=literals.cbegin(); i<literals.cend(); ++i) {
 			set.wl.push_back({*i, w});
 		}
@@ -24,8 +23,7 @@ namespace MinisatID{
 	}
 	WLSet createSet(int setid, const std::vector<Lit>& literals, const std::vector<Weight>& weights){
 		MAssert(literals.size()==weights.size());
-		WLSet set;
-		set.setID = setid;
+		WLSet set(setid);
 		auto wit = weights.cbegin();
 		auto lit = literals.cbegin();
 		for(; lit<literals.cend(); ++lit, ++wit) {

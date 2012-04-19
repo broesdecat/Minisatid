@@ -156,6 +156,8 @@ public:
 
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
 
+	litlist getUnsatExplanation() const;
+
 	//PROPAGATOR CODE
 	// TODO split up in search and propagator
 	virtual void accept(MinisatID::ConstraintVisitor& visitor);

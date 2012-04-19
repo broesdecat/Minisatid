@@ -22,7 +22,8 @@ template<class T> class FlatZincRewriter;
 class OneShotUnsatCoreExtraction: public Task, public ConstraintAdditionInterface<OneShotUnsatCoreExtraction>{
 private:
 	int maxid;
-	std::map<int, Var> id2Marker;
+	std::map<int, ID*> id2constr;
+	std::map<Var, std::vector<int> > marker2ids;
 	std::vector<Lit> markerAssumptions;
 	Space* space;
 public:

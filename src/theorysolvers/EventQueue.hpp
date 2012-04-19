@@ -86,8 +86,6 @@ public:
 
 	void 	accept(GenWatch* const watch);
 
-	void 	addEternalPropagators();
-
 	void 	notifyNbOfVars(uint64_t nbvars);
 
 	int		getNbOfFormulas			() const;
@@ -103,6 +101,8 @@ public:
 	void 	accept(ConstraintVisitor& visitor);
 
 private:
+	rClause runEternalPropagators();
+
 	void 	setTrue(const proplist& list, std::deque<Propagator*>& queue);
 	void 	clearNotPresentPropagators();
 

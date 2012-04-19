@@ -124,6 +124,9 @@ void SearchEngine::setAssumptions(const litlist& assumps) {
 lbool SearchEngine::solve(bool search) {
 	return solver->solve(search);
 }
+litlist SearchEngine::getUnsatExplanation() const{
+	return solver->getUnsatExplanation();
+}
 
 litlist SearchEngine::getEntailedLiterals() const {
 	return solver->getEntailedLiterals();

@@ -37,7 +37,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	for (auto i = getSet().getAggNonConst().cbegin(); !unsat && i < getSet().getAggNonConst().cend();) {
 		auto agg = (*i);
 		if (not agg->isOptim()) {
-			lbool result = initialize(*agg);
+			auto result = initialize(*agg);
 			if (result == l_True) {
 				//If after initialization, the head will have a fixed value, then this is
 				//independent of any further propagations within that aggregate.
@@ -77,13 +77,12 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
  * Returns false if the aggregate is certainly unsat.
  */
 lbool FWAgg::initialize(const Agg& agg) {
-	rClause confl = nullPtrClause;
+	auto confl = nullPtrClause;
 
 	auto hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;
 	if (hv != l_Undef) {
 		alwaystrue = true;
-		//reportf("No more propagations for %d", getPrintableVar(var(head)));
 	}
 	if (hv == l_True) {
 		confl = getSet().notifySolver(new HeadReason(agg, agg.getHead()));
@@ -265,6 +264,9 @@ rClause FWAgg::propagateAtEndOfQueue() {
 	return confl;
 }
 
+/**
+ * Return the value the head should take if some propagation is possible.
+ */
 lbool MinisatID::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) {
 	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 	//	return headvalue[agg.getIndex()];
@@ -858,9 +860,11 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 			++i;
 			continue;
 		}
-		if ((*i)->getSign() != AggSign::LB) {
-			unsat = true;
-			return;
+		if ((*i)->getSign() == AggSign::UB) {
+			if((*i)->getSem()!=AggSem::OR){
+				unsat = true;
+				return;
+			}
 		}
 		// always positive
 		delete (*i);

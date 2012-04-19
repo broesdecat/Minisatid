@@ -205,7 +205,9 @@ public:
 		return wl;
 	}
 
-	WLSet(int setID, std::vector<WLtuple> wl): setID(setID), wl(wl){
+	WLSet(int setID): setID(setID){
+	}
+	WLSet(int setID, const std::vector<WLtuple>& wl): setID(setID), wl(wl){
 
 	}
 

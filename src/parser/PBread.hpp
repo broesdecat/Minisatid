@@ -50,13 +50,13 @@ private:
 
 	IntegerType bound;
 	bool equality;
-	WLSet wset;
 	int setid;
+	WLSet wset;
 	int maxvar;
 	Atom dummyhead;
 
 public:
-	DefaultCallback(T& solver):solver(solver), setid(0), dummyhead(Atom(-1)){
+	DefaultCallback(T& solver):solver(solver), setid(0), wset(setid), dummyhead(Atom(-1)){
 
 	}
 

@@ -162,6 +162,12 @@ public:
 		target() <<sum.rel <<" " <<sum.bound <<"\n";
 	}
 
+	void visit(const CPElement& rel){
+		target() <<"Added element constraint {";
+		printConcatBy(rel.varIDs, ", ", target());
+		target() <<"}[" <<rel.index <<"]="<<rel.rhs <<"\n";
+	}
+
 	void visit(const LazyGroundLit& lg){
 		target() <<"Added lazy residual " <<toString(lg.residual, getPrinter()) <<", acting as " <<(lg.watchboth?"known":"true") <<" delay trigger.\n";
 	};

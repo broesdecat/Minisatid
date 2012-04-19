@@ -87,17 +87,6 @@ void EventQueue::notifyNbOfVars(uint64_t nbvars){
 	var2decidable.resize(nbvars);
 }
 
-void EventQueue::addEternalPropagators() {
-	auto props = event2propagator.at(EV_PROPAGATE);
-	for (uint i = 0; i < size(EV_PROPAGATE); ++i) {
-		auto propagator = props[i];
-		if (not propagator->isQueued()) {
-			propagator->notifyQueued();
-			fastqueue.push_back(propagator);
-		}
-	}
-}
-
 void EventQueue::notifyBoundsChanged(IntVar* var) {
 	for (auto i = intvarid2propagators[var->id()].cbegin(); i < intvarid2propagators[var->id()].cend(); ++i) {
 		if (!(*i)->isPresent()) {
@@ -178,7 +167,6 @@ void EventQueue::setTrue(const Lit& l) {
 		}
 		lw = remwatches;
 	}
-	addEternalPropagators();
 	setTrue(lit2priority2propagators[toInt(l)][FAST], fastqueue);
 	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }
@@ -252,7 +240,7 @@ rClause EventQueue::notifyPropagate() {
 	}
 	propagatewatchesasap.clear();
 
-	addEternalPropagators();
+	confl = runEternalPropagators();
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
@@ -272,8 +260,22 @@ rClause EventQueue::notifyPropagate() {
 		p->notifyDeQueued();
 		confl = p->notifypropagate();
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
+		if(confl==nullPtrClause){
+			confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
+			// TODO check whether anything was propagated (otherwise becomes quite expensive?)
+		}
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 
+	return confl;
+}
+
+rClause EventQueue::runEternalPropagators() {
+	auto confl = nullPtrClause;
+	auto props = event2propagator.at(EV_PROPAGATE);
+	for (uint i = 0; i < size(EV_PROPAGATE) && confl==nullPtrClause; ++i) {
+		confl = props[i]->notifypropagate();
+	}
 	return confl;
 }
 
