@@ -119,15 +119,6 @@ private:
 	void getSortedSymmetricalClause(const rClause& in_clause, std::vector<Lit>& out_clause);
 
 	rClause propagateSymmetrical(const Lit& l);
-
-	//CRef 	propagateSymmetrical(Symmetry* sym, Lit l);
-	//bool 	hasLowerLevel(Lit first, Lit second){ return level(var(first))<level(var(second)); }
-	//bool 	canPropagate(Symmetry* sym, Clause& cl);
-
-	bool testSymmetry();
-	void testActivityForSymmetries();
-	bool testIsActive(const std::vector<Lit>& trail);
-	bool testIsPermanentlyInactive(const std::vector<Lit>& trail);
 };
 
 }

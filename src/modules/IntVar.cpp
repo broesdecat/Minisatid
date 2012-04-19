@@ -32,7 +32,6 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		var = engine().newVar();
 		disequalities.push_back(var);
 		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, false, i+minValue())));
-
 	}
 	for(auto i=equalities.cbegin(); i<equalities.cend(); ++i){
 		engine().accept(this, mkPosLit(*i), FAST);
@@ -76,6 +75,10 @@ void IntVar::notifyBacktrack(int, const Lit&){
 	std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
 }
 
+void IntVar::accept(ConstraintVisitor& visitor){
+	visitor.visit(IntVarRange(origid(), minValue(), maxValue()));
+}
+
 rClause	IntVar::notifypropagate(){
 	int lastmin = currentmin, lastmax = currentmax;
 	for(uint i=0; i<equalities.size(); ++i){
@@ -99,46 +102,41 @@ rClause	IntVar::notifypropagate(){
 	return nullPtrClause;
 }
 
+/**
+ * x in [min, max]
+ * ?1 a: x>=a & x=<a
+ * x=a then x>=a
+ * x=a then x=<a
+ *
+ * x=<a then x=<a+1
+ * ~x=<a then ~x=<a-1
+ */
 void IntVar::addConstraints(){
-	WLSet set;
-	set.setID = engine().newSetID();
+	auto setid = engine().newSetID();
+	std::vector<WLtuple> wls;
 	for(uint i=0; i<equalities.size(); ++i){
-		set.wl.push_back(WLtuple(mkPosLit(equalities[i]), 1));
+		wls.push_back(WLtuple(mkPosLit(equalities[i]), 1));
 	}
-	Aggregate lowercard(engine().newVar(), set.setID, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
-	Aggregate highercard(lowercard);
-	highercard.head = engine().newVar();
-	highercard.sign = AggSign::UB;
-	add(set, engine());
-	add(Disjunction({mkPosLit(highercard.head)}), engine());
-	add(Disjunction({mkPosLit(lowercard.head)}), engine());
+	add(WLSet(setid, wls), engine());
+	Aggregate lowercard(engine().newVar(), setid, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
+	Aggregate highercard(engine().newVar(), setid, 1, AggType::CARD, AggSign::UB, AggSem::COMP, -1);
 	add(highercard, engine());
 	add(lowercard, engine());
-	// TODO do we miss propagation in other direction?
+	add(Disjunction({mkPosLit(highercard.head)}), engine());
+	add(Disjunction({mkPosLit(lowercard.head)}), engine());
+
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]
-		Disjunction same;
-		same.literals.push_back(mkNegLit(equalities[i]));
-		same.literals.push_back(mkPosLit(disequalities[i]));
-		add(same, engine());
+		add(Disjunction({mkNegLit(equalities[i]), mkPosLit(disequalities[i])}), engine());
 		if(i<equalities.size()-1){
 			// if diseq[i] => diseq[i+1]
-			Disjunction prev;
-			prev.literals.push_back(mkNegLit(disequalities[i]));
-			prev.literals.push_back(mkPosLit(disequalities[i+1]));
-			add(prev, engine());
+			add(Disjunction({mkNegLit(disequalities[i]), mkPosLit(disequalities[i+1])}), engine());
 		}
 		if(i>0){
 			// if eq[i] => ~diseq[i-1]
-			Disjunction next;
-			next.literals.push_back(mkNegLit(equalities[i]));
-			next.literals.push_back(mkNegLit(disequalities[i-1]));
-			add(next, engine());
+			add(Disjunction({mkNegLit(equalities[i]), mkNegLit(disequalities[i-1])}), engine());
 			// if ~diseq[i] => ~diseq[i-1]
-			Disjunction nextdis;
-			nextdis.literals.push_back(mkPosLit(disequalities[i]));
-			nextdis.literals.push_back(mkNegLit(disequalities[i-1]));
-			add(nextdis, engine());
+			add(Disjunction({mkPosLit(disequalities[i]), mkNegLit(disequalities[i-1])}), engine());
 		}
 	}
 }

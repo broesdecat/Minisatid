@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-SolverTypes.h -- (C) Niklas Een, Niklas Sörensson, 2004
+SolverTypes.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
 
 Contains the solver specific types: Var, Lit, Clause
 
@@ -46,6 +46,7 @@ inline int  var  (Lit p) { return p.x >> 1; }
 inline int  index(Lit p) { return p.x; }        // A "toInt" method that guarantees small, positive integers suitable for array indexing.
 inline Lit  toLit(int i) { Lit p; p.x = i; return p; }
 inline bool operator == (Lit p, Lit q) { return index(p) == index(q); }
+inline bool operator != (Lit p, Lit q) { return index(p) != index(q); }
 inline bool operator <  (Lit p, Lit q) { return index(p)  < index(q); }  // '<' guarantees that p, ~p are adjacent in the ordering.
 
 const Lit lit_Undef(var_Undef, false);  // }- Useful special constants.

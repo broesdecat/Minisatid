@@ -205,6 +205,10 @@ public:
 		return wl;
 	}
 
+	WLSet(int setID, std::vector<WLtuple> wl): setID(setID), wl(wl){
+
+	}
+
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {

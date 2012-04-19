@@ -61,6 +61,7 @@ public:
 	virtual void visit(const CPCount&) = 0;
 	virtual void visit(const CPBinaryRelVar&) = 0;
 	virtual void visit(const CPSumWeighted&) = 0;
+	virtual void visit(const CPElement&) = 0;
 	virtual void visit(const LazyGroundLit&){
 		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
 	}

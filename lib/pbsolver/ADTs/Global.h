@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Global.h -- (C) Niklas Een, Niklas Sörensson, 2004
+Global.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
 
 Contains types, macros, and inline functions generally useful in a C++ program. 
 
@@ -323,13 +323,16 @@ class lbool {
     int     value;
     explicit lbool(int v) : value(v) { }
 
+    friend bool operator==(const lbool& x, const lbool& y);
+      friend bool operator!=(const lbool& x, const lbool& y);
+
 public:
     lbool()       : value(0) { }
     lbool(bool x) : value((int)x*2-1) { }
     int toInt(void) const { return value; }
 
-    bool  operator == (const lbool& other) const { return value == other.value; }
-    bool  operator != (const lbool& other) const { return value != other.value; }
+   // bool  operator == (const lbool& other) const { return value == other.value; }
+    //bool  operator != (const lbool& other) const { return value != other.value; }
     lbool operator ~  (void)               const { return lbool(-value); }
 
     friend int   toInt  (lbool l);
@@ -345,18 +348,21 @@ const lbool l_False = toLbool(-1);
 const lbool l_Undef = toLbool( 0);
 const lbool l_Error = toLbool(1 << (sizeof(int)*8-1));
 
+inline bool operator==(const lbool& x, const lbool& y) { return x.value == y.value;}
+inline bool operator!=(const lbool& x, const lbool& y) { return x.value != y.value;}
+
 
 //=================================================================================================
 // Relation operators -- extend definitions from '==' and '<'
 
 
-#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
+/*#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
 #define __SGI_STL_INTERNAL_RELOPS
 template <class T> macro bool operator != (const T& x, const T& y) { return !(x == y); }
 template <class T> macro bool operator >  (const T& x, const T& y) { return y < x;     }
 template <class T> macro bool operator <= (const T& x, const T& y) { return !(y < x);  }
 template <class T> macro bool operator >= (const T& x, const T& y) { return !(x < y);  }
-#endif
+#endif*/
 
 }
 //=================================================================================================

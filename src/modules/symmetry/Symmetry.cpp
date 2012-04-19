@@ -37,8 +37,8 @@ SymmetryData::SymmetryData(const Symmetry& symmetry) {
 	}
 }
 
-SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
-		: Propagator(solver, "symmetry propagator"), symmetry(sym) {
+SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym) :
+		Propagator(solver, "symmetry propagator"), symmetry(sym) {
 	amountNeededForActive = 0;
 	reasonOfPermInactive = lit_Undef;
 	nextToPropagate = 0;
@@ -204,6 +204,7 @@ rClause SymmetryPropagator::notifypropagate() {
 		if (orig != lit_Undef) {
 			confl = propagateSymmetrical(orig);
 		}
+
 	} //else{
 	  //if(useInactivePropagationOptimization()){
 	  //	inactiveSyms.push(sym);
@@ -258,7 +259,7 @@ void SymmetryPropagator::notifyNewDecisionLevel() {
 }
 
 // Reset activity and number of needed literals
-void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit&) {
+void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit& l) {
 	nextToPropagate = 0;
 	reasonOfPermInactive = activityTrail[untillevel];
 	activityTrail.resize(untillevel + 1);
@@ -266,46 +267,15 @@ void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit&) {
 	amountNeededTrail.resize(untillevel + 1);
 	notifiedLits = notifiedLitTrail[untillevel];
 	notifiedLitTrail.resize(untillevel + 1);
+	Propagator::notifyBacktrack(untillevel, l);
 }
 
 bool SymmetryPropagator::isActive() {
-	return amountNeededForActive == 0 && !isPermanentlyInactive(); // Laatste test is nodig voor phase change symmetries
+	return amountNeededForActive == 0 && not isPermanentlyInactive(); // Laatste test is nodig voor phase change symmetries
 }
 
 bool SymmetryPropagator::isPermanentlyInactive() {
 	return reasonOfPermInactive != lit_Undef;
-}
-
-bool SymmetryPropagator::testIsActive(const std::vector<Lit>& trail) {
-	std::set<Lit> trailCopy;
-	for (uint i = 0; i < trail.size(); ++i) {
-		trailCopy.insert(trail[i]);
-	}
-	for (uint i = 0; i < trail.size(); ++i) {
-		Lit l = trail[i];
-		if (getPCSolver().isDecided(var(l))) {
-			if (!trailCopy.count(getSymmetrical(l))) {
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-bool SymmetryPropagator::testIsPermanentlyInactive(const std::vector<Lit>& trail) {
-	std::set<Lit> trailCopy;
-	for (uint i = 0; i < trail.size(); ++i) {
-		trailCopy.insert(trail[i]);
-	}
-	for (uint i = 0; i < trail.size(); ++i) {
-		Lit l = trail[i];
-		if (getPCSolver().isDecided(var(l))) {
-			if (trailCopy.count(~getSymmetrical(l))) {
-				return true;
-			}
-		}
-	}
-	return false;
 }
 
 rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
@@ -323,131 +293,16 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
 	}
 	auto symlit = implic.literals[0];
 	auto neglit = implic.literals[1];
-
-	auto level = getPCSolver().getLevel(var(neglit));
-	if (getPCSolver().getCurrentDecisionLevel() > level) {
-		getPCSolver().backtrackTo(level); // TODO check: Backtrack verplicht om de watches op het juiste moment op de clause te zetten
-	}
 	MAssert(value(symlit)!=l_True);
 	MAssert(value(neglit)==l_False);
 
 	auto clause = getPCSolver().createClause(implic, true);
+	getPCSolver().addLearnedClause(clause);
 	if (value(symlit) == l_Undef) {
-		if (addPropagationClauses()) {
-			getPCSolver().addLearnedClause(clause);
-		}
 		getPCSolver().setTrue(symlit, this, clause);
+		clause = nullPtrClause;
 	} else {
-		MAssert(value(symlit)==l_False);
-		if (addConflictClauses()) {
-			getPCSolver().addLearnedClause(clause);
-		}
-		return clause;
+		getPCSolver().addLearnedClause(clause);
 	}
-	return nullPtrClause;
+	return clause;
 }
-
-bool SymmetryPropagator::testSymmetry() {
-	auto nbclauses = getPCSolver().getSATSolver()->nbClauses();
-	for (int i = 0; i < nbclauses; ++i) {
-		auto cref = getPCSolver().getSATSolver()->getClause(i);
-		std::set<Lit> orig_set;
-		std::set<Lit> sym_set;
-		for (int j = 0; j < getPCSolver().getClauseSize(cref); ++j) {
-			auto lit = getPCSolver().getClauseLit(cref, j);
-			orig_set.insert(lit);
-			sym_set.insert(getSymmetrical(lit));
-		}
-		bool hasSymmetrical = sym_set == orig_set;
-		for (int j = 0; !hasSymmetrical && j < nbclauses; ++j) {
-			auto symmcref = getPCSolver().getSATSolver()->getClause(j);
-			sym_set.clear();
-			if (getPCSolver().getClauseSize(cref) == getPCSolver().getClauseSize(symmcref)) {
-				for (int k = 0; k < getPCSolver().getClauseSize(cref); ++k) {
-					sym_set.insert(getInverse(getPCSolver().getClauseLit(symmcref, k)));
-				}
-				hasSymmetrical = sym_set == orig_set;
-			}
-		}MAssert(hasSymmetrical);
-	}
-	return true;
-}
-
-void SymmetryPropagator::testActivityForSymmetries() {
-	const auto& trail = getPCSolver().getTrail();
-	if (isPermanentlyInactive() != testIsPermanentlyInactive(trail)) {
-		printf("ERROR: not sure if a symmetry is permanently inactive...\n");
-		printf("symmetry says: %i - ", isPermanentlyInactive());
-		printf("test says: %i\n", testIsPermanentlyInactive(trail));
-		print();
-		// TODO printtrail
-		MAssert(false);
-	}
-	if (isActive() != testIsActive(trail)) {
-		printf("ERROR: not sure if a symmetry is active...\n");
-		printf("symmetry says: %i - ", isActive());
-		printf("test says: %i\n", testIsActive(trail));
-		print();
-		for (uint j = 0; j < trail.size(); ++j) {
-			printf("%i | %i | %i\n", getPCSolver().getLevel(var(trail[j])), toInt(trail[j]), getPCSolver().isDecided(var(trail[j])));
-		}
-		MAssert(false);
-	}
-}
-
-// Symmetry is a commented line with cycles.
-// The line starts with "c", followed by a blank, followed by the permutation cycles comprised of literals, followed by a blank followed by a zero.
-// Every literal in a cycle is either a positive or negative literal.
-// The positive literal is itself, the negative literal is the positive literal + the total number of variables.
-// e.g.: c (1 2 3)(4 5 6) 0 denotes the symmetry 1->2, 2->3, 3->1, -1->-2, -2->-3, -3->-1.
-template<class B, class Solver>
-static void parse_SYMMETRY_main(B& in, Solver& S) {
-	// TODO implement parsing
-/*	int nrVars=S.nVars();
-	MAssert(nrVars>0);
-	MAssert(*in=='[');
-	++in; // skipping the "["
-	++in; // jumping to next line
-	int start,first, second;
-	while(true){
-		vec<Lit> symFrom, symTo;
-		while(*in=='('){
-			++in;
-			start = parseInt(in);
-			if(start>nrVars){ //adjusting shatter's format
-				start=nrVars-start;
-			}
-			second = start;
-			MAssert(*in==',');
-			while(*in==','){
-				++in;
-				first = second;
-				second = parseInt(in);
-				if(second>nrVars){ //adjusting shatter's format
-					second=nrVars-second;
-				}
-				if(second>= -nrVars && first>= -nrVars){ //check for phase shift symmetries
-					symFrom.push(mkLit(abs(first)-1,first<0));
-					symTo.push(mkLit(abs(second)-1,second<0));
-				}else{
-					MAssert(second< -nrVars && first< -nrVars);
-				}
-			}
-			MAssert(*in==')'); ++in;
-			first = second;
-			second = start;
-			if(second>=-nrVars && first>=-nrVars){ //check for phase shift symmetries
-				symFrom.push(mkLit(abs(first)-1,first<0));
-				symTo.push(mkLit(abs(second)-1,second<0));
-			}else{
-				MAssert(second< -nrVars && first< -nrVars);
-			}
-		}
-		S.addSymmetry(symFrom,symTo);
-		if(*in==','){
-			++in; ++in; MAssert(*in=='(');
-		}else{
-			break;
-		}
-	}*/
- }

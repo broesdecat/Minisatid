@@ -49,21 +49,18 @@ void throwDoubleDefinedSet(int setid) {
 
 void throwNegativeHead(const std::string& head) {
 	stringstream ss;
-	ss << "An aggregate cannot be defined by a negative head, violated for " <<head << ".\n";
+	ss << "An aggregate cannot be defined by a negative head, violated for " << head << ".\n";
 	throw idpexception(ss.str());
 }
 
 void throwHeadOccursInSet(const std::string& head, int setid) {
 	stringstream ss;
-	ss << "For the aggregated with head " <<head << " also occurs in set " <<setid <<".\n";
+	ss << "For the aggregated with head " << head << " also occurs in set " << setid << ".\n";
 	throw idpexception(ss.str());
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
-		engine(engine),
-		definitions(new Definition(engine)),
-		maxset(1),
-		finishedparsing(false){
+		engine(engine), definitions(new Definition(engine)), maxset(1), finishedparsing(false) {
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolver());
@@ -204,7 +201,7 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 	MAssert(type!=AggType::MIN);
 	auto& set = parsedsets.at(setid);
 
-	if(set.aggs.size()==0){
+	if (set.aggs.size() == 0) {
 		set.type = type;
 	}
 
@@ -260,7 +257,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 	}
 	auto set = it->second.set;
 
-	if(it->second.aggs.size()==0){
+	if (it->second.aggs.size() == 0) {
 		it->second.type = formula.type;
 	}
 
@@ -278,9 +275,9 @@ void PropagatorFactory::add(const MinimizeVar& formula) {
 	guaranteeAtRootLevel();
 
 	auto it = intvars.find(formula.varID);
-	if(it==intvars.cend()){
+	if (it == intvars.cend()) {
 		stringstream ss;
-		ss <<"The CP var " <<formula.varID <<" has not been declared yet, but is used in an optimization statement.";
+		ss << "The CP var " << formula.varID << " has not been declared yet, but is used in an optimization statement.";
 		throw idpexception(ss.str());
 	}
 	OptimStatement optim(formula.priority, it->second);
@@ -316,23 +313,27 @@ IntVar* PropagatorFactory::getIntVar(int varID) const {
 }
 
 void PropagatorFactory::add(const IntVarRange& obj) {
-	addCP(obj);
-	// TODO also add a cpviagecode option!
-	/*if(intvars.find(obj.varID)!=intvars.cend()){
-	 stringstream ss;
-	 ss <<"Integer variable " <<obj.varID <<" was declared twice.\n";
-	 throw idpexception(ss.str());
-	 }
-	 intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));*/
+	if (getEngine().modes().usegecode) {
+		addCP(obj);
+	} else {
+		if (intvars.find(obj.varID) != intvars.cend()) {
+			stringstream ss;
+			ss << "Integer variable " << obj.varID << " was declared twice.\n";
+			throw idpexception(ss.str());
+		}
+		intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
+	}
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
-	addCP(obj);
+	addCP(obj); // TODO intvar?
 }
 
 void PropagatorFactory::add(const CPBinaryRel& obj) {
 	addCP(obj);
 
+
+	// TODO
 	/*Equivalence eq;
 	 eq.head = mkPosLit(obj.head);
 	 IntVar* left = getIntVar(obj.varID);
@@ -362,7 +363,7 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 
 void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	addCP(obj);
-	//new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
+	//TODO new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 }
 
 void PropagatorFactory::add(const CPSumWeighted& obj) {
@@ -377,9 +378,9 @@ void PropagatorFactory::add(const CPAllDiff& obj) {
 	addCP(obj);
 }
 
-void PropagatorFactory::guaranteeAtRootLevel(){
+void PropagatorFactory::guaranteeAtRootLevel() {
 	// FIXME use reverse trail instead!
-	if(getEngine().getCurrentDecisionLevel()>0){
+	if (getEngine().getCurrentDecisionLevel() > 0) {
 		getEngine().backtrackTo(0);
 	}
 }
@@ -389,7 +390,7 @@ void PropagatorFactory::guaranteeAtRootLevel(){
 SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs, bool optimagg, uint optimpriority) {
 	bool unsat = false, sat = false;
 
-	if(aggs.size()==0){
+	if (aggs.size() == 0) {
 		return SATVAL::POS_SAT;
 	}
 
@@ -412,12 +413,12 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 		break;
 	}
 
-	if(origset->wl.size()==0){
-		for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
-			if((*i)->hasLB()){
-				getEngine().notifySetTrue((type->getESV()>=(*i)->getBound())?(*i)->getHead():not (*i)->getHead());
-			}else{
-				getEngine().notifySetTrue((type->getESV()<=(*i)->getBound())?(*i)->getHead():not (*i)->getHead());
+	if (origset->wl.size() == 0) {
+		for (auto i = aggs.cbegin(); i < aggs.cend(); ++i) {
+			if ((*i)->hasLB()) {
+				getEngine().notifySetTrue((type->getESV() >= (*i)->getBound()) ? (*i)->getHead() : not (*i)->getHead());
+			} else {
+				getEngine().notifySetTrue((type->getESV() <= (*i)->getBound()) ? (*i)->getHead() : not (*i)->getHead());
 			}
 		}
 		aggs.clear();
@@ -433,10 +434,10 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 			AggStorage::addStorage(getEnginep());
 		}
 		AggStorage::getStorage()->add(set, aggs);
-		if(finishedparsing){ // TODO bit ugly to have to add it here!
+		if (finishedparsing) { // TODO bit ugly to have to add it here!
 			auto satval = execute(*AggStorage::getStorage());
 			AggStorage::resetStorage();
-			if(satval==SATVAL::UNSAT){
+			if (satval == SATVAL::UNSAT) {
 				return satval;
 			}
 		}
@@ -524,8 +525,8 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 	MAssert(getEngine().modes().lazy);
 	MAssert(not getEngine().isDecisionVar(var(object.residual)));
 	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
-	if(getEngine().verbosity()>4){
-		clog <<toString(object.residual, getEngine()) <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
+	if (getEngine().verbosity() > 4) {
+		clog << toString(object.residual, getEngine()) << " is delayed " << (object.watchboth ? "on unknown" : "on true") << "\n";
 	}
 	if (object.watchboth) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
