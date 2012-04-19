@@ -201,6 +201,7 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 	inferencevals.push_back(Inference::MODELEXPAND); inferencedesc.push_back(pair<string, string>("mx", "Do modelexpansion on the theory"));
 	inferencevals.push_back(Inference::PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Do unit propagation on the theory"));
 	inferencevals.push_back(Inference::PRINTGRAPH); inferencedesc.push_back(pair<string, string>("graph", "Print the ecnf graph, ready to print with dot"));
+	inferencevals.push_back(Inference::UNSATCORE); inferencedesc.push_back(pair<string, string>("unsat-core", "Extract an unsat core for the theory."));
 
 	vector<pair<string, string> > watcheddesc;
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));

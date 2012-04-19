@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <memory>
 
 namespace MinisatID{
 
@@ -77,6 +78,7 @@ void setInputFileUrl(std::string url);
 FILE* getInputFile();
 std::streambuf* getInputBuffer();
 void closeInput();
+std::shared_ptr<ResMan> createResMan(const std::string& file);
 
 }
 

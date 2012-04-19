@@ -14,6 +14,7 @@
 #include "theorysolvers/PCSolver.hpp"
 
 #include "modules/SCCtoCNF.hpp"
+#include "external/ConstraintAdditionInterface.hpp"
 
 #include <cmath>
 
@@ -45,16 +46,8 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s, "definition"),
-		definitionID(definitionID),
-		needinitialization(false),
-		infactnotpresent(false),
-		minvar(0),
-		nbvars(0),
-		conj(DefType::CONJ),
-		disj(DefType::DISJ),
-		aggr(DefType::AGGR),
-		_seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(
+		Propagator(s, "definition"), definitionID(definitionID), needinitialization(false), infactnotpresent(false), minvar(0), nbvars(0), conj(
+				DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(
 				false), posloops(true), negloops(true), backtracked(true), adaption_total(0), adaption_current(0), twovalueddef(false) {
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
@@ -82,8 +75,8 @@ void IDSolver::createDefinition(Var head, IDAgg* agg) {
 }
 
 int IDSolver::getNbOfFormulas() const {
-	return defdVars.size()==0?0:defdVars.size()*log((double)defdVars.size())/log(2);
- }
+	return defdVars.size() == 0 ? 0 : defdVars.size() * log((double) defdVars.size()) / log(2);
+}
 
 inline void IDSolver::addCycleSource(Var v) {
 	if (!isCS(v)) {
@@ -126,7 +119,7 @@ void IDSolver::addFinishedRule(const TempRule& rule) {
 		throw idpexception(ss.str());
 	}
 
-	if(rule.body.empty()){
+	if (rule.body.empty()) {
 		return;
 	}
 
@@ -156,15 +149,34 @@ void IDSolver::addFinishedDefinedAggregate(const TempRule& rule) {
 }
 
 void IDSolver::addRuleSet(const std::vector<TempRule*>& rules) {
-	for(auto i=rules.cbegin(); i<rules.cend(); ++i) {
-		if((*i)->isagg){
+	for (auto i = rules.cbegin(); i < rules.cend(); ++i) {
+		if ((*i)->isagg) {
 			addFinishedDefinedAggregate(**i);
-		}else{
+		} else {
 			addFinishedRule(**i);
 		}
 	}
 	needinitialization = true;
 	getPCSolver().acceptForPropagation(this);
+}
+
+void IDSolver::accept(ConstraintVisitor& visitor) {
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
+		if (isDefined(*i)) {
+			auto defvar = getDefVar(*i);
+			if (defvar->type() == DefType::AGGR) {
+				auto rule = defvar->definedaggregate();
+				auto setid = getPCSolver().newSetID();
+				visitor.add(WLSet(setid, rule->getWL()));
+				// NOTE: leads to duplicate aggregates!
+				visitor.add(
+						Aggregate(var(rule->getHead()), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID()));
+			} else {
+				auto rule = defvar->definition();
+				visitor.add(Rule(var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID()));
+			}
+		}
+	}
 }
 
 /*
@@ -283,8 +295,7 @@ void IDSolver::initialize() {
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-		CHECKSEEN
-	}
+CHECKSEEN}
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
@@ -771,7 +782,7 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 		if (mixed && sccs.size() > 1) {
 			rootofmixed.push_back(i);
 			nodeinmixed.insert(nodeinmixed.begin(), sccs.cbegin(), sccs.cend());
-		}else{
+		} else {
 			posroots.push_back(i);
 		}
 	}
@@ -917,8 +928,8 @@ rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT
 	if (needinitialization) {
 		initialize();
-		if(getPCSolver().isUnsat()){
-			return getPCSolver().createClause({}, true);
+		if (getPCSolver().isUnsat()) {
+			return getPCSolver().createClause( { }, true);
 		}
 	}
 	CHECKSEEN CHECKNOTUNSAT
@@ -1100,7 +1111,8 @@ void IDSolver::checkJustification(Var head) {
 		if (isDefined(var(jstf[i])) && inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])) {
 			external = false;
 		}
-	}MAssert(jstf.size()>0);
+	}
+	MAssert(jstf.size()>0);
 	if (external) {
 		changejust(head, jstf);
 	} else {
@@ -1122,7 +1134,8 @@ void IDSolver::findJustificationDisj(Var v, litlist& jstf) {
 				break; //external justification is preferred.
 			}
 		}
-	}MAssert(pos>=0);
+	}
+	MAssert(pos>=0);
 	jstf.push_back(c[pos]);
 }
 
@@ -1508,7 +1521,8 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			auto v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
-				clog << "Adding new variable " << toString(v) << "for a ufs of size " <<ufs.size() <<" and " <<loopf.literals.size() <<" external disjuncts.\n";
+				clog << "Adding new variable " << toString(v) << "for a ufs of size " << ufs.size() << " and " << loopf.literals.size()
+						<< " external disjuncts.\n";
 			}
 
 			// not v \vee \bigvee\extdisj{L}
@@ -1574,7 +1588,7 @@ void IDSolver::addLoopfClause(Lit l, Disjunction& lits) {
 		}
 
 		if (unknown == 1) {
-			getPCSolver().setTrue(lits.literals[unknindex], NULL, c);
+			getPCSolver().setTrue(lits.literals[unknindex], this, c);
 		}
 
 		if (verbosity() >= 2) {
@@ -1968,7 +1982,8 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 	MAssert(isDefined(v));
 	if (occ(v) != DefOcc::BOTHLOOP && occ(v) != DefOcc::MIXEDLOOP) {
 		return;
-	}MAssert(getDefVar(v)->type()!=DefType::AGGR);
+	}
+	MAssert(getDefVar(v)->type()!=DefType::AGGR);
 	++counter;
 	visited[v] = throughPositiveLit ? counter : -counter;
 	root[v] = v;
@@ -2032,7 +2047,8 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 					break;
 				}
 			}
-		}MAssert(var(l)>-1);
+		}
+		MAssert(var(l)>-1);
 		Var w = var(l);
 		if (isDefined(w)) {
 			if (visited[w] == 0) {

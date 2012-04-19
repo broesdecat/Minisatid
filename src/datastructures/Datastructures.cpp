@@ -1,5 +1,5 @@
 #include "external/Datastructures.hpp"
-#include "external/Remapper.hpp"
+#include "space/Remapper.hpp"
 #include "external/Constraints.hpp"
 #include "constraintvisitors/ConstraintVisitor.hpp"
 #include "theorysolvers/PCSolver.hpp"
@@ -34,7 +34,7 @@ namespace MinisatID{
 
 #define DATASTRUCTURE_ACCEPT(x) \
 void x::accept(ConstraintVisitor* visitor){\
-	visitor->visit(*this);\
+	visitor->add(*this);\
 }\
 void x::accept(Space* visitor){\
 	extAdd(*visitor, *this);\

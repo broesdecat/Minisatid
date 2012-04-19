@@ -136,12 +136,12 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 				Disjunction disj;
 				disj.literals.push_back(first->getHead());
 				disj.literals.push_back(not second->getHead());
-				add(disj, *solver);
+				internalAdd(disj, *solver);
 				if (first->getBound() == second->getBound()) {
 					Disjunction disj2;
 					disj2.literals.push_back(not first->getHead());
 					disj2.literals.push_back(second->getHead());
-					add(disj2, *solver);
+					internalAdd(disj2, *solver);
 				}
 				first = second;
 			}
@@ -155,12 +155,12 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 				Disjunction disj;
 				disj.literals.push_back(first->getHead());
 				disj.literals.push_back(not second->getHead());
-				add(disj, *solver);
+				internalAdd(disj, *solver);
 				if (first->getBound() == second->getBound()) {
 					Disjunction disj2;
 					disj2.literals.push_back(not first->getHead());
 					disj2.literals.push_back(second->getHead());
-					add(disj2, *solver);
+					internalAdd(disj2, *solver);
 				}
 				first = second;
 			}
@@ -210,7 +210,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		}
 		clause.literals.push_back((*i).getLit());
 	}
-	add(clause, *solver);
+	internalAdd(clause, *solver);
 	for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
 			break;
@@ -218,7 +218,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		clause.literals.clear();
 		clause.literals.push_back(ub ? not agg.getHead() : agg.getHead());
 		clause.literals.push_back(not (*i).getLit());
-		add(clause, *solver);
+		internalAdd(clause, *solver);
 	}
 	//}
 	aggs.clear();
@@ -255,7 +255,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 					 unsat = unsat || !set->getSolver()->getPCSolver().add(rule);
 					 }else{*/
 					if (headvalue == l_Undef) {
-						solver->setTrue(agg.getHead(), NULL);
+						internalAdd(Disjunction({agg.getHead()}),*solver);
 					}
 					//}
 				}
@@ -275,7 +275,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 					body.push_back(set->getWL()[j].getLit());
 				}
 				Implication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
-				add(eq, *solver);
+				internalAdd(eq, *solver);
 				//}
 			} else {
 				remaggs.push_back(*i);

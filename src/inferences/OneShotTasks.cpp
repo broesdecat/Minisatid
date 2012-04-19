@@ -2,6 +2,7 @@
 #include "external/Tasks.hpp"
 #include "external/Space.hpp"
 #include "constraintvisitors/ECNFPrinter.hpp"
+#include "space/Remapper.hpp"
 #include "space/SearchEngine.hpp"
 #include "theorysolvers/PropagatorFactory.hpp"
 #include "datastructures/InternalAdd.hpp"
@@ -9,15 +10,75 @@
 using namespace std;
 using namespace MinisatID;
 
-template<>
-void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction) {
+void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction) {
 	Disjunction extended(disjunction);
-	auto newvar = space->getEngine()->newVar();
+	auto newvar = getRemapper()->getNewVar();
 	extended.literals.push_back(mkPosLit(newvar));
-	id2constr[maxid] = new Disjunction(disjunction);
+	id2constr[disjunction.id] = new Disjunction(disjunction);
 	marker2ids[newvar].push_back(disjunction.id);
 	markerAssumptions.push_back(mkNegLit(newvar));
-	add(extended, *space->getEngine());
+	space->add(extended);
+}
+void OneShotUnsatCoreExtraction::add(const WLSet& set) {
+	space->add(set);
+}
+/**
+ * From P <=> Agg
+ * go to
+ *
+ * P <=> (Pnew | M1) & M2
+ * Pnew <=> Agg
+ * and M1 assumed false, M2 assumed true
+ */
+void OneShotUnsatCoreExtraction::add(const Aggregate& agg) {
+	Aggregate extended(agg);
+	auto oldhead = extended.head;
+	auto newhead = getRemapper()->getNewVar();
+	auto truemarker = getRemapper()->getNewVar();
+	auto falsemarker = getRemapper()->getNewVar();
+	auto tseitin = getRemapper()->getNewVar();
+	extended.head = newhead;
+	// FIXME defined aggregates
+	if (agg.sem == AggSem::DEF) {
+		Rule impl(tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, agg.defID);
+		Rule impl2(oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID);
+		space->add(impl);
+		space->add(impl2);
+	} else {
+		Implication impl(mkPosLit(tseitin), ImplicationType::EQUIVALENT, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
+		Implication impl2(mkPosLit(oldhead), ImplicationType::EQUIVALENT, { mkPosLit(tseitin), mkPosLit(truemarker) }, true);
+		space->add(impl);
+		space->add(impl2);
+	}
+	markerAssumptions.push_back(mkNegLit(falsemarker));
+	markerAssumptions.push_back(mkPosLit(truemarker));
+	id2constr[agg.id] = new Aggregate(agg);
+	marker2ids[truemarker].push_back(agg.id);
+	marker2ids[falsemarker].push_back(agg.id);
+	space->add(extended);
+
+}
+/**
+ * Exactly same idea is with the aggregate (but then defined
+ */
+void OneShotUnsatCoreExtraction::add(const Rule& rule) {
+	Rule extended(rule);
+	auto oldhead = extended.head;
+	auto newhead = getRemapper()->getNewVar();
+	auto truemarker = getRemapper()->getNewVar();
+	auto falsemarker = getRemapper()->getNewVar();
+	auto tseitin = getRemapper()->getNewVar();
+	extended.head = newhead;
+	Rule impl(tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, rule.definitionID);
+	Rule impl2(oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, rule.definitionID);
+	markerAssumptions.push_back(mkNegLit(falsemarker));
+	markerAssumptions.push_back(mkPosLit(truemarker));
+	id2constr[rule.id] = new Rule(rule);
+	marker2ids[truemarker].push_back(rule.id);
+	marker2ids[falsemarker].push_back(rule.id);
+	space->add(extended);
+	space->add(impl);
+	space->add(impl2);
 }
 // TODO other constraints:
 /*
@@ -32,59 +93,27 @@ void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction) {
 
 void OneShotUnsatCoreExtraction::innerExecute() {
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxoptions, markerAssumptions);
+	auto mx = ModelExpand(space, mxoptions, { });
+	mx.setAssumptionsAsInternal(markerAssumptions);
 	mx.execute();
-	MAssert(mx.getSolutions().size()==0);
+	MAssert(mx.isUnsat());
 	auto explan = mx.getUnsatExplanation();
-	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog);
-	clog <<"Unsat core: \n";
-	for(auto i=explan.cbegin(); i<explan.cend(); ++i){
-		for(auto j=marker2ids[var(*i)].cbegin(); j<marker2ids[var(*i)].cend(); ++j){
-			clog <<"\t";
+	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog, true);
+	clog << "Unsat core: \n";
+	for (auto i = explan.cbegin(); i < explan.cend(); ++i) {
+		for (auto j = marker2ids[var(*i)].cbegin(); j < marker2ids[var(*i)].cend(); ++j) {
+			unsatcore.push_back(*j);
+			clog << "\t";
 			id2constr[*j]->accept(&printer);
 		}
 	}
-	// TODO  rest
+	// TODO minimization?
+	// TODO translation into some useful format
 }
 
-OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options) : Task(options), space(new Space(options, true)) {
-
+OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options) :
+		Task(options), ExternalConstraintVisitor(options, "unsat-core-extractor"), space(new Space(getRemapper(), getTranslator(), options, true)) {
 }
 OneShotUnsatCoreExtraction::~OneShotUnsatCoreExtraction() {
-}
-
-OneShotMX::OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions):
-		MXTask(new Space(options, true)), localspace(true),
-	mx(new ModelExpand(getSpace(), mxoptions, assumptions)){
-
-}
-
-OneShotMX::OneShotMX(Space* space, ModelExpandOptions mxoptions, const litlist& assumptions):
-		MXTask(space), localspace(false),
-	mx(new ModelExpand(space, mxoptions, assumptions)){
-
-}
-
-OneShotMX::~OneShotMX(){
-	if(localspace){
-		delete(getSpace());
-	}
-	delete(mx);
-}
-
-SearchEngine* OneShotMX::getEngine() const { return getSpace()->getEngine(); }
-
-void OneShotMX::innerExecute(){
-	mx->execute();
-}
-
-bool OneShotMX::isSat() const {
-	return mx->isSat();
-}
-bool OneShotMX::isUnsat() const {
-	return mx->isUnsat();
-}
-
-void OneShotMX::notifySolvingAborted() {
-	mx->notifySolvingAborted();
+	// delete space?
 }

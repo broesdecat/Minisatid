@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
-#include "external/ModelManager.hpp"
+#include "ModelManager.hpp"
 
 #include <vector>
 #include <string>

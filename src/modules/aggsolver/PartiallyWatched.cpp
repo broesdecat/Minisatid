@@ -110,14 +110,20 @@ void GenPWAgg::propagate(const Lit&, Watch* ws, int) {
 
 void GenPWAgg::backtrack(int untillevel) {
 	proplist.clear();
-	// FIXME only reconstruct when necessary!!!: when more propagations would ensue than last time and backtracking occurs over that, only then reconstruct
-	bool propagations = false;
-	auto confl = reconstructSet(propagations, NULL, false);
-	MAssert(confl==nullPtrClause);
-	for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
-		stageWatch(*i); // TODO temporary fix because known watches are never stored in the queue!
+
+	bool needreconstruction = backtracklist.size() > 0 && backtracklist.back().second >= untillevel;
+	while (backtracklist.size() > 0 && backtracklist.back().second >= untillevel) {
+		backtracklist.pop_back();
 	}
-	addStagedWatchesToNetworkOnStable(confl);
+	if (needreconstruction) {
+		auto propagations = false;
+		auto confl = reconstructSet(propagations, NULL, false);
+		MAssert(confl==nullPtrClause);
+		for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
+			stageWatch(*i); // TODO temporary fix because known watches are never stored in the queue!
+		}
+		addStagedWatchesToNetworkOnStable(confl);
+	}
 }
 
 rClause GenPWAgg::propagateAtEndOfQueue() {
@@ -292,7 +298,7 @@ void GenPWAgg::moveFromWSToNWS(GenPWatch* watch) {
 
 void GenPWAgg::addWatchToNetwork(GenPWatch* watch) {
 	MAssert(watch->isInWS());
-	if (not watch->isInNetwork() && getPCSolver().value(watch->getPropLit())==l_Undef) {
+	if (not watch->isInNetwork() && getPCSolver().value(watch->getPropLit()) == l_Undef) {
 		getSet().getPCSolver().accept(watch);
 	}
 }
@@ -490,11 +496,21 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 			lowerbound = WL(mkPosLit(1), getType().removeMin(agg->getCertainBound(), pessbounds.min));
 		}
 		auto i = upper_bound(getSet().getWL().cbegin(), getSet().getWL().cend(), lowerbound, compareByWeights<WL>);
+		auto lastpropagation = mkPosLit(-1);
 		for (; confl == nullPtrClause && i < getSet().getWL().cend(); ++i) { //INVARIANT: sorted WL
-			// TODO here, check whether more propagations would ensue then the last time
+			lastpropagation = i->getLit();
 			if (value(i->getLit()) == l_Undef) { //Otherwise would have been head conflict
 				propagations = true;
 				confl = getSet().notifySolver(new SetLitReason(*agg, i->getLit(), i->getWeight(), agg->hasLB()));
+			}
+		}
+		if (lastpropagation != mkPosLit(-1)) {
+			auto currentlevel = getSet().getPCSolver().getCurrentDecisionLevel();
+			if (backtracklist.size() == 0 || backtracklist.back().second < currentlevel) {
+				backtracklist.push_back( { var(lastpropagation), currentlevel });
+			} else {
+				MAssert(backtracklist.back().second==currentlevel);
+				backtracklist.back().first = var(lastpropagation);
 			}
 		}
 	}

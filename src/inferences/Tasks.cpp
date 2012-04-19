@@ -8,7 +8,7 @@
  */
 #include "external/Tasks.hpp"
 
-#include "external/Remapper.hpp"
+#include "space/Remapper.hpp"
 #include "external/Translator.hpp"
 #include "space/SearchEngine.hpp"
 #include "theorysolvers/PropagatorFactory.hpp"
@@ -20,8 +20,8 @@
 #include "constraintvisitors/CNFPrinter.hpp"
 #include "constraintvisitors/ECNFGraphPrinter.hpp"
 #include "constraintvisitors/HumanReadableParsingPrinter.hpp"
-#include "external/Printer.hpp"
-#include "external/ModelManager.hpp"
+#include "Printer.hpp"
+#include "ModelManager.hpp"
 #include "external/utils/ResourceManager.hpp"
 #include "external/Space.hpp"
 #include "external/Constraints.hpp"
@@ -52,8 +52,9 @@ void SpaceTask::notifyTerminateRequested() {
 	space->getEngine()->notifyTerminateRequested();
 }
 
+// NOTE: EXTERNAL literals
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions) :
-		MXTask(space), _options(options), assumptions(checkLits(assumptions, space->getRemapper())), _solutions(new ModelManager(options.savemodels)), printer(
+		MXTask(space), _options(options), assumptions(checkLits(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)), printer(
 				new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }
@@ -185,7 +186,7 @@ void addModelToSolution(const std::shared_ptr<Model>& model, const Remapper& rem
 }
 
 void ModelExpand::addModel(std::shared_ptr<Model> model) {
-	addModelToSolution(model, getSpace()->getRemapper(), *_solutions, *printer);
+	addModelToSolution(model, *getSpace()->getRemapper(), *_solutions, *printer);
 }
 
 /**
@@ -256,7 +257,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 		clog << getSpace()->toString(d.literals);
 		clog << "]\n";
 	}
-	add(d, getSolver());
+	internalAdd(d, getSolver());
 	return getSolver().satState();
 }
 
@@ -415,7 +416,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		for (auto i = savedinvalidation.cbegin(); i < savedinvalidation.cend(); ++i) {
 			d.literals.push_back(*i);
 		}
-		add(d, getSolver());
+		internalAdd(d, getSolver());
 		// If resetting state, also fix the optimization constraints to their optimal condition
 		switch (optim.optim) {
 		case Optim::LIST:
@@ -423,19 +424,19 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 				if (*i == latestlistoptimum) {
 					break;
 				}
-				add(Disjunction( { ~*i }), getSolver());
+				internalAdd(Disjunction( { ~*i }), getSolver());
 			}
-			add(Disjunction( { latestlistoptimum }), getSolver());
+			internalAdd(Disjunction( { latestlistoptimum }), getSolver());
 			break;
 		case Optim::SUBSET: {
 			WLSet set(getSolver().newSetID());
 			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
 				set.wl.push_back( { *i, 1 });
 			}
-			add(set, getSolver());
+			internalAdd(set, getSolver());
 			auto var = getSolver().newVar();
-			add(Disjunction( { mkPosLit(var) }), getSolver());
-			add(Aggregate(var, set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
+			internalAdd(Disjunction( { mkPosLit(var) }), getSolver());
+			internalAdd(Aggregate(var, set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
 			break;
 		}
 		case Optim::AGG: {
@@ -476,7 +477,7 @@ void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 literallist UnitPropagate::getEntailedLiterals() {
 	auto lits = getSolver().getEntailedLiterals();
 	literallist literals;
-	auto r = getSpace()->getRemapper();
+	auto r = *getSpace()->getRemapper();
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		if (getSolver().rootValue(*i) != l_Undef && r.wasInput(*i)) {
 			literals.push_back(r.getLiteral(*i));
@@ -491,12 +492,7 @@ void UnitPropagate::innerExecute() {
 }
 
 void UnitPropagate::writeOutEntailedLiterals() {
-	std::shared_ptr<ResMan> resman;
-	if (getSpace()->getOptions().outputfile == "") {
-		resman = std::shared_ptr<ResMan>(new StdMan(false));
-	} else {
-		resman = std::shared_ptr<ResMan>(new FileMan(getSpace()->getOptions().outputfile.c_str(), true));
-	}
+	auto resman = createResMan(getOptions().outputfile);
 	ostream output(resman->getBuffer());
 
 	clog << ">>> Following is a list of literals entailed by the theory.\n";
@@ -514,16 +510,11 @@ void UnitPropagate::writeOutEntailedLiterals() {
 }
 
 void Transform::innerExecute() {
-	std::shared_ptr<ResMan> resfile;
-	if (getSpace()->getOptions().outputfile == "") {
-		resfile = std::shared_ptr<ResMan>(new StdMan(std::clog));
-	} else {
-		resfile = std::shared_ptr<ResMan>(new FileMan(getSpace()->getOptions().outputfile, true));
-	}
+	std::shared_ptr<ResMan> resfile(createResMan(getSpace()->getOptions().outputfile));
 	ostream output(resfile->getBuffer());
 	switch (outputlanguage) {
 	case TheoryPrinting::FZ: {
-		FlatZincRewriter<ostream> fzrw(getSpace()->getEngine(), getOptions(), output);
+		FlatZincRewriter<ostream> fzrw(getSpace()->getRemapper(), getSpace()->getTranslator(), getOptions(), output);
 		getSolver().accept(fzrw);
 		break;
 	}

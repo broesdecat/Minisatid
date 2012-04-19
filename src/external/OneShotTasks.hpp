@@ -10,7 +10,6 @@
 #define ONESHOTTASKS_HPP_
 
 #include "Tasks.hpp"
-#include "Remapper.hpp"
 #include "Datastructures.hpp"
 #include "ConstraintAdditionInterface.hpp"
 #include <typeinfo>
@@ -19,61 +18,31 @@ namespace MinisatID{
 
 template<class T> class FlatZincRewriter;
 
-class OneShotUnsatCoreExtraction: public Task, public ConstraintAdditionInterface<OneShotUnsatCoreExtraction>{
+class OneShotUnsatCoreExtraction: public Task, public ExternalConstraintVisitor{
 private:
-	int maxid;
 	std::map<int, ID*> id2constr;
 	std::map<Var, std::vector<int> > marker2ids;
-	std::vector<Lit> markerAssumptions;
+	std::vector<Lit> markerAssumptions; // Note: internal literals
 	Space* space;
+	std::vector<int> unsatcore;
 public:
-	template<class T>
-	void extAdd(const T& formula){
-		std::stringstream ss;
-		ss <<"Unsupported constraint type " <<typeid(T).name() <<"encountered in Unsat core extraction.";
-		throw idpexception(ss.str());
-	}
+	virtual void add(const Disjunction&);
+	virtual void add(const WLSet&);
+	virtual void add(const Aggregate&);
+	virtual void add(const Rule&);
 
 	void innerExecute();
 
 	OneShotUnsatCoreExtraction(const SolverOption& options);
 	~OneShotUnsatCoreExtraction();
 
-	OneShotUnsatCoreExtraction* getEngine() { return this; }
-};
+	std::vector<int> getUnsatCoreIDs() const{
+		return unsatcore;
+	}
 
-template<>
-void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction);
-
-class OneShotFlatzinc: public Task, public ConstraintAdditionInterface<OneShotFlatzinc>{
-private:
-	FlatZincRewriter<std::ostream>* fzrw;
-public:
-	OneShotFlatzinc* getEngine() { return this; }
-};
-
-class Space;
-class ModelExpand;
-
-class OneShotMX: public MXTask, public ConstraintAdditionInterface<SearchEngine>{
-private:
-	bool localspace;
-	ModelExpand* mx;
-public:
-	OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions);
-	OneShotMX(Space* space, ModelExpandOptions mxoptions, const litlist& assumptions);
-	~OneShotMX();
-	SearchEngine* getEngine() const;
-
-	bool isSat() const;
-	bool isUnsat() const;
-	void notifySolvingAborted();
-
-	void innerExecute();
+	OneShotUnsatCoreExtraction* getEngine() const { return const_cast<OneShotUnsatCoreExtraction*>(this); } // TODO Ugly const cast?
 };
 
 }
-
-
 
 #endif /* ONESHOTTASKS_HPP_ */

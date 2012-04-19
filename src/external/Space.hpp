@@ -11,7 +11,6 @@
 #include "Options.hpp"
 #include "callback.hpp"
 #include "LiteralPrinter.hpp"
-#include "Remapper.hpp"
 #include "ConstraintAdditionInterface.hpp"
 
 namespace MinisatID{
@@ -46,19 +45,18 @@ public:
 	Var createVar();
 };
 
-class Space: public LiteralPrinter, public ConstraintAdditionInterface<SearchEngine>{
+class Space: public ExternalConstraintVisitor{
 private:
-	SolverOption basicoptions;
 	Monitor* monitor;
 	VarCreation* varcreator;
 	SearchEngine* engine;
 	bool oneshot, executed;
 
 public:
-	Space(SolverOption options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.
+	Space(const SolverOption& options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.
+	Space(Remapper* remapper, Translator* translator, const SolverOption& options, bool oneshot = false);
 	~Space();
 	SearchEngine* getEngine() const { return engine; }
-	const SolverOption& getOptions() const { return basicoptions; }
 
 	void notifyUnsat();
 	bool isCertainlyUnsat() const;
@@ -70,22 +68,30 @@ public:
 		executed = true;
 	}
 
-private:
-	Translator *_translator, *_origtranslator;
-public:
-	virtual std::string toString(const Lit& lit) const;
-	std::string toString(const litlist& literals) const;
-
-	void setTranslator(Translator* translator){
-		_translator = translator;
-	}
-	Translator* getTranslator() const {
-		return _translator;
-	}
 	void addMonitor(PropAndBackMonitor* monitor);
 
 	bool isOptimizationProblem() const;
 	bool	isAlwaysAtOptimum() const;
+
+	virtual void add(const Disjunction&);
+	virtual void add(const Implication&);
+	virtual void add(const Rule&);
+	virtual void add(const WLSet&);
+	virtual void add(const Aggregate&);
+	virtual void add(const MinimizeOrderedList&);
+	virtual void add(const MinimizeSubset&);
+	virtual void add(const MinimizeVar&);
+	virtual void add(const MinimizeAgg&);
+	virtual void add(const Symmetry&);
+	virtual void add(const IntVarEnum&);
+	virtual void add(const IntVarRange&);
+	virtual void add(const CPAllDiff&);
+	virtual void add(const CPBinaryRel&);
+	virtual void add(const CPCount&);
+	virtual void add(const CPBinaryRelVar&);
+	virtual void add(const CPSumWeighted&);
+	virtual void add(const CPElement&) ;
+	virtual void add(const LazyGroundLit&);
 };
 
 }

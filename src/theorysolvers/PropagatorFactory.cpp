@@ -76,7 +76,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 }
 
 PropagatorFactory::~PropagatorFactory() {
-	deleteList<ConstraintVisitor>(parsingmonitors);
+	deleteList<ConstraintPrinter>(parsingmonitors);
 	for (auto i = parsedsets.cbegin(); i != parsedsets.cend(); ++i) {
 		MAssert((*i).second.set!=NULL);
 		delete ((*i).second.set);
@@ -86,7 +86,7 @@ PropagatorFactory::~PropagatorFactory() {
 template<typename T>
 void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
-		(*i)->visit(obj);
+		(*i)->add(obj);
 	}
 }
 
@@ -375,6 +375,10 @@ void PropagatorFactory::add(const CPCount& obj) {
 }
 
 void PropagatorFactory::add(const CPAllDiff& obj) {
+	addCP(obj);
+}
+
+void PropagatorFactory::add(const CPElement& obj) {
 	addCP(obj);
 }
 

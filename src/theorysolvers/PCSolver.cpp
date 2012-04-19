@@ -52,9 +52,9 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 	dummy1 = newVar();
 	dummy2 = newVar();
 	dummyfalse = newVar();
-	add(Disjunction( { mkPosLit(dummy1) }), *this);
-	add(Disjunction( { mkPosLit(dummy2) }), *this);
-	add(Disjunction( { mkNegLit(dummyfalse) }), *this);
+	internalAdd(Disjunction( { mkPosLit(dummy1) }), *this);
+	internalAdd(Disjunction( { mkPosLit(dummy2) }), *this);
+	internalAdd(Disjunction( { mkNegLit(dummyfalse) }), *this);
 }
 
 Lit PCSolver::getTrueLit() const {
@@ -294,9 +294,13 @@ rClause PCSolver::getExplanation(const Lit& l) {
 		}
 		explan = propagator->getExplanation(l);
 	}
-	MAssert(explan!=nullPtrClause);
+	//MAssert(explan!=nullPtrClause); TODO it is now allowed to request non-existing explanations!
 	if (verbosity() > 2) {
-		printClause(explan);
+		if(explan!=nullPtrClause){
+			printClause(explan);
+		} else{
+			clog <<"root or decided\n";
+		}
 	}
 	return explan;
 }
@@ -440,6 +444,7 @@ void PCSolver::printChoiceMade(int level, const Lit& l) const {
 }
 
 void PCSolver::printClause(rClause clause) const {
+	MAssert(clause!=nullPtrClause);
 	getSolver().printClause(getClauseRef(clause));
 }
 
@@ -476,16 +481,16 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 	for (auto i = optimization.cbegin(); i < optimization.cend(); ++i) {
 		switch ((*i).optim) {
 		case Optim::AGG:
-			visitor.visit(MinimizeAgg((*i).priority, (*i).agg_to_minimize->getSet()->getSetID(), (*i).agg_to_minimize->getType()));
+			visitor.add(MinimizeAgg((*i).priority, (*i).agg_to_minimize->getSet()->getSetID(), (*i).agg_to_minimize->getType()));
 			break;
 		case Optim::LIST:
-			visitor.visit(MinimizeOrderedList((*i).priority, (*i).to_minimize));
+			visitor.add(MinimizeOrderedList((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::SUBSET:
-			visitor.visit(MinimizeSubset((*i).priority, (*i).to_minimize));
+			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::VAR:
-			visitor.visit(MinimizeVar((*i).priority, (*i).var->id()));
+			visitor.add(MinimizeVar((*i).priority, (*i).var->id()));
 			break;
 		}
 	}

@@ -29,6 +29,7 @@
 #include "external/Tasks.hpp"
 #include "external/OneShotTasks.hpp"
 #include "external/utils/TimingUtils.hpp"
+#include "constraintvisitors/FlatZincRewriter.hpp"
 
 #include "utils/Print.hpp"
 
@@ -39,7 +40,7 @@ using namespace MinisatID;
 #include "parser/Lparseread.cpp"
 #include "parser/PBread.cpp"
 
-typedef Space* pwls;
+typedef ExternalConstraintVisitor* pwls;
 
 extern char* yytext;
 extern int lineNo;
@@ -63,7 +64,7 @@ static void SIGINT_handler(int signum);
 void handleSignals();
 
 void parseAndInitializeTheory(pwls d);
-void doModelGeneration(pwls d);
+void doModelGeneration(Space* d);
 
 MXTask* mx = NULL;
 
@@ -100,7 +101,6 @@ int main(int argc, char** argv) {
 
 	printMainStart(modes.verbosity);
 
-	pwls d = new Space(modes);
 	bool cleanexit = false;
 	try {
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
@@ -115,14 +115,20 @@ int main(int argc, char** argv) {
 		}
 		if (!stoprunning) {
 			jumpback = 0;
-			parseAndInitializeTheory(d);
-			if (modes.inference == Inference::MODELEXPAND) {
-				doModelGeneration(d);
-			} else if (modes.inference == Inference::PROPAGATE) {
-				auto up = UnitPropagate(d, { });
-				up.execute();
-				up.writeOutEntailedLiterals();
-			} else if (modes.inference == Inference::PRINTTHEORY) {
+			switch (modes.inference) {
+			case Inference::MODELEXPAND:{
+				auto space = Space(modes);
+				parseAndInitializeTheory(&space);
+				doModelGeneration(&space);
+				break;}
+			case Inference::PROPAGATE:{
+				auto space = Space(modes);
+				parseAndInitializeTheory(&space);
+				auto t = UnitPropagate(&space, { });
+				t.execute();
+				t.writeOutEntailedLiterals();
+				break;}
+			case Inference::PRINTTHEORY:{
 				auto tp = TheoryPrinting::ECNF;
 				switch (modes.transformat) {
 				case OutputFormat::FZ:
@@ -132,24 +138,41 @@ int main(int argc, char** argv) {
 					tp = TheoryPrinting::HUMAN;
 					break;
 				case OutputFormat::FODOT:
-					if(modes.tocnf){
+					if (modes.tocnf) {
 						tp = TheoryPrinting::CNF;
-					}else{
+					} else {
 						tp = TheoryPrinting::ECNF;
 					}
 					break;
 				default:
-					throw notYetImplemented("Cannot print the theory in ASP.\n");
+					throw notYetImplemented("transforming the theory into ASP");
 				}
-				auto t = new Transform(d, tp);
-				t->execute();
-				delete (t);
-			} else if (modes.inference == Inference::PRINTGRAPH) {
-				auto t = new Transform(d, TheoryPrinting::ECNFGRAPH);
-				t->execute();
-				delete (t);
-			}
+				if(tp==TheoryPrinting::FZ){
+					auto resfile = createResMan(modes.outputfile);
+					ostream output(resfile->getBuffer());
+					FlatZincRewriter<ostream> t(modes, output);
+					parseAndInitializeTheory(&t);
+					t.execute();
+				}else{
+					auto space = Space(modes);
+					parseAndInitializeTheory(&space);
+					auto t = Transform(&space, tp);
+					t.execute();
+				}
 
+				break;}
+			case Inference::PRINTGRAPH:{
+				auto space = Space(modes);
+				parseAndInitializeTheory(&space);
+				auto t = Transform(&space, TheoryPrinting::ECNFGRAPH);
+				t.execute();
+				break;}
+			case Inference::UNSATCORE:{
+				auto t = OneShotUnsatCoreExtraction(modes);
+				parseAndInitializeTheory(&t);
+				t.execute();
+				break;}
+			}
 			jumpback = 1;
 			cleanexit = true;
 		}
@@ -178,14 +201,9 @@ int main(int argc, char** argv) {
 			returnvalue = 10;
 		}
 		delete (mx);
-	} else if (d != NULL) {
-		if (d->getOptions().verbosity > 1) {
-			// TODO auto transform = Transform(d, TheoryPrinting::STATS, clog); // Is NOT a constraintvisitor, but a propagatorvisitor!
-			// transform.execute();
-		}
-		delete (d);
 	}
-	if(not cleanexit){
+	// TODO print statistics?
+	if (not cleanexit) {
 		exit(returnvalue);
 	}
 	return returnvalue;
@@ -198,11 +216,10 @@ void initializeAndParseASP(pwls d) {
 	}
 
 	std::istream is(getInputBuffer());
-	auto r = new Read<Space>(*d, lptrans);
+	auto r = Read<ExternalConstraintVisitor>(*d, lptrans);
 
-	r->read(is);
+	r.read(is);
 	closeInput();
-	delete r;
 }
 
 void initializeAndParseOPB(pwls d) {
@@ -212,11 +229,10 @@ void initializeAndParseOPB(pwls d) {
 	}
 
 	std::istream is(getInputBuffer());
-	auto parser = new PBRead<Space>(*d, opbtrans, is);
+	auto parser = PBRead<ExternalConstraintVisitor>(*d, opbtrans, is);
 
-	parser->parse();
+	parser.parse();
 	closeInput();
-	delete parser;
 
 	if (d->getOptions().transformat == OutputFormat::PLAIN) {
 		delete (opbtrans);
@@ -246,8 +262,6 @@ void initializeAndParseFODOT(pwls d) {
 		d->setTranslator(new PlainTranslator()); // Empty translator
 	}
 
-	d->getTranslator()->finish();
-
 	closeInput();
 }
 
@@ -267,13 +281,15 @@ void parseAndInitializeTheory(pwls d) {
 	}
 	}
 
+	d->notifyFinishParsing();
+
 	auto endparsing = cpuTime();
 	if (d->getOptions().verbosity > 1) {
 		clog << ">>> Parsing time: " << endparsing - startparsing << "\n";
 	}
 }
 
-void doModelGeneration(pwls d) {
+void doModelGeneration(Space* d) {
 	ModelExpandOptions mxoptions(0, Models::ALL, Models::NONE);
 	if (d->isOptimizationProblem()) { // Change default options added before parsing
 		mxoptions.printmodels = Models::BEST;
@@ -281,11 +297,7 @@ void doModelGeneration(pwls d) {
 	}
 	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
-	if(d->isOptimizationProblem()){
-		mx = new ModelExpand(d, mxoptions, { });
-	}else{
-		mx = new OneShotMX(d, mxoptions, { });
-	}
+	mx = new ModelExpand(d, mxoptions, { });
 	mx->execute();
 }
 

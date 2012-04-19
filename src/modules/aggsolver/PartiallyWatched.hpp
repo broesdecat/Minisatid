@@ -87,6 +87,8 @@ private:
 	minmaxBounds emptyinterpretbounds;
 	Agg const * worstagg;
 	std::vector<Watch*> proplist; // List of watches which still need to be propagated
+	std::vector<std::pair<Var, int> > backtracklist; // A list of which was the latest var which could be propagated at the associated level
+	// If backtrack goes over such a level, need reconstruction
 
 public:
 	GenPWAgg(TypedSet* set);

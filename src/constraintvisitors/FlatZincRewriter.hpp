@@ -19,7 +19,8 @@
 #include <fstream>
 
 #include "external/ExternalUtils.hpp"
-#include "ConstraintVisitor.hpp"
+#include "external/ConstraintAdditionInterface.hpp"
+#include "external/Tasks.hpp"
 
 namespace MinisatID {
 
@@ -42,7 +43,7 @@ struct BinRel{
 };
 
 template<typename Stream>
-class FlatZincRewriter: public ConstraintAdditionMonitor<Stream>{
+class FlatZincRewriter: public ExternalConstraintVisitor, public Task{
 private:
 	SolverState 		state;
 	SolverOption		_modes;
@@ -68,7 +69,8 @@ private:
 	Stream& stream;
 
 public:
-	FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes, Stream& stream);
+	FlatZincRewriter(const SolverOption& modes, Stream& stream);
+	FlatZincRewriter(Remapper* remapper, Translator *translator, const SolverOption& modes, Stream& stream);
 	virtual ~FlatZincRewriter();
 
 	const SolverOption& modes()	const	{ return _modes; }
@@ -87,25 +89,24 @@ public:
 	 * 	during finishing, add all remaining relations which need new variables.
 	 * 			For this, we need to be sure what the maximum numbers are!
 	 */
-	virtual void visit(const Disjunction&);
-	virtual void visit(const Implication&);
-	virtual void visit(const Rule&);
-	virtual void visit(const WLSet&);
-	virtual void visit(const Aggregate&);
-	virtual void visit(const MinimizeOrderedList&);
-	virtual void visit(const MinimizeVar&);
-	virtual void visit(const MinimizeAgg&);
-	virtual void visit(const IntVarEnum&);
-	virtual void visit(const IntVarRange&);
-	virtual void visit(const CPBinaryRel&);
-	virtual void visit(const CPBinaryRelVar&);
-	virtual void visit(const CPSumWeighted&);
+	virtual void add(const Disjunction&);
+	virtual void add(const Implication&);
+	virtual void add(const Rule&);
+	virtual void add(const WLSet&);
+	virtual void add(const Aggregate&);
+	virtual void add(const MinimizeOrderedList&);
+	virtual void add(const MinimizeVar&);
+	virtual void add(const MinimizeAgg&);
+	virtual void add(const IntVarEnum&);
+	virtual void add(const IntVarRange&);
+	virtual void add(const CPBinaryRel&);
+	virtual void add(const CPBinaryRelVar&);
+	virtual void add(const CPSumWeighted&);
 	// TODO additional constraints
 
-	virtual void notifyStart() {}
-	virtual void notifyEnd();
-
 protected:
+	void innerExecute();
+
 	std::ostream& getOutput();
 
 	const WLSet& getSet(uint i) const;

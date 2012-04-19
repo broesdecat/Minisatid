@@ -39,7 +39,7 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch) :
 }
 
 void LazyResidual::accept(ConstraintVisitor& visitor){
-	visitor.visit(LazyGroundLit(false, residual, monitor));
+	visitor.add(LazyGroundLit(false, residual, monitor));
 }
 
 rClause LazyResidual::notifypropagate() {

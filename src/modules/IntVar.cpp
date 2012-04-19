@@ -77,7 +77,7 @@ void IntVar::notifyBacktrack(int, const Lit&){
 }
 
 void IntVar::accept(ConstraintVisitor& visitor){
-	visitor.visit(IntVarRange(origid(), minValue(), maxValue()));
+	visitor.add(IntVarRange(origid(), minValue(), maxValue()));
 }
 
 rClause	IntVar::notifypropagate(){
@@ -118,26 +118,26 @@ void IntVar::addConstraints(){
 	for(uint i=0; i<equalities.size(); ++i){
 		wls.push_back(WLtuple(mkPosLit(equalities[i]), 1));
 	}
-	add(WLSet(setid, wls), engine());
+	internalAdd(WLSet(setid, wls), engine());
 	Aggregate lowercard(engine().newVar(), setid, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
 	Aggregate highercard(engine().newVar(), setid, 1, AggType::CARD, AggSign::UB, AggSem::COMP, -1);
-	add(highercard, engine());
-	add(lowercard, engine());
-	add(Disjunction({mkPosLit(highercard.head)}), engine());
-	add(Disjunction({mkPosLit(lowercard.head)}), engine());
+	internalAdd(highercard, engine());
+	internalAdd(lowercard, engine());
+	internalAdd(Disjunction({mkPosLit(highercard.head)}), engine());
+	internalAdd(Disjunction({mkPosLit(lowercard.head)}), engine());
 
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]
-		add(Disjunction({mkNegLit(equalities[i]), mkPosLit(disequalities[i])}), engine());
+		internalAdd(Disjunction({mkNegLit(equalities[i]), mkPosLit(disequalities[i])}), engine());
 		if(i<equalities.size()-1){
 			// if diseq[i] => diseq[i+1]
-			add(Disjunction({mkNegLit(disequalities[i]), mkPosLit(disequalities[i+1])}), engine());
+			internalAdd(Disjunction({mkNegLit(disequalities[i]), mkPosLit(disequalities[i+1])}), engine());
 		}
 		if(i>0){
 			// if eq[i] => ~diseq[i-1]
-			add(Disjunction({mkNegLit(equalities[i]), mkNegLit(disequalities[i-1])}), engine());
+			internalAdd(Disjunction({mkNegLit(equalities[i]), mkNegLit(disequalities[i-1])}), engine());
 			// if ~diseq[i] => ~diseq[i-1]
-			add(Disjunction({mkPosLit(disequalities[i]), mkNegLit(disequalities[i-1])}), engine());
+			internalAdd(Disjunction({mkPosLit(disequalities[i]), mkNegLit(disequalities[i-1])}), engine());
 		}
 	}
 }

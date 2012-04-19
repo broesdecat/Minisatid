@@ -23,7 +23,7 @@ void addVars(const VarList& vars, ConstraintDB& engine) {
 }
 
 template<typename Constraint, typename ConstraintDB>
-void add(const Constraint& obj, ConstraintDB& engine){
+void internalAdd(const Constraint& obj, ConstraintDB& engine){
 	addVars(obj.getAtoms(), engine);
 	engine.getFactory().add(obj);
 }

@@ -1,50 +1,30 @@
 #include "external/Space.hpp"
 #include "space/SearchEngine.hpp"
 #include "theorysolvers/PCSolver.hpp"
-#include "external/Remapper.hpp"
+#include "Remapper.hpp"
 #include "external/Translator.hpp"
+#include "datastructures/InternalAdd.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
-string Space::toString(const Lit& l) const {
-	stringstream ss;
-	if (getRemapper().wasInput(l)) {
-		auto lit = getRemapper().getLiteral(l);
-		if (getTranslator()->hasTranslation(lit)) {
-			ss << getTranslator()->toString(lit);
-			return ss.str();
-		}
-	}
-	ss << (sign(l) ? "-" : "") << "tseitin_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
-	return ss.str();
-}
-string Space::toString(const litlist& literals) const {
-	stringstream ss;
-	bool begin = true;
-	for (auto i = literals.cbegin(); i < literals.cend(); ++i) {
-		if (not begin) {
-			ss << " | ";
-		}
-		begin = false;
-		ss << toString(*i);
-	}
-	return ss.str();
-}
-
-Space::Space(SolverOption modes, bool oneshot) :
-		basicoptions(modes), monitor(new Monitor(remapper)), varcreator(new VarCreation(remapper)), engine(
-				new SearchEngine(new PCSolver(modes, monitor, varcreator, this, oneshot))),
+Space::Space(const SolverOption& options, bool oneshot) :
+		ExternalConstraintVisitor(options, "Space"),
+		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
+				new SearchEngine(new PCSolver(getOptions(), monitor, varcreator, this, oneshot))),
 				oneshot(oneshot),
-				executed(false),
-				_translator(new PlainTranslator()) {
-	_origtranslator = _translator;
+				executed(false) {
+}
+Space::Space(Remapper* remapper, Translator* translator, const SolverOption& options, bool oneshot) :
+		ExternalConstraintVisitor(remapper, translator, options, "Space"),
+		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
+				new SearchEngine(new PCSolver(getOptions(), monitor, varcreator, this, oneshot))),
+				oneshot(oneshot),
+				executed(false) {
 }
 Space::~Space() {
 	delete (engine);
 	delete (monitor);
-	delete (varcreator);
-	delete (_origtranslator);
 }
 
 void Space::addMonitor(PropAndBackMonitor* m) {
@@ -65,4 +45,62 @@ bool Space::isOptimizationProblem() const {
 
 bool Space::isAlwaysAtOptimum() const {
 	return engine->isAlwaysAtOptimum();
+}
+
+void Space::add(const Disjunction& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const Implication& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const Rule& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const WLSet& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const Aggregate& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const MinimizeOrderedList& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const MinimizeSubset& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const MinimizeVar& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const MinimizeAgg& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const Symmetry& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const IntVarEnum& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const IntVarRange& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const CPAllDiff& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const CPBinaryRel& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const CPCount& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const CPBinaryRelVar& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const CPSumWeighted& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const CPElement& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const LazyGroundLit& o){
+	internalAdd(o, *getEngine());
 }

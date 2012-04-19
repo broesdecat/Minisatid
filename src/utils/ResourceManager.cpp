@@ -110,3 +110,13 @@ void MinisatID::closeInput() {
 		input->close();
 	}
 }
+
+std::shared_ptr<ResMan> MinisatID::createResMan(const std::string& file){
+	std::shared_ptr<ResMan> resman;
+	if (file == "") {
+		resman = std::shared_ptr<ResMan>(new StdMan(false));
+	} else {
+		resman = std::shared_ptr<ResMan>(new FileMan(file.c_str(), true));
+	}
+	return resman;
+}

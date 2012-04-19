@@ -40,7 +40,7 @@ SymmetryData::SymmetryData(const Symmetry& symmetry) :
 }
 
 void SymmetryPropagator::accept(ConstraintVisitor& visitor) {
-	visitor.visit(symmetry.getSymmetry());
+	visitor.add(symmetry.getSymmetry());
 }
 
 SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym) :
@@ -211,7 +211,7 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
 
 	auto clause = nullPtrClause;
 	if (value(symlit) == l_Undef) {
-		add(implic, getPCSolver());
+		internalAdd(implic, getPCSolver());
 		if (getPCSolver().isUnsat()) { // FIXME add methods should return the conflict clause if applicable
 			clause = getPCSolver().createClause(implic, true);
 			getPCSolver().addLearnedClause(clause);

@@ -83,11 +83,11 @@ void Definition::addFinishedRule(TempRule* rule) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		Disjunction v;
 		v.literals.push_back(h);
-		add(v, *solver);
+		internalAdd(v, *solver);
 	} else {
 		conj = conj || rule->body.size() == 1; //rules with only one body atom are treated as conjunctive
 
 		Implication eq(mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
-		add(eq, *solver);
+		internalAdd(eq, *solver);
 	}
 }

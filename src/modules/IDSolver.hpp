@@ -47,6 +47,7 @@ public:
     Lit 	operator [](int i) 	const	{ return lits[i]; }
     litlist::const_iterator cbegin()	const 	{ return lits.cbegin(); }
     litlist::const_iterator cend()	const 	{ return lits.cend(); }
+    const litlist& getBody() const {return lits; }
 };
 
 class IDAgg{
@@ -200,7 +201,7 @@ private:
 	void addFinishedRule(const TempRule& rule);
 	void addFinishedDefinedAggregate(const TempRule& rule);
 public:
-	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
+	virtual void 	accept(ConstraintVisitor& visitor);
 
 	int		getDefinitionID	() const { return definitionID; }
 	DEFSEM	getSemantics	() const { return sem; }

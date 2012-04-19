@@ -25,6 +25,9 @@ namespace Tests{
 		SolverMOC():start(3){}
 		std::vector<Disjunction*> disj;
 		std::vector<Implication*> eqs;
+		void createVar(Var v){
+			start = v+1;
+		}
 		int newVar() { return start++; }
 		bool add(const Disjunction& d){ disj.push_back(new Disjunction(d)); return true; }
 		bool add(const Implication& eq){ eqs.push_back(new Implication(eq)); return true; }
@@ -36,6 +39,7 @@ namespace Tests{
 		Lit getTrueLit() const { return mkPosLit(1); }
 		Lit getFalseLit() const { return mkPosLit(2); }
 		int verbosity() const { return 1; }
+		SolverMOC& getFactory() { return *const_cast<SolverMOC*>(this); }
 	};
 
 	void add(const Disjunction& d, SolverMOC& moc){

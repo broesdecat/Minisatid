@@ -15,13 +15,13 @@
 namespace MinisatID {
 
 template<typename Stream>
-class ECNFGraphPrinter: public ConstraintAdditionMonitor<Stream> {
+class ECNFGraphPrinter: public ConstraintStreamPrinter<Stream> {
 private:
-	using ConstraintAdditionMonitor<Stream>::target;
-	using ConstraintVisitor::getPrinter;
+	using ConstraintStreamPrinter<Stream>::target;
+	using ConstraintPrinter::getPrinter;
 public:
 	ECNFGraphPrinter(LiteralPrinter* solver, Stream& stream) :
-			ConstraintAdditionMonitor<Stream>(solver, stream) {
+		ConstraintStreamPrinter<Stream>(solver, stream, "ecnfgraphprinter") {
 	}
 	virtual ~ECNFGraphPrinter() {
 	}
@@ -34,11 +34,11 @@ public:
 		target().flush();
 	}
 
-	void visit(const MinisatID::Implication&){
+	void add(const MinisatID::Implication&){
 		throw notYetImplemented("Printing ecnfgraph of inner implication.");
 	}
 
-	void visit(const Disjunction& lits) {
+	void add(const Disjunction& lits) {
 		this->printList(lits.literals, " -- ", target(), getPrinter());
 		if (lits.literals.size() > 1) {
 			target() << " -- " << toString(lits.literals[0], getPrinter()) << " ";
@@ -46,7 +46,7 @@ public:
 		target() << "[color=blue];\n";
 	}
 
-	void visit(const Rule& lits) {
+	void add(const Rule& lits) {
 		this->printList(lits.body, " -- ", target(), getPrinter());
 		if (lits.body.size() > 1) {
 			target() << " -- " << toString(lits.body[0], getPrinter()) << " ";
@@ -54,7 +54,7 @@ public:
 		target() << "[color=green];\n";
 	}
 
-	void visit(const WLSet& set) {
+	void add(const WLSet& set) {
 		for (unsigned int i = 0; i < set.wl.size(); ++i) {
 			if (i > 0) {
 				target() << " -- ";

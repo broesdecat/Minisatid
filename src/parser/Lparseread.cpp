@@ -295,12 +295,7 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 template<class T>
 void Read<T>::addBasicRules() {
 	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
-		Rule r;
-		r.head = (*i)->head;
-		r.body = (*i)->body;
-		r.conjunctive = (*i)->conj;
-		r.definitionID = defaultdefinitionID;
-		extAdd(getSolver(), r);
+		extAdd(getSolver(), Rule((*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID));
 	}
 }
 

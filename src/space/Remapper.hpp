@@ -11,7 +11,7 @@
 
 #include <unordered_map>
 #include <iostream>
-#include "ExternalUtils.hpp"
+#include "external/ExternalUtils.hpp"
 
 namespace MinisatID{
 

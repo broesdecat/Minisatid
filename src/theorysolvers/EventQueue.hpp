@@ -26,7 +26,7 @@ typedef std::vector<Propagator*> proplist;
 typedef std::deque<Propagator*> propqueue;
 typedef std::vector<GenWatch*> watchlist;
 
-// FIXME using iterators while the container can be changed is NOT allowed!
+// IMPORTANT NOTE: using iterators while the container can be changed is NOT allowed!
 
 class EventQueue {
 private:

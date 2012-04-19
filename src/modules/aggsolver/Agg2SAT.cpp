@@ -166,7 +166,7 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
 			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, maxnumber));
 		}
-		add(clause, pcsolver);
+		internalAdd(clause, pcsolver);
 	}
 
 	return pcsolver.satState();

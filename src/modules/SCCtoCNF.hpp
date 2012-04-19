@@ -317,7 +317,7 @@ private:
 	}
 
 	SATVAL addClause(const litlist& lits){
-		add(Disjunction(lits), solver_);
+		internalAdd(Disjunction(lits), solver_);
 		return solver_.satState();
 	}
 
@@ -350,7 +350,7 @@ private:
 			return solver_.getTrueLit();
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
+		internalAdd(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
 		return tseitin;
 	}
 
@@ -371,7 +371,7 @@ private:
 			return solver_.getFalseLit();
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
+		internalAdd(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
 		return tseitin;
 	}
 };

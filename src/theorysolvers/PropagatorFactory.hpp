@@ -27,7 +27,7 @@ class TempAgg;
 class IntVar;
 class PCSolver;
 
-class ConstraintVisitor;
+class ConstraintPrinter;
 class SearchMonitor;
 
 class SolverOption;
@@ -131,7 +131,7 @@ private:
 	std::vector<Aggregate*> parsedaggs;
 
 	// Logging
-	std::vector<ConstraintVisitor*> parsingmonitors;
+	std::vector<ConstraintPrinter*> parsingmonitors;
 
 	void guaranteeAtRootLevel();
 
@@ -160,6 +160,7 @@ public:
 	void add(const CPSumWeighted& object);
 	void add(const CPCount& object);
 	void add(const CPAllDiff& object);
+	void add(const CPElement& object);
 	void add(const LazyGroundLit& object);
 
 	int newSetID();

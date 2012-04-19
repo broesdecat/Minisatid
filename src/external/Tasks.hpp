@@ -89,7 +89,7 @@ public:
 class ModelExpand: public MXTask {
 private:
 	ModelExpandOptions _options;
-	litlist assumptions;
+	litlist assumptions; // Note: internal literals
 	ModelManager* _solutions;
 	Printer* printer;
 
@@ -97,6 +97,7 @@ public:
 	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
 	~ModelExpand();
 
+	// Note: do not call unless the models are being saved!
 	const modellist& getSolutions() const;
 	modellist getBestSolutionsFound() const;
 
@@ -124,6 +125,11 @@ private:
 	void notifyCurrentOptimum(const Weight& value) const;
 
 	void addModel(std::shared_ptr<Model> model);
+
+	friend class OneShotUnsatCoreExtraction;
+	void setAssumptionsAsInternal(const litlist& assmpt){
+		assumptions = assmpt;
+	}
 };
 
 class UnitPropagate: public SpaceTask {

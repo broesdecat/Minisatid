@@ -17,13 +17,14 @@
 namespace MinisatID {
 
 template<typename Stream>
-class RealECNFPrinter: public ConstraintAdditionMonitor<Stream> {
+class RealECNFPrinter: public ConstraintStreamPrinter<Stream> {
 private:
-	using ConstraintAdditionMonitor<Stream>::target;
-	// NOTE: printing the remapped literals here!
+	bool remap;
+	using ConstraintStreamPrinter<Stream>::target;
+	using ConstraintPrinter::getPrinter;
 public:
-	RealECNFPrinter(LiteralPrinter* solver, Stream& stream) :
-		ConstraintAdditionMonitor<Stream>(solver, stream) {
+	RealECNFPrinter(LiteralPrinter* solver, Stream& stream, bool remap = false) :
+		ConstraintStreamPrinter<Stream>(solver, stream, "ecnfprinter"), remap(remap) {
 }
 	virtual ~RealECNFPrinter() {
 	}
@@ -37,19 +38,23 @@ public:
 	}
 
 	std::string toString(const Lit& lit){
-		std::stringstream ss;
-		ss <<(sign(lit)?"-":"") <<(var(lit)+1);
-		return ss.str();
+		if(remap){
+			return getPrinter()->toString(lit);
+		}else{
+			std::stringstream ss;
+			ss <<(sign(lit)?"-":"") <<(var(lit)+1);
+			return ss.str();
+		}
 	}
 
-	void visit(const Disjunction& clause) {
+	void add(const Disjunction& clause) {
 		for (uint i = 0; i < clause.literals.size(); ++i) {
 			target() <<toString(clause.literals[i]) << " ";
 		}
 		target() << "0\n";
 	}
 
-	void visit(const Rule& rule) {
+	void add(const Rule& rule) {
 		target() << (rule.conjunctive ? "C" : "D") <<rule.definitionID << " <- " << toString(mkPosLit(rule.head)) << " ";
 		for (uint i = 0; i < rule.body.size(); ++i) {
 			target() << toString(rule.body[i]) << " ";
@@ -57,7 +62,7 @@ public:
 		target() << "0\n";
 	}
 
-	void visit(const WLSet& set) {
+	void add(const WLSet& set) {
 		target() << "WLSet " << set.setID << " ";
 		for (uint i = 0; i < set.wl.size(); ++i) {
 			target() << toString(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
@@ -65,7 +70,7 @@ public:
 		target() << "0\n";
 	}
 
-	void visit(const Aggregate& agg) {
+	void add(const Aggregate& agg) {
 		target() << agg.type;
 		switch(agg.sem){
 		case AggSem::DEF:
@@ -82,54 +87,54 @@ public:
 		target() <<(agg.sign == AggSign::UB ? "G" : "L") <<" " <<toString(mkPosLit(agg.head)) <<" " <<agg.setID <<" " <<agg.bound << " 0\n";
 	}
 
-	void visit(const Implication&) {
+	void add(const Implication&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const MinimizeOrderedList& mnm) {
+	void add(const MinimizeOrderedList& mnm) {
 		target() <<"Mnmlist ";
 		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
 			target() <<toString(*i) <<" ";
 		}
 		target() <<"0\n";
 	}
-	void visit(const MinimizeSubset& mnm) {
+	void add(const MinimizeSubset& mnm) {
 		target() <<"Mnmsubset ";
 		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
 			target() <<toString(*i) <<" ";
 		}
 		target() <<"0\n";
 	}
-	void visit(const MinimizeAgg& mnm) {
+	void add(const MinimizeAgg& mnm) {
 		target() <<"Mnmagg " <<mnm.type <<" " <<mnm.setid <<" 0\n";
 	}
-	void visit(const MinimizeVar& mnm) {
+	void add(const MinimizeVar& mnm) {
 		target() <<"Mnmvar " <<mnm.varID <<" 0\n";
 	}
-	void visit(const Symmetry&) {
+	void add(const Symmetry&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const IntVarRange&) {
+	void add(const IntVarRange&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const IntVarEnum&) {
+	void add(const IntVarEnum&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const CPAllDiff&) {
+	void add(const CPAllDiff&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const CPBinaryRel&) {
+	void add(const CPBinaryRel&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const CPCount&) {
+	void add(const CPCount&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const CPBinaryRelVar&) {
+	void add(const CPBinaryRelVar&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const CPSumWeighted&) {
+	void add(const CPSumWeighted&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const CPElement&) {
+	void add(const CPElement&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
 };

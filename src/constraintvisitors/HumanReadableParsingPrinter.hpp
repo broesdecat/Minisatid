@@ -19,13 +19,13 @@
 namespace MinisatID{
 
 template<typename Stream>
-class HumanReadableParsingPrinter: public ConstraintAdditionMonitor<Stream> {
+class HumanReadableParsingPrinter: public ConstraintStreamPrinter<Stream> {
 private:
-	using ConstraintAdditionMonitor<Stream>::target;
-	using ConstraintVisitor::getPrinter;
+	using ConstraintStreamPrinter<Stream>::target;
+	using ConstraintPrinter::getPrinter;
 public:
 	HumanReadableParsingPrinter(LiteralPrinter* solver, Stream& stream) :
-		ConstraintAdditionMonitor<Stream>(solver, stream) {
+		ConstraintStreamPrinter<Stream>(solver, stream, "humanreadableprinter") {
 }
 	virtual ~HumanReadableParsingPrinter(){}
 
@@ -34,19 +34,19 @@ public:
 		target().flush();
 	}
 
-	void visit(const MinisatID::Implication& obj){
+	void add(const MinisatID::Implication& obj){
 		target() <<"Added " <<toString(obj.head, getPrinter()) <<obj.type;
 		this->printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
-	void visit(const Disjunction& clause){
+	void add(const Disjunction& clause){
 		target() <<"Added clause ";
 		this->printList(clause.literals, " | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
-	void visit(const Rule& rule){
+	void add(const Rule& rule){
 		target() <<"Added rule " <<toString(rule.head, getPrinter()) <<" <- ";
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
@@ -56,7 +56,7 @@ public:
 		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
 
-	void visit(const WLSet& set){
+	void add(const WLSet& set){
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
 		for(auto i=set.wl.cbegin(); i!=set.wl.cend(); ++i, ++count){
@@ -68,7 +68,7 @@ public:
 		target() <<"}\n";
 	}
 
-	void visit(const Aggregate& agg){
+	void add(const Aggregate& agg){
 		target() <<"Added aggregate " <<toString(agg.head, getPrinter()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
 		if(agg.sem==AggSem::DEF){
 			target() <<"(" <<agg.defID <<")";
@@ -79,29 +79,29 @@ public:
 	}
 
 
-	void visit(const MinimizeOrderedList& mnm){
+	void add(const MinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
 		this->printList(mnm.literals, " < ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 
-	void visit(const MinimizeSubset& mnm){
+	void add(const MinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
 		this->printList(mnm.literals, ", ", target(), getPrinter());
 		target() <<" }\n";
 	}
 
-	void visit(const MinimizeVar& mnm){
+	void add(const MinimizeVar& mnm){
 		target() <<"Searching model with minimal value for variable " <<mnm.varID <<"\n";
 	}
 
-	void visit(const MinimizeAgg& mnm){
+	void add(const MinimizeAgg& mnm){
 		target() <<"Searching model with minimal value for ";
 		target() <<mnm.type <<"(set" <<mnm.setid <<")\n";
 	}
 
-	void visit(const Symmetry& symm){
+	void add(const Symmetry& symm){
 		target() <<"Added symmetry:\n\t";
 		bool begin = true;
 		for(auto i=symm.symmetry.cbegin(); i<symm.symmetry.cend(); ++i){
@@ -118,37 +118,37 @@ public:
 		target() <<"\n";
 	}
 
-	void visit(const IntVarEnum& var){
+	void add(const IntVarEnum& var){
 		target() <<"Integer variable var" <<var.varID <<" = [ ";
 		printConcatBy(var.values, ", ", target());
 		target() <<" ]\n";
 	}
 
-	void visit(const IntVarRange& var){
+	void add(const IntVarRange& var){
 		target() <<"Added integer variable var" <<var.varID <<" = [ "<<var.minvalue <<".." <<var.maxvalue <<"]\n";
 	}
 
-	void visit(const CPAllDiff& alldiff){
+	void add(const CPAllDiff& alldiff){
 		target() <<"Added alldifferent constraint: alldiff { ";
 		printConcatBy(alldiff.varIDs, ", ", target());
 		target() <<" }\n";
 	}
 
-	void visit(const CPBinaryRel& rel){
+	void add(const CPBinaryRel& rel){
 		target() <<"Added binary constraint " <<toString(rel.head, getPrinter()) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
-	void visit(const CPCount& obj){
+	void add(const CPCount& obj){
 		target() <<"Added count constraint: count of variables { ";
 		printConcatBy(obj.varIDs, ", ", target());
 		target() <<" } equal to " <<obj.eqbound <<obj.rel <<obj.rhsvar <<"\n";
 	}
 
-	void visit(const CPBinaryRelVar& rel){
+	void add(const CPBinaryRelVar& rel){
 		target() <<"Added binary constraint " <<toString(rel.head, getPrinter()) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
-	void visit(const CPSumWeighted& sum){
+	void add(const CPSumWeighted& sum){
 		target() <<"Added sum constraint " <<toString(sum.head, getPrinter()) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		auto litit=sum.varIDs.cbegin();
@@ -162,13 +162,13 @@ public:
 		target() <<sum.rel <<" " <<sum.bound <<"\n";
 	}
 
-	void visit(const CPElement& rel){
+	void add(const CPElement& rel){
 		target() <<"Added element constraint {";
 		printConcatBy(rel.varIDs, ", ", target());
 		target() <<"}[" <<rel.index <<"]="<<rel.rhs <<"\n";
 	}
 
-	void visit(const LazyGroundLit& lg){
+	void add(const LazyGroundLit& lg){
 		target() <<"Added lazy residual " <<toString(lg.residual, getPrinter()) <<", acting as " <<(lg.watchboth?"known":"true") <<" delay trigger.\n";
 	};
 };

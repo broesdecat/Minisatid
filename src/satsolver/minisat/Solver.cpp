@@ -839,11 +839,12 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 	for (int i = trail.size() - 1; i >= trail_lim[0]; i--) {
 		Var x = var(trail[i]);
 		if (seen[x]) {
-			if (reason(x) == CRef_Undef) {
+			auto explan = getPCSolver().getExplanation(value(mkPosLit(x))==l_True?mkPosLit(x):mkNegLit(x));
+			if (explan == CRef_Undef) {
 				MAssert(getLevel(x) > 0);
 				out_conflict.push(~trail[i]);
 			} else {
-				auto& c = ca[reason(x)];
+				auto& c = ca[explan];
 				for (int j = 1; j < c.size(); j++)
 					if (getLevel(var(c[j])) > 0){
 						seen[var(c[j])] = 1;
@@ -1477,6 +1478,19 @@ int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
 	return clauses.size() + lastrootassertion;
 }
 
+void Solver::accept(ConstraintVisitor& visitor){
+	if(isUnsat()){
+		visitor.add(Disjunction({mkPosLit(1)}));
+		visitor.add(Disjunction({mkNegLit(1)}));
+		return;
+	}
+	for(int i=0; i<trail.size(); ++i){
+		visitor.add(Disjunction({trail[i]}));
+	}
+	acceptClauseList(visitor, clauses);
+	acceptClauseList(visitor, learnts);
+}
+
 void Solver::acceptClauseList(ConstraintVisitor& visitor, const vec<CRef>& list){
 	for(int i=0; i<list.size(); ++i){
 		Disjunction d;
@@ -1489,20 +1503,7 @@ void Solver::acceptClauseList(ConstraintVisitor& visitor, const vec<CRef>& list)
 			d.literals.push_back(c[j]);
 		}
 		if(not istrue){
-			visitor.visit(d);
+			visitor.add(d);
 		}
 	}
-}
-
-void Solver::accept(ConstraintVisitor& visitor){
-	if(isUnsat()){
-		visitor.visit(Disjunction({mkPosLit(1)}));
-		visitor.visit(Disjunction({mkNegLit(1)}));
-		return;
-	}
-	for(int i=0; i<trail.size(); ++i){
-		visitor.visit(Disjunction({trail[i]}));
-	}
-	acceptClauseList(visitor, clauses);
-	acceptClauseList(visitor, learnts);
 }

@@ -17,15 +17,15 @@
 namespace MinisatID {
 
 template<typename Stream>
-class RealCNFPrinter: public ConstraintAdditionMonitor<Stream> {
+class RealCNFPrinter: public ConstraintStreamPrinter<Stream> {
 private:
 	std::stringstream ss;
 	int nbconstraints, maxvar;
-	using ConstraintAdditionMonitor<Stream>::target;
+	using ConstraintStreamPrinter<Stream>::target;
 	// NOTE: printing the remapped literals here!
 public:
 	RealCNFPrinter(LiteralPrinter* solver, Stream& stream) :
-		ConstraintAdditionMonitor<Stream>(solver, stream) {
+		ConstraintStreamPrinter<Stream>(solver, stream, "cnfprinter") {
 }
 	virtual ~RealCNFPrinter() {
 	}
@@ -47,7 +47,7 @@ public:
 		return ss.str();
 	}
 
-	void visit(const Disjunction& clause) {
+	void add(const Disjunction& clause) {
 		for (uint i = 0; i < clause.literals.size(); ++i) {
 			if(maxvar<var(clause.literals[i])){
 				maxvar = var(clause.literals[i]);

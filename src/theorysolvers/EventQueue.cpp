@@ -98,16 +98,13 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 	}
 }
 
-//TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
 void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY priority) {
 	if (not getPCSolver().isDecisionVar(var(litevent))) {
 		getPCSolver().notifyDecisionVar(var(litevent));
 	}
-//TODO if a residual is watched, do something in the propagator
-//do not forget other accepts and the sat solver watches (separate!)
-	auto& list = lit2priority2propagators[toInt(litevent)][priority]; // TODO speed up by making it a set?
+	auto& list = lit2priority2propagators[toInt(litevent)][priority];
 	for (auto i = list.cbegin(); i < list.cend(); ++i) {
-		if ((*i) == propagator) {
+		if ((*i) == propagator) { //TODO should check doubles in another way (or prevent any from being added)
 			return;
 		}
 	}
@@ -118,9 +115,7 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 	}
 }
 
-// TODO turn lits into litwatches and add accepted flag?
 void EventQueue::accept(GenWatch* const watch) {
-// TODO commented following for lazy grounding, check issues with aggregates?
 	if (not getPCSolver().isDecisionVar(var(watch->getPropLit()))) {
 		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
 	}
@@ -153,10 +148,8 @@ void EventQueue::setTrue(const Lit& l) {
 	auto& lw = lit2watches[toInt(l)];
 	if(lw.size()!=0){
 		for (uint i = 0; i != lw.size(); ++i) {
-			//cerr <<"Propagating watch\n";
 			lw[i]->propagate();
 		}
-		// TODO can be sped up?
 		watchlist remwatches;
 		for (auto i = lw.cbegin(); i != lw.cend(); ++i) {
 			if (not (*i)->dynamic()) {
@@ -244,11 +237,6 @@ rClause EventQueue::notifyPropagate() {
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
-		MAssert(fastqueue.size() + slowqueue.size() != 0);
-		if (confl != nullPtrClause || fastqueue.size() + slowqueue.size() == 0) { // Might get called recursively (TODO should that be prevented?) so might be empty here
-			break;
-		}
-
 		Propagator* p = NULL;
 		if (fastqueue.size() != 0) {
 			p = fastqueue.front();
