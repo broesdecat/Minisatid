@@ -636,15 +636,16 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 
 	MAssert(confl!=CRef_Undef);
 	MAssert(lvl==decisionLevel());
-
-	//clog <<"Conflicts: " <<conflicts <<".\n";
-	std::vector<Lit> explain;
 	/*AE*/
 
 	// Generate conflict clause:
 	//
 	out_learnt.push(); // (leave room for the asserting literal)
 	int index = trail.size() - 1;
+
+	if(verbosity>4){
+		clog <<"Conflict found, creating learned clause at decision level " <<decisionLevel() <<".\n";
+	}
 
 	/*A*/
 	bool deleteImplicitClause = false;
@@ -654,17 +655,15 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		auto& c = ca[confl];
 
 		/*AB*/
-		if (verbosity > 4) {
-			clog << "DECISION LEVEL " << decisionLevel() << "\n";
-			clog << "Current conflict clause: ";
+		if (verbosity > 6) {
+			clog << "\tCurrent conflict clause: ";
 			printClause(confl);
 			clog << "\n";
-			clog << "Current learned clause: ";
+			clog << "\tCurrent learned clause: ";
 			for (int i = 1; i < out_learnt.size(); i++) {
 				clog << toString(out_learnt[i]) << " ";
 			}
 			clog << "\n";
-			clog << "Still explain: ";
 		}
 		/*AE*/
 
@@ -684,12 +683,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		}
 
 		/*AB*/
-		if (verbosity > 4) {
-			for (auto i = explain.begin(); i < explain.end(); i++) {
-				clog << toString(*i) << " ";
-			}
-			clog << "\n";
-		}
 
 		if (deleteImplicitClause) {
 			ca.free(confl);
@@ -704,23 +697,16 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		confl = reason(var(p));
 
 		/*AB*/
-		if (verbosity > 4) {
-			clog << "Getting explanation for ";
-			for (auto i = explain.begin(); i < explain.end(); i++) {
-				if (var(*i) == var(p)) {
-					explain.erase(i);
-					break;
-				}
-			}
-			clog << toString(p) << "\n";
+		if (verbosity > 6) {
+			clog << "\tGetting explanation for " << toString(p) << "\n";
 		}
 
 		if (confl == CRef_Undef && pathC > 1) {
 			confl = getPCSolver().getExplanation(p);
 			deleteImplicitClause = true;
 		}
-		if (verbosity > 4 && confl != CRef_Undef) {
-			clog << "Explanation is ";
+		if (verbosity > 6 && confl != CRef_Undef) {
+			clog << "\tExplanation is ";
 			printClause(confl);
 			clog << "\n";
 		}

@@ -101,23 +101,23 @@ rClause GenPWAgg::reInitialize() {
 
 void GenPWAgg::propagate(int, Watch* ws, int) {
 	proplist.push_back(ws);
-	getSet().acceptForBacktrack();
 }
 void GenPWAgg::propagate(const Lit&, Watch* ws, int) {
 	proplist.push_back(ws);
-	getSet().acceptForBacktrack();
 }
 
 void GenPWAgg::backtrack(int untillevel) {
-	proplist.clear();
-
-	bool needreconstruction = backtracklist.size() > 0 && backtracklist.back().second >= untillevel;
-	while (backtracklist.size() > 0 && backtracklist.back().second >= untillevel) {
+	cerr <<"Backtracking\n";
+	bool needreconstruction = false;
+	while (backtracklist.size() > 0 && backtracklist.back().second > untillevel) {
+		needreconstruction = true;
 		backtracklist.pop_back();
 	}
 	if (needreconstruction) {
+		cerr <<"Reconstructing\n";
+		proplist.clear();
 		auto propagations = false;
-		auto confl = reconstructSet(propagations, NULL, false);
+		auto confl = reconstructSet(propagations, NULL, true); // FIXME strange to have to check propagation here?
 		MAssert(confl==nullPtrClause);
 		for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
 			stageWatch(*i); // TODO temporary fix because known watches are never stored in the queue!
@@ -160,41 +160,17 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 	}
 	addStagedWatchesToNetworkOnStable(confl);
 	proplist.clear();
+
+	if(getSet().verbosity()>9){
+		clog <<"Backtracklist for set " <<getSet().getSetID() <<" : ";
+		for(auto i=backtracklist.cbegin(); i<backtracklist.cend(); ++i){
+			clog <<"level " <<i->second <<" -> var " <<toString(i->first, getPCSolver()) <<", ";
+		}
+		clog <<"\n";
+	}
+
 	return confl;
 }
-/*
- rClause GenPWAgg::propagateAtEndOfQueue(Watch* watch) {
- auto confl = nullPtrClause;
- auto pw = dynamic_cast<GenPWatch*>(watch);
-
- // Before calling propagate, the watch should have been removed from the network datastructure
- // but should still think it is in (which we fix here)
- MAssert(pw->isInNetwork());
- pw->removeFromNetwork();
-
- if (not pw->isInWS()) { //Already in NWS, so no need to watch it
- MAssert(getNWS()[pw->getIndex()]==pw);
- //Check it really is in NWS
- return confl;
- }
-
- //Now, it should be in WS and know this
- MAssert(getWS()[pw->getIndex()]==pw);
-
- auto propagations = false;
- confl = reconstructSet(propagations, NULL);
- MAssert(not pw->isInNetwork());
- if (not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
- moveFromWSToNWS(pw);
- } else { //Otherwise, add it again to the network
- addWatchToNetwork(pw);
- }
-
- addStagedWatchesToNetworkOnStable(confl);
-
- MAssert(not pw->isInWS() || getWS()[pw->getIndex()]==pw);
- return confl;
- }*/
 
 void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat) {
 	auto pessbounds = calculatePessimisticBounds();
@@ -356,17 +332,14 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg, bool c
 #ifdef DEBUG
 	checkWatches();
 #endif
+	MAssert(backtracklist.size()==0 || backtracklist.back().second<=getPCSolver().getCurrentDecisionLevel());
 
 	auto confl = nullPtrClause;
 	auto oneagg = getAgg().size() == 1;
 
-	//possible HACK: watch all at all times
-	/*for(int i=0 ;i<getNWS().size(); ++i){
-	 stageWatch(getNWS()[i]);
-	 }*/
-
 	//possible HACK: always keep watch
 	//propagations = true;
+
 	if (oneagg && value((*getAgg().cbegin())->getHead()) == l_True) { // NOTE: recall head OR agg
 		return confl;
 	}
@@ -375,13 +348,6 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg, bool c
 	GenPWatch* largestunkn = NULL;
 	const auto& worstagg = *getWorstAgg();
 	auto bounds = calculateBoundsOfWatches(largestunkn);
-	if (getPCSolver().verbosity() > 5) {
-//		clog << ">>> Worst agg: ";
-//		print(getPCSolver().verbosity(), worstagg, true);
-//		clog << ">>> Calculated bounds: \n";
-//		clog << "\tOptim [" << bounds.optim.min << ".." << bounds.optim.max << "]\n";
-//		clog << "\tPess [" << bounds.pess.min << ".." << bounds.pess.max << "]\n";
-	}
 
 	genWatches(nwsindex, worstagg, bounds, largestunkn);
 
@@ -393,7 +359,8 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg, bool c
 	} else if (oneagg && value((*getAgg().cbegin())->getHead()) == l_Undef) {
 		// if head is still unknown, one ws suffices
 	} else if (largestunkn == NULL || isSatisfied(worstagg, bounds.pess)) {
-		// certainly satisfied: no more watches needed, but do not delete the current ones!
+		// certainly satisfied
+		notifyFirstPropagation(mkPosLit(-1));
 		propagations = true;
 	} else {
 		uint storednwsindex = nwsindex, storedstagedindex = getStagedWatches().size();
@@ -469,6 +436,21 @@ minmaxOptimAndPessBounds GenPWAgg::calculateBoundsOfWatches(GenPWatch*& largest)
 	return bounds;
 }
 
+void GenPWAgg::notifyFirstPropagation(const Lit& firstprop){
+	getSet().acceptForBacktrack();
+	auto currentlevel = getSet().getPCSolver().getCurrentDecisionLevel();
+	if (backtracklist.size() == 0) {
+		backtracklist.push_back( { var(firstprop), currentlevel });
+	} else if (backtracklist.back().second < currentlevel) {
+		if (backtracklist.back().first != var(firstprop)) {
+			backtracklist.push_back( { var(firstprop), currentlevel });
+		}
+	} else {
+		MAssert(backtracklist.back().second==currentlevel);
+		backtracklist.back().first = var(firstprop);
+	}
+}
+
 /**
  * @pre: pessbounds are the bounds in the CURRENT interpretation
  * @pre: calculateBoundsOfWatches AND genWatches
@@ -496,21 +478,15 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 			lowerbound = WL(mkPosLit(1), getType().removeMin(agg->getCertainBound(), pessbounds.min));
 		}
 		auto i = upper_bound(getSet().getWL().cbegin(), getSet().getWL().cend(), lowerbound, compareByWeights<WL>);
-		auto lastpropagation = mkPosLit(-1);
+		bool begin = true;
 		for (; confl == nullPtrClause && i < getSet().getWL().cend(); ++i) { //INVARIANT: sorted WL
-			lastpropagation = i->getLit();
+			if(begin){
+				notifyFirstPropagation(i->getLit());
+			}
+			begin = false;
 			if (value(i->getLit()) == l_Undef) { //Otherwise would have been head conflict
 				propagations = true;
 				confl = getSet().notifySolver(new SetLitReason(*agg, i->getLit(), i->getWeight(), agg->hasLB()));
-			}
-		}
-		if (lastpropagation != mkPosLit(-1)) {
-			auto currentlevel = getSet().getPCSolver().getCurrentDecisionLevel();
-			if (backtracklist.size() == 0 || backtracklist.back().second < currentlevel) {
-				backtracklist.push_back( { var(lastpropagation), currentlevel });
-			} else {
-				MAssert(backtracklist.back().second==currentlevel);
-				backtracklist.back().first = var(lastpropagation);
 			}
 		}
 	}
@@ -529,6 +505,7 @@ rClause GenPWAgg::checkHeadPropagationForAgg(bool& propagations, const Agg& agg,
 	if (propagatehead) {
 		propagations = true;
 		confl = getSet().notifySolver(new HeadReason(agg, agg.getHead()));
+		notifyFirstPropagation(agg.getHead());
 	}
 	return confl;
 }

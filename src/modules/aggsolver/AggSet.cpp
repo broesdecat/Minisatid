@@ -18,7 +18,7 @@ using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
-		Propagator(solver, "aggregate"), kb(knownbound), wl(wls), type(w), prop(NULL), setid(setid), usingwatches(usewatches), acceptedforbacktrack(false) {
+		Propagator(solver, "aggregate"), kb(knownbound), wl(wls), type(w), prop(NULL), setid(setid), usingwatches(usewatches){
 
 	MAssert(not optim || aggr.size()==1);
 	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
@@ -30,9 +30,9 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 		MinisatID::print(10000, *this, true);
 	}
 
-	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_MODELFOUND);
 	getPCSolver().accept(this, EV_STATEFUL);
+	getPCSolver().accept(this, EV_BACKTRACK);
 
 	prop = getType().createPropagator(this);
 	bool sat = false;
@@ -78,10 +78,30 @@ void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {
 }
 
 void TypedSet::acceptForBacktrack() {
-	if (not acceptedforbacktrack) {
-		acceptedforbacktrack = true;
-		getPCSolver().acceptForBacktrack(this);
+	auto level = getPCSolver().getCurrentDecisionLevel();
+	if(backtrack.size()==0 || backtrack.back()<level){
+		cerr <<"Registering for backtrack at level " <<level <<"\n";
+		backtrack.push_back(level);
 	}
+}
+
+// NOTE: could prevent calling backtrack each time and instead pass more knowledge to the eventqueue
+void TypedSet::notifyBacktrack(int untillevel, const Lit& decision) {
+	MAssert(getProp()!=NULL);
+
+	if(backtrack.size()>0 && backtrack.back()>untillevel){
+		int lower = 0;
+		for(auto i=backtrack.cbegin(); i<backtrack.cend(); ++i){
+			if(*i<=untillevel){
+				lower++;
+			}else{
+				break;
+			}
+		}
+		backtrack.resize(lower);
+		getProp()->backtrack(untillevel);
+	}
+	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 void TypedSet::removeAggs(const std::set<Agg*>& del) {
@@ -173,10 +193,6 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	}
 }
 
-void TypedSet::notifyNewDecisionLevel() {
-	//littrail.newDecisionLevel();
-}
-
 void TypedSet::notifypropagate(Watch* w) {
 	getProp()->propagate(w);
 	getPCSolver().acceptForPropagation(this);
@@ -212,12 +228,8 @@ rClause TypedSet::notifyFullAssignmentFound() {
 	return nullPtrClause;
 }
 
-void TypedSet::notifyBacktrack(int untillevel, const Lit& decision) {
-	acceptedforbacktrack = false;
-	MAssert(getProp()!=NULL);
-	getProp()->backtrack(untillevel);
-	//littrail.backtrackDecisionLevels(untillevel);
-	Propagator::notifyBacktrack(untillevel, decision);
+void TypedSet::accept(ConstraintVisitor& visitor){
+	// FIXME add accept
 }
 
 //Returns OWNING pointer. This has proven to be faster than always adding generated explanations to the clause store!

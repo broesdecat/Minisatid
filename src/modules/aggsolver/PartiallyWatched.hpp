@@ -150,6 +150,8 @@ private:
 	rClause reconstructSet(bool& propagations, Agg const * propagg, bool checkpropagation = true);
 	void genWatches(uint& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
 
+	void notifyFirstPropagation(const Lit& firstprop);
+
 	rClause checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
 	rClause checkHeadPropagationForAgg(bool& propagations, const Agg& agg, const minmaxBounds& pessbounds);
 

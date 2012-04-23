@@ -294,6 +294,7 @@ void PropagatorFactory::add(const Symmetry& formula) {
 
 template<class T>
 void PropagatorFactory::addCP(const T& formula) {
+	MAssert(getEngine().modes().usegecode);
 	notifyMonitorsOfAdding(formula);
 	guaranteeAtRootLevel();
 #ifndef CPSUPPORT
@@ -326,12 +327,19 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
-	addCP(obj); // TODO intvar?
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling intvarenums without gecode yet.");
+	}
 }
 
 void PropagatorFactory::add(const CPBinaryRel& obj) {
-	addCP(obj);
-
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling CPBinaryRel without gecode yet.");
+	}
 
 	// TODO
 	/*Equivalence eq;
@@ -362,24 +370,44 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 }
 
 void PropagatorFactory::add(const CPBinaryRelVar& obj) {
-	addCP(obj);
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling CPBinaryRelVar without gecode yet.");
+	}
 	//TODO new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 }
 
 void PropagatorFactory::add(const CPSumWeighted& obj) {
-	addCP(obj);
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling CPSumWeighted without gecode yet.");
+	}
 }
 
 void PropagatorFactory::add(const CPCount& obj) {
-	addCP(obj);
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling CPCount without gecode yet.");
+	}
 }
 
 void PropagatorFactory::add(const CPAllDiff& obj) {
-	addCP(obj);
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling CPAllDiff without gecode yet.");
+	}
 }
 
 void PropagatorFactory::add(const CPElement& obj) {
-	addCP(obj);
+	if(getEngine().modes().usegecode){
+		addCP(obj);
+	}else{
+		throw notYetImplemented("No support for handling CPElement without gecode yet.");
+	}
 }
 
 void PropagatorFactory::guaranteeAtRootLevel() {

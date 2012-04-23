@@ -44,10 +44,10 @@ public:
 
 	// Propagator methods
 	virtual rClause getExplanation(const Lit&);
-	virtual void accept(ConstraintVisitor& visitor) {
-		throw notYetImplemented("Accept");
+	virtual void accept(ConstraintVisitor&);
+	virtual void notifyNewDecisionLevel() {
+		throw idpexception("Error in execution path.");
 	}
-	virtual void notifyNewDecisionLevel();
 	// NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause notifypropagate();
@@ -101,7 +101,7 @@ public:
 	void removeAggs(const std::set<Agg*>& del);
 
 private:
-	bool acceptedforbacktrack;
+	std::vector<int> backtrack; // The levels for which backtracking the propagator is necessary when we backtrack over them
 public:
 	void acceptForBacktrack();
 

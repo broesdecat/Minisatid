@@ -13,8 +13,9 @@
 #include "constraintvisitors/ConstraintVisitor.hpp"
 
 using namespace MinisatID;
+using namespace std;
 
-std::map<int, IntVarValue> IntVar::var2intvarvalues;
+map<int, IntVarValue> IntVar::var2intvarvalues;
 
 IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		: Propagator(solver, "intvar"),
@@ -28,11 +29,11 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
 		Var var = engine().newVar();
 		equalities.push_back(var);
-		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, true, i+minValue())));
+		var2intvarvalues.insert(pair<int, IntVarValue>(var, IntVarValue(this, true, i+minValue())));
 
 		var = engine().newVar();
 		disequalities.push_back(var);
-		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, false, i+minValue())));
+		var2intvarvalues.insert(pair<int, IntVarValue>(var, IntVarValue(this, false, i+minValue())));
 	}
 	for(auto i=equalities.cbegin(); i<equalities.cend(); ++i){
 		engine().accept(this, mkPosLit(*i), FAST);
@@ -43,20 +44,20 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		engine().accept(this, mkNegLit(*i), FAST);
 	}
 	addConstraints();
-	engine().notifyBoundsChanged(this);
 
 	if(verbosity()>3){
 		int index = 0;
 		for(auto i=equalities.cbegin(); i<equalities.cend(); ++i, index++){
-			std::clog <<toString(*i) <<" <=> " <<origid() <<"=" <<minvalue+index <<"\n";
+			clog <<toString(*i) <<" <=> " <<origid() <<"=" <<minvalue+index <<"\n";
 		}
 		index = 0;
 		for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i, index++){
-			std::clog <<toString(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
+			clog <<toString(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
 		}
 	}
-	std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
+	engine().notifyBoundsChanged(this);
 }
 
 void IntVar::notifyBacktrack(int, const Lit&){
@@ -73,7 +74,6 @@ void IntVar::notifyBacktrack(int, const Lit&){
 			break;
 		}
 	}
-	std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
 }
 
 void IntVar::accept(ConstraintVisitor& visitor){
@@ -96,7 +96,9 @@ rClause	IntVar::notifypropagate(){
 		}
 	}
 	if(lastmin!=currentmin || lastmax!=currentmax){
-		std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+		if(verbosity()>7){
+			clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+		}
 		engine().notifyBoundsChanged(this);
 	}
 
@@ -114,7 +116,7 @@ rClause	IntVar::notifypropagate(){
  */
 void IntVar::addConstraints(){
 	auto setid = engine().newSetID();
-	std::vector<WLtuple> wls;
+	vector<WLtuple> wls;
 	for(uint i=0; i<equalities.size(); ++i){
 		wls.push_back(WLtuple(mkPosLit(equalities[i]), 1));
 	}

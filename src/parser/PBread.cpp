@@ -72,9 +72,8 @@ template<class T> void DefaultCallback<T>::beginObjective() {
  */
 template<class T> void DefaultCallback<T>::endObjective() {
 	extAdd(getSolver(), wset);
+	extAdd(getSolver(), MinimizeAgg(1, wset.setID, AggType::SUM));
 	wset = WLSet(++setid);
-
-	extAdd(getSolver(), MinimizeAgg(1, setid, AggType::SUM));
 }
 
 /**
@@ -105,10 +104,8 @@ template<class T> void DefaultCallback<T>::beginConstraint() {
 
 template<class T> void DefaultCallback<T>::endConstraint() {
 	extAdd(getSolver(), wset);
-	wset = WLSet(++setid);
-
 	Disjunction clause;
-	Aggregate agg(dummyhead, setid, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1);
+	Aggregate agg(dummyhead, wset.setID, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1);
 	if(equality){
 		agg.sign = AggSign::LB;
 		extAdd(getSolver(), agg);
@@ -118,6 +115,7 @@ template<class T> void DefaultCallback<T>::endConstraint() {
 		agg.sign = AggSign::LB;
 		extAdd(getSolver(), agg);
 	}
+	wset = WLSet(++setid);
 }
 
 template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){

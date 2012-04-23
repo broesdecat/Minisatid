@@ -30,53 +30,53 @@ EventQueue::EventQueue(PCSolver& pcsolver)
 }
 
 EventQueue::~EventQueue() {
-	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i) {
-		delete(*i);
+	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
+		delete (*i);
 	}
 }
 
-bool EventQueue::isUnsat() const{
+bool EventQueue::isUnsat() const {
 	return getPCSolver().satState() == SATVAL::UNSAT;
 }
 
-void EventQueue::saveState(){
+void EventQueue::saveState() {
 	savingstate = true;
 	newpropagators.clear();
 	auto props = event2propagator.at(EV_STATEFUL);
 	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
-		if(props[i]->isPresent()){
+		if (props[i]->isPresent()) {
 			props[i]->saveState();
 		}
 	}
 }
-void EventQueue::resetState(){
-	for(auto i=newpropagators.cbegin(); i<newpropagators.cend(); ++i) {
+void EventQueue::resetState() {
+	for (auto i = newpropagators.cbegin(); i < newpropagators.cend(); ++i) {
 		(*i)->notifyNotPresent();
 	}
 	newpropagators.clear();
 	savingstate = false;
 	auto props = event2propagator.at(EV_STATEFUL);
 	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
-		if(props[i]->isPresent()){
+		if (props[i]->isPresent()) {
 			props[i]->resetState();
 		}
 	}
 }
 
 // NOTE: EACH propagator has to register here for the general methods
-void EventQueue::accept(Propagator* propagator){
+void EventQueue::accept(Propagator* propagator) {
 #ifdef DEBUG
-	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
+	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i) {
 		MAssert(propagator!=*i);
 	}
 #endif
 	allpropagators.push_back(propagator);
-	if(savingstate){
+	if (savingstate) {
 		newpropagators.push_back(propagator);
 	}
 }
 
-void EventQueue::notifyNbOfVars(uint64_t nbvars){
+void EventQueue::notifyNbOfVars(uint64_t nbvars) {
 	while (lit2priority2propagators.size() < 2 * nbvars) {
 		vector<proplist> newmap;
 		newmap.push_back( { });
@@ -85,6 +85,13 @@ void EventQueue::notifyNbOfVars(uint64_t nbvars){
 		lit2watches.push_back( { });
 	}
 	var2decidable.resize(nbvars);
+}
+
+void EventQueue::acceptBounds(IntView* var, Propagator* propagator) {
+	if (intvarid2propagators.size() <= (uint) var->id()) {
+		intvarid2propagators.resize((uint) var->id() + 1, proplist());
+	}
+	intvarid2propagators[(uint) var->id()].push_back(propagator);
 }
 
 void EventQueue::notifyBoundsChanged(IntVar* var) {
@@ -103,8 +110,8 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 		getPCSolver().notifyDecisionVar(var(litevent));
 	}
 	auto& list = lit2priority2propagators[toInt(litevent)][priority];
-	for (auto i = list.cbegin(); i < list.cend(); ++i) {
-		if ((*i) == propagator) { //TODO should check doubles in another way (or prevent any from being added)
+	for (auto i = list.cbegin(); i < list.cend(); ++i) { // NOTE: quite expensive way to check doubles
+		if ((*i) == propagator) {
 			return;
 		}
 	}
@@ -146,7 +153,7 @@ void EventQueue::setTrue(const proplist& list, deque<Propagator*>& queue) {
 
 void EventQueue::setTrue(const Lit& l) {
 	auto& lw = lit2watches[toInt(l)];
-	if(lw.size()!=0){
+	if (lw.size() != 0) {
 		for (uint i = 0; i != lw.size(); ++i) {
 			lw[i]->propagate();
 		}
@@ -154,7 +161,7 @@ void EventQueue::setTrue(const Lit& l) {
 		for (auto i = lw.cbegin(); i != lw.cend(); ++i) {
 			if (not (*i)->dynamic()) {
 				remwatches.push_back(*i);
-			}else{
+			} else {
 				(*i)->removeFromNetwork();
 			}
 		}
@@ -164,65 +171,12 @@ void EventQueue::setTrue(const Lit& l) {
 	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }
 
-rClause EventQueue::notifyFullAssignmentFound(){
+rClause EventQueue::notifyFullAssignmentFound() {
 	auto confl = nullPtrClause;
-	for(auto i=event2propagator[EV_MODELFOUND].cbegin(); confl==nullPtrClause && i<event2propagator[EV_MODELFOUND].cend(); ++i) {
+	for (auto i = event2propagator[EV_MODELFOUND].cbegin(); confl == nullPtrClause && i < event2propagator[EV_MODELFOUND].cend(); ++i) {
 		confl = (*i)->notifyFullAssignmentFound();
 	}
 	return confl;
-}
-
-// TODO check cost of this method, is extremely expensive???
-void EventQueue::clearNotPresentPropagators() {
-	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
-	for (auto i = lit2priority2propagators.begin(); i < lit2priority2propagators.end(); ++i) {
-		for (auto j = (*i).begin(); j != (*i).end(); ++j) {
-			auto temp = *j;
-			j->clear();
-			for (auto k = temp.cbegin(); k < temp.cend(); ++k) {
-				if ((*k)->isPresent()) {
-					j->push_back(*k);
-				}
-			}
-		}
-	}
-
-	for (auto i = intvarid2propagators.begin(); i != intvarid2propagators.end(); ++i) {
-		auto temp = *i;
-		i->clear();
-		for (auto prop = temp.cbegin(); prop != temp.cend(); ++prop) {
-			if ((*prop)->isPresent()) {
-				i->push_back(*prop);
-			}
-		}
-	}
-
-	for (auto i = event2propagator.begin(); i != event2propagator.end(); ++i) {
-		auto temp = i->second;
-		i->second.clear();
-		for (auto prop = temp.cbegin(); prop != temp.cend();) {
-			if ((*prop)->isPresent()) {
-				i->second.push_back(*prop);
-			}
-		}
-	}
-
-	auto temp = newpropagators;
-	newpropagators.clear();
-	for(auto prop=temp.cbegin(); prop<temp.cend(); ++prop) {
-		if((*prop)->isPresent()){
-			newpropagators.push_back(*prop);
-		}
-	}
-
-	for (auto j = allpropagators.begin(); j < allpropagators.end();) {
-		if (not (*j)->isPresent()) {
-			delete (*j);
-			j = allpropagators.erase(j);
-		} else {
-			++j;
-		}
-	}
 }
 
 rClause EventQueue::notifyPropagate() {
@@ -234,6 +188,10 @@ rClause EventQueue::notifyPropagate() {
 	propagatewatchesasap.clear();
 
 	confl = runEternalPropagators();
+
+	if (confl != nullPtrClause) {
+		return confl;
+	}
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
@@ -248,9 +206,8 @@ rClause EventQueue::notifyPropagate() {
 		p->notifyDeQueued();
 		confl = p->notifypropagate();
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
-		if(confl==nullPtrClause){
+		if (confl == nullPtrClause) {
 			confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
-			// TODO check whether anything was propagated (otherwise becomes quite expensive?)
 		}
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
@@ -261,13 +218,13 @@ rClause EventQueue::notifyPropagate() {
 rClause EventQueue::runEternalPropagators() {
 	auto confl = nullPtrClause;
 	auto props = event2propagator.at(EV_PROPAGATE);
-	for (uint i = 0; i < size(EV_PROPAGATE) && confl==nullPtrClause; ++i) {
+	for (uint i = 0; i < size(EV_PROPAGATE) && confl == nullPtrClause; ++i) {
 		confl = props[i]->notifypropagate();
 	}
 	return confl;
 }
 
-void EventQueue::accept(ConstraintVisitor& visitor){
+void EventQueue::accept(ConstraintVisitor& visitor) {
 	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
 		(*i)->accept(visitor);
 	}
@@ -295,9 +252,9 @@ void EventQueue::notifyBecameDecidable(Var v) {
 }
 
 void EventQueue::notifyNewDecisionLevel() {
-	if(backtrackedtoroot){
+	if (backtrackedtoroot) {
 		backtrackedtoroot = false;
-		//clearNotPresentPropagators(); // FIXME this turns out to be extremely expensive. WHY???
+		clearNotPresentPropagators();
 	}
 	auto props = event2propagator.at(EV_DECISIONLEVEL);
 	for (uint i = 0; i < size(EV_DECISIONLEVEL); ++i) {
@@ -309,10 +266,6 @@ void EventQueue::notifyNewDecisionLevel() {
 }
 
 void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
-	while (not backtrackqueue.empty()) {
-		backtrackqueue.front()->notifyBacktrack(untillevel, decision);
-		backtrackqueue.pop_front();
-	}
 	auto props = event2propagator.at(EV_BACKTRACK);
 	for (uint i = 0; i < size(EV_BACKTRACK); ++i) {
 		if (!props[i]->isPresent()) {
@@ -320,14 +273,74 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 		}
 		props[i]->notifyBacktrack(untillevel, decision);
 	}
-	backtrackedtoroot = untillevel==0;
+	backtrackedtoroot = untillevel == 0;
 }
 
-int	EventQueue::getNbOfFormulas() const{
+int EventQueue::getNbOfFormulas() const {
 	int size = 0;
-	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
+	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
 		size += (*i)->getNbOfFormulas();
 	}
 	return size;
+}
 
+void EventQueue::clearNotPresentPropagators() {
+	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
+	for (auto i = lit2priority2propagators.begin(); i < lit2priority2propagators.end(); ++i) {
+		for (auto j = (*i).begin(); j != (*i).end(); ++j) {
+			if (j->size() == 0) {
+				continue;
+			}
+			auto temp = *j;
+			j->clear();
+			for (auto k = temp.cbegin(); k < temp.cend(); ++k) {
+				if ((*k)->isPresent()) {
+					j->push_back(*k);
+				}
+			}
+		}
+	}
+
+	for (auto i = intvarid2propagators.begin(); i != intvarid2propagators.end(); ++i) {
+		if (i->size() == 0) {
+			continue;
+		}
+		auto temp = *i;
+		i->clear();
+		for (auto prop = temp.cbegin(); prop != temp.cend(); ++prop) {
+			if ((*prop)->isPresent()) {
+				i->push_back(*prop);
+			}
+		}
+	}
+
+	for (auto i = event2propagator.begin(); i != event2propagator.end(); ++i) {
+		if (i->second.size() == 0) {
+			continue;
+		}
+		auto temp = i->second;
+		i->second.clear();
+		for (auto prop = temp.cbegin(); prop != temp.cend(); ++prop) {
+			if ((*prop)->isPresent()) {
+				i->second.push_back(*prop);
+			}
+		}
+	}
+
+	auto temp = newpropagators;
+	newpropagators.clear();
+	for (auto prop = temp.cbegin(); prop < temp.cend(); ++prop) {
+		if ((*prop)->isPresent()) {
+			newpropagators.push_back(*prop);
+		}
+	}
+
+	for (auto j = allpropagators.begin(); j < allpropagators.end();) {
+		if (not (*j)->isPresent()) {
+			delete (*j);
+			j = allpropagators.erase(j);
+		} else {
+			++j;
+		}
+	}
 }

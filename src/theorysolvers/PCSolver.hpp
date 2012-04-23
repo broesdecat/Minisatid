@@ -257,7 +257,6 @@ private:
 public:
 	void accept(Propagator* propagator);
 	void accept(GenWatch* const watch);
-	void acceptForBacktrack(Propagator* propagator);
 	void acceptForPropagation(Propagator* propagator);
 	void accept(Propagator* propagator, EVENT event);
 	void acceptBounds(IntView* var, Propagator* propagator);

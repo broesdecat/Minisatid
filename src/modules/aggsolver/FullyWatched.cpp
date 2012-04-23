@@ -118,6 +118,7 @@ void FWAgg::resetState() {
  * Returns non-owning pointer
  */
 void FWAgg::propagate(int level, Watch* watch, int aggindex) {
+	getSet().acceptForBacktrack();
 	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 	//	return nullPtrClause;
 	//}
@@ -126,7 +127,6 @@ void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 	if (fwobj->level < level) {
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
-		getSet().acceptForBacktrack();
 	}
 
 	if (fwobj->start == fwobj->props.size()) {
@@ -139,11 +139,12 @@ void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 }
 
 void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
+	getSet().acceptForBacktrack();
 	auto fwobj = getTrail().back();
+	MAssert(fwobj->level<=level);
 	if (fwobj->level < level) {
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
-		getSet().acceptForBacktrack();
 	}
 	if (fwobj->start == fwobj->props.size()) {
 		getSet().getPCSolver().acceptForPropagation(getSetp());
@@ -164,7 +165,7 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 	MAssert(found);
 #endif
 
-	MAssert(fwobj->level == level && level == getSet().getPCSolver().getLevel(var(p)));
+	MAssert(fwobj->level == level);
 	fwobj->props.push_back(PropagationInfo(p, ws->getWeight(), ws->getType()));
 }
 

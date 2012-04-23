@@ -22,7 +22,7 @@ void printValue(T& output, lbool value){
 }
 
 void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
-	if(verbosity<7){
+	if(verbosity<5){
 		clog <<"set " <<c.getSetID();
 	}else{
 		clog <<"set " <<c.getSetID() <<" = {";

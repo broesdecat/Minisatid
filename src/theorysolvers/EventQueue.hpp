@@ -34,7 +34,7 @@ private:
 	PCSolver& getPCSolver() { return pcsolver; }
 	const PCSolver& getPCSolver() const { return pcsolver; }
 
-	std::deque<Propagator*> fastqueue, slowqueue, backtrackqueue;
+	std::deque<Propagator*> fastqueue, slowqueue;
 
 	proplist allpropagators;
 	std::map<EVENT, propqueue > event2propagator;					// |events|
@@ -58,9 +58,6 @@ public:
 	// NOTE: EACH propagator has to register here for the general methods
 	void accept(Propagator* propagator);
 
-	void acceptForBacktrack(Propagator* propagator){
-		backtrackqueue.push_back(propagator);
-	}
 	void acceptForPropagation(Propagator* propagator){
 		fastqueue.push_back(propagator);
 	}
@@ -76,12 +73,8 @@ public:
 	}
 	//NOTE Both aggsolver and modsolver can add rules during their initialization, so idsolver should be late and all the others early!
 	void acceptFinishParsing(Propagator* propagator, bool late);
-	void acceptBounds(IntView* var, Propagator* propagator){
-		if(intvarid2propagators.size()<=(uint)var->id()){
-			intvarid2propagators.resize((uint)var->id()+1, proplist());
-		}
-		intvarid2propagators[(uint)var->id()].push_back(propagator);
-	}
+	void acceptBounds(IntView* var, Propagator* propagator);
+
 	void 	accept(Propagator* propagator, const Lit& litevent, PRIORITY priority);
 
 	void 	accept(GenWatch* const watch);
