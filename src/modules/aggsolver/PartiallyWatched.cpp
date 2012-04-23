@@ -107,14 +107,12 @@ void GenPWAgg::propagate(const Lit&, Watch* ws, int) {
 }
 
 void GenPWAgg::backtrack(int untillevel) {
-	cerr <<"Backtracking\n";
 	bool needreconstruction = false;
 	while (backtracklist.size() > 0 && backtracklist.back().second > untillevel) {
 		needreconstruction = true;
 		backtracklist.pop_back();
 	}
 	if (needreconstruction) {
-		cerr <<"Reconstructing\n";
 		proplist.clear();
 		auto propagations = false;
 		auto confl = reconstructSet(propagations, NULL, true); // FIXME strange to have to check propagation here?

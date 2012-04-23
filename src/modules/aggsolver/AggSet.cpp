@@ -80,7 +80,6 @@ void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {
 void TypedSet::acceptForBacktrack() {
 	auto level = getPCSolver().getCurrentDecisionLevel();
 	if(backtrack.size()==0 || backtrack.back()<level){
-		cerr <<"Registering for backtrack at level " <<level <<"\n";
 		backtrack.push_back(level);
 	}
 }
