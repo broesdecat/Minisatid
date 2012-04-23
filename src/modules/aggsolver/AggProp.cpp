@@ -213,7 +213,6 @@ Weight ProdProp::getMaxPossible(const std::vector<WL>& wls) const {
 }
 
 Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
-	MAssert(lhs!=0 && rhs!=0);
 #ifdef NOARBITPREC
 	bool sign = false;
 	Weight l = lhs, r = rhs;
@@ -225,7 +224,7 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 		r = -r;
 		sign = !sign;
 	}
-	if(posInfinity()/l < r){
+	if(l!=0 && posInfinity()/l < r){
 		return sign ? negInfinity() : posInfinity();
 	}
 #endif
@@ -244,7 +243,7 @@ Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 			w -= Weight(1);
 		}
 	}
-//	clog <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
+	//clog <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
 	return w;
 }
 Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{

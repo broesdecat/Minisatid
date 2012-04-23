@@ -23,9 +23,6 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		  engine_(*solver),
 		  minvalue(min), maxvalue(max),
 		  offset(-1), currentmin(min), currentmax(max){
-	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_PROPAGATE);
-
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
 		Var var = engine().newVar();
 		equalities.push_back(var);
@@ -56,6 +53,9 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		}
 	}
 
+	getPCSolver().accept(this);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_PROPAGATE);
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 	engine().notifyBoundsChanged(this);
 }

@@ -384,7 +384,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 
 	// Create propagators
 	double ratio = ratioone * 0.5 + ratiotwo * 0.5;
-	if (ratio < solver->modes().watchesratio) { // FIXME NOTE it has to be disequality, because there are some cases in which ratio can be 0
+	if (solver->modes().watchesratio!=0 && ratio <= solver->modes().watchesratio) {
 		createPropagator(solver, set, signoneaggs, knownbound, true, false);
 		if (signtwoaggs.size() > 0) {
 			createPropagator(solver, set, signtwoaggs, knownbound, true, false);

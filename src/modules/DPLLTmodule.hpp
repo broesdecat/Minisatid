@@ -31,7 +31,6 @@ protected:
 public:
 	Propagator(PCSolver* s, const std::string& name) :
 			present(true), trailindex(0), inqueue(false), name(name), pcsolver(s) {
-		pcsolver->accept(this);
 	}
 	virtual ~Propagator() {
 	}

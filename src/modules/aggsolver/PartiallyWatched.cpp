@@ -26,8 +26,8 @@ using namespace MinisatID;
  * TODO maximum aggregate?
  */
 
-GenPWAgg::GenPWAgg(TypedSet* set) :
-		AggPropagator(set), emptyinterpretbounds(Weight(0), Weight(0)) {
+GenPWAgg::GenPWAgg(TypedSet* set)
+		: AggPropagator(set), emptyinterpretbounds(Weight(0), Weight(0)), certainlyreconstruct(false) {
 }
 
 GenPWAgg::~GenPWAgg() {
@@ -52,6 +52,29 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	auto& set = getSet();
 	auto wls = set.getWL();
+
+	// TODO duplicate with fully watched
+#ifdef NOARBITPREC
+	if(getType().getType()==AggType::SUM){
+		//Test whether the total sum of the weights is not infinity for intweights
+		Weight total(0);
+		for (vwl::const_iterator i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
+			if (INT_MAX - total < i->getWeight()) {
+				throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
+			}
+			total += abs(i->getWeight());
+		}
+	}else if(getType().getType()==AggType::PROD){
+		//Test whether the total product of the weights is not infinity for intweights
+		Weight total(1);
+		for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
+			if (posInfinity() / total < i->getWeight()) {
+				throw idpexception("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
+			}
+			total *= i->getWeight();
+		}
+	}
+#endif
 
 	setBoundsOnEmptyInterpr(minmaxBounds(getType().getMinPossible(set), getType().getMaxPossible(set)));
 
@@ -114,13 +137,8 @@ void GenPWAgg::backtrack(int untillevel) {
 	}
 	if (needreconstruction) {
 		proplist.clear();
-		auto propagations = false;
-		auto confl = reconstructSet(propagations, NULL, true); // FIXME strange to have to check propagation here?
-		MAssert(confl==nullPtrClause);
-		for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
-			stageWatch(*i); // TODO temporary fix because known watches are never stored in the queue!
-		}
-		addStagedWatchesToNetworkOnStable(confl);
+		certainlyreconstruct = true;
+		getSet().getPCSolver().acceptForPropagation(getSetp());
 	}
 }
 
@@ -146,8 +164,9 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 			}
 		}
 	}
-	if (confl == nullPtrClause && somesetwatch) {
+	if (confl == nullPtrClause && (somesetwatch || certainlyreconstruct)) {
 		confl = reconstructSet(propagations, NULL);
+		certainlyreconstruct = false;
 	}
 	for (auto i = watchlist.cbegin(); somesetwatch && i < watchlist.cend(); ++i) {
 		if (not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
@@ -159,12 +178,12 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 	addStagedWatchesToNetworkOnStable(confl);
 	proplist.clear();
 
-	if(getSet().verbosity()>9){
-		clog <<"Backtracklist for set " <<getSet().getSetID() <<" : ";
-		for(auto i=backtracklist.cbegin(); i<backtracklist.cend(); ++i){
-			clog <<"level " <<i->second <<" -> var " <<toString(i->first, getPCSolver()) <<", ";
+	if (getSet().verbosity() > 9) {
+		clog << "Backtracklist for set " << getSet().getSetID() << " : ";
+		for (auto i = backtracklist.cbegin(); i < backtracklist.cend(); ++i) {
+			clog << "level " << i->second << " -> var " << toString(i->first, getPCSolver()) << ", ";
 		}
-		clog <<"\n";
+		clog << "\n";
 	}
 
 	return confl;
@@ -326,7 +345,7 @@ void GenPWAgg::addStagedWatchesToNetworkOnStable(rClause confl) {
  * 			remove largest, keep adding non-false until satisfied
  *  FIXME propagations is wrong name (instead means "keep watch"?)
  */
-rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg, bool checkpropagation) {
+rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg) {
 #ifdef DEBUG
 	checkWatches();
 #endif
@@ -351,9 +370,7 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg, bool c
 
 	if (not isSatisfied(worstagg, bounds.optim)) {
 		// can certainly propagate head
-		if (checkpropagation) {
-			confl = checkPropagation(propagations, bounds.pess, propagg);
-		}
+		confl = checkPropagation(propagations, bounds.pess, propagg);
 	} else if (oneagg && value((*getAgg().cbegin())->getHead()) == l_Undef) {
 		// if head is still unknown, one ws suffices
 	} else if (largestunkn == NULL || isSatisfied(worstagg, bounds.pess)) {
@@ -372,9 +389,7 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg, bool c
 		genWatches(nwsindex, worstagg, bounds, templargest);
 
 		if (not isSatisfied(worstagg, bounds.optim)) {
-			if (checkpropagation) {
-				confl = checkPropagation(propagations, bounds.pess, propagg);
-			}
+			confl = checkPropagation(propagations, bounds.pess, propagg);
 
 			if (confl != nullPtrClause) {
 				propagations = true;
@@ -434,7 +449,7 @@ minmaxOptimAndPessBounds GenPWAgg::calculateBoundsOfWatches(GenPWatch*& largest)
 	return bounds;
 }
 
-void GenPWAgg::notifyFirstPropagation(const Lit& firstprop){
+void GenPWAgg::notifyFirstPropagation(const Lit& firstprop) {
 	getSet().acceptForBacktrack();
 	auto currentlevel = getSet().getPCSolver().getCurrentDecisionLevel();
 	if (backtracklist.size() == 0) {
@@ -478,7 +493,7 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 		auto i = upper_bound(getSet().getWL().cbegin(), getSet().getWL().cend(), lowerbound, compareByWeights<WL>);
 		bool begin = true;
 		for (; confl == nullPtrClause && i < getSet().getWL().cend(); ++i) { //INVARIANT: sorted WL
-			if(begin){
+			if (begin) {
 				notifyFirstPropagation(i->getLit());
 			}
 			begin = false;
@@ -534,11 +549,11 @@ public:
 	int time;
 	bool inset;
 
-	wlt() :
-			WL(mkPosLit(1), Weight(0)), time(0), inset(false) {
+	wlt()
+			: WL(mkPosLit(1), Weight(0)), time(0), inset(false) {
 	}
-	wlt(const WL& wl, int time, bool inset) :
-			WL(wl), time(time), inset(inset) {
+	wlt(const WL& wl, int time, bool inset)
+			: WL(wl), time(time), inset(inset) {
 	}
 };
 
@@ -632,8 +647,8 @@ private:
 	const WL _wl;
 	const bool _watchneg;
 public:
-	TempWatch(const WL& wl, bool watchneg) :
-			_wl(wl), _watchneg(watchneg) {
+	TempWatch(const WL& wl, bool watchneg)
+			: _wl(wl), _watchneg(watchneg) {
 	}
 
 	bool isMonotone() const {
@@ -644,8 +659,7 @@ public:
 	}
 };
 
-double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs,
-		const Weight& knownbound) {
+double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
 	uint totallits = set.getWL().size(), totalwatches = 0;
 	std::vector<TempWatch*> nws;
 

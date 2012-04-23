@@ -30,11 +30,13 @@ const Lit& LazyResidualWatch::getPropLit() const {
 // Watch BOTH: so watching when it becomes decidable
 LazyResidual::LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor) :
 		Propagator(engine, "lazy residual notifier"), monitor(monitor), residual(mkPosLit(var)) {
+	getPCSolver().accept(this);
 	getPCSolver().acceptForDecidable(var, this);
 }
 
 LazyResidual::LazyResidual(LazyResidualWatch* const watch) :
 		Propagator(watch->engine, "lazy residual notifier"), monitor(watch->monitor), residual(watch->residual) {
+	getPCSolver().accept(this);
 	getPCSolver().acceptForPropagation(this);
 }
 

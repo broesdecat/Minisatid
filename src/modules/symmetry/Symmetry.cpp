@@ -58,6 +58,7 @@ SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym) :
 		}
 	}
 
+	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 }

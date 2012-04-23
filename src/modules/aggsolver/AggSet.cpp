@@ -18,8 +18,13 @@ using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
-		Propagator(solver, "aggregate"), kb(knownbound), wl(wls), type(w), prop(NULL), setid(setid), usingwatches(usewatches){
-
+		Propagator(solver, "aggregate"),
+		kb(knownbound),
+		wl(wls),
+		type(w),
+		prop(NULL),
+		setid(setid),
+		usingwatches(usewatches){
 	MAssert(not optim || aggr.size()==1);
 	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
 		addAgg(**i, optim);
@@ -30,14 +35,10 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 		MinisatID::print(10000, *this, true);
 	}
 
-	getPCSolver().accept(this, EV_MODELFOUND);
-	getPCSolver().accept(this, EV_STATEFUL);
-	getPCSolver().accept(this, EV_BACKTRACK);
-
 	prop = getType().createPropagator(this);
 	bool sat = false;
 	bool unsat = false;
-	getProp()->initialize(unsat, sat);
+	getProp()->initialize(unsat, sat); // TODO might throw, in which case the destructor is NOT called and prop and the aggregates will not be deleted
 	if (not sat) {
 		MAssert(unsat || getAgg().size()>0);
 	} else {
@@ -60,6 +61,12 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 		}
 		getPCSolver().notifyUnsat();
 	}
+
+	// NOTE: important: only pass the object around when the object will be created (had an issue where an exception was thrown INSIDE the constructor AFTER passing the object to another class)
+	getPCSolver().accept(this);
+	getPCSolver().accept(this, EV_MODELFOUND);
+	getPCSolver().accept(this, EV_STATEFUL);
+	getPCSolver().accept(this, EV_BACKTRACK);
 }
 
 TypedSet::~TypedSet() {

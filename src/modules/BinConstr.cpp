@@ -24,6 +24,7 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp,
 	case EqType::GEQ:	head_ = mkNegLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 1); comp_ = BIN_LEQ; break;
 	case EqType::G:	head_ = mkNegLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 0); comp_ = BIN_LEQ; break;
 	}
+	getPCSolver().accept(this);
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
 	getPCSolver().acceptBounds(left(), this);
