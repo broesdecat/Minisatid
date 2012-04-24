@@ -132,6 +132,12 @@ rClause BinaryConstraint::propagate(IntView* var, BIN_SIGN comp, int bound) {
 	return nullPtrClause;
 }
 
+void BinaryConstraint::accept(ConstraintVisitor& visitor){
+	// FIXME
+	//		which id to use
+	//		what with intviews
+}
+
 rClause BinaryConstraint::notifypropagate() {
 	rClause confl = nullPtrClause;
 	lbool headvalue = getPCSolver().value(head());

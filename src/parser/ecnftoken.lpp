@@ -93,8 +93,9 @@ WHITESPACE	[\t\r ]*
 <theory>^"BINTRI"	{ADJ; return BINTRI;}
 <theory>^"BINTRT"	{ADJ; return BINTRT;}
 <theory>^"DISTINCT"	{ADJ; return DISTINCT;}
-<theory>^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
-<theory>^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
+<theory>^"CPSUM"	{ADJ; return CPSUM;}
+<theory>^"COUNT"	{ADJ; return COUNT;}
+<theory>^"ELEMENT"	{ADJ; return ELEMENT;}
 
 <theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::EQ; return REL;}
 <theory>">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::G; return REL;}

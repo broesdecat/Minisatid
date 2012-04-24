@@ -59,7 +59,6 @@ void MinisatID::verifyAggregate(WLSet const * const set, AggType settype, const 
 			throw idpexception(ss.str());
 		}
 	}
-	// TODO remove here if used in propagatorfactory
 	verifySet(*set, settype);
 }
 
@@ -184,24 +183,6 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 	const TempAgg& agg = *aggs[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
-	/*	if (agg.isDefined()) { //FIXME add code somewhere else?
-	 Rule rule;
-	 rule.definitionID = agg.getDefID();
-	 rule.head = var(agg.getHead());
-	 rule.conjunctive = ub;
-	 for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; ++i) {
-	 if (ub && (*i).getWeight() == bound) {
-	 break;
-	 }
-	 if (ub) {
-	 rule.body.push_back(~(*i).getLit());
-	 } else {
-	 rule.body.push_back((*i).getLit());
-	 }
-	 }
-
-	 notunsat = set->getSolver()->getPCSolver().add(rule);
-	 } else {*/
 	Disjunction clause;
 	clause.literals.push_back(ub ? agg.getHead() : not agg.getHead());
 	for (auto i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
@@ -211,7 +192,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		clause.literals.push_back((*i).getLit());
 	}
 	internalAdd(clause, *solver);
-	for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
+	for (auto i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
 			break;
 		}
@@ -220,7 +201,6 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		clause.literals.push_back(not (*i).getLit());
 		internalAdd(clause, *solver);
 	}
-	//}
 	aggs.clear();
 
 	if (solver->satState() == SATVAL::UNSAT) {
@@ -247,36 +227,17 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 			if (agg.hasLB() && bound == 0) {
 				lbool headvalue = solver->rootValue(agg.getHead());
 				if (headvalue != l_False) {
-					/*if (agg.getSem() == DEF) {
-					 Rule rule;
-					 rule.definitionID = agg.getDefID();
-					 rule.head = var(agg.getHead());
-					 rule.conjunctive = true;
-					 unsat = unsat || !set->getSolver()->getPCSolver().add(rule);
-					 }else{*/
 					if (headvalue == l_Undef) {
-						internalAdd(Disjunction({agg.getHead()}),*solver);
+						internalAdd(Disjunction( { agg.getHead() }), *solver);
 					}
-					//}
 				}
 			} else if (agg.hasLB() && bound == 1) {
-				/*if (agg.getSem() == DEF) {
-				 Rule rule;
-				 rule.definitionID = agg.getDefID();
-				 rule.head = var(agg.getHead());
-				 rule.conjunctive = false;
-				 for (uint j = 0; j < set->getWL().size(); ++j) {
-				 rule.body.push_back(set->getWL()[j].getLit());
-				 }
-				 unsat = !set->getSolver()->getPCSolver().add(rule);
-				 } else{*/
 				litlist body;
 				for (uint j = 0; j < set->getWL().size(); ++j) {
 					body.push_back(set->getWL()[j].getLit());
 				}
 				Implication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
 				internalAdd(eq, *solver);
-				//}
 			} else {
 				remaggs.push_back(*i);
 			}
@@ -316,13 +277,11 @@ TypedSet* createPropagator(PCSolver* solver, WLSet* set, const std::vector<TempA
 	return new TypedSet(solver, set->setID, knownbound, getType(aggs.front()->getType()), set->getWL(), usewatches, aggs, optim);
 }
 
-void MinisatID::decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg* agg, const Weight& knownbound,
-		uint priority) {
+void MinisatID::decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg* agg, const Weight& knownbound, uint priority) {
 	// Set correct upper bound:
 	agg->setBound(AggBound(AggSign::UB, getType(agg->getType())->getMaxPossible(set->getWL())));
 
 	double ratio = testGenWatchCount(*solver, *set, *getType(agg->getType()), tempagglist { agg }, knownbound);
-	// FIXME for watched datastructs, the (re)initialize is not correct
 	auto typedset = createPropagator(solver, set, tempagglist { agg }, knownbound, ratio < solver->modes().watchesratio, true);
 
 	OptimStatement optim(priority, typedset->getAgg().front());
@@ -344,7 +303,6 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 	}
 
 	MAssert(aggs[0]->getSem()!=AggSem::OR);
-	// TODO add to other transformations!
 
 	//create implication aggs
 	tempagglist implaggs, del;
@@ -384,7 +342,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 
 	// Create propagators
 	double ratio = ratioone * 0.5 + ratiotwo * 0.5;
-	if (solver->modes().watchesratio!=0 && ratio <= solver->modes().watchesratio) {
+	if (solver->modes().watchesratio != 0 && ratio <= solver->modes().watchesratio) {
 		createPropagator(solver, set, signoneaggs, knownbound, true, false);
 		if (signtwoaggs.size() > 0) {
 			createPropagator(solver, set, signtwoaggs, knownbound, true, false);

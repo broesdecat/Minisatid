@@ -743,8 +743,10 @@ int test1() {
 	 
 	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
-	 for (int i=0;i<cnf.size();i++) {
-	 	for(int j=0;j<cnf[i].size();j++) std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
+	 for (uint i=0;i<cnf.size();i++) {
+	 	for(uint j=0;j<cnf[i].size();j++){
+	 		std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
+	 	}
 	 	std::cout<<"\n";
 	 }
 }

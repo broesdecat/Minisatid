@@ -39,7 +39,7 @@ public:
 	virtual rClause	notifypropagate();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual int getNbOfFormulas() const { return maxvalue-minvalue*2; }
-	virtual rClause getExplanation(const Lit& l){ throw idpexception("Error: incorrect execution path.");}
+	virtual rClause getExplanation(const Lit&){ throw idpexception("Error: incorrect execution path.");}
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 

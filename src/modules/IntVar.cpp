@@ -77,7 +77,9 @@ void IntVar::notifyBacktrack(int, const Lit&){
 }
 
 void IntVar::accept(ConstraintVisitor& visitor){
-	visitor.add(IntVarRange(origid(), minValue(), maxValue()));
+	// FIXME
+	//		which id to use (what with internal vars)
+	//		also add eq and diseq reifs? (can occur in other constraints!)
 }
 
 rClause	IntVar::notifypropagate(){

@@ -257,7 +257,7 @@ private:
 	}
 
 	Lit L12SAT(Level2SAT* left, Level2SAT* right, int index){
-		MAssert(left->bits().size()>index && right->bits().size()>index);
+		MAssert((int)left->bits().size()>index && (int)right->bits().size()>index);
 		if(index==0){
 			return solver_.getTrueLit();
 		}else if(index==1){
@@ -293,7 +293,7 @@ private:
 	}
 
 	Lit G2SAT(Level2SAT* left, Level2SAT* right, int index){
-		MAssert(left->bits().size()>index && right->bits().size()>index);
+		MAssert((int)left->bits().size()>index && (int)right->bits().size()>index);
 		Lit gtseitin = GBit2SAT(left->bits()[0], right->bits()[0]);
 		if(index==0){
 			return gtseitin;

@@ -36,6 +36,8 @@ namespace MinisatID{
 		boolvarindex	addBoolVar();
 
 		void 			addBranchers();
+
+		void 			accept(ConstraintVisitor& visitor);
 	};
 
 	std::ostream& operator <<(std::ostream& stream, const CPScript& script);

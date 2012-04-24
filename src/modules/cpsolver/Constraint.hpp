@@ -47,8 +47,8 @@ namespace MinisatID{
 
 	class Constraint{
 	public:
-		Constraint(){}
 		virtual ~Constraint(){}
+		virtual void accept(ConstraintVisitor& visitor) = 0;
 	};
 
 	class NonReifiedConstraint: public Constraint{
@@ -63,7 +63,6 @@ namespace MinisatID{
 
 	public:
 		ReifiedConstraint(Var atom, CPScript& space);
-		virtual ~ReifiedConstraint(){}
 
 		Var 	getHead			() 						const { return head; }
 		Gecode::BoolVar getBoolVar(const CPScript& space) const;
@@ -88,12 +87,9 @@ namespace MinisatID{
 		std::vector<int> mult;
 
 	public:
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int rhs, Var atom);
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
 		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, Var atom);
 
-		virtual ~SumConstraint(){}
+		virtual void accept(ConstraintVisitor& visitor);
 	};
 
 	class CountConstraint: public NonReifiedConstraint{
@@ -108,7 +104,7 @@ namespace MinisatID{
 	public:
 		CountConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int value, TermIntVar rhs);
 
-		virtual ~CountConstraint(){}
+		virtual void accept(ConstraintVisitor& visitor);
 	};
 
 	class BinArithConstraint: public ReifiedConstraint{
@@ -124,28 +120,28 @@ namespace MinisatID{
 		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
 		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, int rhs, Var atom);
 
-		virtual ~BinArithConstraint(){}
+		virtual void accept(ConstraintVisitor& visitor);
 	};
 
 	class DistinctConstraint: public NonReifiedConstraint{
 	private:
-		Gecode::IntVarArgs set;
+		std::vector<TermIntVar> set;
 	public:
 		//global distinct constraint
 		DistinctConstraint(CPScript& space, std::vector<TermIntVar> tset);
 
-		virtual ~DistinctConstraint(){}
+		virtual void accept(ConstraintVisitor& visitor);
 	};
 
 	class ElementConstraint: public NonReifiedConstraint{
 	private:
-		Gecode::IntVarArgs set;
-		Gecode::IntVar index, rhs;
+		std::vector<TermIntVar> set;
+		TermIntVar index, rhs;
 	public:
 		//global element constraint
 		ElementConstraint(CPScript& space, std::vector<TermIntVar> tset, TermIntVar index, TermIntVar rhs);
 
-		virtual ~ElementConstraint(){}
+		virtual void accept(ConstraintVisitor& visitor);
 	};
 }
 

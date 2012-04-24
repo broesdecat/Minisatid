@@ -26,7 +26,7 @@ public:
 	// Propagator methods
 	virtual rClause getExplanation(const Lit& lit);
 	virtual rClause	notifypropagate();
-	virtual void 	accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept");}
+	virtual void accept(ConstraintVisitor& visitor);
 	virtual int getNbOfFormulas() const { return (left_->maxValue()-left_->minValue())*(right_->maxValue()-right_->minValue()); }
 
 	IntView* left() const { return left_;}

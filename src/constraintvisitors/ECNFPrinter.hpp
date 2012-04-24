@@ -13,6 +13,7 @@
 #include "ConstraintVisitor.hpp"
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
+#include "external/datastructuremacros.hpp"
 
 namespace MinisatID {
 
@@ -87,55 +88,58 @@ public:
 		target() <<(agg.sign == AggSign::UB ? "G" : "L") <<" " <<toString(agg.head) <<" " <<agg.setID <<" " <<agg.bound << " 0\n";
 	}
 
-	void add(const Implication&) {
-		throw idpexception("Not yet implemented."); // TODO
+	void add(const Implication& impl) {
+		auto clauses = impl.getEquivalentClauses();
+		for(auto i=clauses.cbegin(); i<clauses.cend(); ++i){
+			add(*i);
+		}
 	}
 	void add(const MinimizeOrderedList& mnm) {
-		target() <<"Mnmlist ";
+		target() <<LISTMNMSTR <<" ";
 		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
 			target() <<toString(*i) <<" ";
 		}
 		target() <<"0\n";
 	}
 	void add(const MinimizeSubset& mnm) {
-		target() <<"Mnmsubset ";
+		target() <<SUBMNMSTR <<" ";
 		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
 			target() <<toString(*i) <<" ";
 		}
 		target() <<"0\n";
 	}
 	void add(const MinimizeAgg& mnm) {
-		target() <<"Mnmagg " <<mnm.type <<" " <<mnm.setid <<" 0\n";
+		target() <<AGGMNMSTR <<" " <<mnm.type <<" " <<mnm.setid <<" 0\n";
 	}
 	void add(const MinimizeVar& mnm) {
-		target() <<"Mnmvar " <<mnm.varID <<" 0\n";
+		target() <<VARMNMSTR <<" " <<mnm.varID <<" 0\n";
 	}
 	void add(const Symmetry&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of Symmetry."); // TODO
 	}
 	void add(const IntVarRange&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of IntVarRange."); // TODO
 	}
 	void add(const IntVarEnum&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of IntVarEnum."); // TODO
 	}
 	void add(const CPAllDiff&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of CPAllDiff."); // TODO
 	}
 	void add(const CPBinaryRel&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of CPBinaryRel."); // TODO
 	}
 	void add(const CPCount&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of CPCount."); // TODO
 	}
 	void add(const CPBinaryRelVar&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of CPBinaryRelVar."); // TODO
 	}
 	void add(const CPSumWeighted&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of CPSumWeighted."); // TODO
 	}
 	void add(const CPElement&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw idpexception("Not yet implemented printing of CPElement."); // TODO
 	}
 };
 

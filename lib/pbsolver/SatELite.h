@@ -87,19 +87,19 @@ struct Clause_t {
         struct {
             uint64  abst_;
             uint    size_learnt;
-        };
+        } A;
         struct {
             char    _vec[sizeof(vec<Lit>)];
-        };
+        } B;
     };
     Lit     data[0];
 
-    vec<Lit>&   Vec(void) const { return *((vec<Lit>*)&_vec); }
+    vec<Lit>&   Vec(void) const { return *((vec<Lit>*)&B._vec); }
 
     // PUBLIC INTERFACE:
     //
     bool       dynamic     (void)      const { return id_ == -1; }
-    int        size        (void)      const { return dynamic() ? Vec().size() : size_learnt >> 1;}
+    int        size        (void)      const { return dynamic() ? Vec().size() : A.size_learnt >> 1;}
     Lit&       operator [] (int index)       { return dynamic() ? Vec()[index] : data[index]; }
     const Lit& operator [] (int index) const { return dynamic() ? Vec()[index] : data[index]; }
     Lit&       operator () (int index)       { assert(!dynamic()); return data[index]; }
@@ -140,8 +140,8 @@ public:
 
     // Non-dynamic:
     int        id          (void)       const { assert(!dynamic()); return ptr_->id_; }
-    uint64     abst        (void)       const { assert(!dynamic()); return ptr_->abst_; }
-    bool       learnt      (void)       const { assert(!dynamic()); return ptr_->size_learnt & 1; }
+    uint64     abst        (void)       const { assert(!dynamic()); return ptr_->A.abst_; }
+    bool       learnt      (void)       const { assert(!dynamic()); return ptr_->A.size_learnt & 1; }
     float&     activity    (void)       const { assert(learnt()); return *((float*)&ptr_->data[size()]); }   // (learnt clauses only)
 };
 

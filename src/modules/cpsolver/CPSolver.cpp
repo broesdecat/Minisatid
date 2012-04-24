@@ -188,6 +188,16 @@ void CPSolver::addedConstraint() {
 
 // SOLVER METHODS
 
+void CPSolver::accept(ConstraintVisitor& visitor){
+	getSpace().accept(visitor);
+	for(auto i=getData().getNonReifConstraints().cbegin(); i<getData().getNonReifConstraints().cend(); ++i){
+		(*i)->accept(visitor);
+	}
+	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); ++i){
+		(*i)->accept(visitor);
+	}
+}
+
 // Space management:
 //		First space = space after adding all constraints and propagating until fixpoint
 //		Any subsequent space is after adding ALL propagations of a decision level and propagating until fixpoint

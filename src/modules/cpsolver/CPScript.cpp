@@ -8,6 +8,7 @@
  */
 #include "modules/cpsolver/CPScript.hpp"
 #include "modules/cpsolver/CPUtils.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 
 using namespace std;
 
@@ -48,6 +49,13 @@ intvarindex CPScript::addIntVar(const vector<int>& values){
 boolvarindex CPScript::addBoolVar(){
 	boolvars.push_back(BoolVar(*this, 0, 1));
 	return boolvars.size()-1;
+}
+
+void CPScript::accept(ConstraintVisitor& visitor){
+	int id = 1;
+	for(auto i=intvars.cbegin(); i<intvars.cend(); ++i){
+		visitor.add(IntVarRange(id++, i->min(), i->max()));
+	}
 }
 
 void CPScript::addBranchers(){

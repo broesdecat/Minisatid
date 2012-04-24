@@ -88,9 +88,7 @@ public:
 	void getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
 
 	// Propagator methods
-	virtual void accept(ConstraintVisitor& visitor) {
-		throw notYetImplemented("Accept");
-	}
+	virtual void accept(ConstraintVisitor& visitor);
 	rClause getExplanation(const Lit& p);
 	void notifyNewDecisionLevel();
 	void notifyBacktrack(int untillevel, const Lit& decision);

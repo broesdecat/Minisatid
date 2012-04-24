@@ -32,6 +32,48 @@ namespace MinisatID{
 		return set;
 	}
 
+	void addImplication(const Lit& head, const litlist& body, bool conjunction, std::vector<Disjunction>& clauses) {
+		if (conjunction) {
+			Disjunction d;
+			d.literals.resize(2, not head);
+			for (auto i = body.cbegin(); i < body.cend(); ++i) {
+				d.literals[1] = *i;
+				clauses.push_back(d);
+			}
+		} else {
+			Disjunction d;
+			d.literals.insert(d.literals.begin(), body.cbegin(), body.cend());
+			d.literals.push_back(not head);
+			clauses.push_back(d);
+		}
+	}
+
+	// Precondition: already added vars!
+	void addReverseImplication(const Lit& head, const litlist& body, bool conjunction, std::vector<Disjunction>& clauses) {
+		litlist list;
+		for (auto i = body.cbegin(); i < body.cend(); ++i) {
+			list.push_back(not *i);
+		}
+		addImplication(not head, list, not conjunction, clauses);
+	}
+
+	std::vector<Disjunction> Implication::getEquivalentClauses() const{
+		std::vector<Disjunction> clauses;
+		switch (type) {
+		case ImplicationType::EQUIVALENT:
+			addImplication(head, body, conjunction, clauses);
+			addReverseImplication(head, body, conjunction, clauses);
+			break;
+		case ImplicationType::IMPLIEDBY:
+			addReverseImplication(head, body, conjunction, clauses);
+			break;
+		case ImplicationType::IMPLIES:
+			addImplication(head, body, conjunction, clauses);
+			break;
+		}
+		return clauses;
+	}
+
 #define DATASTRUCTURE_ACCEPT(x) \
 void x::accept(ConstraintVisitor* visitor){\
 	visitor->add(*this);\
@@ -55,8 +97,8 @@ void x::accept(Space* visitor){\
 	DATASTRUCTURE_ACCEPT(CPBinaryRelVar)
 	DATASTRUCTURE_ACCEPT(CPAllDiff)
 	DATASTRUCTURE_ACCEPT(CPSumWeighted)
+	DATASTRUCTURE_ACCEPT(CPElement)
 	DATASTRUCTURE_ACCEPT(IntVarEnum)
 	DATASTRUCTURE_ACCEPT(IntVarRange)
 	DATASTRUCTURE_ACCEPT(LazyGroundLit)
-
 }

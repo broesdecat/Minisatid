@@ -173,6 +173,8 @@ public:
 		}
 		return atoms;
 	}
+
+	std::vector<Disjunction> getEquivalentClauses() const;
 };
 
 class Rule: public ID {

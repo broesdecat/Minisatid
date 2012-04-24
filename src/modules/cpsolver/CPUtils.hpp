@@ -24,6 +24,7 @@ namespace MinisatID{
 	Gecode::IntRelType negate(Gecode::IntRelType eq);
 
 	Gecode::IntRelType toRelType(MinisatID::EqType eq);
+	EqType toEqType(Gecode::IntRelType eq);
 
 	std::ostream& operator<<(std::ostream& stream, Gecode::IntRelType rel);
 }

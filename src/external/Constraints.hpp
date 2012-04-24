@@ -168,6 +168,13 @@ public:
 	}
 };
 template<typename Engine>
+class ExtAdd<CPElement, Engine> {
+public:
+	void extAdd(Engine& space, const CPElement& obj) {
+		space.add(obj);
+	}
+};
+template<typename Engine>
 class ExtAdd<CPAllDiff, Engine> {
 public:
 	void extAdd(Engine& space, const CPAllDiff& obj) {

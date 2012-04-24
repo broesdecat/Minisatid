@@ -31,11 +31,23 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot) :
-		_modes(modes), varcreator(varcreator), monitor(monitor), monitoring(false), parsingfinished(false), optimproblem(false), currentoptim(0), searchengine(NULL),
+		_modes(modes),
+		varcreator(varcreator),
+		monitoring(false),
+		monitor(monitor),
+		parsingfinished(false),
+		optimproblem(false),
+		currentoptim(0),
+		searchengine(NULL),
 #ifdef CPSUPPORT
-				cpsolver(NULL),
+		cpsolver(NULL),
 #endif
-				factory(NULL), trail(new TimeTrail()), terminate(false), saved(false), printer(printer), queue(NULL) {
+		factory(NULL),
+		trail(new TimeTrail()),
+		terminate(false),
+		saved(false),
+		printer(printer),
+		queue(NULL) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -229,7 +241,7 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 
 Var PCSolver::newVar() {
 	auto var = varcreator->createVar();
-	if (var >= nVars()) {
+	if ((uint64_t)var >= nVars()) {
 		getEventQueue().notifyNbOfVars(var); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
 	}
 	createVar(var);

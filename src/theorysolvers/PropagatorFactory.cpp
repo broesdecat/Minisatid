@@ -99,46 +99,10 @@ void PropagatorFactory::add(const Disjunction& clause) {
 	SATStorage::getStorage()->addClause(clause.literals);
 }
 
-// Precondition: already added vars!
-void PropagatorFactory::addImplication(const Lit& head, const litlist& body, bool conjunction) {
-	if (conjunction) {
-		Disjunction d;
-		d.literals.resize(2, not head);
-		for (auto i = body.cbegin(); i < body.cend(); ++i) {
-			d.literals[1] = *i;
-			add(d);
-		}
-	} else {
-		Disjunction d;
-		d.literals.insert(d.literals.begin(), body.cbegin(), body.cend());
-		d.literals.push_back(not head);
-		add(d);
-	}
-}
-
-// Precondition: already added vars!
-void PropagatorFactory::addReverseImplication(const Lit& head, const litlist& body, bool conjunction) {
-	litlist list;
-	for (auto i = body.cbegin(); i < body.cend(); ++i) {
-		list.push_back(not *i);
-	}
-	addImplication(not head, list, not conjunction);
-}
-
 void PropagatorFactory::add(const Implication& formula) {
-	// TODO equiv propagator (or 1-watched scheme for the long clause)
-
-	switch (formula.type) {
-	case ImplicationType::EQUIVALENT:
-		addImplication(formula.head, formula.body, formula.conjunction);
-		addReverseImplication(formula.head, formula.body, formula.conjunction);
-		break;
-	case ImplicationType::IMPLIEDBY:
-		addReverseImplication(formula.head, formula.body, formula.conjunction);
-		break;
-	case ImplicationType::IMPLIES:
-		addImplication(formula.head, formula.body, formula.conjunction);
-		break;
+	auto clauses = formula.getEquivalentClauses();
+	for(auto i=clauses.cbegin(); i<clauses.cend(); ++i){
+		add(*i);
 	}
 }
 

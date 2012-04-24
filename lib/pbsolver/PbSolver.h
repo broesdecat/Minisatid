@@ -85,12 +85,12 @@ public:
                 , goal(NULL)
                 , formulaSize(0)
 	            , numOfClouses(0)
-                , propQ_head(0)
+    			, primesLoader(opt_primes_file)
+    			, propQ_head(0)
                 , stats(sat_solver.stats_ref())
                 , declared_n_vars(-1)
                 , declared_n_constrs(-1)
 	            , best_goalvalue(Int_MAX)
-				, primesLoader(opt_primes_file)
                 {}
 
     // Helpers (semi-internal):

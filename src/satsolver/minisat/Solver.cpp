@@ -1257,10 +1257,10 @@ static double luby(double y, int x) {
 void Solver::setAssumptions(const litlist& assumps) {
 	// Note: important: when setting to identical assumptions, no action should be taken!!! (important for CORRECTNESS of finding multiple optim models)
 	bool identical = true;
-	if(assumps.size()!=assumptions.size()){
+	if((int)assumps.size()!=assumptions.size()){
 		identical = false;
 	}
-	for(int i=0; i<assumps.size() && identical; ++i){
+	for(uint i=0; i<assumps.size() && identical; ++i){
 		if(assumps[i]!=assumptions[i]){
 			identical = false;
 		}

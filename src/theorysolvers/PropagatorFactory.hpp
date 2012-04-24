@@ -170,11 +170,6 @@ public:
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 
 private:
-	// NOTE already added literals!
-	void addImplication(const Lit& head, const litlist& body, bool conjunction);
-	// NOTE already added literals!
-	void addReverseImplication(const Lit& head, const litlist& body, bool conjunction);
-
 	template<class T>
 	void addCP			(const T& formula);
 

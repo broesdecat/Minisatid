@@ -290,11 +290,11 @@ Clause Solver::allocClause(const vec<Lit>& ps, bool learnt, Clause overwrite)
     Clause_t* c   = new (mem) Clause_t;
 
     c->id_         = id;
-    c->abst_       = 0;
-    c->size_learnt = (int)learnt | (ps.size() << 1);
+    c->A.abst_       = 0;
+    c->A.size_learnt = (int)learnt | (ps.size() << 1);
     for (int i = 0; i < ps.size(); i++){
         c->data[i] = ps[i];
-        c->abst_  |= abstLit(ps[i]);
+        c->A.abst_  |= abstLit(ps[i]);
     }
     if (learnt) Clause(c).activity() = 0.0;
 
