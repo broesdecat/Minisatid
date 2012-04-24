@@ -45,11 +45,11 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 	if(verbosity()>3){
 		int index = 0;
 		for(auto i=equalities.cbegin(); i<equalities.cend(); ++i, index++){
-			clog <<toString(*i) <<" <=> " <<origid() <<"=" <<minvalue+index <<"\n";
+			clog <<toString(*i) <<" <=> " <<"var" <<origid() <<"=" <<minvalue+index <<"\n";
 		}
 		index = 0;
 		for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i, index++){
-			clog <<toString(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
+			clog <<toString(*i) <<" <=> " <<"var" <<origid() <<"=<" <<minvalue+index <<"\n";
 		}
 	}
 

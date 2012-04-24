@@ -442,8 +442,6 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
-			getSolver().backtrackTo(0); // TODO: necessary because missing REVERSE TRAIL!
-			agg->reInitializeAgg();
 			break;
 		}
 		case Optim::VAR: {

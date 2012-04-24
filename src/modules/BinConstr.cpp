@@ -76,7 +76,7 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 		if (lit == head()) {
 			return getPCSolver().createClause(Disjunction( { lit, ~left()->getLEQLit(reason->second.bound), ~right()->getGEQLit(reason->second.bound) }), true);
 		} else { // head false
-			return getPCSolver().createClause(Disjunction( { lit, left()->getGEQLit(reason->second.bound), ~right()->getLEQLit(reason->second.bound - 1) }),
+			return getPCSolver().createClause(Disjunction( { lit, ~left()->getGEQLit(reason->second.bound), ~right()->getLEQLit(reason->second.bound - 1) }),
 					true);
 		}
 	} else {
@@ -122,10 +122,10 @@ rClause BinaryConstraint::notifypropagate() {
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
 			propagations.push_back(~head());
-			reasons[~head()] = BinReason(NULL, false, left()->maxValue());
+			reasons[~head()] = BinReason(NULL, false, left()->minValue());
 		} else if (leftmax() <= rightmin()) {
 			propagations.push_back(head());
-			reasons[head()] = BinReason(NULL, false, left()->minValue());
+			reasons[head()] = BinReason(NULL, false, left()->maxValue());
 		}
 	}
 

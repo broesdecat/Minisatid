@@ -297,6 +297,7 @@ void Solver::addRootUnitLit(const ReverseTrailElem& elem){
  * 		add to reverse trail <lit, level of second latest literal>
  * add to watches, lit and second latest literal as watch
  */
+// FIXME if learnt, should we test for unit propagation (found a related bug in aggregate code which also did not do the propagation (so it was done nowhere)
 void Solver::attachClause(CRef cr) {
 	auto& c = ca[cr];
 	MAssert(c.size() > 1);

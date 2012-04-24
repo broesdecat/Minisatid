@@ -55,7 +55,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	// TODO duplicate with fully watched
 #ifdef NOARBITPREC
-	if(getType().getType()==AggType::SUM){
+	if (getType().getType() == AggType::SUM) {
 		//Test whether the total sum of the weights is not infinity for intweights
 		Weight total(0);
 		for (vwl::const_iterator i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
@@ -64,7 +64,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 			}
 			total += abs(i->getWeight());
 		}
-	}else if(getType().getType()==AggType::PROD){
+	} else if (getType().getType() == AggType::PROD) {
 		//Test whether the total product of the weights is not infinity for intweights
 		Weight total(1);
 		for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
@@ -142,6 +142,10 @@ void GenPWAgg::backtrack(int untillevel) {
 	}
 }
 
+void GenPWAgg::resetState() {
+	getSet().acceptForBacktrack();
+}
+
 rClause GenPWAgg::propagateAtEndOfQueue() {
 	auto confl = nullPtrClause;
 	std::vector<GenPWatch*> watchlist;
@@ -169,7 +173,7 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 	}
 	for (auto i = watchlist.cbegin(); somesetwatch && i < watchlist.cend(); ++i) {
 		// FIXME this condition is VERY ad-hoc and should move inside
-		if (watchlist.size()==1 && not certainlyreconstruct && not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
+		if (watchlist.size() == 1 && not certainlyreconstruct && not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
 			moveFromWSToNWS(*i);
 		} else { //Otherwise, add it again to the network
 			if (not (*i)->isInNetwork()) {
@@ -177,8 +181,9 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 			}
 		}
 	}
+	// TODO this was also added for correctness, but should it be here?
 	for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
-		if(getPCSolver().value((*i)->getPropLit())==l_Undef){
+		if (getPCSolver().value((*i)->getPropLit()) == l_Undef) {
 			stageWatch(*i);
 		}
 	}

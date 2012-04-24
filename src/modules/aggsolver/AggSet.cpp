@@ -169,11 +169,10 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 		reasons[var(p)] = ar;
 
 		if (getPCSolver().modes().aggclausesaving < 1) {
-			rClause c = getPCSolver().createClause(ar->getClause(), true);
+			auto c = getPCSolver().createClause(ar->getClause(), true);
 			getPCSolver().addLearnedClause(c);
-		} else {
-			getPCSolver().setTrue(p, this);
 		}
+		getPCSolver().setTrue(p, this);
 	} else {
 		delete ar;
 	}
