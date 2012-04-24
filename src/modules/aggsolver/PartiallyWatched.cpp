@@ -166,15 +166,18 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 	}
 	if (confl == nullPtrClause && (somesetwatch || certainlyreconstruct)) {
 		confl = reconstructSet(propagations, NULL);
-		certainlyreconstruct = false;
 	}
 	for (auto i = watchlist.cbegin(); somesetwatch && i < watchlist.cend(); ++i) {
-		if (not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
+		// FIXME this condition is VERY ad-hoc and should move inside
+		if (watchlist.size()==1 && not certainlyreconstruct && not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
 			moveFromWSToNWS(*i);
 		} else { //Otherwise, add it again to the network
-			addWatchToNetwork(*i);
+			if (not (*i)->isInNetwork()) {
+				getSet().getPCSolver().accept(*i);
+			}
 		}
 	}
+	certainlyreconstruct = false;
 	addStagedWatchesToNetworkOnStable(confl);
 	proplist.clear();
 

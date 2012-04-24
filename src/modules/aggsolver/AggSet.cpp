@@ -10,6 +10,7 @@
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "external/utils/ContainerUtils.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 #include "utils/Print.hpp"
 #include <cmath>
 
@@ -38,7 +39,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 	prop = getType().createPropagator(this);
 	bool sat = false;
 	bool unsat = false;
-	getProp()->initialize(unsat, sat); // TODO might throw, in which case the destructor is NOT called and prop and the aggregates will not be deleted
+	getProp()->initialize(unsat, sat); // IMPORTANT: might throw, in which case the destructor is NOT called and prop and the aggregates will not be deleted
 	if (not sat) {
 		MAssert(unsat || getAgg().size()>0);
 	} else {
@@ -51,8 +52,6 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 		MAssert(this==(*i)->getSet());
 		MAssert(getAgg()[(*i)->getIndex()]==(*i));
 	}
-
-	//TODO check all watches are correct
 #endif
 
 	if (unsat) {
@@ -235,7 +234,11 @@ rClause TypedSet::notifyFullAssignmentFound() {
 }
 
 void TypedSet::accept(ConstraintVisitor& visitor){
-	// FIXME add accept
+	auto set = WLSet(getSetID(), getWL());
+	visitor.add(set);
+	for(auto i=getAgg().cbegin(); i<getAgg().cend(); ++i){
+		visitor.add(Aggregate((*i)->getHead(), getSetID(), (*i)->getBound(), (*i)->getType(), (*i)->getSign(), (*i)->getSem(), -1));
+	}
 }
 
 //Returns OWNING pointer. This has proven to be faster than always adding generated explanations to the clause store!

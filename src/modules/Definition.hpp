@@ -23,7 +23,10 @@ struct TempRule{
 	WLSet* innerset;
 
 	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
-	TempRule(Aggregate* inneragg, WLSet* innerset): head(inneragg->head), isagg(true), inneragg(inneragg), innerset(innerset){}
+	TempRule(Aggregate* inneragg, WLSet* innerset): head(var(inneragg->head)), isagg(true), inneragg(inneragg), innerset(innerset){
+		MAssert(isPositive(inneragg->head));
+		MAssert(inneragg->sem==AggSem::DEF);
+	}
 
 	~TempRule(){
 		if(isagg){

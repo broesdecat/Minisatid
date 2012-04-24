@@ -363,10 +363,10 @@ void FlatZincRewriter<Stream>::addSum(const Aggregate& agg, const WLSet& set) {
 		createIntVar(i->getLit(), agg.sem == AggSem::DEF, agg.defID);
 	}
 
-	Lit h = mkPosLit(agg.head);
+	Lit h = agg.head;
 	Weight bound = agg.bound;
 	if (agg.sign == AggSign::LB) { // Have to swap the sign, by adding the negated head and reducing bound
-		h = mkPosLit(agg.head);
+		h = ~agg.head;
 		check(h);
 		bound -= 1;
 	}
@@ -494,7 +494,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 
 	stringstream ss;
 	ss << agg.bound;
-	addBinRel(getVarName(prevvar), ss.str(), mkPosLit(agg.head), agg.sign == AggSign::LB ? EqType::GEQ : EqType::LEQ);
+	addBinRel(getVarName(prevvar), ss.str(), agg.head, agg.sign == AggSign::LB ? EqType::GEQ : EqType::LEQ);
 }
 
 template<typename Stream>
@@ -730,7 +730,7 @@ void FlatZincRewriter<Stream>::add(const Aggregate& origagg) {
 			lits.push_back(ub ? ~set.wl[i].getLit() : set.wl[i].getLit());
 		}
 
-		addEquiv(Implication(mkPosLit(agg.head), ImplicationType::EQUIVALENT, lits, ub), OPEN);
+		addEquiv(Implication(agg.head, ImplicationType::EQUIVALENT, lits, ub), OPEN);
 		if (agg.sem == AggSem::DEF) {
 			addDefAnnotation(agg.defID, constraints);
 		}

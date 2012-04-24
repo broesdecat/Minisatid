@@ -229,7 +229,7 @@ WLSet createSet(int setid, const std::vector<Lit>& literals, const std::vector<W
 
 class Aggregate: public ID {
 public:
-	Var head;
+	Lit head;
 	int setID;
 	Weight bound;
 	AggType type;
@@ -237,15 +237,16 @@ public:
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate, otherwise the value does not matter
 
-	Aggregate(Var head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID) :
+	Aggregate(const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID) :
 			head(head), setID(setID), bound(bound), type(type), sign(sign), sem(sem), defID(defID) {
 		MAssert(sem!=AggSem::DEF || defID!=-1);
+		MAssert(sem!=AggSem::DEF || isPositive(head));
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {head};
+		return {var(head)};
 	}
 };
 

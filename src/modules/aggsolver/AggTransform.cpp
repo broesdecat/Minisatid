@@ -46,16 +46,16 @@ void MinisatID::verifySet(const WLSet& set, AggType type) {
 	}
 }
 
-void MinisatID::verifyAggregate(WLSet const * const set, AggType settype, Var head, AggType aggtype) {
+void MinisatID::verifyAggregate(WLSet const * const set, AggType settype, const Lit& head, AggType aggtype, const PCSolver& solver) {
 	if (settype != aggtype) {
 		stringstream ss;
 		ss << "Set nr. " << set->setID << " has type " << settype << ", but contains an aggregate over type " << aggtype << ".\n";
 		throw idpexception(ss.str());
 	}
 	for (auto i = set->getWL().cbegin(); i < set->getWL().cend(); ++i) {
-		if (var((*i).getLit()) == head) { //Exception if head occurs in set itself
+		if (var((*i).getLit()) == var(head)) { //Exception if head occurs in set itself
 			stringstream ss;
-			ss << "Set nr. " << set->setID << " contains a literal of atom " << head << ", the head of an aggregate, which is not allowed.\n";
+			ss << "Set nr. " << set->setID << " contains a literal of atom " << toString(head, solver) << ", the head of an aggregate, which is not allowed.\n";
 			throw idpexception(ss.str());
 		}
 	}

@@ -63,12 +63,12 @@ WHITESPACE	[\t\r ]*
 <theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::MIN; return AGGDEFN;}
 <theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::MAX; return AGGDEFN;}
 
-<theory>^"Equiv"	{ADJ; return EQUIV;}
-
 <theory>"<-"	{ADJ; return DEFOP;}
 
 <theory>"D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::DEF;  return SEMDEFN;}
-<theory>"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::COMP; return SEMDEFN;}
+<theory>"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::COMP;  return SEMDEFN;}
+<theory>"O"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::OR;  return SEMDEFN;}
+
 <theory>"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AggSign::UB;  return SIGNDEFN;}
 <theory>"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AggSign::LB; return SIGNDEFN;}
 

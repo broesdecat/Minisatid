@@ -75,7 +75,7 @@ template<typename Engine>
 class ExtAdd<Aggregate, Engine> {
 public:
 	void extAdd(Engine& space, const Aggregate& obj) {
-		space.add(Aggregate(checkAtom(obj.head, *space.getRemapper()), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID));
+		space.add(Aggregate(checkLit(obj.head, *space.getRemapper()), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID));
 	}
 };
 template<typename Engine>

@@ -436,7 +436,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			internalAdd(set, getSolver());
 			auto var = getSolver().newVar();
 			internalAdd(Disjunction( { mkPosLit(var) }), getSolver());
-			internalAdd(Aggregate(var, set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
+			internalAdd(Aggregate(mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
 			break;
 		}
 		case Optim::AGG: {

@@ -178,7 +178,7 @@ private:
 	template<class T>
 	void addCP			(const T& formula);
 
-	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
+	void addAggrExpr	(const Lit& head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;

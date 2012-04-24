@@ -303,7 +303,7 @@ template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
-		extAdd(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), Aggregate(mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
@@ -311,7 +311,7 @@ template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
-		extAdd(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), Aggregate(mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 

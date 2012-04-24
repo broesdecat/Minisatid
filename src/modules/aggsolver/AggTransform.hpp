@@ -19,7 +19,8 @@ namespace MinisatID{
 
 void verifySet(const WLSet& set, AggType type);
 
-void verifyAggregate(WLSet const * const set, AggType settype, Var head, AggType aggtype);
+class PCSolver;
+void verifyAggregate(WLSet const * const set, AggType settype, const Lit& head, AggType aggtype, const PCSolver& solver);
 
 //@pre: has been split
 void setReduce(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);

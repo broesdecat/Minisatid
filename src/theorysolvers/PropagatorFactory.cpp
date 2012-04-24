@@ -197,7 +197,7 @@ void PropagatorFactory::add(const Aggregate& origagg) {
 	addAggrExpr(newagg.head, newagg.setID, newagg.sign, newagg.bound, newagg.type, newagg.sem);
 }
 
-void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem) {
+void PropagatorFactory::addAggrExpr(const Lit& head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem) {
 	MAssert(type!=AggType::MIN);
 	auto& set = parsedsets.at(setid);
 
@@ -205,11 +205,11 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 		set.type = type;
 	}
 
-	verifyAggregate(set.set, set.type, head, type);
+	verifyAggregate(set.set, set.type, head, type, getEngine());
 
-	getEngine().varBumpActivity(head); // NOTE heuristic! (TODO move)
+	getEngine().varBumpActivity(var(head)); // NOTE heuristic! (TODO move)
 
-	auto agg = new TempAgg(mkPosLit(head), AggBound(sign, bound), sem == AggSem::DEF ? AggSem::COMP : sem, type);
+	auto agg = new TempAgg(head, AggBound(sign, bound), sem == AggSem::DEF ? AggSem::COMP : sem, type);
 	set.aggs.push_back(agg);
 
 	if (finishedParsing()) {
@@ -524,7 +524,7 @@ SATVAL PropagatorFactory::finishParsing() {
 
 	// create reified aggregates
 	for (auto i = parsedaggs.cbegin(); satval == SATVAL::POS_SAT && i != parsedaggs.cend(); ++i) {
-		add(Aggregate(dummyvar, (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1));
+		add(Aggregate(mkPosLit(dummyvar), (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1));
 		satval &= getEngine().satState();
 	}
 	deleteList<Aggregate>(parsedaggs);

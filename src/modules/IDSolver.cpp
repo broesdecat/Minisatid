@@ -171,7 +171,7 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
 				visitor.add(WLSet(setid, rule->getWL()));
 				// NOTE: leads to duplicate aggregates!
 				visitor.add(
-						Aggregate(var(rule->getHead()), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID()));
+						Aggregate(rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID()));
 			} else {
 				auto rule = defvar->definition();
 				visitor.add(Rule(var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID()));

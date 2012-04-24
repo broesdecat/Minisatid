@@ -121,12 +121,12 @@ void IntVar::addConstraints(){
 		wls.push_back(WLtuple(mkPosLit(equalities[i]), 1));
 	}
 	internalAdd(WLSet(setid, wls), engine());
-	Aggregate lowercard(engine().newVar(), setid, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
-	Aggregate highercard(engine().newVar(), setid, 1, AggType::CARD, AggSign::UB, AggSem::COMP, -1);
+	Aggregate lowercard(mkPosLit(engine().newVar()), setid, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
+	Aggregate highercard(mkPosLit(engine().newVar()), setid, 1, AggType::CARD, AggSign::UB, AggSem::COMP, -1);
 	internalAdd(highercard, engine());
 	internalAdd(lowercard, engine());
-	internalAdd(Disjunction({mkPosLit(highercard.head)}), engine());
-	internalAdd(Disjunction({mkPosLit(lowercard.head)}), engine());
+	internalAdd(Disjunction({highercard.head}), engine());
+	internalAdd(Disjunction({lowercard.head}), engine());
 
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]

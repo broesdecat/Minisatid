@@ -29,9 +29,9 @@ void Definition::addToPropagators() {
 void Definition::addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset) {
 	auto& def = rules[inneragg.defID];
 	auto newrule = new TempRule(new Aggregate(inneragg), new WLSet(innerset));
-	auto it = def.find(inneragg.head);
+	auto it = def.find(var(inneragg.head));
 	if (it == def.cend()) {
-		def[inneragg.head] = newrule;
+		def[var(inneragg.head)] = newrule;
 		return;
 	}
 
@@ -43,7 +43,7 @@ void Definition::addDefinedAggregate(const Aggregate& inneragg, const WLSet& inn
 		prevrule->body = {mkLit(newvar)};
 	}
 	auto newvar = solver->newVar();
-	newrule->inneragg->head = newvar;
+	newrule->inneragg->head = mkPosLit(newvar);
 	newrule->head = newvar;
 	def[newvar] = newrule;
 	prevrule->body.push_back(mkPosLit(newvar));

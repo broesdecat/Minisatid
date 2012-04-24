@@ -37,18 +37,24 @@ void OneShotUnsatCoreExtraction::add(const Aggregate& agg) {
 	auto truemarker = getRemapper()->getNewVar();
 	auto falsemarker = getRemapper()->getNewVar();
 	auto tseitin = getRemapper()->getNewVar();
-	extended.head = newhead;
-	// FIXME defined aggregates
-	if (agg.sem == AggSem::DEF) {
+	extended.head = mkPosLit(newhead);
+	switch(agg.sem){
+	case AggSem::DEF:{
 		Rule impl(tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, agg.defID);
-		Rule impl2(oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID);
+		Rule impl2(var(oldhead), { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID);
 		space->add(impl);
 		space->add(impl2);
-	} else {
+		break;}
+	case AggSem::COMP:{
 		Implication impl(mkPosLit(tseitin), ImplicationType::EQUIVALENT, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
-		Implication impl2(mkPosLit(oldhead), ImplicationType::EQUIVALENT, { mkPosLit(tseitin), mkPosLit(truemarker) }, true);
+		Implication impl2(oldhead, ImplicationType::EQUIVALENT, { mkPosLit(tseitin), mkPosLit(truemarker) }, true);
 		space->add(impl);
 		space->add(impl2);
+		break;}
+	case AggSem::OR:{
+		Implication impl2(~oldhead, ImplicationType::IMPLIES, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
+		space->add(impl2);
+		break;}
 	}
 	markerAssumptions.push_back(mkNegLit(falsemarker));
 	markerAssumptions.push_back(mkPosLit(truemarker));

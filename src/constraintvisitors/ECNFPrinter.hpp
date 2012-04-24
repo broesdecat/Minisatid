@@ -80,11 +80,11 @@ public:
 			target() <<"C";
 			break;
 		case AggSem::OR:
-			target() <<"I";
+			target() <<"O";
 			break;
 		}
 
-		target() <<(agg.sign == AggSign::UB ? "G" : "L") <<" " <<toString(mkPosLit(agg.head)) <<" " <<agg.setID <<" " <<agg.bound << " 0\n";
+		target() <<(agg.sign == AggSign::UB ? "G" : "L") <<" " <<toString(agg.head) <<" " <<agg.setID <<" " <<agg.bound << " 0\n";
 	}
 
 	void add(const Implication&) {
