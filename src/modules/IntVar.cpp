@@ -76,6 +76,45 @@ void IntVar::notifyBacktrack(int, const Lit&){
 	}
 }
 
+// NOTE: returns false if out of the bounds
+Lit IntVar::getLEQLit(int bound) const {
+	auto index = bound-minvalue;
+	if(index<0){
+		return getPCSolver().getFalseLit();
+	}
+	if((int)disequalities.size()<=index){
+		return getPCSolver().getTrueLit();
+	}
+	return mkPosLit(disequalities[index]);
+}
+
+Lit IntVar::getGEQLit(int bound) const {
+	auto index = bound-minvalue-1;
+	if(index<0){
+		return getPCSolver().getTrueLit();
+	}
+	if((int)disequalities.size()<=index){
+		return getPCSolver().getFalseLit();
+	}
+	return mkNegLit(disequalities[index]);
+}
+
+Lit IntVar::getEQLit(int bound) const {
+	auto index = bound-minvalue;
+	if(index<0 || (int)equalities.size()<=index){
+		return getPCSolver().getFalseLit();
+	}
+	return mkPosLit(equalities[index]);
+}
+
+Lit IntVar::getNEQLit(int bound) const {
+	auto index = bound-minvalue;
+	if(index<0 || (int)equalities.size()<=index){
+		return getPCSolver().getFalseLit();
+	}
+	return mkNegLit(equalities[index]);
+}
+
 void IntVar::accept(ConstraintVisitor& visitor){
 	// FIXME
 	//		which id to use (what with internal vars)

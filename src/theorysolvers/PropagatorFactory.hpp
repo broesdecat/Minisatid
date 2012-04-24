@@ -107,6 +107,10 @@ struct SetWithAggs{
 	WLSet* set;
 	std::vector<TempAgg*> aggs;
 	AggType type;
+
+	SetWithAggs():set(NULL),type(AggType::CARD){
+
+	}
 };
 
 class PropagatorFactory:

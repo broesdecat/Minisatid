@@ -177,6 +177,11 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 			}
 		}
 	}
+	for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
+		if(getPCSolver().value((*i)->getPropLit())==l_Undef){
+			stageWatch(*i);
+		}
+	}
 	certainlyreconstruct = false;
 	addStagedWatchesToNetworkOnStable(confl);
 	proplist.clear();

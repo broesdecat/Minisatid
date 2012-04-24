@@ -154,10 +154,10 @@ enum class ImplicationType {
 
 class Implication: public ID {
 public:
-	const Lit head;
-	const ImplicationType type;
-	const std::vector<Lit> body;
-	const bool conjunction;
+	Lit head;
+	ImplicationType type;
+	std::vector<Lit> body;
+	bool conjunction;
 
 	Implication(const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction) :
 			head(head), type(type), body(body), conjunction(conjunction) {

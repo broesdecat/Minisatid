@@ -63,21 +63,10 @@ public:
 		return currentmax;
 	}
 
-	Lit getLEQLit(int bound) const {
-		return mkPosLit(disequalities[bound-minvalue]);
-	}
-
-	Lit getGEQLit(int bound) const {
-		return mkNegLit(disequalities[bound-minvalue-1]);
-	}
-
-	Lit getEQLit(int bound) const {
-		return mkPosLit(equalities[bound-minvalue]);
-	}
-
-	Lit getNEQLit(int bound) const {
-		return mkNegLit(equalities[bound-minvalue]);
-	}
+	Lit getLEQLit(int bound) const;
+	Lit getGEQLit(int bound) const;
+	Lit getEQLit(int bound) const;
+	Lit getNEQLit(int bound) const;
 
 private:
 	void addConstraints();
@@ -128,6 +117,18 @@ public:
 
 	Lit getNEQLit(int bound) const {
 		return var()->getNEQLit(bound-constdiff());
+	}
+
+	std::string toString() const {
+		std::stringstream ss;
+		ss <<"var" <<origid();
+		if(constdiff_!=0){
+			if(constdiff_>0){
+				ss <<"+";
+			}
+			ss <<constdiff_;
+		}
+		return ss.str();
 	}
 };
 

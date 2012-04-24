@@ -59,8 +59,8 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 	throw idpexception(ss.str());
 }
 
-PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
-		engine(engine), definitions(new Definition(engine)), maxset(1), finishedparsing(false) {
+PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine)
+		: engine(engine), definitions(new Definition(engine)), maxset(1), finishedparsing(false) {
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolver());
@@ -101,7 +101,7 @@ void PropagatorFactory::add(const Disjunction& clause) {
 
 void PropagatorFactory::add(const Implication& formula) {
 	auto clauses = formula.getEquivalentClauses();
-	for(auto i=clauses.cbegin(); i<clauses.cend(); ++i){
+	for (auto i = clauses.cbegin(); i < clauses.cend(); ++i) {
 		add(*i);
 	}
 }
@@ -278,6 +278,7 @@ IntVar* PropagatorFactory::getIntVar(int varID) const {
 }
 
 void PropagatorFactory::add(const IntVarRange& obj) {
+	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
@@ -291,85 +292,83 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
-	if(getEngine().modes().usegecode){
+	notifyMonitorsOfAdding(obj);
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
+	} else {
 		throw notYetImplemented("No support for handling intvarenums without gecode yet.");
 	}
 }
 
 void PropagatorFactory::add(const CPBinaryRel& obj) {
-	if(getEngine().modes().usegecode){
+	notifyMonitorsOfAdding(obj);
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
-		throw notYetImplemented("No support for handling CPBinaryRel without gecode yet.");
+	} else {
+		Implication eq(mkPosLit(obj.head), ImplicationType::EQUIVALENT, {}, true);
+		auto left = getIntVar(obj.varID);
+		auto intbound = toInt(obj.bound);
+		switch (obj.rel) {
+		case EqType::EQ:
+			eq.body.push_back(left->getEQLit(intbound));
+			break;
+		case EqType::NEQ:
+			eq.body.push_back(left->getNEQLit(intbound));
+			break;
+		case EqType::GEQ:
+			eq.body.push_back(left->getGEQLit(intbound));
+			break;
+		case EqType::G:
+			eq.body.push_back(left->getGEQLit(intbound + 1));
+			break;
+		case EqType::LEQ:
+			eq.body.push_back(left->getLEQLit(intbound));
+			break;
+		case EqType::L:
+			eq.body.push_back(left->getLEQLit(intbound - 1));
+			break;
+		}
+		add(eq);
 	}
-
-	// TODO
-	/*Equivalence eq;
-	 eq.head = mkPosLit(obj.head);
-	 IntVar* left = getIntVar(obj.varID);
-	 int intbound = toInt(obj.bound);
-	 switch(obj.rel){
-	 case MEQ:
-	 eq.literals.push_back(left->getEQLit(intbound));
-	 break;
-	 case MNEQ:
-	 eq.literals.push_back(left->getNEQLit(intbound));
-	 break;
-	 case MGEQ:
-	 eq.literals.push_back(left->getGEQLit(intbound));
-	 break;
-	 case MG:
-	 eq.literals.push_back(left->getGEQLit(intbound+1));
-	 break;
-	 case MLEQ:
-	 eq.literals.push_back(left->getLEQLit(intbound));
-	 break;
-	 case ML:
-	 eq.literals.push_back(left->getLEQLit(intbound-1));
-	 break;
-	 }
-	 add(eq);*/
 }
 
 void PropagatorFactory::add(const CPBinaryRelVar& obj) {
-	if(getEngine().modes().usegecode){
+	notifyMonitorsOfAdding(obj);
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
-		throw notYetImplemented("No support for handling CPBinaryRelVar without gecode yet.");
+	} else {
+		new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 	}
-	//TODO new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 }
 
 void PropagatorFactory::add(const CPSumWeighted& obj) {
-	if(getEngine().modes().usegecode){
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
+	} else {
 		throw notYetImplemented("No support for handling CPSumWeighted without gecode yet.");
 	}
 }
 
 void PropagatorFactory::add(const CPCount& obj) {
-	if(getEngine().modes().usegecode){
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
+	} else {
 		throw notYetImplemented("No support for handling CPCount without gecode yet.");
 	}
 }
 
 void PropagatorFactory::add(const CPAllDiff& obj) {
-	if(getEngine().modes().usegecode){
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
+	} else {
 		throw notYetImplemented("No support for handling CPAllDiff without gecode yet.");
 	}
 }
 
 void PropagatorFactory::add(const CPElement& obj) {
-	if(getEngine().modes().usegecode){
+	if (getEngine().modes().usegecode) {
 		addCP(obj);
-	}else{
+	} else {
 		throw notYetImplemented("No support for handling CPElement without gecode yet.");
 	}
 }
