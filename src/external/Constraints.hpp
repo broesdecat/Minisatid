@@ -65,6 +65,9 @@ class ExtAdd<WLSet, Engine> {
 public:
 	void extAdd(Engine& space, const WLSet& obj) {
 		WLSet set(obj.setID);
+		if(obj.setID<0){
+			throw idpexception("External sets should have a positive id.");
+		}
 		for (auto i = obj.wl.cbegin(); i < obj.wl.cend(); ++i) {
 			set.wl.push_back(WLtuple(checkLit((*i).l, *space.getRemapper()), (*i).w));
 		}

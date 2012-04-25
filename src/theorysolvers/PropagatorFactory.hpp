@@ -130,7 +130,7 @@ private:
 	std::map<int, IntVar*> intvars;
 
 	// Parsing support
-	int maxset;
+	int minnewset; // Interal sets count downwards!
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<Aggregate*> parsedaggs;
 

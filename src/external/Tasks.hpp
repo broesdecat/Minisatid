@@ -142,7 +142,7 @@ public:
 
 	}
 
-	literallist getEntailedLiterals();
+	literallist getEntailedLiterals() const;
 	void writeOutEntailedLiterals();
 
 private:

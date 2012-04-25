@@ -60,7 +60,7 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine)
-		: engine(engine), definitions(new Definition(engine)), maxset(1), finishedparsing(false) {
+		: engine(engine), definitions(new Definition(engine)), minnewset(-1), finishedparsing(false) {
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolver());
@@ -91,7 +91,7 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 }
 
 int PropagatorFactory::newSetID() {
-	return maxset++;
+	return minnewset--;
 }
 
 void PropagatorFactory::add(const Disjunction& clause) {
@@ -114,10 +114,6 @@ void PropagatorFactory::add(const Rule& rule) {
 
 void PropagatorFactory::add(const WLSet& formula) {
 	notifyMonitorsOfAdding(formula);
-
-	if (formula.setID > maxset) {
-		maxset = formula.setID;
-	}
 
 	if (contains(parsedsets, formula.setID)) {
 		throwDoubleDefinedSet(formula.setID);

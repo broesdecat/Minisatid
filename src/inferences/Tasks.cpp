@@ -472,7 +472,7 @@ void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 	printer->notifyCurrentOptimum(value);
 }
 
-literallist UnitPropagate::getEntailedLiterals() {
+literallist UnitPropagate::getEntailedLiterals() const {
 	auto lits = getSolver().getEntailedLiterals();
 	literallist literals;
 	auto r = *getSpace()->getRemapper();

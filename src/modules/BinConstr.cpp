@@ -64,8 +64,8 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp,
 	getPCSolver().acceptBounds(left(), this);
 	getPCSolver().acceptBounds(right(), this);
 
-	if(verbosity()>5){
-		clog <<"Binconstr: " <<toString(head()) <<" <=> " <<left()->toString() <<" =< "<<right()->toString() <<"\n";
+	if (verbosity() > 5) {
+		clog << "Binconstr: " << toString(head()) << " <=> " << left()->toString() << " =< " << right()->toString() << "\n";
 	}
 }
 
@@ -107,18 +107,26 @@ rClause BinaryConstraint::notifypropagate() {
 	litlist propagations;
 	if (headvalue == l_True) {
 		auto one = left()->getLEQLit(rightmax());
-		propagations.push_back(one);
-		reasons[one] = BinReason(left(), false, rightmax());
+		if (value(one) != l_True) {
+			propagations.push_back(one);
+			reasons[one] = BinReason(left(), false, rightmax());
+		}
 		auto two = right()->getGEQLit(leftmin());
-		propagations.push_back(two);
-		reasons[two] = BinReason(right(), true, leftmin());
+		if (value(two) != l_True) {
+			propagations.push_back(two);
+			reasons[two] = BinReason(right(), true, leftmin());
+		}
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
-		propagations.push_back(one);
-		reasons[one] = BinReason(left(), true, rightmin() + 1);
+		if (value(one) != l_True) {
+			propagations.push_back(one);
+			reasons[one] = BinReason(left(), true, rightmin() + 1);
+		}
 		auto two = right()->getLEQLit(leftmax() - 1);
-		propagations.push_back(two);
-		reasons[two] = BinReason(right(), false, leftmax() - 1);
+		if (value(two) != l_True) {
+			propagations.push_back(two);
+			reasons[two] = BinReason(right(), false, leftmax() - 1);
+		}
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
 			propagations.push_back(~head());

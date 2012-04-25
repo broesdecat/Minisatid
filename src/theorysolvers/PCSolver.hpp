@@ -82,7 +82,7 @@ public:
 
 	// Propagation and backtrack monitor
 private:
-	bool monitoring; // True if at time of solve() call, there are monitors (optimization!)
+	bool hasMonitors() const;
 	Monitor* monitor;
 
 	// Optimization

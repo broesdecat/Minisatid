@@ -31,7 +31,7 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot)
-		: _modes(modes), varcreator(varcreator), monitoring(false), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
+		: _modes(modes), varcreator(varcreator), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
 			searchengine(NULL),
 #ifdef CPSUPPORT
 			cpsolver(NULL),
@@ -176,7 +176,7 @@ void PCSolver::notifySetTrue(const Lit& p) {
 	getEventQueue().setTrue(p);
 	trail->notifyPropagate(p);
 
-	if (monitoring) {
+	if (hasMonitors()) {
 		monitor->notifyMonitor(p, getCurrentDecisionLevel());
 	}
 }
@@ -310,7 +310,7 @@ lbool PCSolver::getModelValue(Var v) {
 
 litlist PCSolver::getEntailedLiterals() const {
 	litlist list;
-	auto firstdecision = getDecisions()[0];
+	auto firstdecision = getDecisions().size()>0?getDecisions()[0]:mkLit(-1);
 	for (auto i = getTrail().cbegin(); i < getTrail().cend(); ++i) {
 		if (*i == firstdecision) {
 			break;
@@ -379,7 +379,7 @@ void PCSolver::newDecisionLevel() {
 }
 
 void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
-	if (monitoring) {
+	if (hasMonitors()) {
 		monitor->notifyMonitor(untillevel);
 	}
 
@@ -387,11 +387,14 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 
+bool PCSolver::hasMonitors() const{
+	return monitor!=NULL && monitor->hasMonitors();
+}
+
 void PCSolver::setAssumptions(const litlist& assumps) {
 	getSATSolver()->setAssumptions(assumps);
 }
 lbool PCSolver::solve(bool search) {
-	monitoring = monitor->hasMonitors();
 	return getSATSolver()->solve(not search);
 }
 litlist PCSolver::getUnsatExplanation() const {
