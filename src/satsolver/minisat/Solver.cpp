@@ -705,6 +705,16 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 
 		if (confl == CRef_Undef && pathC > 1) {
 			confl = getPCSolver().getExplanation(p);
+#ifdef DEBUG
+			if(confl!=CRef_Undef){
+				auto& test = ca[confl];
+				MAssert(value(test[0])!=l_Undef);
+				for(int i=1; i<test.size(); ++i){
+					MAssert(value(test[i])!=l_Undef);
+					MAssert(getPCSolver().assertedBefore(var(test[i]), var(test[0])));
+				}
+			}
+#endif
 			deleteImplicitClause = true;
 		}
 		if (verbosity > 6 && confl != CRef_Undef) {

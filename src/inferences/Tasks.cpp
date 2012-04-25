@@ -219,7 +219,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 
 		// => first check whether there might be more CP models before backtracking completely!
 		// Probably better refactor to put this deeper?
-		bool morecpmodels = true;
+		bool morecpmodels = getSolver().hasCPSolver();
 		if (getSolver().hasCPSolver()) { // FIXME this code should move lower in the system
 			//Check for more models with different var assignment
 			while (morecpmodels && (options.nbmodelstofind == 0 || getNbModelsFound() < options.nbmodelstofind)) {

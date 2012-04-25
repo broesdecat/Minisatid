@@ -107,31 +107,39 @@ rClause BinaryConstraint::notifypropagate() {
 	litlist propagations;
 	if (headvalue == l_True) {
 		auto one = left()->getLEQLit(rightmax());
+		MAssert(value(right()->getLEQLit(rightmax()))==l_True);
 		if (value(one) != l_True) {
 			propagations.push_back(one);
 			reasons[one] = BinReason(left(), false, rightmax());
 		}
 		auto two = right()->getGEQLit(leftmin());
+		MAssert(value(left()->getGEQLit(leftmin()))==l_True);
 		if (value(two) != l_True) {
 			propagations.push_back(two);
 			reasons[two] = BinReason(right(), true, leftmin());
 		}
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
+		MAssert(value(right()->getGEQLit(rightmin()+1))==l_True);
 		if (value(one) != l_True) {
 			propagations.push_back(one);
 			reasons[one] = BinReason(left(), true, rightmin() + 1);
 		}
 		auto two = right()->getLEQLit(leftmax() - 1);
+		MAssert(value(left()->getLEQLit(leftmax()-1))==l_True);
 		if (value(two) != l_True) {
 			propagations.push_back(two);
 			reasons[two] = BinReason(right(), false, leftmax() - 1);
 		}
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
+			MAssert(value(right()->getLEQLit(rightmax()))==l_True);
+			MAssert(value(left()->getGEQLit(leftmin()))==l_True);
 			propagations.push_back(~head());
 			reasons[~head()] = BinReason(NULL, false, left()->minValue());
 		} else if (leftmax() <= rightmin()) {
+			MAssert(value(right()->getGEQLit(rightmin()))==l_True);
+			MAssert(value(left()->getLEQLit(leftmax()))==l_True);
 			propagations.push_back(head());
 			reasons[head()] = BinReason(NULL, false, left()->maxValue());
 		}
