@@ -41,8 +41,6 @@ class ConstraintVisitor;
 
 namespace Minisat {
 
-typedef std::vector<Lit> litlist;
-
 class Solver: public MinisatID::Propagator {
 public:
 	double random_var_freq;
@@ -156,7 +154,7 @@ public:
 
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
 
-	litlist getUnsatExplanation() const;
+	std::vector<Lit> getUnsatExplanation() const;
 
 	//PROPAGATOR CODE
 	// TODO split up in search and propagator
@@ -190,7 +188,7 @@ public:
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
 	Var newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
 
-	void setAssumptions(const litlist& assumps);
+	void setAssumptions(const std::vector<Lit>& assumps);
 	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
 
 private:
