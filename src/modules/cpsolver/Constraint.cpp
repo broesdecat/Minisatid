@@ -73,9 +73,12 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> set, vector<int
 }
 void SumConstraint::accept(ConstraintVisitor& visitor) {
 	std::vector<Weight> w;
-	std::for_each(begin(mult), end(mult), [&w](int x) {
+	/*std::for_each(mult.cbegin(), mult.cend(), [&w](int x) {
 	  w.push_back(Weight(x));
-	});
+	});*/
+	for(auto i=mult.cbegin(); i<mult.cend(); ++i){
+		w.push_back(Weight(*i));
+	}
 	visitor.add(CPSumWeighted(getHead(), getIDs(set), w, toEqType(rel), Weight(irhs)));
 }
 

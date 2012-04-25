@@ -1530,7 +1530,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			addLoopfClause(mkNegLit(v), loopf);
 
 			// \forall d \in \extdisj{L}: not d \vee v
-			Disjunction binaryclause(litlist { mkLit(-1), mkPosLit(v) });
+			Disjunction binaryclause({ mkLit(-1), mkPosLit(v) });
 			for (uint i = 1; i < loopf.literals.size(); ++i) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
