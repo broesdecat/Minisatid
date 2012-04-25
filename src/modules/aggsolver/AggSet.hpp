@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 #include "modules/DPLLTmodule.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
