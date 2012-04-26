@@ -15,41 +15,24 @@
 using namespace MinisatID;
 using namespace std;
 
-map<int, IntVarValue> IntVar::var2intvarvalues;
-
+// TODO easily adaptable to also support enums of weights
 IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
-		: Propagator(solver, "intvar"),
-		  id_(maxid_++), origid_(_origid),
-		  engine_(*solver),
-		  minvalue(min), maxvalue(max),
-		  offset(-1), currentmin(min), currentmax(max){
-	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
-		Var var = engine().newVar();
-		equalities.push_back(var);
-		var2intvarvalues.insert(pair<int, IntVarValue>(var, IntVarValue(this, true, i+minValue())));
-
-		var = engine().newVar();
-		disequalities.push_back(var);
-		var2intvarvalues.insert(pair<int, IntVarValue>(var, IntVarValue(this, false, i+minValue())));
+		: Propagator(solver, "intvar"), id_(maxid_++), origid_(_origid), engine_(*solver), minvalue(min), maxvalue(max), offset(-1), currentmin(min),
+			currentmax(max) {
+	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
+		auto var = engine().newVar();
+		leqlits.push_back(IntVarValue(this, var, i + minValue()));
 	}
-	for(auto i=equalities.cbegin(); i<equalities.cend(); ++i){
-		engine().accept(this, mkPosLit(*i), FAST);
-		engine().accept(this, mkNegLit(*i), FAST);
-	}
-	for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i){
-		engine().accept(this, mkPosLit(*i), FAST);
-		engine().accept(this, mkNegLit(*i), FAST);
+	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
+		engine().accept(this, mkPosLit(i->atom), FAST);
+		engine().accept(this, mkNegLit(i->atom), FAST);
 	}
 	addConstraints();
 
-	if(verbosity()>3){
-		int index = 0;
-		for(auto i=equalities.cbegin(); i<equalities.cend(); ++i, index++){
-			clog <<toString(*i) <<" <=> " <<"var" <<origid() <<"=" <<minvalue+index <<"\n";
-		}
-		index = 0;
-		for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i, index++){
-			clog <<toString(*i) <<" <=> " <<"var" <<origid() <<"=<" <<minvalue+index <<"\n";
+	if (verbosity() > 3) {
+		auto index = 0;
+		for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i, index++) {
+			clog << toString(mkPosLit(i->atom)) << " <=> " << "var" << origid() << "=<" << minvalue + index << "\n";
 		}
 	}
 
@@ -60,85 +43,60 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 	engine().notifyBoundsChanged(this);
 }
 
-void IntVar::notifyBacktrack(int, const Lit&){
-	for(uint i=0; i<equalities.size(); ++i){
-		if(not isFalse(mkPosLit(equalities[i]))){
-			currentmin = minvalue+i;
+void IntVar::updateBounds() {
+	for (auto i=leqlits.cbegin(); i<leqlits.cend(); ++i) {
+		if (not isFalse(mkPosLit(i->atom))) { // First non-false is lowest remaining value
+			currentmin = i->value;
 			break;
 		}
 	}
-	uint index = equalities.size()-1;
-	for(auto i=equalities.rbegin(); i<equalities.rend(); ++i, --index){
-		if(not isFalse(mkPosLit(*i))){
-			currentmax = minvalue + index;
+	for (auto i=leqlits.crbegin(); i<leqlits.crend(); ++i) {
+		if (not isTrue(mkPosLit(i->atom))) { // First non true is highest remaining value
+			currentmax = i->value;
 			break;
 		}
 	}
+}
+
+void IntVar::notifyBacktrack(int, const Lit&) {
+	updateBounds();
 }
 
 // NOTE: returns false if out of the bounds
 Lit IntVar::getLEQLit(int bound) const {
-	auto index = bound-minvalue;
-	if(index<0){
+	auto index = bound - minvalue;
+	if (index < 0) {
 		return getPCSolver().getFalseLit();
 	}
-	if((int)disequalities.size()<=index){
+	if ((int) leqlits.size() <= index) {
 		return getPCSolver().getTrueLit();
 	}
-	return mkPosLit(disequalities[index]);
+	return mkPosLit(leqlits[index].atom);
 }
 
 Lit IntVar::getGEQLit(int bound) const {
-	auto index = bound-minvalue-1;
-	if(index<0){
+	auto index = bound - minvalue - 1;
+	if (index < 0) {
 		return getPCSolver().getTrueLit();
 	}
-	if((int)disequalities.size()<=index){
+	if ((int) leqlits.size() <= index) {
 		return getPCSolver().getFalseLit();
 	}
-	return mkNegLit(disequalities[index]);
+	return mkNegLit(leqlits[index].atom);
 }
 
-Lit IntVar::getEQLit(int bound) const {
-	auto index = bound-minvalue;
-	if(index<0 || (int)equalities.size()<=index){
-		return getPCSolver().getFalseLit();
-	}
-	return mkPosLit(equalities[index]);
-}
-
-Lit IntVar::getNEQLit(int bound) const {
-	auto index = bound-minvalue;
-	if(index<0 || (int)equalities.size()<=index){
-		return getPCSolver().getFalseLit();
-	}
-	return mkNegLit(equalities[index]);
-}
-
-void IntVar::accept(ConstraintVisitor& visitor){
+void IntVar::accept(ConstraintVisitor& visitor) {
 	// FIXME
 	//		which id to use (what with internal vars)
 	//		also add eq and diseq reifs? (can occur in other constraints!)
 }
 
-rClause	IntVar::notifypropagate(){
+rClause IntVar::notifypropagate() {
 	int lastmin = currentmin, lastmax = currentmax;
-	for(uint i=0; i<equalities.size(); ++i){
-		if(not isFalse(mkPosLit(equalities[i]))){
-			currentmin = minvalue+i;
-			break;
-		}
-	}
-	uint index = equalities.size()-1;
-	for(auto i=equalities.rbegin(); i<equalities.rend(); ++i, --index){
-		if(not isFalse(mkPosLit(equalities[index]))){
-			currentmax = minvalue + index;
-			break;
-		}
-	}
-	if(lastmin!=currentmin || lastmax!=currentmax){
-		if(verbosity()>7){
-			clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+	updateBounds();
+	if (lastmin != currentmin || lastmax != currentmax) {
+		if (verbosity() > 7) {
+			clog << ">>> After bounds update: var range is " << origid() << "[" << currentmin << "," << currentmax << "]\n";
 		}
 		engine().notifyBoundsChanged(this);
 	}
@@ -148,39 +106,19 @@ rClause	IntVar::notifypropagate(){
 
 /**
  * x in [min, max]
- * ?1 a: x>=a & x=<a
- * x=a then x>=a
- * x=a then x=<a
- *
- * x=<a then x=<a+1
- * ~x=<a then ~x=<a-1
+ * some leq is true
+ * leq[i] => leq[i+1]
+ * ~leq[i] => ~leq[i-1]
  */
-void IntVar::addConstraints(){
-	auto setid = engine().newSetID();
-	vector<WLtuple> wls;
-	for(uint i=0; i<equalities.size(); ++i){
-		wls.push_back(WLtuple(mkPosLit(equalities[i]), 1));
+void IntVar::addConstraints() {
+	Disjunction sometrue;
+	for (uint i = 0; i < leqlits.size(); ++i) {
+		// leq[i] => leq[i+1]
+		internalAdd(Disjunction( { ~getLEQLit(i), getLEQLit(i + 1) }), engine());
+		//~leq[i] => ~leq[i-1]
+		internalAdd(Disjunction( { getLEQLit(i), ~getLEQLit(i-1)}), engine());
+		sometrue.literals.push_back(getLEQLit(i));
 	}
-	internalAdd(WLSet(setid, wls), engine());
-	Aggregate lowercard(mkPosLit(engine().newVar()), setid, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
-	Aggregate highercard(mkPosLit(engine().newVar()), setid, 1, AggType::CARD, AggSign::UB, AggSem::COMP, -1);
-	internalAdd(highercard, engine());
-	internalAdd(lowercard, engine());
-	internalAdd(Disjunction({highercard.head}), engine());
-	internalAdd(Disjunction({lowercard.head}), engine());
-
-	for(uint i=0; i<equalities.size(); ++i){
-		// if eq[i] => diseq[i]
-		internalAdd(Disjunction({mkNegLit(equalities[i]), mkPosLit(disequalities[i])}), engine());
-		if(i<equalities.size()-1){
-			// if diseq[i] => diseq[i+1]
-			internalAdd(Disjunction({mkNegLit(disequalities[i]), mkPosLit(disequalities[i+1])}), engine());
-		}
-		if(i>0){
-			// if eq[i] => ~diseq[i-1]
-			internalAdd(Disjunction({mkNegLit(equalities[i]), mkNegLit(disequalities[i-1])}), engine());
-			// if ~diseq[i] => ~diseq[i-1]
-			internalAdd(Disjunction({mkPosLit(disequalities[i]), mkNegLit(disequalities[i-1])}), engine());
-		}
-	}
+	// some leq is true
+	internalAdd(sometrue, engine());
 }

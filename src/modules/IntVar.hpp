@@ -11,29 +11,28 @@ enum BinComp { BIN_EQ, BIN_LEQ};
 class IntVar;
 
 struct IntVarValue{
-	IntVar* var;
-	bool 	eq;
+	IntVar* intvar;
+	Var atom;
 	Weight value;
 
-	IntVarValue(IntVar* var, bool eq, Weight value): var(var), eq(eq), value(value){}
+	IntVarValue(IntVar* intvar, Var atom, Weight value): intvar(intvar), atom(atom), value(value){}
 };
 
+// FIXME how are these values returned to the grounder???
 class IntVar: public Propagator{
 private:
 	static int maxid_;
-	static std::map<int, IntVarValue> var2intvarvalues;
 	int id_, origid_;
 	PCSolver& engine_;
 	const int minvalue, maxvalue;
 	int offset, currentmin, currentmax;
-	std::vector<Var> equalities;	// eq[i] == minvalue+i
-	std::vector<Var> disequalities; // eq[i] =< minvalue+i
+	std::vector<IntVarValue> leqlits; // eq[i] =< minvalue+i
 	// given atom, its meaning is eq[atom-offset]
 	
+	void updateBounds();
+
 public:
 	IntVar(PCSolver* solver, int origid, int min, int max);
-
-	static const IntVarValue& getIntVar(const Lit& lit) { return var2intvarvalues.at(var(lit)); }
 
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
@@ -65,8 +64,6 @@ public:
 
 	Lit getLEQLit(int bound) const;
 	Lit getGEQLit(int bound) const;
-	Lit getEQLit(int bound) const;
-	Lit getNEQLit(int bound) const;
 
 private:
 	void addConstraints();
@@ -109,14 +106,6 @@ public:
 
 	Lit getGEQLit(int bound) const {
 		return var()->getGEQLit(bound-constdiff());
-	}
-
-	Lit getEQLit(int bound) const {
-		return var()->getEQLit(bound-constdiff());
-	}
-
-	Lit getNEQLit(int bound) const {
-		return var()->getNEQLit(bound-constdiff());
 	}
 
 	std::string toString() const {

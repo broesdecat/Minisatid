@@ -41,9 +41,11 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
+	if(modes.usegecode){
 #ifdef CPSUPPORT
-	cpsolver = new CPSolver(this);
+		cpsolver = new CPSolver(this);
 #endif
+	}
 
 	factory = new PropagatorFactory(modes, this);
 
@@ -81,14 +83,14 @@ bool PCSolver::hasCPSolver() const {
 #endif
 }
 SATVAL PCSolver::findNextCPModel() {
+	if(not hasCPSolver()){
+		return SATVAL::UNSAT;
+	}
 #ifdef CPSUPPORT
-	MAssert(hasCPSolver());
 	if(not getCPSolver()->hasData()) {
 		return SATVAL::UNSAT;
 	}
 	return getCPSolver()->findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
-#else
-	throw idpexception("Calling methods on cpsolver while gecode is not compiled in.");
 #endif
 }
 

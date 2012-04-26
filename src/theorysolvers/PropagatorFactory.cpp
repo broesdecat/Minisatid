@@ -306,10 +306,13 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 		auto intbound = toInt(obj.bound);
 		switch (obj.rel) {
 		case EqType::EQ:
-			eq.body.push_back(left->getEQLit(intbound));
+			eq.body.push_back(left->getLEQLit(intbound));
+			eq.body.push_back(left->getGEQLit(intbound));
 			break;
 		case EqType::NEQ:
-			eq.body.push_back(left->getNEQLit(intbound));
+			eq.conjunction = false;
+			eq.body.push_back(~left->getLEQLit(intbound));
+			eq.body.push_back(~left->getGEQLit(intbound));
 			break;
 		case EqType::GEQ:
 			eq.body.push_back(left->getGEQLit(intbound));
@@ -506,8 +509,9 @@ SATVAL PropagatorFactory::finishParsing() {
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments) {
 	for (auto i = intvars.cbegin(); i != intvars.cend(); ++i) {
 		VariableEqValue vareq;
-		vareq.variable = (*i).first;
+		vareq.variable = (*i).second->origid(); // FIXME Correct when it is possible to add internal intvars!
 		vareq.value = (*i).second->minValue();
+		MAssert((*i).second->minValue()==(*i).second->maxValue());
 		varassignments.push_back(vareq);
 	}
 }
