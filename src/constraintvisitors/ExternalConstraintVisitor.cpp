@@ -35,7 +35,7 @@ std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 			return ss.str();
 		}
 	}
-	ss << (sign(l) ? "-" : "") << "tseitin_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+	ss << (sign(l) ? "-" : "") << "internal_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	return ss.str();
 }
 std::string ExternalConstraintVisitor::toString(const litlist& literals) const {

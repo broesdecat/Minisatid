@@ -255,7 +255,6 @@ void PropagatorFactory::add(const Symmetry& formula) {
 template<class T>
 void PropagatorFactory::addCP(const T& formula) {
 	MAssert(getEngine().modes().usegecode);
-	notifyMonitorsOfAdding(formula);
 	guaranteeAtRootLevel();
 #ifndef CPSUPPORT
 	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
@@ -341,6 +340,7 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 }
 
 void PropagatorFactory::add(const CPSumWeighted& obj) {
+	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
@@ -349,6 +349,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 }
 
 void PropagatorFactory::add(const CPCount& obj) {
+	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
@@ -357,6 +358,7 @@ void PropagatorFactory::add(const CPCount& obj) {
 }
 
 void PropagatorFactory::add(const CPAllDiff& obj) {
+	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
@@ -365,6 +367,7 @@ void PropagatorFactory::add(const CPAllDiff& obj) {
 }
 
 void PropagatorFactory::add(const CPElement& obj) {
+	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
