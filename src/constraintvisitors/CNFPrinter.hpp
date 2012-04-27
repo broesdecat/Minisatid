@@ -10,7 +10,7 @@
 #ifndef REALCNFPRINTER_HPP_
 #define REALCNFPRINTER_HPP_
 
-#include "ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
 

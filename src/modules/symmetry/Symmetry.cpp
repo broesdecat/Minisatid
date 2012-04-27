@@ -11,6 +11,7 @@
 
 #include "satsolver/SATSolver.hpp"
 #include "utils/Print.hpp"
+#include "external/ConstraintVisitor.hpp"
 
 using namespace std;
 using namespace MinisatID;

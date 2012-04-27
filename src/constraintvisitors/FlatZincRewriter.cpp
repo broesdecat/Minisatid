@@ -6,7 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#include "FlatZincRewriter.hpp"
+#include "external/FlatZincRewriter.hpp"
 
 #include <cstdlib>
 #include <vector>

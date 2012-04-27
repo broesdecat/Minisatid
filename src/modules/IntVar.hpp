@@ -13,9 +13,9 @@ class IntVar;
 struct IntVarValue{
 	IntVar* intvar;
 	Var atom;
-	Weight value;
+	int value;
 
-	IntVarValue(IntVar* intvar, Var atom, Weight value): intvar(intvar), atom(atom), value(value){}
+	IntVarValue(IntVar* intvar, Var atom, int value): intvar(intvar), atom(atom), value(value){}
 };
 
 // FIXME how are these values returned to the grounder???

@@ -10,7 +10,7 @@
 
 #include "modules/cpsolver/CPScript.hpp"
 #include "modules/cpsolver/CPUtils.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 
 #include "utils/Print.hpp"
 

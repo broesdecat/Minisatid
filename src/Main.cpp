@@ -29,7 +29,7 @@
 #include "external/Tasks.hpp"
 #include "external/OneShotTasks.hpp"
 #include "external/utils/TimingUtils.hpp"
-#include "constraintvisitors/FlatZincRewriter.hpp"
+#include "external/FlatZincRewriter.hpp"
 
 #include "utils/Print.hpp"
 

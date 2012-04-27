@@ -1,7 +1,7 @@
 #include "external/OneShotTasks.hpp"
 #include "external/Tasks.hpp"
 #include "external/Space.hpp"
-#include "constraintvisitors/ECNFPrinter.hpp"
+#include "external/ECNFPrinter.hpp"
 #include "space/Remapper.hpp"
 #include "space/SearchEngine.hpp"
 #include "theorysolvers/PropagatorFactory.hpp"

@@ -33,7 +33,7 @@
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 
 using namespace std;
 using namespace MinisatID;

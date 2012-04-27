@@ -32,7 +32,8 @@ enum class AggType {
 };
 // Type of aggregate concerned
 enum class AggSign {
-	UB, LB
+	UB, // THE BOUND IS AN UPPER BOUND
+	LB // THE BOUND IS A LOWER BOUND
 };
 // Sign of the bound of the aggregate
 enum class AggSem {
@@ -412,6 +413,7 @@ struct CPSumWeighted: public ID {
 	}
 };
 
+// Encodes: (number of varIDS equal to eqbound) rel rhsvar
 struct CPCount: public ID {
 	std::vector<uint> varIDs;
 	Weight eqbound;

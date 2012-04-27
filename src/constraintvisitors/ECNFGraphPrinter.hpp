@@ -9,7 +9,7 @@
 #ifndef ECNFGRAPHPARSINGMONITOR_HPP_
 #define ECNFGRAPHPARSINGMONITOR_HPP_
 
-#include "ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID {
@@ -39,7 +39,7 @@ public:
 	}
 
 	void add(const Disjunction& lits) {
-		this->printList(lits.literals, " -- ", target(), getPrinter());
+		printList(lits.literals, " -- ", target(), getPrinter());
 		if (lits.literals.size() > 1) {
 			target() << " -- " << toString(lits.literals[0], getPrinter()) << " ";
 		}
@@ -47,7 +47,7 @@ public:
 	}
 
 	void add(const Rule& lits) {
-		this->printList(lits.body, " -- ", target(), getPrinter());
+		printList(lits.body, " -- ", target(), getPrinter());
 		if (lits.body.size() > 1) {
 			target() << " -- " << toString(lits.body[0], getPrinter()) << " ";
 		}

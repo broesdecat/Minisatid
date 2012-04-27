@@ -13,7 +13,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID{
@@ -36,13 +36,13 @@ public:
 
 	void add(const MinisatID::Implication& obj){
 		target() <<"Added " <<toString(obj.head, getPrinter()) <<obj.type;
-		this->printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
+		printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 	void add(const Disjunction& clause){
 		target() <<"Added clause ";
-		this->printList(clause.literals, " | ", target(), getPrinter());
+		printList(clause.literals, " | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
@@ -51,7 +51,7 @@ public:
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
 		}else{
-			this->printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPrinter());
+			printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPrinter());
 		}
 		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
@@ -81,14 +81,14 @@ public:
 
 	void add(const MinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
-		this->printList(mnm.literals, " < ", target(), getPrinter());
+		printList(mnm.literals, " < ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 
 	void add(const MinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
-		this->printList(mnm.literals, ", ", target(), getPrinter());
+		printList(mnm.literals, ", ", target(), getPrinter());
 		target() <<" }\n";
 	}
 

@@ -10,14 +10,15 @@
 #define PARSINGMONITOR_HPP_
 
 #include <iostream>
-#include "utils/Print.hpp"
-#include "utils/Utils.hpp"
-#include "external/LiteralPrinter.hpp"
-#include "external/ConstraintAdditionInterface.hpp"
+#include "LiteralPrinter.hpp"
+#include "ConstraintAdditionInterface.hpp"
 
 namespace MinisatID{
 
 class LiteralPrinter;
+
+template<typename S>
+void printList(const litlist& list, const std::string& concat, S& stream, LiteralPrinter* solver);
 
 class ConstraintPrinter: public ConstraintVisitor {
 private:
@@ -25,18 +26,6 @@ private:
 protected:
 	// NOTE: does not pass ownership
 	LiteralPrinter* getPrinter() const { return solver; }
-
-	template<typename S>
-	void printList(const litlist& list, const std::string& concat, S& stream, LiteralPrinter* solver){
-		bool begin = true;
-		for(auto i=list.cbegin(); i<list.cend(); ++i) {
-			if(not begin){
-				stream <<concat;
-			}
-			begin = false;
-			stream <<toString(*i, solver);
-		}
-	}
 
 public:
 	ConstraintPrinter(LiteralPrinter* solver, const std::string& name): ConstraintVisitor(name), solver(solver){}

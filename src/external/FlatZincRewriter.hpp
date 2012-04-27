@@ -18,9 +18,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "external/ExternalUtils.hpp"
-#include "external/ConstraintAdditionInterface.hpp"
-#include "external/Tasks.hpp"
+#include "ExternalUtils.hpp"
+#include "ConstraintAdditionInterface.hpp"
+#include "Tasks.hpp"
 
 namespace MinisatID {
 

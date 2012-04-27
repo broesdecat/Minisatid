@@ -10,7 +10,7 @@
 #include "modules/IntVar.hpp"
 #include <iostream>
 #include "utils/Print.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 
 using namespace MinisatID;
 using namespace std;

@@ -9,7 +9,7 @@
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "satsolver/SATSolver.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 
 #include "utils/PrintMessage.hpp"
 #include "external/utils/ContainerUtils.hpp"

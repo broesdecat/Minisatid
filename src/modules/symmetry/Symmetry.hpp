@@ -13,10 +13,10 @@
 #include <vector>
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
 
 namespace MinisatID {
 
+class ConstraintVisitor;
 class PCSolver;
 
 class SymmetryData {

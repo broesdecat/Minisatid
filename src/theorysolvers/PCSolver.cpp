@@ -20,7 +20,7 @@
 #include "datastructures/InternalAdd.hpp"
 
 #include "modules/aggsolver/AggSet.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 
 #include "utils/Print.hpp"
 

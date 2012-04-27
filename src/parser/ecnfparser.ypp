@@ -402,15 +402,15 @@ cpconstraint
 				CR(sum);
 				delete $2; delete $3; delete $5; delete $7;
 			}
-		|	ELEMENT uibody DELIM number DELIM number ZERO 
+		|	ELEMENT uibody DELIM number number ZERO 
 			{ 	
 				CR(CPElement(*$2, $4, $6));
 				delete $2;
 			}
 			//only global card at the moment!
-		|	COUNT uibody REL weight number ZERO 
+		|	COUNT uibody DELIM weight REL number ZERO 
 			{ 	
-				CPCount count(*$2, cWeight($4), $3, $5);
+				CPCount count(*$2, cWeight($4), $5, $6);
 				CR(count);
 				delete $2; delete $4;
 			}

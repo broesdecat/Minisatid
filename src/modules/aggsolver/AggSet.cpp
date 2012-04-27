@@ -10,7 +10,7 @@
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "external/utils/ContainerUtils.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 #include "utils/Print.hpp"
 #include <cmath>
 

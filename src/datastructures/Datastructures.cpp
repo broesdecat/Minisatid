@@ -1,7 +1,7 @@
 #include "external/Datastructures.hpp"
 #include "space/Remapper.hpp"
 #include "external/Constraints.hpp"
-#include "constraintvisitors/ConstraintVisitor.hpp"
+#include "external/ConstraintVisitor.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID{
