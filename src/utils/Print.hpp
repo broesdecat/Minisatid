@@ -12,6 +12,7 @@
 #include <iostream>
 #include "utils/Utils.hpp"
 #include "utils/PrintMessage.hpp"
+#include "external/datastructuremacros.hpp"
 
 namespace MinisatID {
 
@@ -58,19 +59,19 @@ template<class T>
 T& operator<<(T& stream, AggType type) {
 	switch (type) {
 	case AggType::SUM:
-		stream << "sum";
+		stream << SUMSTR;
 		break;
 	case AggType::CARD:
-		stream << "card";
+		stream << CARDSTR;
 		break;
 	case AggType::MIN:
-		stream << "min";
+		stream << MINSTR;
 		break;
 	case AggType::MAX:
-		stream << "max";
+		stream << MAXSTR;
 		break;
 	case AggType::PROD:
-		stream << "prod";
+		stream << PRODSTR;
 		break;
 	}
 	return stream;

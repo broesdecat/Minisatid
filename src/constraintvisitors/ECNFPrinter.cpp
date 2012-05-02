@@ -62,7 +62,7 @@ void RealECNFPrinter<Stream>::add(const Rule& rule) {
 
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const WLSet& set) {
-	target() << "WLSet " << set.setID << " ";
+	target() << WSETSTR <<" " << set.setID << " ";
 	for (uint i = 0; i < set.wl.size(); ++i) {
 		target() << toString(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
 	}
