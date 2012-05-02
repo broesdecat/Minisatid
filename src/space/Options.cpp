@@ -43,7 +43,7 @@ SolverOption::SolverOption():
 		selectOneFromUFS(false),
 		tocnf(false),
 		splitagg(false),
-		watchesratio(0.76), // Note 0.75 is an often occurring, still good ratio to add watches, so a little above is a good ratio
+		watchesratio(0.751), // Note 0.75 is an often occurring, good ratio to add watches, so a little higher guarantees that for that ratio, watches are introduced
 		primesfile(""),
 		rand_var_freq(getDefaultRandfreq()),
 		var_decay(getDefaultDecay()),
