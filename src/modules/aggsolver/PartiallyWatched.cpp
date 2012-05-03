@@ -24,6 +24,8 @@ using namespace MinisatID;
 /**
  * TODO sorted aggr?
  * TODO maximum aggregate?
+ *
+ * Note: only works for sum and prod aggregates with positive weights!
  */
 
 GenPWAgg::GenPWAgg(TypedSet* set)
@@ -55,16 +57,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	// TODO duplicate with fully watched
 #ifdef NOARBITPREC
-	if (getType().getType() == AggType::SUM) {
-		//Test whether the total sum of the weights is not infinity for intweights
-		Weight total(0);
-		for (vwl::const_iterator i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
-			if (INT_MAX - total < i->getWeight()) {
-				throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			}
-			total += abs(i->getWeight());
-		}
-	} else if (getType().getType() == AggType::PROD) {
+	if (getType().getType() == AggType::PROD) {
 		//Test whether the total product of the weights is not infinity for intweights
 		Weight total(1);
 		for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
@@ -75,6 +68,8 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		}
 	}
 #endif
+
+	makeSumSetPositive(getSet());
 
 	setBoundsOnEmptyInterpr(minmaxBounds(getType().getMinPossible(set), getType().getMaxPossible(set)));
 
@@ -119,6 +114,7 @@ rClause GenPWAgg::reInitialize() {
 	//	confl = propagateAtEndOfQueue(); // TODO why necessary here and not in initialize?
 	//}
 	addStagedWatchesToNetworkOnStable(confl);
+	//notifyFirstPropagation(mkPosLit(-1));
 	return confl;
 }
 
@@ -468,7 +464,7 @@ void GenPWAgg::notifyFirstPropagation(const Lit& firstprop) {
 	if (backtracklist.size() == 0) {
 		backtracklist.push_back( { var(firstprop), currentlevel });
 	} else if (backtracklist.back().second < currentlevel) {
-		if (backtracklist.back().first != var(firstprop)) {
+		if (backtracklist.back().first != var(firstprop) || firstprop==mkPosLit(-1)) {
 			backtracklist.push_back( { var(firstprop), currentlevel });
 		}
 	} else {
@@ -480,6 +476,8 @@ void GenPWAgg::notifyFirstPropagation(const Lit& firstprop) {
 /**
  * @pre: pessbounds are the bounds in the CURRENT interpretation
  * @pre: calculateBoundsOfWatches AND genWatches
+ *
+ * NOTE: propagation only correct for positive weights!
  */
 rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * aggofprophead) {
 	auto confl = nullPtrClause;

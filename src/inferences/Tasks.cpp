@@ -442,6 +442,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
+			agg->reInitializeAgg();
 			break;
 		}
 		case Optim::VAR: {

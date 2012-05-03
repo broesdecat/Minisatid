@@ -807,41 +807,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 
-#ifdef NOARBITPREC
-	//Test whether the total sum of the weights is not infinity for intweights
-	Weight total(0);
-	for (vwl::const_iterator i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
-		if (INT_MAX - total < i->getWeight()) {
-			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-		}
-		total += abs(i->getWeight());
-	}
-#endif
-
-	//Calculate the total negative weight to make all weights positive
-	vwl wlits2;
-	auto kb = getSet().getKnownBound();
-	Weight totalneg(kb < 0 ? kb : 0);
-	for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
-		if (i->getWeight() < 0) {
-			totalneg -= i->getWeight();
-		}
-	}
-	if (totalneg > 0) {
-		//Important: negate literals of with negative weights!
-		for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
-			if (i->getWeight() < 0) {
-				wlits2.push_back(WL(~i->getLit(), abs(i->getWeight())));
-			} else {
-				wlits2.push_back(*i);
-			}
-		}
-		getSet().setWL(wlits2);
-		for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
-			Weight b = getSet().getType().add((*i)->getCertainBound(), totalneg);
-			(*i)->setBound(AggBound((*i)->getSign(), b));
-		}
-	}
+	makeSumSetPositive(getSet());
 
 	FWAgg::initialize(unsat, sat);
 }

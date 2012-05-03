@@ -110,5 +110,7 @@ private:
 	void addExplanation(AggReason& ar) const;
 };
 
+void makeSumSetPositive(TypedSet& set);
+
 } /* namespace MinisatID */
 #endif /* AGGSET_HPP_ */

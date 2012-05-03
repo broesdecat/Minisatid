@@ -302,21 +302,21 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 		return;
 	}
 
-	MAssert(aggs[0]->getSem()!=AggSem::OR);
-
 	//create implication aggs
 	tempagglist implaggs, del;
 	for (auto i = aggs.cbegin(); i < aggs.cend(); ++i) {
-		const TempAgg& agg = *(*i);
+		auto agg = *(*i);
 
-		TempAgg *one, *two;
-		Weight weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
-		AggSign signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
-		one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
-		two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
+		auto weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
+		auto signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
+		if(agg.getSem()!=AggSem::OR){
+			auto one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
+			implaggs.push_back(one);
+		}
 
-		implaggs.push_back(one);
+		auto two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
 		implaggs.push_back(two);
+
 		del.push_back(*i);
 	}
 
