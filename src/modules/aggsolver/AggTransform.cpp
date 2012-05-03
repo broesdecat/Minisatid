@@ -307,17 +307,17 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 	for (auto i = aggs.cbegin(); i < aggs.cend(); ++i) {
 		auto agg = *(*i);
 
-		auto weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
-		auto signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
-		if(agg.getSem()!=AggSem::OR){
+		if(agg.getSem()==AggSem::OR){
+			implaggs.push_back(*i);
+		}else{
+			auto weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
+			auto signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
 			auto one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
+			auto two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
 			implaggs.push_back(one);
+			implaggs.push_back(two);
+			del.push_back(*i);
 		}
-
-		auto two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
-		implaggs.push_back(two);
-
-		del.push_back(*i);
 	}
 
 	//separate in both signs

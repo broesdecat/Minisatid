@@ -162,7 +162,11 @@ void RealECNFPrinter<Stream>::add(const CPAllDiff& alldiff) {
 }
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPBinaryRel& binconstr) {
-	target() <<CPBININTSTR <<" " <<binconstr.head <<" " <<binconstr.varID <<" " <<binconstr.rel <<" " <<binconstr.bound <<" 0\n";
+	target() <<CPBININTSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.varID <<" " <<binconstr.rel <<" " <<binconstr.bound <<" 0\n";
+}
+template<typename Stream>
+void RealECNFPrinter<Stream>::add(const CPBinaryRelVar& binconstr) {
+	target() <<CPBINVARSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.rhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
 }
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPCount& count) {
@@ -173,12 +177,8 @@ void RealECNFPrinter<Stream>::add(const CPCount& count) {
 	target() <<DELIMSTR <<count.eqbound <<" " <<count.rel <<" " <<count.rhsvar <<" 0\n";
 }
 template<typename Stream>
-void RealECNFPrinter<Stream>::add(const CPBinaryRelVar& binconstr) {
-	target() <<CPBINVARSTR <<" " <<binconstr.head <<" " <<binconstr.rhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
-}
-template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPSumWeighted& sum) {
-	target() << CPSUMSTR <<" " <<sum.head <<" ";
+	target() << CPSUMSTR <<" " <<toString(mkPosLit(sum.head)) <<" ";
 	for (auto i = sum.varIDs.cbegin(); i < sum.varIDs.cend(); ++i) {
 		target() << *i << " ";
 	}

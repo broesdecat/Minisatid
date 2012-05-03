@@ -410,7 +410,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 	if (unsatreached && modelfound) {
 		getSolver().resetState();
 		getSolver().setAssumptions(assmpt); // Note prevents when finding multiple models, that in findnext, reset is called again
-		// TODO In fact should be able to disable saving the state now?
+		// TODO In fact from here the state no longer has to be saved
 		// Prevent to find the first model again
 		Disjunction d;
 		for (auto i = savedinvalidation.cbegin(); i < savedinvalidation.cend(); ++i) {

@@ -42,6 +42,7 @@ class ConstraintVisitor;
 namespace Minisat {
 
 class Solver: public MinisatID::Propagator {
+	// FIXME returning CRefs is dangerous, as they can be relocated by garbage control!
 public:
 	double random_var_freq;
 	double random_seed;

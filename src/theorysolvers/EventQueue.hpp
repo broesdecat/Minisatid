@@ -59,7 +59,9 @@ public:
 	void accept(Propagator* propagator);
 
 	void acceptForPropagation(Propagator* propagator){
-		fastqueue.push_back(propagator);
+		if(not propagator->isQueued()){
+			fastqueue.push_back(propagator);
+		}
 	}
 
 	void saveState();
