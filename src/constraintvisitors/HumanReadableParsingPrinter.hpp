@@ -57,7 +57,7 @@ public:
 	}
 
 	void add(const WLSet& set){
-		target() <<"Added non-weighted set " <<set.setID <<" = {";
+		target() <<"Added weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
 		for(auto i=set.wl.cbegin(); i!=set.wl.cend(); ++i, ++count){
 			target() <<toString((*i).getLit(), getPrinter()) <<"=" <<(*i).getWeight();
@@ -69,9 +69,17 @@ public:
 	}
 
 	void add(const Aggregate& agg){
-		target() <<"Added aggregate " <<toString(agg.head, getPrinter()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
-		if(agg.sem==AggSem::DEF){
-			target() <<"(" <<agg.defID <<")";
+		target() <<"Added aggregate " <<toString(agg.head, getPrinter()) <<" ";
+		switch(agg.sem){
+		case AggSem::COMP:
+			target() <<"<=>";
+			break;
+		case AggSem::DEF:
+			target() <<"<-" <<"(" <<agg.defID <<")";
+			break;
+		case AggSem::OR:
+			target() <<"|";
+			break;
 		}
 		target() <<" " <<agg.type;
 		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AggSign::UB?"=<":">=") <<agg.bound;
