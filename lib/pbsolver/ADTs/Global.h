@@ -268,8 +268,8 @@ public:
   #endif
 
     // Don't allow copying (error prone):
-    vec<T>&  operator = (vec<T>& other) { TEMPLATE_FAIL; return *this; }
-             vec        (vec<T>& other) { TEMPLATE_FAIL; }
+    vec<T>&  operator = (vec<T>& other) { assert(false); return *this; }
+             vec        (vec<T>& other) { assert(false); }
 
     // Duplicatation (preferred instead):
     void copyTo(vec<T>& copy) const { copy.clear(); copy.growTo(sz); for (int i = 0; i < sz; i++) new (&copy[i]) T(data[i]); }

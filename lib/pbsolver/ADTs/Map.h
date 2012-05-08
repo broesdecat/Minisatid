@@ -108,8 +108,8 @@ public:
     void     clear (void)       { dispose(); init(1); }
 
     // Don't allow copying:
-    Map<K,D,Par>& operator = (Map<K,D,Par>& other) { TEMPLATE_FAIL; return *this; }
-                  Map        (Map<K,D,Par>& other) { TEMPLATE_FAIL; }
+    Map<K,D,Par>& operator = (Map<K,D,Par>& other) { assert(false); return *this; }
+                  Map        (Map<K,D,Par>& other) { assert(false); }
 
     //---------------------------------------------------------------------------------------------
     // Export:

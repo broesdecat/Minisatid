@@ -198,4 +198,4 @@ void RealECNFPrinter<Stream>::add(const CPElement& elem) {
 }
 
 // Explicit instantiations. Note, apparently, they have to be AT THE END of the cpp
-template class RealECNFPrinter<std::ostream> ;
+template class MinisatID::RealECNFPrinter<std::ostream> ;

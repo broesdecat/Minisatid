@@ -830,4 +830,4 @@ void FlatZincRewriter<Stream>::add(const CPSumWeighted& sum) {
 }
 
 // Explicit instantiations. Note, apparently, they have to be AT THE END of the cpp
-template class FlatZincRewriter<std::ostream> ;
+template class MinisatID::FlatZincRewriter<std::ostream> ;
