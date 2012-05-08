@@ -829,8 +829,13 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 		}
 		if ((*i)->getSign() == AggSign::UB) {
 			if((*i)->getSem()!=AggSem::OR){
-				unsat = true;
-				return;
+				auto headval = value((*i)->getHead());
+				if(headval==l_True){
+					unsat = true;
+					return;
+				}else if(headval==l_Undef){
+					getSet().getPCSolver().setTrue(~(*i)->getHead(), getSetp());
+				}
 			}
 		}
 		// always positive
