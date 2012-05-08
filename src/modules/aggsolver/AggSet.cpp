@@ -21,11 +21,11 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 		const std::vector<TempAgg*>& aggr, bool optim) :
 		Propagator(solver, "aggregate"),
 		kb(knownbound),
-		wl(wls),
 		type(w),
 		prop(NULL),
 		setid(setid),
 		usingwatches(usewatches){
+	setWL(wls);
 	MAssert(not optim || aggr.size()==1);
 	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
 		addAgg(**i, optim);
