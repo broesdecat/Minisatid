@@ -104,3 +104,9 @@ void Space::add(const CPElement& o){
 void Space::add(const LazyGroundLit& o){
 	internalAdd(o, *getEngine());
 }
+void Space::add(const LazyGroundImpl& o){
+	internalAdd(o, *getEngine());
+}
+void Space::add(const LazyAddition& o){
+	internalAdd(o, *getEngine());
+}

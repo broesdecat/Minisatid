@@ -83,9 +83,6 @@ T& operator<<(T& stream, ImplicationType type) {
 	case ImplicationType::EQUIVALENT:
 		stream << "<=>";
 		break;
-	case ImplicationType::IMPLIEDBY:
-		stream << "<=";
-		break;
 	case ImplicationType::IMPLIES:
 		stream << "=>";
 		break;

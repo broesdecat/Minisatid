@@ -92,6 +92,8 @@ public:
 	virtual void add(const CPSumWeighted&);
 	virtual void add(const CPElement&) ;
 	virtual void add(const LazyGroundLit&);
+	virtual void add(const LazyGroundImpl&);
+	virtual void add(const LazyAddition&);
 };
 
 }

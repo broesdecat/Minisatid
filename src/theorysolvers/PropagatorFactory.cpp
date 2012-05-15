@@ -534,3 +534,16 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 		//std::clog <<"First choosing " <<mkPosLit(var(object.residual)) <<" " <<(not sign(object.residual)?"true":"false") <<"\n";
 	}
 }
+
+void PropagatorFactory::add(const LazyGroundImpl& object) {
+	MAssert(getEngine().modes().lazy);
+	if(object.impl.conjunction && object.impl.type==ImplicationType::IMPLIES){
+		getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not sign(object.impl.head));
+	}
+	MAssert(grounder2clause.find(object.monitor)==grounder2clause.cend());
+	grounder2clause[object.monitor] = new LazyTseitinClause(getEnginep(), object.impl, object.monitor);
+}
+
+void PropagatorFactory::add(const LazyAddition& object) {
+	grounder2clause[object.ref]->addGrounding(object.list);
+}

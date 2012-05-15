@@ -126,6 +126,21 @@ public:
 	}
 };
 template<typename Engine>
+class ExtAdd<LazyGroundImpl, Engine> {
+public:
+	void extAdd(Engine& space, const LazyGroundImpl& obj) {
+		auto& r = *space.getRemapper();
+		space.add(LazyGroundImpl(Implication(checkLit(obj.impl.head, r), obj.impl.type, checkLits(obj.impl.body, r), obj.impl.conjunction), obj.monitor));
+	}
+};
+template<typename Engine>
+class ExtAdd<LazyAddition, Engine> {
+public:
+	void extAdd(Engine& space, const LazyAddition& obj) {
+		space.add(LazyAddition(checkLits(obj.list, *space.getRemapper()), obj.ref));
+	}
+};
+template<typename Engine>
 class ExtAdd<IntVarEnum, Engine> {
 public:
 	void extAdd(Engine& space, const IntVarEnum& obj) {

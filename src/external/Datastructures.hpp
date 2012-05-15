@@ -56,8 +56,9 @@ struct WLtuple {
 		return w;
 	}
 
-	WLtuple(const Lit& l, const Weight& w) :
-			l(l), w(w) {
+	WLtuple(const Lit& l, const Weight& w)
+			: 	l(l),
+				w(w) {
 	}
 
 	bool operator<(const WLtuple& p) const {
@@ -110,12 +111,12 @@ private:
 	static int nextid;
 public:
 	int id;
-	ID() :
-			id(nextid) {
+	ID()
+			: id(nextid) {
 		nextid++;
 	}
-	ID(int id) :
-			id(id) { // FIXME add to interface!
+	ID(int id)
+			: id(id) { // FIXME add to interface!
 	}
 	virtual ~ID() {
 	}
@@ -134,8 +135,8 @@ public:
 	std::vector<Lit> literals;
 	Disjunction() {
 	}
-	Disjunction(const std::vector<Lit>& literals) :
-			literals(literals) {
+	Disjunction(const std::vector<Lit>& literals)
+			: literals(literals) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -150,7 +151,7 @@ public:
 };
 
 enum class ImplicationType {
-	IMPLIES, IMPLIEDBY, EQUIVALENT
+	IMPLIES, EQUIVALENT
 };
 
 class Implication: public ID {
@@ -160,9 +161,11 @@ public:
 	std::vector<Lit> body;
 	bool conjunction;
 
-	Implication(const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction) :
-			head(head), type(type), body(body), conjunction(conjunction) {
-
+	Implication(const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction)
+			: 	head(head),
+				type(type),
+				body(body),
+				conjunction(conjunction) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -185,8 +188,11 @@ public:
 	bool conjunctive;
 	int definitionID;
 
-	Rule(Var head, const std::vector<Lit>& body, bool conjunctive, int definitionID) :
-			head(head), body(body), conjunctive(conjunctive), definitionID(definitionID) {
+	Rule(Var head, const std::vector<Lit>& body, bool conjunctive, int definitionID)
+			: 	head(head),
+				body(body),
+				conjunctive(conjunctive),
+				definitionID(definitionID) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -208,11 +214,12 @@ public:
 		return wl;
 	}
 
-	WLSet(int setID) :
-			setID(setID) {
+	WLSet(int setID)
+			: setID(setID) {
 	}
-	WLSet(int setID, const std::vector<WLtuple>& wl) :
-			setID(setID), wl(wl) {
+	WLSet(int setID, const std::vector<WLtuple>& wl)
+			: 	setID(setID),
+				wl(wl) {
 
 	}
 
@@ -240,8 +247,14 @@ public:
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate, otherwise the value does not matter
 
-	Aggregate(const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID) :
-			head(head), setID(setID), bound(bound), type(type), sign(sign), sem(sem), defID(defID) {
+	Aggregate(const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID)
+			: 	head(head),
+				setID(setID),
+				bound(bound),
+				type(type),
+				sign(sign),
+				sem(sem),
+				defID(defID) {
 		MAssert(sem!=AggSem::DEF || defID!=-1);
 		MAssert(sem!=AggSem::DEF || isPositive(head));
 	}
@@ -258,8 +271,9 @@ public:
 	uint priority;
 	std::vector<Lit> literals;
 
-	MinimizeOrderedList(uint priority, std::vector<Lit> literals) :
-			priority(priority), literals(literals) {
+	MinimizeOrderedList(uint priority, std::vector<Lit> literals)
+			: 	priority(priority),
+				literals(literals) {
 
 	}
 
@@ -279,8 +293,9 @@ public:
 	uint priority;
 	std::vector<Lit> literals;
 
-	MinimizeSubset(uint priority, std::vector<Lit> literals) :
-			priority(priority), literals(literals) {
+	MinimizeSubset(uint priority, std::vector<Lit> literals)
+			: 	priority(priority),
+				literals(literals) {
 
 	}
 
@@ -300,8 +315,9 @@ public:
 	uint priority;
 	uint varID;
 
-	MinimizeVar(uint priority, uint varID) :
-			priority(priority), varID(varID) {
+	MinimizeVar(uint priority, uint varID)
+			: 	priority(priority),
+				varID(varID) {
 
 	}
 
@@ -318,8 +334,10 @@ public:
 	int setid;
 	AggType type;
 
-	MinimizeAgg(uint priority, int setid, AggType type) :
-			priority(priority), setid(setid), type(type) {
+	MinimizeAgg(uint priority, int setid, AggType type)
+			: 	priority(priority),
+				setid(setid),
+				type(type) {
 
 	}
 
@@ -336,8 +354,10 @@ struct IntVarRange: public ID {
 
 	DATASTRUCTURE_DECLAREACCEPT
 
-	IntVarRange(uint varID, const Weight& minvalue, const Weight& maxvalue) :
-			varID(varID), minvalue(minvalue), maxvalue(maxvalue) {
+	IntVarRange(uint varID, const Weight& minvalue, const Weight& maxvalue)
+			: 	varID(varID),
+				minvalue(minvalue),
+				maxvalue(maxvalue) {
 
 	}
 
@@ -350,8 +370,9 @@ struct IntVarEnum: public ID {
 	uint varID;
 	std::vector<Weight> values;
 
-	IntVarEnum(uint varID, const std::vector<Weight>& values) :
-			varID(varID), values(values) {
+	IntVarEnum(uint varID, const std::vector<Weight>& values)
+			: 	varID(varID),
+				values(values) {
 
 	}
 
@@ -368,8 +389,11 @@ struct CPBinaryRel: public ID {
 	EqType rel;
 	Weight bound;
 
-	CPBinaryRel(Var head, uint varID, EqType rel, const Weight& bound) :
-			head(head), varID(varID), rel(rel), bound(bound) {
+	CPBinaryRel(Var head, uint varID, EqType rel, const Weight& bound)
+			: 	head(head),
+				varID(varID),
+				rel(rel),
+				bound(bound) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -384,8 +408,11 @@ struct CPBinaryRelVar: public ID {
 	uint lhsvarID, rhsvarID;
 	EqType rel;
 
-	CPBinaryRelVar(Var head, uint lhsvarID, EqType rel, uint rhsvarID) :
-			head(head), lhsvarID(lhsvarID), rhsvarID(rhsvarID), rel(rel) {
+	CPBinaryRelVar(Var head, uint lhsvarID, EqType rel, uint rhsvarID)
+			: 	head(head),
+				lhsvarID(lhsvarID),
+				rhsvarID(rhsvarID),
+				rel(rel) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -402,8 +429,12 @@ struct CPSumWeighted: public ID {
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(Var head, const std::vector<uint>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound) :
-			head(head), varIDs(varIDs), weights(weights), rel(rel), bound(bound) {
+	CPSumWeighted(Var head, const std::vector<uint>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
+			: 	head(head),
+				varIDs(varIDs),
+				weights(weights),
+				rel(rel),
+				bound(bound) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -420,8 +451,11 @@ struct CPCount: public ID {
 	EqType rel;
 	uint rhsvar;
 
-	CPCount(const std::vector<uint>& varIDs, const Weight& eqbound, EqType rel, uint rhsvar) :
-			varIDs(varIDs), eqbound(eqbound), rel(rel), rhsvar(rhsvar) {
+	CPCount(const std::vector<uint>& varIDs, const Weight& eqbound, EqType rel, uint rhsvar)
+			: 	varIDs(varIDs),
+				eqbound(eqbound),
+				rel(rel),
+				rhsvar(rhsvar) {
 
 	}
 
@@ -435,8 +469,8 @@ struct CPCount: public ID {
 struct CPAllDiff: public ID {
 	std::vector<uint> varIDs;
 
-	CPAllDiff(const std::vector<uint>& ids) :
-			varIDs(ids) {
+	CPAllDiff(const std::vector<uint>& ids)
+			: varIDs(ids) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -451,8 +485,10 @@ struct CPElement: public ID {
 	uint index;
 	uint rhs;
 
-	CPElement(const std::vector<uint>& ids, uint index, uint rhs) :
-			varIDs(ids), index(index), rhs(rhs) {
+	CPElement(const std::vector<uint>& ids, uint index, uint rhs)
+			: 	varIDs(ids),
+				index(index),
+				rhs(rhs) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -466,8 +502,8 @@ class Symmetry: public ID {
 public:
 	// INVAR: the keys are unique
 	std::vector<std::vector<Literal> > symmetry;
-	Symmetry(std::vector<std::vector<Literal> > s) :
-			symmetry(s) {
+	Symmetry(std::vector<std::vector<Literal> > s)
+			: symmetry(s) {
 
 	}
 
@@ -488,8 +524,8 @@ class LazyGroundingCommand {
 private:
 	bool allreadyground;
 public:
-	LazyGroundingCommand() :
-			allreadyground(false) {
+	LazyGroundingCommand()
+			: allreadyground(false) {
 	}
 	virtual ~LazyGroundingCommand() {
 	}
@@ -511,14 +547,66 @@ public:
 	Lit residual;
 	LazyGroundingCommand* monitor;
 
-	LazyGroundLit(bool watchboth, const Lit& residual, LazyGroundingCommand* monitor) :
-			watchboth(watchboth), residual(residual), monitor(monitor) {
+	LazyGroundLit(bool watchboth, const Lit& residual, LazyGroundingCommand* monitor)
+			: 	watchboth(watchboth),
+				residual(residual),
+				monitor(monitor) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
 		return {var(residual)};
+	}
+};
+
+class LazyGrounder {
+public:
+	LazyGrounder() {
+	}
+	virtual ~LazyGrounder() {
+	}
+
+	virtual void requestGrounding(bool groundall, bool& stilldelayed) = 0;
+};
+class LazyGroundImpl: public ID {
+public:
+	Implication impl;
+	LazyGrounder* monitor;
+
+	LazyGroundImpl(const Implication& impl, LazyGrounder* monitor)
+			: 	impl(impl),
+				monitor(monitor) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		std::vector<Atom> atoms;
+		for (auto i = impl.body.cbegin(); i < impl.body.cend(); ++i) {
+			atoms.push_back(var(*i));
+		}
+		atoms.push_back(var(impl.head));
+		return atoms;
+	}
+};
+class LazyAddition: public ID {
+public:
+	litlist list;
+	LazyGrounder* ref;
+
+	LazyAddition(const litlist& list, LazyGrounder* ref)
+			: list(list), ref(ref) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		std::vector<Atom> atoms;
+		for (auto i = list.cbegin(); i < list.cend(); ++i) {
+			atoms.push_back(var(*i));
+		}
+		return atoms;
 	}
 };
 

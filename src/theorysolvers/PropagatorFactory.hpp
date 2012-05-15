@@ -36,6 +36,9 @@ class Propagator;
 class IDSolver;
 class AggToCNFTransformer;
 
+class LazyTseitinClause;
+class LazyGrounder;
+
 #ifdef CPSUPPORT
 class CPSolver;
 #endif
@@ -133,6 +136,7 @@ private:
 	int minnewset; // Interal sets count downwards!
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<Aggregate*> parsedaggs;
+	std::map<LazyGrounder*, LazyTseitinClause*> grounder2clause;
 
 	// Logging
 	std::vector<ConstraintPrinter*> parsingmonitors;
@@ -166,6 +170,8 @@ public:
 	void add(const CPAllDiff& object);
 	void add(const CPElement& object);
 	void add(const LazyGroundLit& object);
+	void add(const LazyGroundImpl& object);
+	void add(const LazyAddition& object);
 
 	int newSetID();
 

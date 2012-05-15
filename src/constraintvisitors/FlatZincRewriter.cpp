@@ -582,23 +582,6 @@ void FlatZincRewriter<Stream>::addEquiv(const Implication& implication, CloseCon
 			add(d);
 		}
 		break;
-	case ImplicationType::IMPLIEDBY:
-		if (implication.conjunction) {
-			Disjunction d;
-			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
-				d.literals.push_back(not *i);
-			}
-			d.literals.push_back(implication.head);
-			add(d);
-		} else {
-			Disjunction d;
-			d.literals.resize(2, implication.head);
-			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
-				d.literals[1] = *i;
-				add(d);
-			}
-		}
-		break;
 	}
 	if (close == CLOSE) {
 		constraints << ";\n";

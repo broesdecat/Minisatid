@@ -64,9 +64,6 @@ namespace MinisatID{
 			addImplication(head, body, conjunction, clauses);
 			addReverseImplication(head, body, conjunction, clauses);
 			break;
-		case ImplicationType::IMPLIEDBY:
-			addReverseImplication(head, body, conjunction, clauses);
-			break;
 		case ImplicationType::IMPLIES:
 			addImplication(head, body, conjunction, clauses);
 			break;
@@ -101,4 +98,6 @@ void x::accept(Space* visitor){\
 	DATASTRUCTURE_ACCEPT(IntVarEnum)
 	DATASTRUCTURE_ACCEPT(IntVarRange)
 	DATASTRUCTURE_ACCEPT(LazyGroundLit)
+	DATASTRUCTURE_ACCEPT(LazyGroundImpl)
+	DATASTRUCTURE_ACCEPT(LazyAddition)
 }

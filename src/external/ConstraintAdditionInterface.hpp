@@ -84,6 +84,12 @@ public:
 	virtual void add(const LazyGroundLit&) {
 		UNHANDLED("lazy residuals", getName())
 	}
+	virtual void add(const LazyGroundImpl&) {
+		UNHANDLED("lazy implications", getName())
+	}
+	virtual void add(const LazyAddition&) {
+		UNHANDLED("lazy implication additions", getName())
+	}
 };
 
 class Translator;

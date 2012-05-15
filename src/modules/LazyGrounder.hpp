@@ -63,6 +63,30 @@ public:
 	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }
 	virtual int getNbOfFormulas() const { return 1; }
 };
+
+class LazyTseitinClause: public Propagator{
+private:
+	LazyGrounder* monitor;
+	bool waseq;
+	Implication implone, impltwo;
+
+	litlist newgrounding;
+
+public:
+	LazyTseitinClause(PCSolver* engine, Implication impl, LazyGrounder* monitor);
+
+	void addGrounding(const litlist& list);
+
+	virtual rClause notifypropagate();
+	virtual void accept(ConstraintVisitor& visitor);
+	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
+	virtual void notifyNewDecisionLevel() { MAssert(false); }
+	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }
+	virtual int getNbOfFormulas() const { return 1; } // TODO incorrect
+
+private:
+	bool checkPropagation(Implication& tocheck, Implication& complement);
+};
 }
 
 #endif /* LAZYGROUNDER_HPP_ */
