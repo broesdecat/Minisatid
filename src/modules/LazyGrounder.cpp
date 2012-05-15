@@ -73,12 +73,14 @@ rClause LazyResidual::notifypropagate() {
 	}
 }
 
-LazyTseitinClause::LazyTseitinClause(PCSolver* engine, Implication impl, LazyGrounder* monitor)
+LazyTseitinClause::LazyTseitinClause(PCSolver* engine, Implication impl, LazyGrounder* monitor, int ID)
 		: 	Propagator(engine, "lazy tseitin eq"),
+		  	id(ID),
 			monitor(monitor),
 			waseq(impl.type == ImplicationType::EQUIVALENT),
 			implone(impl),
-			impltwo(impl) {
+			impltwo(impl),
+			alreadypropagating(false) {
 	if (waseq) {
 		implone = Implication(impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
 		litlist lits;
@@ -147,6 +149,11 @@ public:
  * 	If eq, combine both
  */
 rClause LazyTseitinClause::notifypropagate() {
+	if (alreadypropagating) {
+		return nullPtrClause;
+	}
+	alreadypropagating = true;
+	//cerr <<"Propagating " <<long(this) <<"\n";
 	MAssert(isPresent());
 	MAssert(not getPCSolver().isUnsat());
 
@@ -166,14 +173,17 @@ rClause LazyTseitinClause::notifypropagate() {
 		notifyNotPresent(); // IMPORTANT/ only do this after finishparsing as this propagator is then DELETED
 	}
 
+	//cerr <<"Finished propagating " <<long(this) <<"\n";
+	auto confl = nullPtrClause;
 	if (getPCSolver().isUnsat()) {
-		return getPCSolver().createClause(Disjunction(), true);
-	} else {
-		return nullPtrClause;
+		confl = getPCSolver().createClause(Disjunction(), true);
 	}
+	alreadypropagating = false;
+	return confl;
 }
 
-void LazyTseitinClause::addGrounding(const litlist& list){
+void LazyTseitinClause::addGrounding(const litlist& list) {
+	//cerr <<"Adding grounding" <<long(this) <<"\n";
 	newgrounding = list;
 }
 
@@ -183,14 +193,16 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 		if (value(tocheck.head) == l_True) {
 			groundedall = true;
 			bool stilldelayed = true;
-			monitor->requestGrounding(true, stilldelayed); // get all grounding
+			monitor->requestGrounding(id, true, stilldelayed); // get all grounding
 			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
 				internalAdd(Disjunction( { not tocheck.head, *i }), getPCSolver());
 				if (waseq) {
 					complement.body.push_back(~*i);
 				}
 			}
-			internalAdd(Disjunction(complement.body), getPCSolver());
+			auto lits = complement.body;
+			lits.push_back(not complement.head);
+			internalAdd(Disjunction(lits), getPCSolver());
 		} else { // Can only happen once, at initialization
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
 		}
@@ -198,19 +210,33 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 		int nonfalse = 0;
 		int index = 0;
 		while (nonfalse < 2) {
-			MAssert(implone.body.size()+1>=index);
+			MAssert(tocheck.body.size()+1>=index);
 			if (tocheck.body.size() <= index) {
 				bool stilldelayed = true;
-				monitor->requestGrounding(false, stilldelayed);
-				if (stilldelayed) {
+				newgrounding.clear();
+				//cerr <<"Requesting grounding" <<long(this) <<"\n";
+				monitor->requestGrounding(id, false, stilldelayed);
+				//cerr <<"Finished grounding" <<long(this) <<"\n";
+				if (not stilldelayed) {
 					groundedall = true;
-					break;
+					if (newgrounding.empty()) {
+						break;
+					}
 				}
+				MAssert(not newgrounding.empty());
 				tocheck.body.insert(tocheck.body.end(), newgrounding.cbegin(), newgrounding.cend());
-				for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-					internalAdd(Disjunction( { not tocheck.head, ~*i }), getPCSolver());
+				if (waseq) {
+					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
+						//cerr <<"Adding constraint" <<long(this) <<"\n";
+						internalAdd(Disjunction( { not complement.head, ~*i }), getPCSolver());
+						//cerr <<"Finished constraint" <<long(this) <<"\n";
+					}
 				}
 			}
+			if(groundedall){
+				break;
+			}
+			MAssert(tocheck.body.size()>index);
 			if (value(tocheck.body[index]) != l_False) {
 				if (index != nonfalse) {
 					auto temp = tocheck.body[nonfalse];
@@ -221,6 +247,11 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 				nonfalse++;
 			}
 			index++;
+		}
+		if (groundedall) {
+			auto lits = tocheck.body;
+			lits.push_back(not tocheck.head);
+			internalAdd(Disjunction(lits), getPCSolver());
 		}
 	}
 	return groundedall;

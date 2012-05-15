@@ -567,7 +567,7 @@ public:
 	virtual ~LazyGrounder() {
 	}
 
-	virtual void requestGrounding(bool groundall, bool& stilldelayed) = 0;
+	virtual void requestGrounding(int id, bool groundall, bool& stilldelayed) = 0;
 };
 class LazyGroundImpl: public ID {
 public:
@@ -593,9 +593,9 @@ public:
 class LazyAddition: public ID {
 public:
 	litlist list;
-	LazyGrounder* ref;
+	int ref;
 
-	LazyAddition(const litlist& list, LazyGrounder* ref)
+	LazyAddition(const litlist& list, int ref)
 			: list(list), ref(ref) {
 	}
 

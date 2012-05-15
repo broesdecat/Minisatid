@@ -540,8 +540,8 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 	if(object.impl.conjunction && object.impl.type==ImplicationType::IMPLIES){
 		getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not sign(object.impl.head));
 	}
-	MAssert(grounder2clause.find(object.monitor)==grounder2clause.cend());
-	grounder2clause[object.monitor] = new LazyTseitinClause(getEnginep(), object.impl, object.monitor);
+	MAssert(grounder2clause.find(object.id)==grounder2clause.cend());
+	grounder2clause[object.id] = new LazyTseitinClause(getEnginep(), object.impl, object.monitor, object.id);
 }
 
 void PropagatorFactory::add(const LazyAddition& object) {
