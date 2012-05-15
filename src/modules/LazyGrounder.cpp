@@ -82,12 +82,12 @@ LazyTseitinClause::LazyTseitinClause(PCSolver* engine, Implication impl, LazyGro
 			impltwo(impl),
 			alreadypropagating(false) {
 	if (waseq) {
-		implone = Implication(impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
+		implone = Implication(not impl.head, ImplicationType::IMPLIES, impl.body, not impl.conjunction);
 		litlist lits;
 		for (auto i = impl.body.cbegin(); i < impl.body.cend(); ++i) {
 			lits.push_back(not *i);
 		}
-		impltwo = Implication(not impl.head, ImplicationType::IMPLIES, lits, not impl.conjunction);
+		impltwo = Implication(impl.head, ImplicationType::IMPLIES, lits, impl.conjunction);
 	} else {
 		implone = impl;
 	}
@@ -197,7 +197,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
 				internalAdd(Disjunction( { not tocheck.head, *i }), getPCSolver());
 				if (waseq) {
-					complement.body.push_back(~*i);
+					complement.body.push_back(*i);
 				}
 			}
 			auto lits = complement.body;
@@ -228,7 +228,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 				if (waseq) {
 					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
 						//cerr <<"Adding constraint" <<long(this) <<"\n";
-						internalAdd(Disjunction( { not complement.head, ~*i }), getPCSolver());
+						internalAdd(Disjunction( { not complement.head, *i }), getPCSolver());
 						//cerr <<"Finished constraint" <<long(this) <<"\n";
 					}
 				}
