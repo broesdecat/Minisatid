@@ -82,12 +82,12 @@ LazyTseitinClause::LazyTseitinClause(PCSolver* engine, Implication impl, LazyGro
 			impltwo(impl),
 			alreadypropagating(false) {
 	if (waseq) {
-		implone = Implication(not impl.head, ImplicationType::IMPLIES, impl.body, not impl.conjunction);
+		implone = Implication(impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
 		litlist lits;
 		for (auto i = impl.body.cbegin(); i < impl.body.cend(); ++i) {
 			lits.push_back(not *i);
 		}
-		impltwo = Implication(impl.head, ImplicationType::IMPLIES, lits, impl.conjunction);
+		impltwo = Implication(not impl.head, ImplicationType::IMPLIES, lits, not impl.conjunction);
 	} else {
 		implone = impl;
 	}
@@ -121,8 +121,10 @@ public:
 	BasicPropWatch(const Lit& watch, Propagator* p)
 			: 	watch(watch),
 				p(p) {
+		//cerr <<"Watching " <<toString(watch, p->getPCSolver()) <<" in lazy propagator.\n";
 	}
 	virtual void propagate() {
+		//cerr <<"Accepted for propagation on " <<toString(watch, p->getPCSolver()) <<"\n";
 		p->getPCSolver().acceptForPropagation(p);
 	}
 	virtual const Lit& getPropLit() const {
@@ -159,14 +161,14 @@ rClause LazyTseitinClause::notifypropagate() {
 
 	bool groundedall = false;
 	if (waseq) {
-		groundedall = checkPropagation(impltwo, implone);
+		groundedall = checkPropagation(impltwo, true, implone); // NOTE: invar: impltwo is the implication with swapped signs!
 	}
 	if (not groundedall) {
-		groundedall = checkPropagation(implone, impltwo);
+		groundedall = checkPropagation(implone, false, impltwo);
 	}
 
 	if (not getPCSolver().isUnsat()) { // NOTE: otherwise, it will be called later and would be incorrect here!
-		getPCSolver().finishParsing();
+		getPCSolver().notifyFinishParsingNeed();
 	}
 
 	if (groundedall) {
@@ -187,7 +189,7 @@ void LazyTseitinClause::addGrounding(const litlist& list) {
 	newgrounding = list;
 }
 
-bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& complement) {
+bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped, Implication& complement) {
 	bool groundedall = false;
 	if (tocheck.conjunction) {
 		if (value(tocheck.head) == l_True) {
@@ -203,13 +205,17 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 			auto lits = complement.body;
 			lits.push_back(not complement.head);
 			internalAdd(Disjunction(lits), getPCSolver());
-		} else { // Can only happen once, at initialization
+		} else { // Can only happen once, at initialization (if the head has not yet become true at any point). If it becomes true, it is grounded and removed
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
 		}
 	} else {
 		int nonfalse = 0;
 		int index = 0;
-		while (nonfalse < 2) {
+		if(value(tocheck.head) != l_True){ // Remember, IMPLICATION!
+			nonfalse++;
+			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
+		}
+		while (nonfalse < 1) { // NOTE 1 or 2 is the difference between one-watched or two-watched schema!
 			MAssert(tocheck.body.size()+1>=index);
 			if (tocheck.body.size() <= index) {
 				bool stilldelayed = true;
@@ -224,11 +230,13 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 					}
 				}
 				MAssert(not newgrounding.empty());
-				tocheck.body.insert(tocheck.body.end(), newgrounding.cbegin(), newgrounding.cend());
+				for(auto i=newgrounding.cbegin(); i<newgrounding.cend(); ++i) {
+					tocheck.body.push_back(signswapped?not *i:*i);
+				}
 				if (waseq) {
 					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
 						//cerr <<"Adding constraint" <<long(this) <<"\n";
-						internalAdd(Disjunction( { not complement.head, *i }), getPCSolver());
+						internalAdd(Disjunction( { not complement.head, not *i }), getPCSolver());
 						//cerr <<"Finished constraint" <<long(this) <<"\n";
 					}
 				}
@@ -242,8 +250,8 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, Implication& comp
 					auto temp = tocheck.body[nonfalse];
 					tocheck.body[nonfalse] = tocheck.body[index];
 					tocheck.body[index] = temp;
-					getPCSolver().accept(new BasicPropWatch(tocheck.body[nonfalse], this));
 				}
+				getPCSolver().accept(new BasicPropWatch(not tocheck.body[nonfalse], this));
 				nonfalse++;
 			}
 			index++;

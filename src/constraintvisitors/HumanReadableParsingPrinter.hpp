@@ -182,7 +182,7 @@ public:
 	}
 
 	virtual void add(const LazyGroundImpl& lg) {
-		target() << "Added lazy implication " << lg.id << ": " << toString(lg.impl.head, getPrinter()) << " " << lg.impl.type;
+		target() << "Added lazy " <<(lg.impl.conjunction?"conjunctive":"disjunctive") <<" implication " << lg.id << ": " << toString(lg.impl.head, getPrinter()) << " " << lg.impl.type;
 		printList(lg.impl.body, lg.impl.conjunction ? " & " : " | ", target(), getPrinter());
 		if (lg.impl.body.size() > 0) {
 			target() << (lg.impl.conjunction ? " & " : " | ");

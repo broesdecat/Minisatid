@@ -200,6 +200,9 @@ public:
 	void notifyBoundsChanged(IntVar* var);
 	rClause notifyFullAssignmentFound();
 
+	// Called by lazy grounding to do finishparsing if real parsing has already been finished.
+	void notifyFinishParsingNeed();
+
 	// Clause management
 public:
 	// NOTE: bypasses propagatorfactory, might be important for some actions!

@@ -353,8 +353,13 @@ bool compareByPriority(const T& left, const T& right) {
 	return left.priority < right.priority;
 }
 
+void PCSolver::notifyFinishParsingNeed(){
+	if(parsingfinished){
+		finishParsing();
+	}
+}
+
 void PCSolver::finishParsing() {
-	parsingfinished = true;
 	sort(optimization.begin(), optimization.end(), compareByPriority<OptimStatement>);
 	for (uint i = 1; i < optimization.size(); ++i) {
 		if (optimization[i].priority == optimization[i - 1].priority) {
@@ -368,6 +373,7 @@ void PCSolver::finishParsing() {
 	if (val == SATVAL::UNSAT) {
 		notifyUnsat();
 	}
+	parsingfinished = true;
 }
 
 rClause PCSolver::notifyFullAssignmentFound() {

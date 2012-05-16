@@ -189,6 +189,10 @@ void ModelExpand::addModel(std::shared_ptr<Model> model) {
 	addModelToSolution(model, *getSpace()->getRemapper(), *_solutions, *printer);
 }
 
+bool findmoreModels(const ModelExpandOptions& options, ModelManager* m){
+	return options.nbmodelstofind == 0 || m->getNbModelsFound() < options.nbmodelstofind;
+}
+
 /**
  * Checks satisfiability of the theory.
  * Returns false if no model was found, true otherwise.
@@ -201,9 +205,9 @@ void ModelExpand::addModel(std::shared_ptr<Model> model) {
  * and can be backtracked!
  */
 MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& options) {
-	bool moremodels = true;
+	bool moremodels = true; // True if more models might exist
 	getSolver().setAssumptions(assmpt);
-	while (moremodels && (options.nbmodelstofind == 0 || _solutions->getNbModelsFound() < options.nbmodelstofind)) {
+	while (moremodels && findmoreModels(options,_solutions)) {
 		auto state = getSolver().solve(true);
 		if (state == l_Undef || terminateRequested()) {
 			return MXState::UNKNOWN;
@@ -222,13 +226,17 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		bool morecpmodels = getSolver().hasCPSolver();
 		if (morecpmodels) {
 			//Check for more models with different var assignment
-			while (morecpmodels && (options.nbmodelstofind == 0 || getNbModelsFound() < options.nbmodelstofind)) {
+			while (morecpmodels && findmoreModels(options,_solutions)) {
 				if (getSolver().findNextCPModel() == SATVAL::UNSAT) {
 					morecpmodels = false;
 				} else {
 					addModel(getSpace()->getEngine()->getModel());
 				}
 			}
+		}
+
+		if(not findmoreModels(options,_solutions)){ // Do not invalidate if enough models have been found
+			break;
 		}
 
 		//Invalidate SAT model

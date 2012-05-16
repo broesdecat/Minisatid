@@ -315,6 +315,7 @@ void Solver::addLearnedClause(CRef rc) {
 
 void swap(Clause& c, int from, int to) {
 	MAssert(c.size()>from && c.size()>to);
+	MAssert(from>=0 && to>=0);
 	auto temp = c[from];
 	c[from] = c[to];
 	c[to] = temp;
@@ -398,7 +399,7 @@ void Solver::attachClause(CRef cr) {
 			MAssert(recentfalse1!=-1 && isFalse(c[recentfalse1]));
 			swap(c, recentfalse1, 1);
 			MAssert(isFalse(c[1]));
-			MAssert(value(c[0])==l_Undef);
+			MAssert(value(c[0])!=l_False);
 			checkedEnqueue(c[0], cr);
 			addRootUnitLit(ReverseTrailElem(c[0], getLevel(var(c[1])), cr));
 		}

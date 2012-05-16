@@ -480,10 +480,12 @@ SATVAL PropagatorFactory::finishParsing() {
 	}
 
 	// create one, certainly true variable which can act as a dummy head
-	dummyvar = getEngine().newVar();
-	Disjunction clause;
-	clause.literals.push_back(mkLit(dummyvar));
-	add(clause);
+	if(not finishedparsing){
+		dummyvar = getEngine().newVar();
+		Disjunction clause;
+		clause.literals.push_back(mkLit(dummyvar));
+		add(clause);
+	}
 
 	SATVAL satval = SATVAL::POS_SAT;
 

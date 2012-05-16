@@ -88,7 +88,7 @@ public:
 	virtual int getNbOfFormulas() const { return 1; } // TODO incorrect
 
 private:
-	bool checkPropagation(Implication& tocheck, Implication& complement);
+	bool checkPropagation(Implication& tocheck, bool signswapped, Implication& complement);
 };
 }
 
