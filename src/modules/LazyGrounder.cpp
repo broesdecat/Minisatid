@@ -236,7 +236,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 				if (waseq) {
 					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
 						//cerr <<"Adding constraint" <<long(this) <<"\n";
-						internalAdd(Disjunction( { not complement.head, not *i }), getPCSolver());
+						internalAdd(Disjunction( { not complement.head, signswapped?*i:not *i}), getPCSolver());
 						//cerr <<"Finished constraint" <<long(this) <<"\n";
 					}
 				}
