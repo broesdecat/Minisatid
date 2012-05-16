@@ -537,13 +537,27 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 
 void PropagatorFactory::add(const LazyGroundImpl& object) {
 	MAssert(getEngine().modes().lazy);
-	if(object.impl.conjunction && object.impl.type==ImplicationType::IMPLIES){
-		getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not sign(object.impl.head));
+	notifyMonitorsOfAdding(object);
+	auto headtruesign = sign(object.impl.head);
+	switch(object.impl.type){
+	case ImplicationType::EQUIVALENT:
+		if(object.impl.conjunction){
+			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+		}else{
+			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+		}
+		break;
+	case ImplicationType::IMPLIES:
+		if(object.impl.conjunction){
+			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+		}
+		break;
 	}
 	MAssert(grounder2clause.find(object.id)==grounder2clause.cend());
 	grounder2clause[object.id] = new LazyTseitinClause(getEnginep(), object.impl, object.monitor, object.id);
 }
 
 void PropagatorFactory::add(const LazyAddition& object) {
+	notifyMonitorsOfAdding(object);
 	grounder2clause[object.ref]->addGrounding(object.list);
 }
