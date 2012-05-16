@@ -197,9 +197,9 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			bool stilldelayed = true;
 			monitor->requestGrounding(id, true, stilldelayed); // get all grounding
 			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-				internalAdd(Disjunction( { not tocheck.head, *i }), getPCSolver());
+				internalAdd(Disjunction( { not tocheck.head, signswapped?not *i : *i }), getPCSolver());
 				if (waseq) {
-					complement.body.push_back(*i);
+					complement.body.push_back(signswapped?*i:not *i);
 				}
 			}
 			auto lits = complement.body;
