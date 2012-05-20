@@ -182,6 +182,8 @@ public:
 	Weight 		getESV					()										const { return Weight(0); }
 };
 
+const AggProp * getType(AggType type);
+
 class CardProp: public SumProp{
 public:
 	const char* getName					() 										const { return "CARD"; }

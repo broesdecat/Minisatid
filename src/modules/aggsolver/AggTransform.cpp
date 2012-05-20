@@ -254,25 +254,6 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 	}
 }
 
-AggProp const * getType(AggType type) {
-	switch (type) {
-	case AggType::MAX:
-		return AggProp::getMax();
-		break;
-	case AggType::SUM:
-		return AggProp::getSum();
-		break;
-	case AggType::CARD:
-		return AggProp::getCard();
-		break;
-	case AggType::PROD:
-		return AggProp::getProd();
-		break;
-	default:
-		throw idpexception("Encountered a bug in the code which transforms aggregates.\n");
-	}
-}
-
 TypedSet* createPropagator(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches, bool optim) {
 	return new TypedSet(solver, set->setID, knownbound, getType(aggs.front()->getType()), set->getWL(), usewatches, aggs, optim);
 }

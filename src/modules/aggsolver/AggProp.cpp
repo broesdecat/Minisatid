@@ -35,6 +35,25 @@ paggprop AggProp::sum = paggprop (new SumProp());
 paggprop AggProp::card = paggprop (new CardProp());
 paggprop AggProp::prod = paggprop (new ProdProp());
 
+const AggProp * MinisatID::getType(AggType type) {
+	switch (type) {
+	case AggType::MAX:
+		return AggProp::getMax();
+		break;
+	case AggType::SUM:
+		return AggProp::getSum();
+		break;
+	case AggType::CARD:
+		return AggProp::getCard();
+		break;
+	case AggType::PROD:
+		return AggProp::getProd();
+		break;
+	default:
+		throw idpexception("Encountered a bug in the code which transforms aggregates.\n");
+	}
+}
+
 Weight AggProp::getMinPossible(const TypedSet& set)	const { return getMinPossible(set.getWL()); }
 Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossible(set.getWL()); }
 

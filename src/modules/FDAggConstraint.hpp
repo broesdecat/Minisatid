@@ -1,5 +1,5 @@
-#ifndef BINCONSTR_HPP
-#define BINCONSTR_HPP
+#ifndef FD_AGG_CONSTRAINT_HPP
+#define FD_AGG_CONSTRAINT_HPP
 #include <vector>
 #include "modules/IntVar.hpp"
 #include "modules/DPLLTmodule.hpp"
@@ -7,30 +7,24 @@
 
 namespace MinisatID{
 
+// NOTE: always GEQ at the moment!
 class FDAggConstraint: public Propagator{
-	Lit head_;
-	std::vector<IntView*> set; // TODO put weights in the view
-	BinComp comp_;
-	AggType const * const type;
+	Lit head;
+	std::vector<IntView*> vars;
+	std::vector<int> weights;
+	AggProp const * const type;
+	int bound;
 
 public:
-	FDAggConstraint(PCSolver* engine, IntVar* left, EqType comp, IntVar* right, Var h);
-
-	const Lit& head() const { return head_; }
+	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<int>& weights, const int& bound);
 
 	// Propagator methods
-	virtual const char* getName			() const 					{ return "fdaggconstr"; }
 	virtual int		getNbOfFormulas		() const 					{ return 1; }
-
-	virtual rClause getExplanation(const Lit& lit);
-
+	virtual rClause getExplanation(const Lit& lit){ throw idpexception("Invalid code path.");}
 	virtual rClause	notifypropagate();
-
-	virtual void finishParsing(bool& unsat);
-
-	virtual void printState() const;
+	virtual void finishParsing(bool& unsat){}
 };
 
 }
 
-#endif //BINCONSTR_HPP
+#endif //FD_AGG_CONSTRAINT_HPP
