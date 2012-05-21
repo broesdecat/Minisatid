@@ -166,7 +166,7 @@ void RealECNFPrinter<Stream>::add(const CPBinaryRel& binconstr) {
 }
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPBinaryRelVar& binconstr) {
-	target() <<CPBINVARSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.rhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
+	target() <<CPBINVARSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.lhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
 }
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPCount& count) {

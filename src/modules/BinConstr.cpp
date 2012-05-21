@@ -108,7 +108,6 @@ rClause BinaryConstraint::notifypropagate() {
 	if (headvalue == l_True) {
 		auto one = left()->getLEQLit(rightmax());
 		auto lit = right()->getLEQLit(rightmax());
-		cerr <<"Required: " <<toString(lit) <<"\n";
 		MAssert(value(lit)==l_True);
 		if (value(one) != l_True) {
 			propagations.push_back(one);
@@ -116,7 +115,6 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		auto two = right()->getGEQLit(leftmin());
 		lit = left()->getGEQLit(leftmin());
-		cerr <<"Required: " <<toString(lit) <<"\n";
 		MAssert(value(lit)==l_True);
 		if (value(two) != l_True) {
 			propagations.push_back(two);
@@ -125,7 +123,6 @@ rClause BinaryConstraint::notifypropagate() {
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
 		auto lit = right()->getGEQLit(rightmin()+1);
-		cerr <<"Required: " <<toString(lit) <<"\n";
 		MAssert(value(lit)==l_True);
 		if (value(one) != l_True) {
 			propagations.push_back(one);
@@ -133,7 +130,6 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		auto two = right()->getLEQLit(leftmax() - 1);
 		lit = left()->getLEQLit(leftmax()-1);
-		cerr <<"Required: " <<toString(lit) <<"\n";
 		MAssert(value(lit)==l_True);
 		if (value(two) != l_True) {
 			propagations.push_back(two);
@@ -142,19 +138,15 @@ rClause BinaryConstraint::notifypropagate() {
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
 			auto lit = right()->getLEQLit(rightmax());
-			cerr <<"Required: " <<toString(lit) <<"\n";
 			MAssert(value(lit)==l_True);
 			lit = left()->getGEQLit(leftmin());
-			cerr <<"Required: " <<toString(lit) <<"\n";
 			MAssert(value(lit)==l_True);
 			propagations.push_back(~head());
 			reasons[~head()] = BinReason(NULL, false, left()->minValue());
 		} else if (leftmax() <= rightmin()) {
 			auto lit = right()->getGEQLit(rightmin());
-			cerr <<"Required: " <<toString(lit) <<"\n";
 			MAssert(value(lit)==l_True);
 			lit = left()->getLEQLit(leftmax());
-			cerr <<"Required: " <<toString(lit) <<"\n";
 			MAssert(value(lit)==l_True);
 			propagations.push_back(head());
 			reasons[head()] = BinReason(NULL, false, left()->maxValue());
