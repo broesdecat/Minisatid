@@ -122,14 +122,14 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
-		auto lit = right()->getGEQLit(rightmin()+1);
+		auto lit = right()->getGEQLit(rightmin());
 		MAssert(value(lit)==l_True);
 		if (value(one) != l_True) {
 			propagations.push_back(one);
 			reasons[one] = BinReason(left(), true, rightmin() + 1);
 		}
 		auto two = right()->getLEQLit(leftmax() - 1);
-		lit = left()->getLEQLit(leftmax()-1);
+		lit = left()->getLEQLit(leftmax());
 		MAssert(value(lit)==l_True);
 		if (value(two) != l_True) {
 			propagations.push_back(two);
