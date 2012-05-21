@@ -133,7 +133,7 @@ public:
 	}
 
 	void add(const IntVarRange& var) {
-		target() << "Added integer variable var" << var.varID << " = [ " << var.minvalue << ".." << var.maxvalue << "]\n";
+		target() << "Added integer variable var" << var.varID << " = [ " << var.minvalue << ".." << var.maxvalue << " ]\n";
 	}
 
 	void add(const CPAllDiff& alldiff) {
@@ -168,7 +168,7 @@ public:
 				target() << ", ";
 			}
 		}
-		target() << sum.rel << " " << sum.bound << "\n";
+		target() << " }) " << sum.rel << " " << sum.bound << "\n";
 	}
 
 	void add(const CPElement& rel) {
