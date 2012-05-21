@@ -516,6 +516,7 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 		VariableEqValue vareq;
 		vareq.variable = (*i).second->origid(); // FIXME Correct when it is possible to add internal intvars!
 		vareq.value = (*i).second->minValue();
+	//	cerr <<"Variable " <<vareq.variable <<" is assigned value " <<vareq.value <<"\n";
 		MAssert((*i).second->minValue()==(*i).second->maxValue());
 		varassignments.push_back(vareq);
 	}
