@@ -69,6 +69,7 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> set, vector<int
 	for (uint i = 0; i < mult.size(); i++) {
 		ia[i] = mult[i];
 	}
+
 	linear(space, ia, ar, rel, irhs, getBoolVar(space)/*,consistency level*/);
 }
 void SumConstraint::accept(ConstraintVisitor& visitor) {
@@ -104,15 +105,15 @@ BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelTy
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, Var atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs) {
-	//clog <<"Adding constraint " <<getPrintableVar(atom) <<" <=> " <<lhs <<rel <<rhs <<".\n";
 	IntVar ialhs = lhs.getIntVar(space);
 	int iarhs = irhs;
+
 	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
 }
 void BinArithConstraint::accept(ConstraintVisitor& visitor) {
-	if(intrhs){
+	if(intrhs) {
 		visitor.add(CPBinaryRel(getHead(), lhs.getID(), toEqType(rel), Weight(irhs)));
-	}else{
+	} else {
 		visitor.add(CPBinaryRelVar(getHead(), lhs.getID(), toEqType(rel), trhs.getID()));
 	}
 }

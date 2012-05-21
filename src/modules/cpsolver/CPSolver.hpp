@@ -72,6 +72,8 @@ private:
 
 	std::set<Var> heads;
 
+	bool fullassignmentfound;
+
 public:
 	CPSolver(PCSolver * pcsolver);
 	virtual ~CPSolver();
@@ -93,7 +95,10 @@ public:
 	void notifyNewDecisionLevel();
 	void notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
-	virtual rClause notifyFullAssignmentFound(){ return notifypropagate(); }
+	virtual rClause notifyFullAssignmentFound() {
+		fullassignmentfound = true;
+		return notifypropagate();
+	}
 	void saveState(){
 		// TODO save new constraints
 		addedconstraints = false;

@@ -55,8 +55,8 @@ lbool LitTrail::value(const Lit& l) const {
 }
 
 CPSolver::CPSolver(PCSolver * solver) :
-		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()), addedconstraints(false), searchedandnobacktrack(false), savedsearchengine(
-				NULL) {
+		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()), addedconstraints(false),
+		searchedandnobacktrack(false), savedsearchengine(NULL), fullassignmentfound(false) {
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
@@ -303,7 +303,8 @@ rClause CPSolver::notifypropagate() {
 		clog << "Propagated " << trail.getTrail().size() << " of " << getData().getReifConstraints().size() << " literals\n";
 	}
 
-	if (getData().getReifConstraints().size() == trail.getTrail().size()) {
+	if (fullassignmentfound) {
+//	if (getData().getReifConstraints().size() == trail.getTrail().size()) {
 		confl = propagateFinal(false);
 		searchedandnobacktrack = true;
 	}
