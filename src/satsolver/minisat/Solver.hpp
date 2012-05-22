@@ -108,7 +108,8 @@ public:
 
 	CRef makeClause(const std::vector<Lit>& lits, bool learnt);
 	bool addClause(const std::vector<Lit>& ps); // Add a clause to the solver.
-	void addLearnedClause(CRef c); // don't check anything, just add it to the clauses and bump activity
+	void addLearnedClause(CRef c); // Non-conflicting learned clause
+	void addConflictClause(CRef c); // Conflicting clause
 
 	CRef getClause(int i) const {
 		return clauses[i];
@@ -348,7 +349,7 @@ protected:
 	void claBumpActivity(Clause& c); // Increase a clause with the current 'bump' value.
 
 	// Operations on clauses
-	void attachClause(CRef cr); // Attach a clause to watcher lists.
+	void attachClause(CRef cr, bool conflict = false); // Attach a clause to watcher lists.
 	void detachClause(CRef cr, bool strict = false); // Detach a clause to watcher lists.
 	bool locked(const Clause& c) const; // Returns TRUE if a clause is a reason for some implication in the current state.
 	bool satisfied(const Clause& c) const; // Returns TRUE if a clause is satisfied in the current state.
