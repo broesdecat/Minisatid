@@ -53,7 +53,7 @@ void RealECNFPrinter<Stream>::add(const Disjunction& clause) {
 
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const Rule& rule) {
-	target() << (rule.conjunctive ? "C" : "D") << rule.definitionID << " <- " << toString(mkPosLit(rule.head)) << " ";
+	target() << (rule.conjunctive ? "C" : "D") <<" " <<rule.definitionID <<" " <<toString(mkPosLit(rule.head)) << " <- ";
 	for (uint i = 0; i < rule.body.size(); ++i) {
 		target() << toString(rule.body[i]) << " ";
 	}

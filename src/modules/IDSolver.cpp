@@ -1668,19 +1668,20 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varli
 
 void IDSolver::printPosGraphJustifications() const {
 	clog << ">>>> Justifications (on pos graph):\n";
-	for (int i = 0; i < nbvars; ++i) {
-		if (isDefined(i) && occ(i) != MIXEDLOOP) {
-			clog << "    " << toString(i) << "<-";
-			switch (type(i)) {
+	for(auto i=defdVars.cbegin(); i<defdVars.cend(); ++i) {
+		auto var = *i;
+		if (isDefined(var) && occ(var) != MIXEDLOOP) {
+			clog << "    " << toString(mkPosLit(var)) << "<-";
+			switch (type(var)) {
 			case DefType::DISJ:
-				clog << toString(justification(i)[0]) << "; \n";
+				clog << toString(justification(var)[0]) << "; \n";
 				break;
 			case DefType::CONJ:
 				clog << "all (conj) \n";
 				break;
 			case DefType::AGGR: {
 				bool begin = true;
-				for (auto j = justification(i).cbegin(); j < justification(i).cend(); ++j) {
+				for (auto j = justification(var).cbegin(); j < justification(var).cend(); ++j) {
 					if (not begin) {
 						clog << " ";
 					}
