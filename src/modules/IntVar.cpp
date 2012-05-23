@@ -21,12 +21,18 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 			currentmax(max) {
 	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
 		auto var = engine().newVar();
-		leqlits.push_back(IntVarValue(this, var, i + minValue()));
+		leqlits.push_back(IntVarValue(this, var, i));
 	}
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
 		engine().accept(this, mkPosLit(i->atom), FAST);
 		engine().accept(this, mkNegLit(i->atom), FAST);
 	}
+
+	getPCSolver().accept(this);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_PROPAGATE);
+	getPCSolver().acceptBounds(new IntView(this, 0), this);
+
 	addConstraints();
 
 	if (verbosity() > 3) {
@@ -36,10 +42,6 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		}
 	}
 
-	getPCSolver().accept(this);
-	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_PROPAGATE);
-	getPCSolver().acceptBounds(new IntView(this, 0), this);
 	engine().notifyBoundsChanged(this);
 }
 
@@ -50,11 +52,16 @@ void IntVar::updateBounds() {
 			break;
 		}
 	}
-	for (auto i=leqlits.crbegin(); i<leqlits.crend(); ++i) {
-		if (not isTrue(mkPosLit(i->atom))) { // First non true is highest remaining value
-			currentmax = i->value;
+	bool found = false;
+	for (auto i=leqlits.crbegin(); i<leqlits.crend(); ++i) { // NOTE: reverse iterated!
+		if (not isTrue(mkPosLit(i->atom))) { // First non true => previous is highest remaining value (LEQ!)
+			currentmax = (--i)->value;
+			found = true;
 			break;
 		}
+	}
+	if(not found){
+		currentmax = leqlits.front().value;
 	}
 }
 
@@ -114,11 +121,20 @@ void IntVar::addConstraints() {
 	Disjunction sometrue;
 	for (uint i = 0; i < leqlits.size(); ++i) {
 		// leq[i] => leq[i+1]
-		internalAdd(Disjunction( { ~getLEQLit(i), getLEQLit(i + 1) }), engine());
+		if(i<leqlits.size()-1){
+			internalAdd(Disjunction( { ~getLEQLit(leqlits[i].value), getLEQLit(leqlits[i+1].value) }), engine());
+		}else{
+			internalAdd(Disjunction( { getLEQLit(leqlits[i].value)}), engine());
+		}
+
 		//~leq[i] => ~leq[i-1]
-		internalAdd(Disjunction( { getLEQLit(i), ~getLEQLit(i-1)}), engine());
-		sometrue.literals.push_back(getLEQLit(i));
+		if(i>0){
+			internalAdd(Disjunction( { getLEQLit(leqlits[i].value), ~getLEQLit(leqlits[i-1].value)}), engine());
+		}
+		sometrue.literals.push_back(getLEQLit(leqlits[i].value));
 	}
 	// some leq is true
 	internalAdd(sometrue, engine());
+	internalAdd(Disjunction( {getLEQLit(maxvalue)}), engine());
+	internalAdd(Disjunction( {getGEQLit(minvalue)}), engine());
 }

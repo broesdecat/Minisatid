@@ -53,7 +53,7 @@ void RealECNFPrinter<Stream>::add(const Disjunction& clause) {
 
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const Rule& rule) {
-	target() << (rule.conjunctive ? "C" : "D") << rule.definitionID << " <- " << toString(mkPosLit(rule.head)) << " ";
+	target() << (rule.conjunctive ? "C" : "D") <<" " <<rule.definitionID <<" " <<toString(mkPosLit(rule.head)) << " <- ";
 	for (uint i = 0; i < rule.body.size(); ++i) {
 		target() << toString(rule.body[i]) << " ";
 	}
@@ -166,7 +166,7 @@ void RealECNFPrinter<Stream>::add(const CPBinaryRel& binconstr) {
 }
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPBinaryRelVar& binconstr) {
-	target() <<CPBINVARSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.rhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
+	target() <<CPBINVARSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.lhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
 }
 template<typename Stream>
 void RealECNFPrinter<Stream>::add(const CPCount& count) {

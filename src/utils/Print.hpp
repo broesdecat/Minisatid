@@ -37,7 +37,7 @@ T& operator<<(T& stream, const EqType& type) {
 		stream << "=";
 		break;
 	case EqType::NEQ:
-		stream << "!=";
+		stream << "~=";
 		break;
 	case EqType::L:
 		stream << "<";
