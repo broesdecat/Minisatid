@@ -172,19 +172,19 @@ rClause FDAggConstraint::notifypropagate() {
 			if (_weights[i] > 0) {
 				// var =< BOT((bound - (min-weight*varmin))/weight)
 				auto val = (_bound - (min - _weights[i]*var->minValue()))/(double)_weights[i];
-				if(val==floor(val)){
+				if(val==ceil(val)){
 					val--;
 				}else{
-					val = floor(val);
+					val = ceil(val);
 				}
 				lit = var->getGEQLit(val);
 			} else {
 				// var >= BOT((bound - (min-weight*varmax))/weight)
 				auto val = (_bound - (min - _weights[i]*var->maxValue()))/(double)_weights[i];
-				if(val==floor(val)){
+				if(val==ceil(val)){
 					val--;
 				}else{
-					val = floor(val);
+					val = ceil(val);
 				}
 				lit = var->getLEQLit(val);
 			}
