@@ -394,7 +394,6 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	if (pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level == declevel) {
 		for (auto i = getTrail().back()->props.cbegin(); not stop && not foundpropagatedlit && i < getTrail().back()->props.cend(); ++i) {
 			auto lit = i->getLit();
-			cerr <<"Checking " <<toString(lit, getPCSolver()) <<"\n";
 			MAssert(pcsolver.getLevel(var(lit))==declevel);
 			if (lit == ar.getPropLit()) { //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 				foundpropagatedlit = true;
