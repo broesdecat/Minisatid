@@ -95,7 +95,7 @@ public:
 	GenPWAgg(TypedSet* set);
 	virtual ~GenPWAgg();
 
-	virtual void initialize(bool& unsat, bool& sat);
+	virtual void internalInitialize(bool& unsat, bool& sat);
 	virtual rClause reInitialize();
 	virtual rClause propagateAtEndOfQueue();
 	virtual void backtrack(int untillevel);

@@ -216,7 +216,7 @@ public:
 	AggPropagator(TypedSet* set);
 	virtual ~AggPropagator(){};
 
-	virtual void 		initialize(bool& unsat, bool& sat);
+	void 	initialize(bool& unsat, bool& sat);
 	virtual rClause		reInitialize() = 0;
 	virtual void 		propagate		(Watch* w);
 	virtual rClause		propagateAtEndOfQueue() = 0;
@@ -234,6 +234,8 @@ public:
 	lbool				value(const Lit& l) const;
 
 protected:
+	virtual void internalInitialize(bool& unsat, bool& sat) = 0;
+
 	virtual void propagate(int level, Watch* ws, int aggindex) = 0;
 	virtual void propagate(const Lit& p, Watch* ws, int level) = 0;
 };

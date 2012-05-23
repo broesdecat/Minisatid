@@ -63,7 +63,7 @@ public:
 	FWAgg(TypedSet* set);
 	virtual ~FWAgg(){};
 
-	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual void 	internalInitialize		(bool& unsat, bool& sat);
 	virtual rClause reInitialize			() { return propagateAtEndOfQueue(); }
 	virtual rClause	propagateAtEndOfQueue	();
 	virtual void	backtrack				(int untillevel);
@@ -94,7 +94,7 @@ public:
 	SumFWAgg(TypedSet* agg);
 	virtual ~SumFWAgg(){};
 
-	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual void 	internalInitialize				(bool& unsat, bool& sat);
 };
 
 class ProdFWAgg: public  SPFWAgg {
@@ -102,7 +102,7 @@ public:
 	ProdFWAgg(TypedSet* agg);
 	virtual ~ProdFWAgg(){};
 
-	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual void 	internalInitialize				(bool& unsat, bool& sat);
 };
 
 class MaxFWAgg: public  FWAgg {
@@ -110,7 +110,7 @@ public:
 	MaxFWAgg(TypedSet* agg);
 	virtual ~MaxFWAgg(){};
 
-	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual void 	internalInitialize				(bool& unsat, bool& sat);
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
 
 protected:

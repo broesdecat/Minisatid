@@ -42,7 +42,7 @@ GenPWAgg::~GenPWAgg() {
  * initialize NWS: make a watch for each set literal, watch the negation of the set literal if its monotone
  *					then reconstruct the set for the aggregate with the lowest bound!
  */
-void GenPWAgg::initialize(bool& unsat, bool& sat) {
+void GenPWAgg::internalInitialize(bool& unsat, bool& sat) {
 #ifdef DEBUG
 	MAssert(getAgg().size()>0);
 	AggSign sign = getAgg()[0]->getSign();
@@ -99,8 +99,6 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 	addStagedWatchesToNetworkOnStable(confl);
-
-	AggPropagator::initialize(unsat, sat);
 }
 
 rClause GenPWAgg::reInitialize() {

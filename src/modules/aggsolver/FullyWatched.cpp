@@ -25,7 +25,7 @@ FWAgg::FWAgg(TypedSet* set) :
 		AggPropagator(set) {
 }
 
-void FWAgg::initialize(bool& unsat, bool& sat) {
+void FWAgg::internalInitialize(bool& unsat, bool& sat) {
 	if (getSet().getAgg().size() == 0) {
 		sat = true;
 		return;
@@ -67,8 +67,6 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		getSet().getPCSolver().accept(pos);
 		getSet().getPCSolver().accept(neg);
 	}
-
-	AggPropagator::initialize(unsat, sat);
 }
 
 /**
@@ -107,7 +105,6 @@ void FWAgg::backtrack(int untillevel) {
 
 void FWAgg::saveState() {
 	savedlevel = new FWTrail(*getTrail().front());
-
 }
 void FWAgg::resetState() {
 	delete (getTrail().front());
@@ -132,7 +129,7 @@ void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 	if (fwobj->start == fwobj->props.size()) {
 		getSet().getPCSolver().acceptForPropagation(getSetp());
 	}
-
+//	cerr <<"Propagated " <<toString(watch->getPropLit(), getPCSolver()) <<"\n";
 	fwobj->props.push_back(PropagationInfo(watch->getPropLit(), 0, HEAD));
 	fwobj->headindex.push_back(aggindex);
 	fwobj->headtime.push_back(fwobj->props.size());
@@ -166,6 +163,7 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 #endif
 
 	MAssert(fwobj->level == level);
+//cerr <<"Propagated " <<toString(p, getPCSolver()) <<"\n";
 	fwobj->props.push_back(PropagationInfo(p, ws->getWeight(), ws->getType()));
 }
 
@@ -394,8 +392,9 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	const int declevel = pcsolver.getCurrentDecisionLevel();
 	bool foundpropagatedlit = false;
 	if (pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level == declevel) {
-		for (auto i = getTrail().back()->props.cbegin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.cend(); ++i) {
-			const Lit& lit = i->getLit();
+		for (auto i = getTrail().back()->props.cbegin(); not stop && not foundpropagatedlit && i < getTrail().back()->props.cend(); ++i) {
+			auto lit = i->getLit();
+			cerr <<"Checking " <<toString(lit, getPCSolver()) <<"\n";
 			MAssert(pcsolver.getLevel(var(lit))==declevel);
 			if (lit == ar.getPropLit()) { //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 				foundpropagatedlit = true;
@@ -412,8 +411,8 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	//IMPORTANT: first go over all literals and check which are already in the currently generated partial nogood (only if generating explanation on conflict)
 	if (getSet().modes().aggclausesaving == 2 && pcsolver.modes().innogoodfirstinexplanation) {
 		bool foundpropagatedlit = false;
-		for (vector<FWTrail*>::const_iterator a = getTrail().cbegin(); !stop && !foundpropagatedlit && a < getTrail().cend(); ++a) {
-			for (vprop::const_iterator i = (*a)->props.cbegin(); !stop && !foundpropagatedlit && i < (*a)->props.cend(); ++i) {
+		for (auto a = getTrail().cbegin(); !stop && !foundpropagatedlit && a < getTrail().cend(); ++a) {
+			for (auto i = (*a)->props.cbegin(); !stop && !foundpropagatedlit && i < (*a)->props.cend(); ++i) {
 				const Lit& lit = i->getLit();
 				if (lit == ar.getPropLit()) { //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 					foundpropagatedlit = true;
@@ -440,8 +439,8 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 
 	//Then go over the trail earliest to latest to add more to the explanation
 	foundpropagatedlit = false;
-	for (vector<FWTrail*>::const_iterator a = getTrail().cbegin(); !stop && !foundpropagatedlit && a < getTrail().cend(); ++a) {
-		for (vprop::const_iterator i = (*a)->props.cbegin(); !stop && !foundpropagatedlit && i < (*a)->props.cend(); ++i) {
+	for (auto a = getTrail().cbegin(); !stop && !foundpropagatedlit && a < getTrail().cend(); ++a) {
+		for (auto i = (*a)->props.cbegin(); !stop && !foundpropagatedlit && i < (*a)->props.cend(); ++i) {
 			const Lit& lit = i->getLit();
 			if (lit == ar.getPropLit()) { //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 				foundpropagatedlit = true;
@@ -494,8 +493,8 @@ MaxFWAgg::MaxFWAgg(TypedSet* set) :
 		FWAgg(set) {
 }
 
-void MaxFWAgg::initialize(bool& unsat, bool& sat) {
-	FWAgg::initialize(unsat, sat);
+void MaxFWAgg::internalInitialize(bool& unsat, bool& sat) {
+	FWAgg::internalInitialize(unsat, sat);
 }
 
 void MaxFWAgg::addToCertainSet(const WL& l) {
@@ -800,7 +799,7 @@ SumFWAgg::SumFWAgg(TypedSet* set) :
 
 }
 
-void SumFWAgg::initialize(bool& unsat, bool& sat) {
+void SumFWAgg::internalInitialize(bool& unsat, bool& sat) {
 	unsat = false;
 	if (getSet().getAgg().size() == 0) {
 		sat = true;
@@ -809,14 +808,14 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 
 	makeSumSetPositive(getSet());
 
-	FWAgg::initialize(unsat, sat);
+	FWAgg::internalInitialize(unsat, sat);
 }
 
 ProdFWAgg::ProdFWAgg(TypedSet* set) :
 		SPFWAgg(set) {
 }
 
-void ProdFWAgg::initialize(bool& unsat, bool& sat) {
+void ProdFWAgg::internalInitialize(bool& unsat, bool& sat) {
 	unsat = false;
 	if (getSet().getAgg().size() == 0) {
 		sat = true;
@@ -853,5 +852,5 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 	}
 #endif
 
-	FWAgg::initialize(unsat, sat);
+	FWAgg::internalInitialize(unsat, sat);
 }

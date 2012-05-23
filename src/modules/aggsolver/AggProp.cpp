@@ -17,23 +17,23 @@
 using namespace std;
 using namespace MinisatID;
 
-Weight	Agg::getCertainBound() const {
+Weight Agg::getCertainBound() const {
 	MAssert(getSet()!=NULL);
-	return getBound()-getSet()->getKnownBound();
+	return getBound() - getSet()->getKnownBound();
 }
 
-SATVAL Agg::reInitializeAgg(){
+SATVAL Agg::reInitializeAgg() {
 	TypedSet& set = *getSet();
 	// FIXME check whether this is sufficient?
 	auto confl = set.getProp()->reInitialize();
-	return confl==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
+	return confl == nullPtrClause ? SATVAL::POS_SAT : SATVAL::UNSAT;
 }
 
-paggprop AggProp::max = paggprop (new MaxProp());
+paggprop AggProp::max = paggprop(new MaxProp());
 //paggprop AggProp::min = paggprop (new MinProp());
-paggprop AggProp::sum = paggprop (new SumProp());
-paggprop AggProp::card = paggprop (new CardProp());
-paggprop AggProp::prod = paggprop (new ProdProp());
+paggprop AggProp::sum = paggprop(new SumProp());
+paggprop AggProp::card = paggprop(new CardProp());
+paggprop AggProp::prod = paggprop(new ProdProp());
 
 const AggProp * MinisatID::getType(AggType type) {
 	switch (type) {
@@ -54,16 +54,20 @@ const AggProp * MinisatID::getType(AggType type) {
 	}
 }
 
-Weight AggProp::getMinPossible(const TypedSet& set)	const { return getMinPossible(set.getWL()); }
-Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossible(set.getWL()); }
+Weight AggProp::getMinPossible(const TypedSet& set) const {
+	return getMinPossible(set.getWL());
+}
+Weight AggProp::getMaxPossible(const TypedSet& set) const {
+	return getMaxPossible(set.getWL());
+}
 
 Weight AggProp::getValue(const TypedSet& set) const {
 	Weight total = getESV();
-	for(auto i=set.getWL().cbegin(); i<set.getWL().cend(); ++i){
+	for (auto i = set.getWL().cbegin(); i < set.getWL().cend(); ++i) {
 		auto val = set.value((*i).getLit());
 		MAssert(val!=l_Undef);
 
-		if(val==l_True){
+		if (val == l_True) {
 			total = add(total, (*i).getWeight());
 		}
 	}
@@ -101,10 +105,10 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 	return lhs - rhs;
 }
 
-Weight SumProp::getMinPossible(const std::vector<WL>& wls) const{
+Weight SumProp::getMinPossible(const std::vector<WL>& wls) const {
 	Weight min = getESV();
 	for (vwl::const_iterator j = wls.cbegin(); j < wls.cend(); ++j) {
-		if((*j).getWeight() < 0){
+		if ((*j).getWeight() < 0) {
 			min = this->add(min, (*j).getWeight());
 		}
 	}
@@ -114,7 +118,7 @@ Weight SumProp::getMinPossible(const std::vector<WL>& wls) const{
 Weight SumProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
 	for (vwl::const_iterator j = wls.cbegin(); j < wls.cend(); ++j) {
-		if((*j).getWeight() > 0){
+		if ((*j).getWeight() > 0) {
 			max = this->add(max, (*j).getWeight());
 		}
 	}
@@ -146,13 +150,13 @@ bool MaxProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight& know
 	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
 }
 
-Weight MaxProp::getMinPossible(const std::vector<WL>&) const{
+Weight MaxProp::getMinPossible(const std::vector<WL>&) const {
 	return getESV();
 }
 
 Weight MaxProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = wls.cbegin(); j<wls.cend(); ++j){
+	for (vwl::const_iterator j = wls.cbegin(); j < wls.cend(); ++j) {
 		max = this->add(max, (*j).getWeight());
 	}
 	return max;
@@ -216,14 +220,14 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& kno
 // PROD Prop
 
 //INVARIANT: only positive weights in prodagg
-Weight ProdProp::getMinPossible(const std::vector<WL>&) const{
+Weight ProdProp::getMinPossible(const std::vector<WL>&) const {
 	return getESV();
 }
 
 Weight ProdProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = wls.cbegin(); j<wls.cend(); ++j){
-		if((*j).getWeight() > 0){
+	for (vwl::const_iterator j = wls.cbegin(); j < wls.cend(); ++j) {
+		if ((*j).getWeight() > 0) {
 			max = this->add(max, (*j).getWeight());
 		}
 	}
@@ -234,42 +238,44 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 #ifdef NOARBITPREC
 	bool sign = false;
 	Weight l = lhs, r = rhs;
-	if(l<0){
+	if (l < 0) {
 		l = -l;
 		sign = true;
 	}
-	if(r<0){
+	if (r < 0) {
 		r = -r;
 		sign = !sign;
 	}
-	if(l!=0 && posInfinity()/l < r){
+	if (l != 0 && posInfinity() / l < r) {
 		return sign ? negInfinity() : posInfinity();
 	}
 #endif
 	return lhs * rhs;
 }
 
-Weight ProdProp::remove(const Weight&, const Weight&) const{
+Weight ProdProp::remove(const Weight&, const Weight&) const {
 	throw idpexception("Cannot remove weights from a product propagator.\n");
 }
-Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
+Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const {
 	Weight w = 0;
-	MAssert(rhs!=0); //FIXME should prevent this from happening
+	MAssert(rhs!=0);
+	//FIXME should prevent this from happening
 	if (rhs != 0) {
 		w = lhs / rhs;
-		if (w*rhs>lhs) {
+		if (w * rhs > lhs) {
 			w -= Weight(1);
 		}
 	}
 	//clog <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
 	return w;
 }
-Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{
+Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const {
 	Weight w = 0;
-	MAssert(rhs!=0); //FIXME should prevent this from happening
+	MAssert(rhs!=0);
+	//FIXME should prevent this from happening
 	if (rhs != 0) {
 		w = lhs / rhs;
-		if (rhs*w<lhs) {
+		if (rhs * w < lhs) {
 			w += Weight(1);
 		}
 	}
@@ -291,43 +297,43 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL&, const WL&, Weight&) const {
 
 //AGGREGATES
 
-bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max){
-	if(agg.hasUB()){
-		return max<=agg.getCertainBound();
-	}else{ //LB
-		return min>=agg.getCertainBound();
+bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max) {
+	if (agg.hasUB()) {
+		return max <= agg.getCertainBound();
+	} else { //LB
+		return min >= agg.getCertainBound();
 	}
 }
 
-bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
-	if(agg.hasUB()){
-		return bounds.max<=agg.getCertainBound();
-	}else{ //LB
-		return bounds.min>=agg.getCertainBound();
+bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds) {
+	if (agg.hasUB()) {
+		return bounds.max <= agg.getCertainBound();
+	} else { //LB
+		return bounds.min >= agg.getCertainBound();
 	}
 }
 
-bool MinisatID::isSatisfied(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound){
-	if(agg.hasUB()){
-		return bounds.max<=agg.getCertainBound(knownbound);
-	}else{ //LB
-		return bounds.min>=agg.getCertainBound(knownbound);
+bool MinisatID::isSatisfied(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound) {
+	if (agg.hasUB()) {
+		return bounds.max <= agg.getCertainBound(knownbound);
+	} else { //LB
+		return bounds.min >= agg.getCertainBound(knownbound);
 	}
 }
 
-bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max){
-	if(agg.hasUB()){
-		return min>agg.getCertainBound();
-	}else{ //LB
-		return max<agg.getCertainBound();
+bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max) {
+	if (agg.hasUB()) {
+		return min > agg.getCertainBound();
+	} else { //LB
+		return max < agg.getCertainBound();
 	}
 }
 
-bool MinisatID::isFalsified(const Agg& agg, const minmaxBounds& bounds){
-	if(agg.hasUB()){
-		return bounds.min>agg.getCertainBound();
-	}else{ //LB
-		return bounds.max<agg.getCertainBound();
+bool MinisatID::isFalsified(const Agg& agg, const minmaxBounds& bounds) {
+	if (agg.hasUB()) {
+		return bounds.min > agg.getCertainBound();
+	} else { //LB
+		return bounds.max < agg.getCertainBound();
 	}
 }
 
@@ -340,18 +346,18 @@ bool MinisatID::isFalsified(const Agg& agg, const minmaxBounds& bounds){
  * 		if weight is pos: max will decrease, so remove from max
  * 		if weight is neg: min will increase, so remove from min
  */
-void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds){
+void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds) {
 	addValue(type, weight, addtoset, bounds.min, bounds.max);
 }
-void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtoset, Weight& min, Weight& max){
-	bool pos = weight>=0;
-	if(pos && addtoset){
+void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtoset, Weight& min, Weight& max) {
+	bool pos = weight >= 0;
+	if (pos && addtoset) {
 		min = type.add(min, weight);
-	}else if(pos && !addtoset){
+	} else if (pos && !addtoset) {
 		max = type.removeMax(max, weight);
-	}else if(!pos && addtoset){
+	} else if (!pos && addtoset) {
 		max = type.add(max, weight);
-	}else{ //!pos && !addtoset
+	} else { //!pos && !addtoset
 		min = type.removeMin(min, weight);
 	}
 }
@@ -361,14 +367,14 @@ void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasi
 }
 
 void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max) {
-	bool pos = weight>=0;
-	if(pos && wasinset){
+	bool pos = weight >= 0;
+	if (pos && wasinset) {
 		min = type.removeMin(min, weight);
-	}else if(pos && !wasinset){
+	} else if (pos && !wasinset) {
 		max = type.add(max, weight);
-	}else if(!pos && wasinset){
+	} else if (!pos && wasinset) {
 		max = type.removeMax(max, weight);
-	}else{ //!pos && !wasinset
+	} else { //!pos && !wasinset
 		min = type.add(min, weight);
 	}
 }
@@ -377,61 +383,65 @@ void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasi
 
 bool printedwarning = false;
 
-
-AggPropagator*	MaxProp::createPropagator(TypedSet* set) const{
-	if(set->isUsingWatches() && !printedwarning){
-		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+AggPropagator* MaxProp::createPropagator(TypedSet* set) const {
+	if (set->isUsingWatches() && !printedwarning) {
+		clog << ">> Currently max/min aggregates never use watched-literal-schemes.\n";
 		printedwarning = true;
 	}
 	return new MaxFWAgg(set);
 }
 
 /*AggPropagator*	MinProp::createPropagator(TypedSet* set) const{
-	if(set->isUsingWatches() && !printedwarning){
-		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
-		printedwarning = true;
-	}
-	return new MinFWAgg(set);
-}*/
+ if(set->isUsingWatches() && !printedwarning){
+ clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+ printedwarning = true;
+ }
+ return new MinFWAgg(set);
+ }*/
 
-AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
+AggPropagator* SumProp::createPropagator(TypedSet* set) const {
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
-	if(set->isUsingWatches()){
+	if (set->isUsingWatches()) {
 		return new GenPWAgg(set);
-	}else{
+	} else {
 		return new SumFWAgg(set);
 	}
 }
 
-AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
+AggPropagator* ProdProp::createPropagator(TypedSet* set) const {
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
-	if(set->isUsingWatches()){
+	if (set->isUsingWatches()) {
 		return new GenPWAgg(set);
-	}else{
+	} else {
 		return new ProdFWAgg(set);
 	}
 }
 
 AggPropagator::AggPropagator(TypedSet* set)
-		:set(set){
+		: set(set) {
 
 }
 
-const PCSolver& AggPropagator::getPCSolver() const{
+const PCSolver& AggPropagator::getPCSolver() const {
 	return getSet().getPCSolver();
 }
 
 // Final initialization call!
-void AggPropagator::initialize(bool&, bool&) {
+void AggPropagator::initialize(bool& unsat, bool& sat) {
+	internalInitialize(unsat, sat);
+
+	bool watchcomp = dynamic_cast<const FWAgg*>(this)!=NULL;
+			//FIXME fully watched aggregates are bugged if the other watch is not added, even with implication, because the explanation generation builds on both heads being watched
+
 	for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 		// both for implication and comp
 		auto w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
 		getSet().getPCSolver().accept(w);
 		getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
 
-		if((*i)->getSem()==AggSem::COMP){
+		if ((*i)->getSem() == AggSem::COMP || watchcomp) {
 			auto w2 = new Watch(getSetp(), (*i)->getHead(), *i, false);
 			getSet().getPCSolver().accept(w2);
 			getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
@@ -445,11 +455,11 @@ lbool AggPropagator::value(const Lit& l) const {
 	return getSet().value(l);
 }
 
-void AggPropagator::propagate(Watch* ws){
+void AggPropagator::propagate(Watch* ws) {
 	int level = getSet().getPCSolver().getLevel(var(ws->getPropLit()));
-	if(ws->headWatch()){
+	if (ws->headWatch()) {
 		propagate(level, ws, ws->getAggIndex());
-	}else{
+	} else {
 		propagate(ws->getPropLit(), ws, level);
 	}
 }
