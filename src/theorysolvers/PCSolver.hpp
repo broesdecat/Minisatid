@@ -209,7 +209,8 @@ public:
 	rClause createClause(const Disjunction& clause, bool learned);
 
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
-	void addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
+	void addLearnedClause(rClause c); //Cannot be conflicting!
+	void addConflictClause(rClause c); //Needs to be conflicting! Do not handle that conflict at this time!
 	int getClauseSize(rClause cr) const;
 	Lit getClauseLit(rClause cr, int i) const;
 

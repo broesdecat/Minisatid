@@ -64,7 +64,7 @@ rClause LazyResidual::notifypropagate() {
 	if (not getPCSolver().isUnsat() /* FIXME FIXME && getPCSolver().isInitialized()*/) { // NOTE: otherwise, it will be called later and would be incorrect here!
 		getPCSolver().finishParsing();
 	}
-	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagated is then DELETED
+	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagator is then DELETED
 
 	if (getPCSolver().isUnsat()) {
 		return getPCSolver().createClause( { }, true);
@@ -120,9 +120,10 @@ private:
 public:
 	BasicPropWatch(const Lit& watch, Propagator* p)
 			: 	watch(watch),
-				p(p) {
+				p(p){
 		//cerr <<"Watching " <<toString(watch, p->getPCSolver()) <<" in lazy propagator.\n";
 	}
+
 	virtual void propagate() {
 		//cerr <<"Accepted for propagation on " <<toString(watch, p->getPCSolver()) <<"\n";
 		p->getPCSolver().acceptForPropagation(p);

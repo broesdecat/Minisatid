@@ -303,11 +303,45 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 void Solver::addLearnedClause(CRef rc) {
 	auto& c = ca[rc];
 	MAssert(c.size() > 1);
+
+#ifdef DEBUG
+	bool allfalse = true;
+	for (int i = 0; i < c.size() && allfalse; ++i) {
+		if(value(c[i])!=l_False){
+			allfalse = false;
+		}
+	}
+	MAssert(not allfalse);
+#endif
+
 	addToClauses(rc, true);
 	attachClause(rc);
 	claBumpActivity(c);
 	if (verbosity >= 3) {
 		clog << "Learned clause added: ";
+		printClause(rc);
+		clog << "\n";
+	}
+}
+void Solver::addConflictClause(CRef rc) {
+	auto& c = ca[rc];
+	MAssert(c.size() > 1);
+
+#ifdef DEBUG
+	bool allfalse = true;
+	for (int i = 0; i < c.size() && allfalse; ++i) {
+		if(value(c[i])!=l_False){
+			allfalse = false;
+		}
+	}
+	MAssert(allfalse);
+#endif
+
+	addToClauses(rc, true);
+	attachClause(rc, true);
+	claBumpActivity(c);
+	if (verbosity >= 3) {
+		clog << "Conflict clause added: ";
 		printClause(rc);
 		clog << "\n";
 	}
@@ -335,14 +369,14 @@ void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
  * add to watches, lit and second latest literal as watch
  */
 // FIXME if learnt, should we test for unit propagation (found a related bug in aggregate code which also did not do the propagation (so it was done nowhere)
-void Solver::attachClause(CRef cr) {
+void Solver::attachClause(CRef cr, bool conflict) {
 	auto& c = ca[cr];
 	MAssert(c.size() > 1);
 
 	// If level>0, the clause can contain true and false literals
 	// If not a learned clause, the order of literals is not required to guarantee correctness
 	// So need code to restructure the clause for correct watch addition and handle the case where all literals are false or unit propagation possible
-	if (decisionLevel() > 0 && not c.learnt()) {
+	if (decisionLevel() > 0 && not conflict) {
 		int nonfalse1 = -1, nonfalse2 = -1, recentfalse1 = -1, recentfalse2 = -1; // literal indices: 1 is "1st", 2 is "2nd"
 		for (int i = 0; i < c.size(); ++i) {
 			if (isFalse(c[i])) {
@@ -405,13 +439,13 @@ void Solver::attachClause(CRef cr) {
 		}
 	}
 
-	if (not c.learnt()) {
+	if (not conflict) {
 		MAssert(not isFalse(c[1]) || not isFalse(c[0]));
 	}
 	watches[~c[0]].push(Watcher(cr, c[1]));
 	watches[~c[1]].push(Watcher(cr, c[0]));
 
-	if (not c.learnt() || not isFalse(c[0]) || not isFalse(c[1])) {
+	if (not conflict || not isFalse(c[0]) || not isFalse(c[1])) {
 		checkDecisionVars(c);
 	}
 
@@ -1198,12 +1232,10 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 
 			auto cr = CRef_Undef;
 			if (learnt_clause.size() > 1) {
-				cr = ca.alloc(learnt_clause, true);
-				addToClauses(cr, true);
-				attachClause(cr);
-				claBumpActivity(ca[cr]);
+				addLearnedClause(ca.alloc(learnt_clause, true));
+			}else{
+				uncheckedEnqueue(learnt_clause[0], cr);
 			}
-			uncheckedEnqueue(learnt_clause[0], cr);
 
 			varDecayActivity();
 			claDecayActivity();

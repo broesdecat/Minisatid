@@ -216,12 +216,12 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
 		internalAdd(implic, getPCSolver());
 		if (getPCSolver().isUnsat()) { // FIXME add methods should return the conflict clause if applicable
 			clause = getPCSolver().createClause(implic, true);
-			getPCSolver().addLearnedClause(clause);
+			getPCSolver().addConflictClause(clause);
 			return clause;
 		}
 	} else {
 		clause = getPCSolver().createClause(implic, true);
-		getPCSolver().addLearnedClause(clause);
+		getPCSolver().addConflictClause(clause);
 	}
 	return clause;
 }

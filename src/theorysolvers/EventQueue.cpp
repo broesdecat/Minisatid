@@ -335,12 +335,12 @@ void EventQueue::clearNotPresentPropagators() {
 		}
 	}
 
-	for (auto j = allpropagators.begin(); j < allpropagators.end();) {
+/*	for (auto j = allpropagators.begin(); j < allpropagators.end();) { TODO cannot be enabled as watches have pointers to propagators, which would become invalid if the propagator is deleted
 		if (not (*j)->isPresent()) {
 			delete (*j);
 			j = allpropagators.erase(j);
 		} else {
 			++j;
 		}
-	}
+	}*/
 }

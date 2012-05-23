@@ -156,6 +156,9 @@ void PCSolver::notifyBecameDecidable(Var v) {
 void PCSolver::addLearnedClause(rClause c) {
 	getSolver().addLearnedClause(c);
 }
+void PCSolver::addConflictClause(rClause c) {
+	getSolver().addConflictClause(c);
+}
 int PCSolver::getClauseSize(rClause cr) const {
 	return getSolver().getClauseSize(cr);
 }

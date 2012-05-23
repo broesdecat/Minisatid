@@ -54,9 +54,13 @@ lbool LitTrail::value(const Lit& l) const {
 	return (*it).second;
 }
 
-CPSolver::CPSolver(PCSolver * solver) :
-		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()), addedconstraints(false),
-		searchedandnobacktrack(false), savedsearchengine(NULL), fullassignmentfound(false) {
+CPSolver::CPSolver(PCSolver * solver)
+		: 	Propagator(solver, "CP-solver"),
+			solverdata(new CPSolverData()),
+			addedconstraints(false),
+			searchedandnobacktrack(false),
+			savedsearchengine(NULL),
+			fullassignmentfound(false) {
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
@@ -188,12 +192,12 @@ void CPSolver::addedConstraint() {
 
 // SOLVER METHODS
 
-void CPSolver::accept(ConstraintVisitor& visitor){
+void CPSolver::accept(ConstraintVisitor& visitor) {
 	getSpace().accept(visitor);
-	for(auto i=getData().getNonReifConstraints().cbegin(); i<getData().getNonReifConstraints().cend(); ++i){
+	for (auto i = getData().getNonReifConstraints().cbegin(); i < getData().getNonReifConstraints().cend(); ++i) {
 		(*i)->accept(visitor);
 	}
-	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); ++i){
+	for (auto i = getData().getReifConstraints().cbegin(); i < getData().getReifConstraints().cend(); ++i) {
 		(*i)->accept(visitor);
 	}
 }
@@ -242,14 +246,15 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 
 void CPSolver::notifyNewDecisionLevel() {
 	// Very expensive to add spaces when no constraints are loaded
-	if(hasData()){ // FIXME DO NOT ADD CONSTRAINTS LAZILY UNLESS AT LEVEL 0 because of this optimization!
+	if (hasData()) { // FIXME DO NOT ADD CONSTRAINTS LAZILY UNLESS AT LEVEL 0 because of this optimization!
 		getData().addSpace();
 	}
 	trail.newDecisionLevel();
 }
 
 void CPSolver::notifyBacktrack(int untillevel, const Lit& decision) {
-	if(hasData()){
+	fullassignmentfound = false;
+	if (hasData()) {
 		getData().removeSpace(untillevel);
 	}
 	searchedandnobacktrack = false;
@@ -296,7 +301,9 @@ rClause CPSolver::notifypropagate() {
 	SpaceStatus status = getSpace().status(stats);
 
 	if (status == SS_FAILED) { //Conflict
-		return genFullConflictClause();
+		auto c = genFullConflictClause();
+		getPCSolver().addConflictClause(c);
+		return c;
 	}
 
 	if (verbosity() >= 3) {
@@ -363,9 +370,7 @@ rClause CPSolver::genFullConflictClause() {
 		//FIXME skip all literals that were propagated BY the CP solver
 		clause.literals.push_back(~(*i));
 	}
-	rClause c = getPCSolver().createClause(clause, true);
-	getPCSolver().addLearnedClause(c);
-	return c;
+	return getPCSolver().createClause(clause, true);
 }
 
 rClause CPSolver::propagateReificationConstraints() {
@@ -382,7 +387,7 @@ bool CPSolver::hasData() const {
 	return getData().getTerms().size() > 0;
 }
 
-int CPSolver::getNbOfFormulas() const{
+int CPSolver::getNbOfFormulas() const {
 	return getData().getTerms().size();
 }
 
@@ -390,13 +395,13 @@ rClause CPSolver::findNextModel() {
 	return propagateFinal(true);
 }
 
-rClause CPSolver::propagateFinal(bool usesavedengine) {
+rClause CPSolver::propagateFinal(bool findnext) {
 	rClause confl = nullPtrClause;
-	if(not hasData()){
+	if (not hasData()) {
 		return confl;
 	}
 
-	if (!usesavedengine || savedsearchengine == NULL) {
+	if (!findnext || savedsearchengine == NULL) {
 		Search::Options searchOptions;
 
 		getSpace().addBranchers();
@@ -407,17 +412,20 @@ rClause CPSolver::propagateFinal(bool usesavedengine) {
 		savedsearchengine = new DFS<CPScript>(&getSpace(), searchOptions);
 	}
 
-	CPScript* enumerator = savedsearchengine->next();
+	auto enumerator = savedsearchengine->next();
 
 	if (enumerator == NULL) {
 		if (savedsearchengine->stopped()) {
 			throw idpexception("memory overflow on CP part");
 		} else {
+			//FIXME also found if there are no constraints submitted (which should not fail in any case).
 			if (getPCSolver().modes().verbosity >= 5) {
 				clog << "Conflict found in CP search.\n";
 			}
-			//FIXME also found if there are no solutions or there are no constraints submitted (which should not fail in any case).
 			confl = genFullConflictClause();
+			if (not findnext) {
+				getPCSolver().addConflictClause(confl);
+			}
 		}
 	} else {
 		//clog <<"Model found for CP part.\n";

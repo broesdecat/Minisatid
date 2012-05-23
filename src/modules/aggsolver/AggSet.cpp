@@ -151,7 +151,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 		rClause confl = getExplanation(p); //Reason manipulation because getexplanation uses that reason!
 		reasons[var(p)] = old_ar;
 		delete ar; // Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
-		getPCSolver().addLearnedClause(confl);
+		getPCSolver().addConflictClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {

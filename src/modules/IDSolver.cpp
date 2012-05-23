@@ -1497,7 +1497,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		if (isTrue(mkPosLit(*tch))) {
 			loopf.literals[0] = mkNegLit(*tch); //negate the head to create a clause
 			rClause c = getPCSolver().createClause(loopf, true);
-			getPCSolver().addLearnedClause(c);
+			getPCSolver().addConflictClause(c);
 			++stats.justify_conflicts;
 			if (verbosity() >= 2) {
 				clog << "Adding conflicting loop formula: [ ";
@@ -1567,7 +1567,7 @@ void IDSolver::addLoopfClause(Lit l, Disjunction& lits) {
 			getPCSolver().setTrue(lits.literals[0], this);
 		}
 	} else {
-		rClause c = getPCSolver().createClause(lits, true);
+		auto c = getPCSolver().createClause(lits, true);
 		getPCSolver().addLearnedClause(c);
 
 		//if unit propagation is already possible, this might not be detected on time, so help a little
@@ -1954,8 +1954,8 @@ rClause IDSolver::isWellFoundedModel() {
 	//Returns the found assignment (TODO might be optimized to just return the loop)
 	Disjunction invalidation;
 	getPCSolver().invalidate(invalidation.literals);
-	rClause confl = getPCSolver().createClause(invalidation, true);
-	getPCSolver().addLearnedClause(confl);
+	auto confl = getPCSolver().createClause(invalidation, true);
+	getPCSolver().addConflictClause(confl);
 	return confl;
 }
 
