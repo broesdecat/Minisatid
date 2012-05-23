@@ -483,7 +483,9 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 	Agg const * agg = NULL; // The current reference aggregate
 	if (aggofprophead != NULL) { // the head of one aggregate was propagated
 		confl = checkHeadPropagationForAgg(propagations, *aggofprophead, pessbounds);
-		agg = aggofprophead;
+		if(value(aggofprophead->getHead())==l_False){
+			agg = aggofprophead;
+		}
 	} else { // A set literal was propagated, so check whether any heads can be propagated
 		for (auto i = getAgg().cbegin(); confl == nullPtrClause && i < getAgg().cend(); ++i) {
 			confl = checkHeadPropagationForAgg(propagations, **i, pessbounds);
@@ -492,6 +494,8 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 	}
 
 	if (confl == nullPtrClause && agg != NULL) {
+		MAssert(agg->getSem()==AggSem::OR);
+		MAssert(value(agg->getHead())==l_False);
 		auto lowerbound = WL(mkPosLit(1), Weight(0));
 		//Calculate lowest
 		if (agg->hasLB()) {
