@@ -20,6 +20,7 @@
 #include "modules/LazyGrounder.hpp"
 #include "modules/symmetry/Symmetry.hpp"
 #include "modules/BinConstr.hpp"
+#include "modules/FDAggConstraint.hpp"
 #include "modules/LazyGrounder.hpp"
 
 #ifdef CPSUPPORT
@@ -344,7 +345,11 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		throw notYetImplemented("No support for handling CPSumWeighted without gecode yet.");
+		vector<IntView*> vars;
+		for(auto i=obj.varIDs.cbegin(); i<obj.varIDs.cend(); ++i){
+			vars.push_back(new IntView(intvars.at(*i), 0));
+		}
+		new FDAggConstraint(getEnginep(), mkPosLit(obj.head), AggType::SUM, vars, obj.weights, obj.rel, obj.bound);
 	}
 }
 

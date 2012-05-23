@@ -228,7 +228,13 @@ CRef Solver::makeClause(const std::vector<Lit>& lits, bool learnt) {
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		ps.push(*i);
 	}
-	return ca.alloc(ps, learnt);
+	auto result = ca.alloc(ps, learnt);
+/*	if (verbosity >= 3) {
+		clog << "Creating clause: ";
+		printClause(result);
+		clog << "\n";
+	}*/
+	return result;
 }
 
 /*
@@ -320,7 +326,6 @@ void Solver::addLearnedClause(CRef rc) {
 	if (verbosity >= 3) {
 		clog << "Learned clause added: ";
 		printClause(rc);
-		clog << "\n";
 	}
 }
 void Solver::addConflictClause(CRef rc) {
@@ -343,7 +348,6 @@ void Solver::addConflictClause(CRef rc) {
 	if (verbosity >= 3) {
 		clog << "Conflict clause added: ";
 		printClause(rc);
-		clog << "\n";
 	}
 }
 
@@ -376,7 +380,7 @@ void Solver::attachClause(CRef cr, bool conflict) {
 	// If level>0, the clause can contain true and false literals
 	// If not a learned clause, the order of literals is not required to guarantee correctness
 	// So need code to restructure the clause for correct watch addition and handle the case where all literals are false or unit propagation possible
-	if (decisionLevel() > 0 && not conflict) {
+	if ((c.learnt() || decisionLevel()>0) && not conflict) {
 		int nonfalse1 = -1, nonfalse2 = -1, recentfalse1 = -1, recentfalse2 = -1; // literal indices: 1 is "1st", 2 is "2nd"
 		for (int i = 0; i < c.size(); ++i) {
 			if (isFalse(c[i])) {

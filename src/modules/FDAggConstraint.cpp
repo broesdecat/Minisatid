@@ -12,30 +12,49 @@
 #include "utils/Print.hpp"
 #include "modules/aggsolver/AggProp.hpp"
 
+using namespace std;
 using namespace MinisatID;
 
-FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<int>& weights,
-		const Weight& bound)
+FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
+		EqType rel, const Weight& bound)
 		: 	Propagator(engine, "fdaggconstr"),
-			head(head),
-			type(getType(type)),
-			vars(set),
-			weights(weights),
-			bound(bound) {
-	getPCSolver().accept(this, head, FAST);
-	getPCSolver().accept(this, not head, FAST);
+			_type(getType(type)) {
+
+	_head = head;
+	_vars = set;
+	if(rel==EqType::EQ){
+		new FDAggConstraint(engine, head, type, set, weights, EqType::LEQ, bound);
+	}else if(rel==EqType::NEQ){
+		_head = not head;
+		new FDAggConstraint(engine, not head, type, set, weights, EqType::LEQ, bound);
+	}
+	if(rel==EqType::L || rel==EqType::G){
+		_head = not head;
+	}
+	if(rel==EqType::G || rel==EqType::LEQ){
+		for(auto i=weights.cbegin(); i<weights.cend(); ++i){
+			_weights.push_back(-*i);
+		}
+		_bound = -bound;
+	}else{ // GEQ, EQ, NEQ, L
+		_weights = weights;
+		_bound = bound;
+	}
+
+	getPCSolver().accept(this, _head, FAST);
+	getPCSolver().accept(this, not _head, FAST);
 	for (auto i = set.cbegin(); i != set.cend(); ++i) {
 		getPCSolver().acceptBounds(*i, this);
 	}
 }
 
 rClause FDAggConstraint::notifypropagate() {
-	auto headval = value(head);
+	auto _headval = value(_head);
 	int min = 0, max = 0;
-	for (int i = 0; i < vars.size(); ++i) {
-		auto weight = weights[i];
-		auto minval = vars[i]->minValue();
-		auto maxval = vars[i]->maxValue();
+	for (uint i = 0; i < _vars.size(); ++i) {
+		auto weight = _weights[i];
+		auto minval = _vars[i]->minValue();
+		auto maxval = _vars[i]->maxValue();
 		if (weight < 0) {
 			min += maxval * weight;
 			max += minval * weight;
@@ -44,93 +63,102 @@ rClause FDAggConstraint::notifypropagate() {
 			max += maxval * weight;
 		}
 	}
-	if (headval == l_Undef) {
-		if (min >= bound) {
+	if (_headval == l_Undef) {
+		if (min >= _bound) {
 			litlist minlits;
-			for (int i = 0; i < vars.size(); ++i) {
-				if (weights[i] < 0) {
-					minlits.push_back(not vars[i]->getLEQLit(vars[i]->maxValue()));
+			minlits.push_back(_head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				if (_weights[i] < 0) {
+					minlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
 				} else {
-					minlits.push_back(not vars[i]->getGEQLit(vars[i]->minValue()));
+					minlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
 				}
 			}
-			Disjunction clause(minlits);
-			clause.literals.push_back(head);
-			auto c = getPCSolver().createClause(clause, true);
+			auto c = getPCSolver().createClause(Disjunction(minlits), true);
 			getPCSolver().addLearnedClause(c);
-		} else if (max < bound) {
+		} else if (max < _bound) {
 			litlist maxlits;
-			for (int i = 0; i < vars.size(); ++i) {
-				if (weights[i] < 0) {
-					maxlits.push_back(not vars[i]->getGEQLit(vars[i]->minValue()));
+			maxlits.push_back(not _head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				if (_weights[i] < 0) {
+					maxlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
 				} else {
-					maxlits.push_back(not vars[i]->getLEQLit(vars[i]->maxValue()));
+					maxlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
 				}
 			}
-			Disjunction clause(maxlits);
-			clause.literals.push_back(not head);
-			auto c = getPCSolver().createClause(clause, true);
+			auto c = getPCSolver().createClause(Disjunction(maxlits), true);
 			getPCSolver().addLearnedClause(c);
 		}
-	} else if (headval == l_True) {
-		// for any var: var GEQ TOP(varmax-(totalmax-bound)/weight) TODO check
-		for (int i = 0; i < vars.size(); ++i) {
-			auto var = vars[i];
-			auto val = var->maxValue() - (max - bound) / weights[i]; // FIXME rounding!
-			auto geqlit = var->getGEQLit(val);
-			if (value(geqlit) != l_True) {
+	} else if (_headval == l_True) {
+		// for any var: var GEQ TOP(varmax-(totalmax-_bound)/weight) TODO check
+		for (uint i = 0; i < _vars.size(); ++i) {
+			auto var = _vars[i];
+			Lit lit;
+			if (_weights[i] > 0) {
+				auto val = var->maxValue() - (max - _bound) / _weights[i]; // FIXME rounding!
+				lit = var->getGEQLit(val);
+			} else {
+				auto val = var->minValue() + (max - _bound) / -_weights[i]; // FIXME rounding!
+				lit = var->getLEQLit(val);
+			}
+			if (value(lit) != l_True) {
 				litlist lits;
-				lits.push_back(not head);
-				for (int j = 0; j < vars.size(); ++j) {
+				lits.push_back(not _head);
+				for (uint j = 0; j < _vars.size(); ++j) {
 					if (j == i) {
 						continue;
 					}
-					if (weights[i] < 0) {
-						lits.push_back(not vars[j]->getGEQLit(vars[j]->minValue()));
+					if (_weights[j] < 0) {
+						lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 					} else {
-						lits.push_back(not vars[j]->getLEQLit(vars[j]->maxValue()));
+						lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 					}
 				}
-				lits.push_back(geqlit);
-				Disjunction clause(lits);
-				clause.literals.push_back(not head);
-				auto c = getPCSolver().createClause(clause, true);
-				if(value(geqlit)==l_False){ // Conflict
+				lits.push_back(lit);
+				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				if (value(lit) == l_False) { // Conflict
+					getPCSolver().addConflictClause(c);
 					return c;
-				}else{
+				} else {
 					getPCSolver().addLearnedClause(c);
 				}
 			}
 		}
-	} else { // head is false
-		// for any var: var LEQ BOT(varmin+(bound-totalmin)/weight)-1 TODO check
-		for (int i = 0; i < vars.size(); ++i) {
-			auto var = vars[i];
-			auto val = var->minValue() + (bound-min) / weights[i] -1; // FIXME rounding!
-			auto leqlit = var->getLEQLit(val);
-			if (value(leqlit) != l_True) {
+	} else { // _head is false
+		// for any var: var LEQ BOT(varmin+(_bound-totalmin)/weight)-1 TODO check
+		for (uint i = 0; i < _vars.size(); ++i) {
+			auto var = _vars[i];
+			Lit lit;
+			if (_weights[i] > 0) {
+				auto val = var->minValue() + (_bound - min) / _weights[i] - 1; // FIXME rounding!
+				lit = var->getLEQLit(val);
+			} else {
+				auto val = var->maxValue() + (_bound - min) / -_weights[i] - 1; // FIXME rounding!
+				lit = var->getGEQLit(val);
+			}
+			if (value(lit) != l_True) {
 				litlist lits;
-				lits.push_back(not head);
-				for (int j = 0; j < vars.size(); ++j) {
+				lits.push_back(_head);
+				for (uint j = 0; j < _vars.size(); ++j) {
 					if (j == i) {
 						continue;
 					}
-					if (weights[i] < 0) {
-						lits.push_back(not vars[j]->getLEQLit(vars[j]->maxValue()));
+					if (_weights[j] < 0) {
+						lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 					} else {
-						lits.push_back(not vars[j]->getGEQLit(vars[j]->minValue()));
+						lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 					}
 				}
-				lits.push_back(leqlit);
-				Disjunction clause(lits);
-				clause.literals.push_back(head);
-				auto c = getPCSolver().createClause(clause, true);
-				if(value(leqlit)==l_False){ // Conflict
+				lits.push_back(lit);
+				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				if (value(lit) == l_False) { // Conflict
+					getPCSolver().addConflictClause(c);
 					return c;
-				}else{
+				} else {
 					getPCSolver().addLearnedClause(c);
 				}
 			}
 		}
 	}
+	return nullPtrClause;
 }
