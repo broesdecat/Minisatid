@@ -11,6 +11,7 @@
 #include <iostream>
 #include "utils/Print.hpp"
 #include "modules/aggsolver/AggProp.hpp"
+#include <cmath>
 
 using namespace std;
 using namespace MinisatID;
@@ -20,32 +21,61 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 		: 	Propagator(engine, "fdaggconstr"),
 			_type(getType(type)) {
 
+	std::vector<IntView*> newset;
+	std::vector<Weight> newweights;
+	for (uint i = 0; i < set.size(); ++i) {
+		bool found = false;
+		for (uint j = 0; j < newset.size(); ++j) {
+			if (set[i]->id() == newset[j]->id()) {
+				newweights[j] += weights[i];
+				found = true;
+				break;
+			}
+		}
+		if (not found) {
+			newset.push_back(set[i]);
+			newweights.push_back(weights[i]);
+		}
+	}
+	auto si = newset.begin();
+	auto wi = newweights.begin();
+	for (; si < newset.end();) {
+		if ((*wi) == Weight(0)) {
+			si = newset.erase(si);
+			wi = newweights.erase(wi);
+		} else {
+			++si;
+			++wi;
+		}
+	}
+
 	_head = head;
-	_vars = set;
-	if(rel==EqType::EQ){
-		new FDAggConstraint(engine, head, type, set, weights, EqType::LEQ, bound);
-	}else if(rel==EqType::NEQ){
+	_vars = newset;
+	if (rel == EqType::EQ) {
+		new FDAggConstraint(engine, head, type, _vars, newweights, EqType::LEQ, bound);
+	} else if (rel == EqType::NEQ) {
 		_head = not head;
-		new FDAggConstraint(engine, not head, type, set, weights, EqType::LEQ, bound);
+		new FDAggConstraint(engine, not head, type, _vars, newweights, EqType::LEQ, bound);
 	}
-	if(rel==EqType::L || rel==EqType::G){
+	if (rel == EqType::L || rel == EqType::G) {
 		_head = not head;
 	}
-	if(rel==EqType::G || rel==EqType::LEQ){
-		for(auto i=weights.cbegin(); i<weights.cend(); ++i){
+	if (rel == EqType::G || rel == EqType::LEQ) {
+		for (auto i = newweights.cbegin(); i < newweights.cend(); ++i) {
 			_weights.push_back(-*i);
 		}
 		_bound = -bound;
-	}else{ // GEQ, EQ, NEQ, L
-		_weights = weights;
+	} else { // GEQ, EQ, NEQ, L
+		_weights = newweights;
 		_bound = bound;
 	}
 
 	getPCSolver().accept(this, _head, FAST);
 	getPCSolver().accept(this, not _head, FAST);
-	for (auto i = set.cbegin(); i != set.cend(); ++i) {
+	for (auto i = _vars.cbegin(); i != _vars.cend(); ++i) {
 		getPCSolver().acceptBounds(*i, this);
 	}
+	getPCSolver().acceptForPropagation(this);
 }
 
 rClause FDAggConstraint::notifypropagate() {
@@ -89,16 +119,25 @@ rClause FDAggConstraint::notifypropagate() {
 			auto c = getPCSolver().createClause(Disjunction(maxlits), true);
 			getPCSolver().addLearnedClause(c);
 		}
-	} else if (_headval == l_True) {
-		// for any var: var GEQ TOP(varmax-(totalmax-_bound)/weight) TODO check
+		return nullPtrClause;
+	}
+
+	// Optimize to stop early
+	if((min>=_bound && _headval==l_True) || (max<_bound && _headval==l_False)){
+		return nullPtrClause;
+	}
+
+	if (_headval == l_True) {
 		for (uint i = 0; i < _vars.size(); ++i) {
 			auto var = _vars[i];
 			Lit lit;
 			if (_weights[i] > 0) {
-				auto val = var->maxValue() - (max - _bound) / _weights[i]; // FIXME rounding!
+				// var >= TOP((bound - (max-weight*varmax))/weight)
+				auto val = ceil((_bound - (max - _weights[i]*var->maxValue()))/(double)_weights[i]);
 				lit = var->getGEQLit(val);
 			} else {
-				auto val = var->minValue() + (max - _bound) / -_weights[i]; // FIXME rounding!
+				// var =< TOP((bound - (max-weight*varmin))/weight)
+				auto val = ceil((_bound - (max - _weights[i]*var->minValue()))/(double)_weights[i]);
 				lit = var->getLEQLit(val);
 			}
 			if (value(lit) != l_True) {
@@ -129,12 +168,25 @@ rClause FDAggConstraint::notifypropagate() {
 		for (uint i = 0; i < _vars.size(); ++i) {
 			auto var = _vars[i];
 			Lit lit;
+
 			if (_weights[i] > 0) {
-				auto val = var->minValue() + (_bound - min) / _weights[i] - 1; // FIXME rounding!
-				lit = var->getLEQLit(val);
-			} else {
-				auto val = var->maxValue() + (_bound - min) / -_weights[i] - 1; // FIXME rounding!
+				// var =< BOT((bound - (min-weight*varmin))/weight)
+				auto val = (_bound - (min - _weights[i]*var->minValue()))/(double)_weights[i];
+				if(val==floor(val)){
+					val--;
+				}else{
+					val = floor(val);
+				}
 				lit = var->getGEQLit(val);
+			} else {
+				// var >= BOT((bound - (min-weight*varmax))/weight)
+				auto val = (_bound - (min - _weights[i]*var->maxValue()))/(double)_weights[i];
+				if(val==floor(val)){
+					val--;
+				}else{
+					val = floor(val);
+				}
+				lit = var->getLEQLit(val);
 			}
 			if (value(lit) != l_True) {
 				litlist lits;
