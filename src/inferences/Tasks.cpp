@@ -14,6 +14,7 @@
 #include "theorysolvers/PropagatorFactory.hpp"
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggSet.hpp"
+#include "modules/IntVar.hpp"
 #include "external/SearchMonitor.hpp"
 #include "external/FlatZincRewriter.hpp"
 #include "external/ECNFPrinter.hpp"
@@ -341,6 +342,23 @@ bool ModelExpand::invalidateAgg(litlist& invalidation, OptimStatement& optim) {
 	return false;
 }
 
+bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
+	auto var = optim.var;
+	latestvarvalue = var->maxValue();
+
+	printer->notifyCurrentOptimum(latestvarvalue);
+	if (getOptions().verbosity >= 1) {
+		clog << "> Current optimal value " << latestvarvalue << "\n";
+	}
+
+	if(var->origMinValue()==latestvarvalue){
+		return true;
+	}
+
+	invalidation.push_back(var->getLEQLit(latestvarvalue-1));
+	return false;
+}
+
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
  *
@@ -399,7 +417,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			unsatreached = invalidateAgg(invalidation.literals, optim);
 			break;
 		case Optim::VAR: {
-			throw notYetImplemented("Optimization over fd-var."); // TODO
+			unsatreached = invalidateVar(invalidation.literals, optim);
 			break;
 		}
 		}
@@ -454,7 +472,8 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		}
 		case Optim::VAR: {
-			throw notYetImplemented("Optimization over fd-var."); // TODO
+			internalAdd(Disjunction({optim.var->getLEQLit(latestvarvalue)}), getSolver());
+			internalAdd(Disjunction({optim.var->getGEQLit(latestvarvalue)}), getSolver());
 			break;
 		}
 		}
