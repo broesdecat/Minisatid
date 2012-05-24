@@ -136,8 +136,8 @@ rClause FDAggConstraint::notifypropagate() {
 				auto val = ceil((_bound - (max - _weights[i]*var->maxValue()))/(double)_weights[i]);
 				lit = var->getGEQLit(val);
 			} else {
-				// var =< TOP((bound - (max-weight*varmin))/weight)
-				auto val = ceil((_bound - (max - _weights[i]*var->minValue()))/(double)_weights[i]);
+				// var =< BOT((bound - (max-weight*varmin))/weight)
+				auto val = floor((_bound - (max - _weights[i]*var->minValue()))/(double)_weights[i]);
 				lit = var->getLEQLit(val);
 			}
 			if (value(lit) != l_True) {
@@ -164,7 +164,7 @@ rClause FDAggConstraint::notifypropagate() {
 			}
 		}
 	} else { // _head is false
-		// for any var: var LEQ BOT(varmin+(_bound-totalmin)/weight)-1 TODO check
+		// for any var:
 		for (uint i = 0; i < _vars.size(); ++i) {
 			auto var = _vars[i];
 			Lit lit;
@@ -172,21 +172,13 @@ rClause FDAggConstraint::notifypropagate() {
 			if (_weights[i] > 0) {
 				// var =< BOT((bound - (min-weight*varmin))/weight)
 				auto val = (_bound - (min - _weights[i]*var->minValue()))/(double)_weights[i];
-				if(val==ceil(val)){
-					val--;
-				}else{
-					val = ceil(val);
-				}
-				lit = var->getGEQLit(val);
-			} else {
-				// var >= BOT((bound - (min-weight*varmax))/weight)
-				auto val = (_bound - (min - _weights[i]*var->maxValue()))/(double)_weights[i];
-				if(val==ceil(val)){
-					val--;
-				}else{
-					val = ceil(val);
-				}
+				val = floor(val);
 				lit = var->getLEQLit(val);
+			} else {
+				// var >= TOP((bound - (min-weight*varmax))/weight+0.01)
+				auto val = ((_bound - (min - _weights[i]*var->maxValue()))/(double)_weights[i])+0.1;
+				val = ceil(val);
+				lit = var->getGEQLit(val);
 			}
 			if (value(lit) != l_True) {
 				litlist lits;
