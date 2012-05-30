@@ -51,11 +51,13 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 
 	_head = head;
 	_vars = newset;
-	if (rel == EqType::EQ) {
-		new FDAggConstraint(engine, head, type, _vars, newweights, EqType::LEQ, bound);
-	} else if (rel == EqType::NEQ) {
-		_head = not head;
-		new FDAggConstraint(engine, not head, type, _vars, newweights, EqType::LEQ, bound);
+	if(rel == EqType::EQ || rel == EqType::NEQ){
+		auto eq = (rel==EqType::EQ);
+		auto one = mkPosLit(getPCSolver().newVar());
+		auto two = mkPosLit(getPCSolver().newVar());
+		internalAdd(Implication(eq?head:not head, ImplicationType::EQUIVALENT, {one, two}, true), getPCSolver());
+		_head = one;
+		new FDAggConstraint(engine, two, type, _vars, newweights, EqType::LEQ, bound);
 	}
 	if (rel == EqType::L || rel == EqType::G) {
 		_head = not head;
@@ -70,15 +72,27 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 		_bound = bound;
 	}
 
+	/*cerr<<"Added fdconstraint " <<toString(_head) <<" <=> ";
+	for(uint i=0; i<_vars.size(); ++i) {
+		cerr <<_weights[i] <<"*var" <<_vars[i]->toString() <<" ";
+	}
+	cerr <<">= " <<_bound <<"\n";*/
+
 	getPCSolver().accept(this, _head, FAST);
 	getPCSolver().accept(this, not _head, FAST);
 	for (auto i = _vars.cbegin(); i != _vars.cend(); ++i) {
 		getPCSolver().acceptBounds(*i, this);
 	}
 	getPCSolver().acceptForPropagation(this);
+	// TODO remove trivially true aggregates
 }
 
 rClause FDAggConstraint::notifypropagate() {
+	/*cerr <<"Propagating " <<toString(_head) <<" <=> ";
+	for(uint i=0; i<_vars.size(); ++i) {
+		cerr <<_weights[i] <<"*var" <<_vars[i]->toString() <<" ";
+	}
+	cerr <<">= " <<_bound <<"\n";*/
 	auto _headval = value(_head);
 	int min = 0, max = 0;
 	for (uint i = 0; i < _vars.size(); ++i) {
@@ -93,6 +107,7 @@ rClause FDAggConstraint::notifypropagate() {
 			max += maxval * weight;
 		}
 	}
+	//cerr <<"Min " <<min <<", max " <<max <<"\n";
 	if (_headval == l_Undef) {
 		if (min >= _bound) {
 			litlist minlits;
@@ -172,12 +187,20 @@ rClause FDAggConstraint::notifypropagate() {
 			if (_weights[i] > 0) {
 				// var =< BOT((bound - (min-weight*varmin))/weight)
 				auto val = (_bound - (min - _weights[i]*var->minValue()))/(double)_weights[i];
-				val = floor(val);
+				if(val==floor(val)){
+					val--;
+				}else{
+					val = floor(val);
+				}
 				lit = var->getLEQLit(val);
 			} else {
 				// var >= TOP((bound - (min-weight*varmax))/weight+0.01)
-				auto val = ((_bound - (min - _weights[i]*var->maxValue()))/(double)_weights[i])+0.1;
-				val = ceil(val);
+				auto val = ((_bound - (min - _weights[i]*var->maxValue()))/(double)_weights[i]);
+				if(val==ceil(val)){
+					val++;
+				}else{
+					val = ceil(val);
+				}
 				lit = var->getGEQLit(val);
 			}
 			if (value(lit) != l_True) {

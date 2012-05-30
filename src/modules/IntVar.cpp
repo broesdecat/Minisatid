@@ -71,8 +71,8 @@ void IntVar::notifyBacktrack(int, const Lit&) {
 
 // NOTE: returns false if out of the bounds
 Lit IntVar::getLEQLit(int bound) const {
-//	cerr <<"Requesting var" <<origid() <<"=<" <<bound <<"\n";
-	auto index = bound - minvalue;
+	//cerr <<"Requesting var" <<origid() <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<"=<" <<bound <<"\n";
+	auto index = bound - origMinValue();
 	if (index < 0) {
 		return getPCSolver().getFalseLit();
 	}
@@ -83,8 +83,8 @@ Lit IntVar::getLEQLit(int bound) const {
 }
 
 Lit IntVar::getGEQLit(int bound) const {
-//	cerr <<"Requesting var" <<origid() <<">=" <<bound <<"\n";
-	auto index = bound - minvalue - 1;
+	//cerr <<"Requesting var" <<origid() <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<">=" <<bound <<"\n";
+	auto index = bound - origMinValue() - 1;
 	if (index < 0) {
 		return getPCSolver().getTrueLit();
 	}
