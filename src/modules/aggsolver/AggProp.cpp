@@ -297,28 +297,24 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL&, const WL&, Weight&) const {
 
 //AGGREGATES
 
-bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max) {
-	if (agg.hasUB()) {
-		return max <= agg.getCertainBound();
+bool satisfies(const Weight& min, const Weight& max, bool ub, const Weight& certainbound){
+	if (ub) {
+		return max <= certainbound;
 	} else { //LB
-		return min >= agg.getCertainBound();
+		return min >= certainbound;
 	}
+}
+
+bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max) {
+	return satisfies(min, max, agg.hasUB(), agg.getCertainBound());
 }
 
 bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds) {
-	if (agg.hasUB()) {
-		return bounds.max <= agg.getCertainBound();
-	} else { //LB
-		return bounds.min >= agg.getCertainBound();
-	}
+	return isSatisfied(agg, bounds.min, bounds.max);
 }
 
 bool MinisatID::isSatisfied(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound) {
-	if (agg.hasUB()) {
-		return bounds.max <= agg.getCertainBound(knownbound);
-	} else { //LB
-		return bounds.min >= agg.getCertainBound(knownbound);
-	}
+	return satisfies(bounds.min, bounds.max, agg.hasUB(), agg.getCertainBound(knownbound));
 }
 
 bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max) {
@@ -330,11 +326,7 @@ bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max
 }
 
 bool MinisatID::isFalsified(const Agg& agg, const minmaxBounds& bounds) {
-	if (agg.hasUB()) {
-		return bounds.min > agg.getCertainBound();
-	} else { //LB
-		return bounds.max < agg.getCertainBound();
-	}
+	return isFalsified(agg, bounds.min, bounds.max);
 }
 
 /**

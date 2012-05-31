@@ -153,6 +153,9 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 		} else {
 			auto gw = dynamic_cast<GenPWatch*>(watch);
 			MAssert(watch!=NULL);
+			if (value(gw->getPropLit()) != l_True) { // NOTE: it is possible that we already backtracked over some fired watch
+				continue;
+			}
 			watchlist.push_back(gw);
 			if (not gw->isInWS()) { //Already in NWS, so no need to watch it
 				MAssert(getNWS()[gw->getIndex()]==watch);
@@ -166,6 +169,7 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 		confl = reconstructSet(propagations, NULL);
 	}
 	for (auto i = watchlist.cbegin(); somesetwatch && i < watchlist.cend(); ++i) {
+		MAssert(value((*i)->getPropLit()) == l_True);
 		// FIXME this condition is VERY ad-hoc and should move inside
 		if (watchlist.size() == 1 && not certainlyreconstruct && not propagations && confl == nullPtrClause) { //It can be safely removed as a watch
 			moveFromWSToNWS(*i);
@@ -175,12 +179,13 @@ rClause GenPWAgg::propagateAtEndOfQueue() {
 			}
 		}
 	}
-	// TODO this was also added for correctness, but should it be here?
+
 	for (auto i = getWS().cbegin(); i < getWS().cend(); ++i) {
 		if (getPCSolver().value((*i)->getPropLit()) == l_Undef) {
 			stageWatch(*i);
 		}
 	}
+
 	certainlyreconstruct = false;
 	addStagedWatchesToNetworkOnStable(confl);
 	proplist.clear();
