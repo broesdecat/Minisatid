@@ -13,6 +13,7 @@
 #include "utils/Utils.hpp"
 #include "utils/PrintMessage.hpp"
 #include "external/datastructuremacros.hpp"
+#include "external/ExternalPrint.hpp"
 
 namespace MinisatID {
 
@@ -29,66 +30,6 @@ std::string toString(const Lit& obj, LiteralPrinter const * const solver);
 std::string toString(const Lit& obj, lbool value, LiteralPrinter const * const solver);
 std::string toString(const Lit& obj, const LiteralPrinter& solver);
 std::string toString(const Lit& obj, lbool value, const LiteralPrinter& solver);
-
-template<class T>
-T& operator<<(T& stream, const EqType& type) {
-	switch (type) {
-	case EqType::EQ:
-		stream << "=";
-		break;
-	case EqType::NEQ:
-		stream << "~=";
-		break;
-	case EqType::L:
-		stream << "<";
-		break;
-	case EqType::G:
-		stream << ">";
-		break;
-	case EqType::GEQ:
-		stream << ">=";
-		break;
-	case EqType::LEQ:
-		stream << "=<";
-		break;
-	}
-	return stream;
-}
-
-template<class T>
-T& operator<<(T& stream, AggType type) {
-	switch (type) {
-	case AggType::SUM:
-		stream << SUMSTR;
-		break;
-	case AggType::CARD:
-		stream << CARDSTR;
-		break;
-	case AggType::MIN:
-		stream << MINSTR;
-		break;
-	case AggType::MAX:
-		stream << MAXSTR;
-		break;
-	case AggType::PROD:
-		stream << PRODSTR;
-		break;
-	}
-	return stream;
-}
-
-template<class T>
-T& operator<<(T& stream, ImplicationType type) {
-	switch (type) {
-	case ImplicationType::EQUIVALENT:
-		stream << "<=>";
-		break;
-	case ImplicationType::IMPLIES:
-		stream << "=>";
-		break;
-	}
-	return stream;
-}
 
 }
 
