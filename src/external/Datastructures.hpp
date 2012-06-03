@@ -17,6 +17,8 @@
 #include "Lit.hpp"
 #include "MAssert.hpp"
 
+typedef unsigned int uint;
+
 namespace MinisatID {
 
 class Remapper;

@@ -63,15 +63,6 @@ public:
 };
 //#################################################################################################
 
-
-//#################################################################################################
-// INLINED "TmpFiles.h" HERE:
-FILE* createTmpFile(cchar* prefix, cchar* mode, char*& out_name = *(char**)NULL);
-void  deleteTmpFile(cchar* prefix, bool exact = false);
-void  deleteTmpFiles(void);
-//#################################################################################################
-
-
 #define BUMP_MORE
 
 
@@ -334,15 +325,6 @@ struct Solver {
     void    calcReason      (Clause c, Lit p, vec<Lit>& out_reason);
     void    strengthenClause(Clause c, Lit p);
 
-    // Other database management:
-    //
-    void    createTmpFiles(cchar* filename) {
-        if (filename == NULL)
-            elim_out = createTmpFile("/tmp/tmp_elims__", "w+b", elim_out_file);
-        else
-            elim_out = fopen(filename, "w+b"),
-            elim_out_file = NULL; }
-    void    deleteTmpFiles(void) { if (elim_out_file != NULL) deleteTmpFile(elim_out_file, true); }
     void    registerIteration  (vec<Clause>& iter_vec) { iter_vecs.push(&iter_vec); }
     void    unregisterIteration(vec<Clause>& iter_vec) { remove(iter_vecs, &iter_vec); }
     void    registerIteration  (CSet&        iter_set) { iter_sets.push(&iter_set); }
@@ -406,7 +388,7 @@ struct Solver {
                  , unit_tmp         (1, lit_Undef)
                  , progress_estimate(0)
                  , verbosity(0)
-                 { createTmpFiles(elimed_filename);
+                 { assert(false);
                 #ifndef WATCH_OPTIMIZATION
                    watches_setup = true;
                 #endif

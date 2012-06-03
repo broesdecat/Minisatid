@@ -363,8 +363,7 @@ void outputResult(const PbSolver& S, bool optimum = true)
 static void SIGINT_handler(int signum) {
     reportf("\n");
     reportf("*** INTERRUPTED ***\n");
-    SatELite::deleteTmpFiles();
-    _exit(0); }     // (using 'exit()' rather than '_exit()' sometimes causes the solver to hang (why?))
+    exit(0); }     // (using 'exit()' rather than '_exit()' sometimes causes the solver to hang (why?))
 
 // yay prototype
 
@@ -405,8 +404,7 @@ static void SIGTERM_handler(int signum) {
     if (opt_huge_base_file!=NULL) printHugeOutPut(cpuT,false,true,false);
 	else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,false,true,false);
     // end base stuff
-    SatELite::deleteTmpFiles();
-    _exit(pb_solver->best_goalvalue == Int_MAX ? 0 : 10); 
+    exit(pb_solver->best_goalvalue == Int_MAX ? 0 : 10); 
 }
 
 

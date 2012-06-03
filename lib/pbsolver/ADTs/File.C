@@ -31,6 +31,11 @@ void File::open(cchar* name, cchar* mode_)
 
     if (!has_r) mask |= O_CREAT;
     if (has_w)  mask |= O_TRUNC;
+	
+	#define S_IRGRP 0 
+	#define S_IWGRP 0 
+	#define S_IROTH 0 
+	#define S_IWOTH 0
 
     fd = open64(name, mask, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 

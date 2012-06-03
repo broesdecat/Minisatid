@@ -67,7 +67,7 @@ bool PbSolver::convertPbs(bool first_call)
     clausify(sat_solver, converted_constrs);
     
     if (opt_dump) {
-        _exit(0);
+        exit(0);
     }
     if (opt_only_base) {
         printBasesAndTerminate(sat_solver.numOfClouses());
@@ -77,7 +77,7 @@ bool PbSolver::convertPbs(bool first_call)
         bool isSat = false; // whatever
         numOfClouses = sat_solver.numOfClouses();
         printBaseOutPut(cpuT,isSat,false,false);
-        _exit(0);
+        exit(0);
     }
     
 
