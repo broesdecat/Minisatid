@@ -74,7 +74,7 @@ DefineHash(unsigned long , return (unsigned int)(((unsigned long)key >> 32) ^ ke
 DefineHash(long  , return (unsigned int)key;)
 DefineHash(unsigned long , return (unsigned int)key;)
 #endif
-DefineHash(int64 , return (unsigned int)(((unsigned int64)key >> 32) ^ key);)
+DefineHash(int64 , return (unsigned int)(((uint64)key >> 32) ^ key);)
 DefineHash(uint64, return (unsigned int)(((uint64)key >> 32) ^ key);)
 
 
