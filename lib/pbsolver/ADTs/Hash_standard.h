@@ -43,8 +43,8 @@ template <class S, class T> struct Equal<Pair<S,T> > { bool operator () (const P
 // POINTERS:
 
 #ifdef LP64
-template <class K> struct Hash<const K*> { unsigned int operator () (const K* key) const { unsigned int tmp = reinterpret_cast<unsigned intp>(key); return (unsigned)((tmp >> 32) ^ tmp); } };
-template <class K> struct Hash<K*>       { unsigned int operator () (K* key)       const { unsigned intp tmp = reinterpret_cast<unsigned intp>(key); return (unsigned)((tmp >> 32) ^ tmp); } };
+template <class K> struct Hash<const K*> { unsigned int operator () (const K* key) const { unsigned int tmp = reinterpret_cast<unsigned int>(key); return (unsigned)((tmp >> 32) ^ tmp); } };
+template <class K> struct Hash<K*>       { unsigned int operator () (K* key)       const { unsigned int tmp = reinterpret_cast<unsigned int>(key); return (unsigned)((tmp >> 32) ^ tmp); } };
 #else
 template <class K> struct Hash<const K*> { unsigned int operator () (const K* key) const { return reinterpret_cast<unsigned int>(key); } };
 template <class K> struct Hash<K*>       { unsigned int operator () (K* key)       const { return reinterpret_cast<unsigned int>(key); } };
