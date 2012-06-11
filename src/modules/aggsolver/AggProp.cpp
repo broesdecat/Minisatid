@@ -392,6 +392,8 @@ AggPropagator* MaxProp::createPropagator(TypedSet* set) const {
  }*/
 
 AggPropagator* SumProp::createPropagator(TypedSet* set) const {
+	// NOTE: guaranteerd to have only positive weights
+
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if (set->isUsingWatches()) {
@@ -402,6 +404,8 @@ AggPropagator* SumProp::createPropagator(TypedSet* set) const {
 }
 
 AggPropagator* ProdProp::createPropagator(TypedSet* set) const {
+	// NOTE: guaranteerd to have only positive weights
+
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if (set->isUsingWatches()) {

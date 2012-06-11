@@ -222,6 +222,8 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 		it->second.type = formula.type;
 	}
 
+	verifyAggregate(set, formula.type, mkPosLit(head), formula.type, getEngine());
+
 	tempagglist aggs;
 	AggBound bound(AggSign::UB, Weight(0));
 	aggs.push_back(new TempAgg(mkNegLit(head), bound, AggSem::OR, formula.type));
