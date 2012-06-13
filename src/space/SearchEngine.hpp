@@ -17,7 +17,7 @@ namespace MinisatID{
 
 class PCSolver;
 class PropagatorFactory;
-class OptimStatement;
+struct OptimStatement;
 
 class SearchEngine: public LiteralPrinter {
 private:

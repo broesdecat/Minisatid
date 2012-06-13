@@ -76,7 +76,7 @@ enum class MXState {
 	MODEL, UNSAT, UNKNOWN
 };
 
-class OptimStatement;
+struct OptimStatement;
 
 class MXTask: public SpaceTask{
 public:
