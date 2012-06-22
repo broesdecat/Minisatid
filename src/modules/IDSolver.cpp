@@ -1853,9 +1853,6 @@ bool printednontotalwarning = false;
 
 rClause IDSolver::isWellFoundedModel() {
 	MAssert(twovalueddef);
-	if (modes().lazy) { // NOTE: lazy invariant: only total definitions
-		return nullPtrClause;
-	}
 
 	if (getSemantics() != DEF_WELLF) {
 		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
