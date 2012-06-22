@@ -174,7 +174,9 @@ void EventQueue::setTrue(const Lit& l) {
 rClause EventQueue::notifyFullAssignmentFound() {
 	auto confl = nullPtrClause;
 	for (auto i = event2propagator[EV_MODELFOUND].cbegin(); confl == nullPtrClause && i < event2propagator[EV_MODELFOUND].cend(); ++i) {
-		confl = (*i)->notifyFullAssignmentFound();
+		if((*i)->isPresent()){
+			confl = (*i)->notifyFullAssignmentFound();
+		}
 	}
 	return confl;
 }
@@ -204,10 +206,12 @@ rClause EventQueue::notifyPropagate() {
 			slowqueue.pop_front();
 		}
 		p->notifyDeQueued();
-		confl = p->notifypropagate();
-		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
-		if (confl == nullPtrClause) {
-			confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
+		if(p->isPresent()){
+			confl = p->notifypropagate();
+			MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
+			if (confl == nullPtrClause) {
+				confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
+			}
 		}
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
