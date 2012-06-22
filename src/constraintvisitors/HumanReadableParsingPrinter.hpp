@@ -127,9 +127,9 @@ public:
 	}
 
 	void add(const IntVarEnum& var) {
-		target() << "Integer variable var" << var.varID << " = [ ";
+		target() << "Integer variable var" << var.varID << " = { ";
 		printConcatBy(var.values, ", ", target());
-		target() << " ]\n";
+		target() << " }\n";
 	}
 
 	void add(const IntVarRange& var) {

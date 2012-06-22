@@ -83,15 +83,19 @@ bool PCSolver::hasCPSolver() const {
 #endif
 }
 SATVAL PCSolver::findNextCPModel() {
+	auto result = SATVAL::POS_SAT;
 	if(not hasCPSolver()){
-		return SATVAL::UNSAT;
-	}
+		result = SATVAL::UNSAT;
+	}else{
 #ifdef CPSUPPORT
-	if(not getCPSolver()->hasData()) {
-		return SATVAL::UNSAT;
-	}
-	return getCPSolver()->findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
+		if(not getCPSolver()->hasData()) {
+			result = SATVAL::UNSAT;
+		}else{
+			result = getCPSolver()->findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
+		}
 #endif
+	}
+	return result;
 }
 
 void PCSolver::invalidate(litlist& clause) const {

@@ -285,7 +285,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			ss << "Integer variable " << obj.varID << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
-		intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
+		intvars.insert(pair<int, IntVar*>(obj.varID, new RangeIntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
 	}
 }
 
@@ -294,7 +294,12 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		throw notYetImplemented("No support for handling intvarenums without gecode yet.");
+		if (intvars.find(obj.varID) != intvars.cend()) {
+			stringstream ss;
+			ss << "Integer variable " << obj.varID << " was declared twice.\n";
+			throw idpexception(ss.str());
+		}
+		intvars.insert(pair<int, IntVar*>(obj.varID, new EnumIntVar(getEnginep(), obj.varID, obj.values)));
 	}
 }
 

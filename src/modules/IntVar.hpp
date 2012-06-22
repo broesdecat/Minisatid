@@ -18,26 +18,35 @@ struct IntVarValue{
 	IntVarValue(IntVar* intvar, Var atom, int value): intvar(intvar), atom(atom), value(value){}
 };
 
-// FIXME how are these values returned to the grounder???
 class IntVar: public Propagator{
 private:
 	static int maxid_;
 	int id_, origid_;
 	PCSolver& engine_;
-	const int minvalue, maxvalue;
-	int offset, currentmin, currentmax;
+	int minvalue, maxvalue;
+
+protected:
+	int currentmin, currentmax;
 	std::vector<IntVarValue> leqlits; // eq[i] =< minvalue+i
-	// given atom, its meaning is eq[atom-offset]
-	
 	void updateBounds();
 
+	void setOrigMin(int min) {
+		minvalue = min;
+		currentmin = min;
+	}
+	void setOrigMax(int max) {
+		maxvalue = max;
+		currentmax = max;
+	}
+
+	void addConstraints();
+
 public:
-	IntVar(PCSolver* solver, int origid, int min, int max);
+	IntVar(PCSolver* solver, int origid);
 
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
-	virtual int getNbOfFormulas() const { return maxvalue-minvalue*2; }
 	virtual rClause getExplanation(const Lit&){ throw idpexception("Error: incorrect execution path.");}
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
@@ -62,11 +71,32 @@ public:
 		return currentmax;
 	}
 
+	virtual Lit getLEQLit(int bound) const = 0;
+	virtual Lit getGEQLit(int bound) const = 0;
+};
+
+class RangeIntVar: public IntVar{
+public:
+	RangeIntVar(PCSolver* solver, int origid, int min, int max);
+
+	virtual int getNbOfFormulas() const { return origMaxValue()-origMinValue()*2; }
+
 	Lit getLEQLit(int bound) const;
 	Lit getGEQLit(int bound) const;
+};
 
+class EnumIntVar: public IntVar{
 private:
-	void addConstraints();
+	std::vector<int> _values; // SORTED low to high!
+	std::map<int, Var> _val2var; // map value to its associated var
+
+public:
+	EnumIntVar(PCSolver* solver, int origid, const std::vector<int>& values);
+
+	virtual int getNbOfFormulas() const { return _values.size()*2; }
+
+	Lit getLEQLit(int bound) const;
+	Lit getGEQLit(int bound) const;
 };
 
 class IntView{
