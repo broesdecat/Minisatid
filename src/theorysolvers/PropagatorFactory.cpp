@@ -233,6 +233,10 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 void PropagatorFactory::add(const MinimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	if(getEngine().modes().usegecode){
+		throw idpexception("Gecode cannot be used to optimize over finite domain variables at the moment");
+	}
+
 	getEngine().notifyOptimizationProblem();
 
 	guaranteeAtRootLevel();
