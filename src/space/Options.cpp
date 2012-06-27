@@ -43,7 +43,8 @@ SolverOption::SolverOption():
 		selectOneFromUFS(false),
 		tocnf(false),
 		splitagg(false),
-		watchesratio(0.751), // Note 0.75 is an often occurring, good ratio to add watches, so a little higher guarantees that for that ratio, watches are introduced
+		//watchesratio(0.751), // Note 0.75 is an often occurring, good ratio to add watches, so a little higher guarantees that for that ratio, watches are introduced
+		watchesratio(0), // FIXME Partial watches still bugged! Option also disabled
 		primesfile(""),
 		rand_var_freq(getDefaultRandfreq()),
 		var_decay(getDefaultDecay()),
