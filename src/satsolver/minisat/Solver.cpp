@@ -63,58 +63,27 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 // Constructor/Destructor:
 
 Solver::Solver(PCSolver* s, bool oneshot)
-		: 	Propagator(s, "satsolver"),
-			random_var_freq(opt_random_var_freq),
-			random_seed(opt_random_seed),
-			verbosity(getPCSolver().verbosity()),
-			var_decay(opt_var_decay),
-			rnd_pol(false),
-			max_learned_clauses(opt_maxlearned),
-			oneshot(oneshot),
-			assumpset(false),
-			needsimplify(true),
+		: Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
+			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), needsimplify(true),
 			backtracked(true),
 
 			clause_decay(opt_clause_decay),
-			luby_restart(opt_luby_restart),
-			ccmin_mode(opt_ccmin_mode),
-			phase_saving(opt_phase_saving),
-			rnd_init_act(opt_rnd_init_act),
-			garbage_frac(opt_garbage_frac),
-			restart_first(opt_restart_first),
-			restart_inc(opt_restart_inc)
+			luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_init_act(opt_rnd_init_act),
+			garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
 
 			// Parameters (the rest):
 					,
-			learntsize_factor((double) 1 / (double) 3),
-			learntsize_inc(1.1)
+			learntsize_factor((double) 1 / (double) 3), learntsize_inc(1.1)
 
 			// Parameters (experimental):
 					,
-			learntsize_adjust_start_confl(100),
-			learntsize_adjust_inc(1.5)
+			learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5)
 
 			// Statistics: (formerly in 'SolverStats')
 					,
-			starts(0),
-			decisions(0),
-			rnd_decisions(0),
-			propagations(0),
-			conflicts(0),
-			dec_vars(0),
-			clauses_literals(0),
-			learnts_literals(0),
-			max_literals(0),
-			tot_literals(0),
-			ok(true),
-			cla_inc(1),
-			var_inc(1),
-			watches(WatcherDeleted(ca)),
-			qhead(0),
-			simpDB_assigns(-1),
-			simpDB_props(0),
-			order_heap(VarOrderLt(activity)),
-			remove_satisfied(true) {
+			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(0),
+			tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
+			order_heap(VarOrderLt(activity)), remove_satisfied(true) {
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
@@ -199,8 +168,7 @@ struct permute {
 	int newposition;
 	Lit value;
 	permute(int newpos, Lit value)
-			: 	newposition(newpos),
-				value(value) {
+			: newposition(newpos), value(value) {
 	}
 };
 
@@ -229,11 +197,11 @@ CRef Solver::makeClause(const std::vector<Lit>& lits, bool learnt) {
 		ps.push(*i);
 	}
 	auto result = ca.alloc(ps, learnt);
-/*	if (verbosity >= 3) {
-		clog << "Creating clause: ";
-		printClause(result);
-		clog << "\n";
-	}*/
+	/*	if (verbosity >= 3) {
+	 clog << "Creating clause: ";
+	 printClause(result);
+	 clog << "\n";
+	 }*/
 	return result;
 }
 
@@ -295,7 +263,21 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 		} else {
 			uncheckedEnqueue(ps[0]);
 		}
-		return ok = (propagate() == CRef_Undef); // FIXME add methods should return the conflict clause if applicable
+		do {
+			auto confl = propagate();
+			if (confl == CRef_Undef) {
+				break;
+			}
+			if (decisionLevel() == 0) {
+				ok = false;
+				break;
+			}
+			int outlevel;
+			vec<Lit> outlearnt;
+			analyze(confl, outlearnt, outlevel);
+			cancelUntil(outlevel);
+		} while (true);
+		return ok; // FIXME add methods should return the conflict clause if applicable
 	} else {
 		CRef cr = ca.alloc(ps, false);
 		addToClauses(cr, false);
@@ -313,7 +295,7 @@ void Solver::addLearnedClause(CRef rc) {
 #ifdef DEBUG
 	bool allfalse = true;
 	for (int i = 0; i < c.size() && allfalse; ++i) {
-		if(value(c[i])!=l_False){
+		if(value(c[i])!=l_False) {
 			allfalse = false;
 		}
 	}
@@ -335,7 +317,7 @@ void Solver::addConflictClause(CRef rc) {
 #ifdef DEBUG
 	bool allfalse = true;
 	for (int i = 0; i < c.size() && allfalse; ++i) {
-		if(value(c[i])!=l_False){
+		if(value(c[i])!=l_False) {
 			allfalse = false;
 		}
 	}
@@ -380,7 +362,7 @@ void Solver::attachClause(CRef cr, bool conflict) {
 	// If level>0, the clause can contain true and false literals
 	// If not a learned clause, the order of literals is not required to guarantee correctness
 	// So need code to restructure the clause for correct watch addition and handle the case where all literals are false or unit propagation possible
-	if ((c.learnt() || decisionLevel()>0) && not conflict) {
+	if ((c.learnt() || decisionLevel() > 0) && not conflict) {
 		int nonfalse1 = -1, nonfalse2 = -1, recentfalse1 = -1, recentfalse2 = -1; // literal indices: 1 is "1st", 2 is "2nd"
 		for (int i = 0; i < c.size(); ++i) {
 			if (isFalse(c[i])) {
@@ -740,12 +722,11 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		if (verbosity > 6) {
 			clog << "\tCurrent conflict clause: ";
 			printClause(confl);
-			clog << "\n";
-			clog << "\tCurrent learned clause: ";
-			for (int i = 1; i < out_learnt.size(); i++) {
-				clog << toString(out_learnt[i]) << " ";
-			}
-			clog << "\n";
+			/*			clog << "\tCurrent learned clause: ";
+			 for (int i = 1; i < out_learnt.size(); i++) {
+			 clog << toString(out_learnt[i]) << " ";
+			 }
+			 clog << "\n";*/
 		}
 		/*AE*/
 
@@ -774,8 +755,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		/*AE*/
 
 		// Select next clause to look at:
-		while (!seen[var(trail[index--])])
+		while (!seen[var(trail[index--])]) {
 			;
+		}
 		p = trail[index + 1];
 		confl = reason(var(p));
 
@@ -801,7 +783,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		if (verbosity > 6 && confl != CRef_Undef) {
 			clog << "\tExplanation is ";
 			printClause(confl);
-			clog << "\n";
 		}
 		/*AE*/
 
@@ -972,8 +953,7 @@ bool Solver::isDecided(Var v) {
 	if (value(mkPosLit(v)) == l_Undef) {
 		return false;
 	}
-	auto level = getLevel(v);
-	MAssert(level >= 0 || level <= decisionLevel());
+	MAssert(getLevel(v) >= 0 || getLevel(v) <= decisionLevel());
 	return var(trail[trail_lim[getLevel(v) - 1]]) == v;
 }
 
@@ -1237,7 +1217,7 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			auto cr = CRef_Undef;
 			if (learnt_clause.size() > 1) {
 				addLearnedClause(ca.alloc(learnt_clause, true));
-			}else{
+			} else {
 				uncheckedEnqueue(learnt_clause[0], cr);
 			}
 
@@ -1495,10 +1475,10 @@ void Solver::relocAll(ClauseAllocator& to) {
 	//
 	auto tempnew = newlearnts;
 	newlearnts.clear();
-	for (int i = 0; i < learnts.size(); i++){
-		bool save = tempnew.find(learnts[i])!=tempnew.cend();
+	for (int i = 0; i < learnts.size(); i++) {
+		bool save = tempnew.find(learnts[i]) != tempnew.cend();
 		ca.reloc(learnts[i], to);
-		if(save){
+		if (save) {
 			newlearnts.insert(learnts[i]);
 		}
 	}
@@ -1507,10 +1487,10 @@ void Solver::relocAll(ClauseAllocator& to) {
 	//
 	auto tempclauses = newclauses;
 	newclauses.clear();
-	for (int i = 0; i < clauses.size(); i++){
-		bool save = tempclauses.find(clauses[i])!=tempclauses.cend();
+	for (int i = 0; i < clauses.size(); i++) {
+		bool save = tempclauses.find(clauses[i]) != tempclauses.cend();
 		ca.reloc(clauses[i], to);
-		if(save){
+		if (save) {
 			newclauses.insert(clauses[i]);
 		}
 	}
