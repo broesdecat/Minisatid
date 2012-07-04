@@ -63,10 +63,6 @@ void SearchEngine::invalidate(litlist& clause) const {
 	solver->invalidate(clause);
 }
 
-void SearchEngine::backtrackTo(int level) {
-	solver->backtrackTo(level);
-}
-
 void SearchEngine::finishParsing() {
 	solver->finishParsing();
 }

@@ -59,6 +59,9 @@ public:
 private:
 	bool needsimplify;
 
+	// ***** CLAUSE STORING VARIABLES
+	// VERY IMPORTANT: on relocall, all these have to be updated to their new clause references!
+
 	/*
 	 * Reverse trail:
 	 * 		after backtrack to level x, on unit-propagate, propagate all literals of which the level (2nd param) is lower or equal to x
@@ -79,8 +82,34 @@ private:
 			return lit<elem.lit || (lit==elem.lit && level<elem.level) || (lit==elem.lit && level==elem.level && explan<elem.explan);
 		}
 	};
+
+	struct VarData {
+		CRef reason;
+		int level;
+	};
+
+	struct Watcher {
+		CRef cref;
+		Lit blocker;
+		Watcher(CRef cr, Lit p)
+				: cref(cr), blocker(p) {
+		}
+		bool operator==(const Watcher& w) const {
+			return cref == w.cref;
+		}
+		bool operator!=(const Watcher& w) const {
+			return cref != w.cref;
+		}
+	};
+
+	vec<CRef> clauses; // List of problem clauses.
+	vec<CRef> learnts; // List of learnt clauses.
+	std::set<CRef> newclauses, newlearnts;
+
+	// ******* END VAR STORING VARIABLES
+
 	std::list<ReverseTrailElem> rootunitlits;
-	std::set<ReverseTrailElem> savedrootlits;
+	std::set<Lit> savedrootlits;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
 	void removeClause(CRef cr); // Detach and free a clause.
@@ -172,7 +201,7 @@ public:
 	}
 	CRef notifypropagate();
 	void printStatistics() const;
-	int			getNbOfFormulas		() 				const 	{ return nClauses(); }
+	int	getNbOfFormulas() const { return nClauses(); }
 
 	virtual void notifyNewDecisionLevel() {
 	}
@@ -245,29 +274,10 @@ protected:
 
 	void addToClauses(CRef cr, bool learnt);
 
-	// Helper structures:
-	struct VarData {
-		CRef reason;
-		int level;
-	};
 	static inline VarData mkVarData(CRef cr, int l) {
 		VarData d = { cr, l };
 		return d;
 	}
-
-	struct Watcher {
-		CRef cref;
-		Lit blocker;
-		Watcher(CRef cr, Lit p)
-				: cref(cr), blocker(p) {
-		}
-		bool operator==(const Watcher& w) const {
-			return cref == w.cref;
-		}
-		bool operator!=(const Watcher& w) const {
-			return cref != w.cref;
-		}
-	};
 
 	struct WatcherDeleted {
 		const ClauseAllocator& ca;
@@ -291,8 +301,6 @@ protected:
 
 	// Solver state
 	bool ok; // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
-	vec<CRef> clauses; // List of problem clauses.
-	vec<CRef> learnts; // List of learnt clauses.
 
 	double cla_inc; // Amount to bump next clause with.
 	vec<double> activity; // A heuristic measurement of the activity of a variable.
@@ -328,7 +336,6 @@ protected:
 
 	// State saving
 	bool savedok;
-	std::set<CRef> newclauses, newlearnts;
 	uint roottraillim;
 
 	void insertVarOrder(Var x); // Insert a variable in the decision order priority queue.

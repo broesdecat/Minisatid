@@ -39,7 +39,7 @@ public:
 	const int& getElem(Var var) const { return seen[var-offset]; }
 };
 
-enum PRIORITY { FAST = 0, SLOW = 1 };
+enum PRIORITY { FASTEST = 0, FAST = 1, SLOW = 2 };
 enum EVENT { EV_PROPAGATE, EV_BACKTRACK, EV_DECISIONLEVEL, EV_BOUNDSCHANGE, EV_MODELFOUND, EV_STATEFUL};
 
 class GenWatch{

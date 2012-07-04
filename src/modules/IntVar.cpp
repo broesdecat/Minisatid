@@ -90,6 +90,9 @@ void IntVar::updateBounds() {
 	if(not found){
 		currentmax = leqlits.front().value;
 	}
+	MAssert(isTrue(getGEQLit(minValue())));
+	MAssert(isTrue(getLEQLit(maxValue())));
+//	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
 
@@ -101,8 +104,8 @@ RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max): IntVa
 	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
 		auto var = engine().newVar();
 		leqlits.push_back(IntVarValue(this, var, i));
-		engine().accept(this, mkPosLit(var), FAST);
-		engine().accept(this, mkNegLit(var), FAST);
+		engine().accept(this, mkPosLit(var), FASTEST);
+		engine().accept(this, mkNegLit(var), FASTEST);
 		if(verbosity()>3){
 			clog << toString(mkPosLit(var)) << " <=> " << "var" << origid() << "=<" << i << "\n";
 		}
@@ -110,17 +113,9 @@ RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max): IntVa
 
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_PROPAGATE);
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 
 	addConstraints();
-
-	if (verbosity() > 3) {
-		auto index = 0;
-		for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i, index++) {
-
-		}
-	}
 
 	engine().notifyBoundsChanged(this);
 }
@@ -160,8 +155,8 @@ EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& va
 	for (auto i=values.cbegin(); i<values.cend(); ++i) {
 		auto var = engine().newVar();
 		leqlits.push_back(IntVarValue(this, var, *i));
-		engine().accept(this, mkPosLit(var), FAST);
-		engine().accept(this, mkNegLit(var), FAST);
+		engine().accept(this, mkPosLit(var), FASTEST);
+		engine().accept(this, mkNegLit(var), FASTEST);
 		if (verbosity() > 3) {
 			clog << toString(mkPosLit(var)) << " <=> " << "var" << origid() << "=<" << *i << "\n";
 		}
@@ -169,7 +164,6 @@ EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& va
 
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_PROPAGATE);
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 
 	addConstraints();

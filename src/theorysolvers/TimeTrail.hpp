@@ -39,6 +39,9 @@ public:
 		decisionlevel2trail.push_back(trail.size());
 	}
 	void notifyBacktrack(int untillevel) {
+		if(decisionlevel2trail.size()<=(uint)untillevel+1){ // Fake backtrack, only within current level
+			return;
+		}
 		for(uint i=decisionlevel2trail[(uint)untillevel+1]; i<trail.size(); ++i){
 			MAssert(trail.size()>i);
 			MAssert(var2time.size()>(uint)var(trail[i]));

@@ -34,7 +34,10 @@ private:
 	PCSolver& getPCSolver() { return pcsolver; }
 	const PCSolver& getPCSolver() const { return pcsolver; }
 
-	std::deque<Propagator*> fastqueue, slowqueue;
+	std::deque<Propagator*> fastestqueue, fastqueue, slowqueue;
+
+	bool queuesNotEmpty() const;
+	Propagator* getAndRemoveFirstPropagator();
 
 	proplist allpropagators;
 	std::map<EVENT, propqueue > event2propagator;					// |events|

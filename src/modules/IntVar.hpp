@@ -79,7 +79,7 @@ class RangeIntVar: public IntVar{
 public:
 	RangeIntVar(PCSolver* solver, int origid, int min, int max);
 
-	virtual int getNbOfFormulas() const { return origMaxValue()-origMinValue()*2; }
+	virtual int getNbOfFormulas() const { return 1; }
 
 	Lit getLEQLit(int bound) const;
 	Lit getGEQLit(int bound) const;
@@ -88,12 +88,11 @@ public:
 class EnumIntVar: public IntVar{
 private:
 	std::vector<int> _values; // SORTED low to high!
-	std::map<int, Var> _val2var; // map value to its associated var
 
 public:
 	EnumIntVar(PCSolver* solver, int origid, const std::vector<int>& values);
 
-	virtual int getNbOfFormulas() const { return _values.size()*2; }
+	virtual int getNbOfFormulas() const { return 1; }
 
 	Lit getLEQLit(int bound) const;
 	Lit getGEQLit(int bound) const;

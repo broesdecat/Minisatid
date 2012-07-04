@@ -78,7 +78,8 @@ void EventQueue::accept(Propagator* propagator) {
 
 void EventQueue::notifyNbOfVars(uint64_t nbvars) {
 	while (lit2priority2propagators.size() < 2 * nbvars) {
-		vector<proplist> newmap;
+		vector<proplist> newmap; // TODO number of priorities
+		newmap.push_back( { });
 		newmap.push_back( { });
 		newmap.push_back( { });
 		lit2priority2propagators.push_back(newmap);
@@ -118,7 +119,17 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 	list.push_back(propagator);
 	if (getPCSolver().value(litevent) == l_True && not propagator->isQueued()) {
 		propagator->notifyQueued();
-		priority == FAST ? fastqueue.push_back(propagator) : slowqueue.push_back(propagator);
+		switch (priority) {
+		case PRIORITY::FASTEST:
+			fastestqueue.push_back(propagator);
+			break;
+		case PRIORITY::FAST:
+			fastqueue.push_back(propagator);
+			break;
+		case PRIORITY::SLOW:
+			slowqueue.push_back(propagator);
+			break;
+		}
 	}
 }
 
@@ -167,6 +178,7 @@ void EventQueue::setTrue(const Lit& l) {
 		}
 		lw = remwatches;
 	}
+	setTrue(lit2priority2propagators[toInt(l)][FASTEST], fastestqueue);
 	setTrue(lit2priority2propagators[toInt(l)][FAST], fastqueue);
 	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }
@@ -174,11 +186,31 @@ void EventQueue::setTrue(const Lit& l) {
 rClause EventQueue::notifyFullAssignmentFound() {
 	auto confl = nullPtrClause;
 	for (auto i = event2propagator[EV_MODELFOUND].cbegin(); confl == nullPtrClause && i < event2propagator[EV_MODELFOUND].cend(); ++i) {
-		if((*i)->isPresent()){
+		if ((*i)->isPresent()) {
 			confl = (*i)->notifyFullAssignmentFound();
 		}
 	}
 	return confl;
+}
+
+bool EventQueue::queuesNotEmpty() const {
+	return fastestqueue.size() > 0 || fastqueue.size() > 0 || slowqueue.size() > 0;
+}
+
+Propagator* EventQueue::getAndRemoveFirstPropagator() {
+	MAssert(queuesNotEmpty());
+	Propagator* p = NULL;
+	if (fastestqueue.size() > 0) {
+		p = fastestqueue.front();
+		fastestqueue.pop_front();
+	} else if (fastqueue.size() > 0) {
+		p = fastqueue.front();
+		fastqueue.pop_front();
+	} else {
+		p = slowqueue.front();
+		slowqueue.pop_front();
+	}
+	return p;
 }
 
 rClause EventQueue::notifyPropagate() {
@@ -196,17 +228,10 @@ rClause EventQueue::notifyPropagate() {
 	}
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
-		Propagator* p = NULL;
-		if (fastqueue.size() != 0) {
-			p = fastqueue.front();
-			fastqueue.pop_front();
-		} else {
-			p = slowqueue.front();
-			slowqueue.pop_front();
-		}
+	while (queuesNotEmpty() && confl == nullPtrClause) {
+		Propagator* p = getAndRemoveFirstPropagator();
 		p->notifyDeQueued();
-		if(p->isPresent()){
+		if (p->isPresent()) {
 			confl = p->notifypropagate();
 			MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 			if (confl == nullPtrClause) {
@@ -339,12 +364,12 @@ void EventQueue::clearNotPresentPropagators() {
 		}
 	}
 
-/*	for (auto j = allpropagators.begin(); j < allpropagators.end();) { TODO cannot be enabled as watches have pointers to propagators, which would become invalid if the propagator is deleted
-		if (not (*j)->isPresent()) {
-			delete (*j);
-			j = allpropagators.erase(j);
-		} else {
-			++j;
-		}
-	}*/
+	/*	for (auto j = allpropagators.begin(); j < allpropagators.end();) { TODO cannot be enabled as watches have pointers to propagators, which would become invalid if the propagator is deleted
+	 if (not (*j)->isPresent()) {
+	 delete (*j);
+	 j = allpropagators.erase(j);
+	 } else {
+	 ++j;
+	 }
+	 }*/
 }

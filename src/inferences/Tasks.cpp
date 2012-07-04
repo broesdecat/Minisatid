@@ -139,6 +139,7 @@ void ModelExpand::innerExecute() {
 
 		if (optimumfound) {
 			_solutions->notifyOptimalModelFound();
+			//cerr <<"Optimum found, searching for more.\n";
 		} else {
 			moremodelspossible = false;
 		}
@@ -433,10 +434,13 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		addModel(m);
 	}
 
+	//cerr <<"Unsat found, enabling finding more models\n";
 	if (unsatreached && modelfound) {
 		getSolver().resetState();
-		getSolver().setAssumptions(assmpt); // Note prevents when finding multiple models, that in findnext, reset is called again
+		getSolver().setAssumptions(assmpt); // Note: prevents when finding multiple models, that in findnext, reset is called again (as assmpts have just been set)
+
 		// TODO In fact from here the state no longer has to be saved
+
 		// Prevent to find the first model again
 		Disjunction d;
 		for (auto i = savedinvalidation.cbegin(); i < savedinvalidation.cend(); ++i) {

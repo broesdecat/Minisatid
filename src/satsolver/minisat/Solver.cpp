@@ -83,7 +83,8 @@ Solver::Solver(PCSolver* s, bool oneshot)
 					,
 			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(0),
 			tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
-			order_heap(VarOrderLt(activity)), remove_satisfied(true) {
+			order_heap(VarOrderLt(activity)), remove_satisfied(true),
+			max_learnts(0){
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
@@ -192,17 +193,24 @@ void permuteRandomly(vec<Lit>& lits) {
 
 // NOTE: only used for generating explanations
 CRef Solver::makeClause(const std::vector<Lit>& lits, bool learnt) {
+	MAssert(lits.size()>0);
 	vec<Lit> ps;
+	Lit lastfalse = mkPosLit(1);
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
+		if (isFalse(*i) && getLevel(var(*i)) == 0) {
+			lastfalse = *i;
+			continue;
+		}
 		ps.push(*i);
 	}
-	auto result = ca.alloc(ps, learnt);
-	/*	if (verbosity >= 3) {
-	 clog << "Creating clause: ";
-	 printClause(result);
-	 clog << "\n";
-	 }*/
-	return result;
+	if (ps.size() < 1) {
+		ps.push(lastfalse);
+	}
+	if (ps.size() < 2) {
+		ps.push(lastfalse);
+	}
+	MAssert(ps.size()>1);
+	return ca.alloc(ps, learnt);
 }
 
 /*
@@ -254,6 +262,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 	} else if (ps.size() == 1) {
 		if (decisionLevel() > 0) {
 			if (value(ps[0]) == l_False) {
+				conflicts++;
 				getPCSolver().backtrackTo(getLevel(var(ps[0])) - 1); // NOTE: Certainly not root level, would have found out otherwise
 			}
 			MAssert(value(ps[0])!=l_False);
@@ -343,7 +352,7 @@ void swap(Clause& c, int from, int to) {
 
 void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
 	rootunitlits.push_back(elem);
-	savedrootlits.insert(rootunitlits.back());
+	savedrootlits.insert(elem.lit);
 }
 
 /*
@@ -388,6 +397,7 @@ void Solver::attachClause(CRef cr, bool conflict) {
 		MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
 
 		if (nonfalse1 == -1) { // Conflict
+			conflicts++;
 			getPCSolver().backtrackTo(getLevel(var(c[recentfalse1])) - 1);
 			nonfalse1 = recentfalse1;
 			MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
@@ -444,9 +454,6 @@ void Solver::attachClause(CRef cr, bool conflict) {
 
 void Solver::addToClauses(CRef cr, bool learnt) {
 	if (learnt) {
-		if (learnts.size() >= max_learned_clauses) {
-			reduceDB();
-		}
 		newlearnts.insert(cr);
 		learnts.push(cr);
 	} else {
@@ -503,7 +510,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 // NOTE: never call directly from within!
 void Solver::saveState() {
-	if (verbosity > 3) {
+	if(verbosity>3){
 		clog << ">>> Saving the state.\n";
 	}
 	// Reset stored info
@@ -536,7 +543,7 @@ void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
 // Reset always backtracks to 0 if there are new entailed literals
 // NOTE: never call directly from within!
 void Solver::resetState() {
-	if (verbosity > 3) {
+	if(verbosity>3){
 		clog << ">>> Resetting the state.\n";
 	}
 	ok = savedok;
@@ -552,7 +559,7 @@ void Solver::resetState() {
 	removeUndefs(newlearnts, learnts);
 
 	for (auto i = rootunitlits.begin(); i != rootunitlits.end();) {
-		if (savedrootlits.find(*i) != savedrootlits.cend()) {
+		if (savedrootlits.find(i->lit) != savedrootlits.cend()) { // NOTE: the explanation can change during search, so only check on the literal!
 			i = rootunitlits.erase(i);
 		} else {
 			++i;
@@ -566,8 +573,9 @@ void Solver::removeClause(CRef cr) {
 	auto& c = ca[cr];
 	detachClause(cr);
 	// Don't leave pointers to free'd memory!
-	if (locked(c))
+	if (locked(c)) {
 		vardata[var(c[0])].reason = CRef_Undef;
+	}
 	c.mark(1);
 	ca.free(cr);
 }
@@ -586,7 +594,6 @@ void Solver::uncheckedBacktrack(int level) {
 	if (verbosity > 8) {
 		clog << "Backtracking to " << level << "\n";
 	}
-	auto levelatstart = decisionLevel();
 	Lit decision = trail[trail_lim[level]];
 	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
 		Var x = var(trail[c]);
@@ -600,9 +607,7 @@ void Solver::uncheckedBacktrack(int level) {
 	trail.shrinkByNb(trail.size() - trail_lim[level]);
 	int levels = trail_lim.size() - level;
 	trail_lim.shrinkByNb(levels);
-	if (levelatstart > level) {
-		getPCSolver().backtrackDecisionLevel(level, decision);
-	}
+	getPCSolver().backtrackDecisionLevel(level, decision);
 	backtracked = true;
 }
 
@@ -1101,10 +1106,11 @@ void Solver::reduceDB() {
 	// and clauses with activity smaller than 'extra_lim':
 	for (i = j = 0; i < learnts.size(); i++) {
 		auto& c = ca[learnts[i]];
-		if (c.size() > 2 && !locked(c) && (i < learnts.size() / 2 || c.activity() < extra_lim))
+		if (c.size() > 2 && !locked(c) && (i < learnts.size() / 2 || c.activity() < extra_lim)) {
 			removeClause(learnts[i]);
-		else
+		} else {
 			learnts[j++] = learnts[i];
+		}
 	}
 	learnts.shrinkByNb(i - j);
 	checkGarbage();
@@ -1216,7 +1222,8 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 
 			auto cr = CRef_Undef;
 			if (learnt_clause.size() > 1) {
-				addLearnedClause(ca.alloc(learnt_clause, true));
+				auto cr = ca.alloc(learnt_clause, true);
+				addLearnedClause(cr);
 			} else {
 				uncheckedEnqueue(learnt_clause[0], cr);
 			}
@@ -1227,7 +1234,9 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			if (--learntsize_adjust_cnt == 0) {
 				learntsize_adjust_confl *= learntsize_adjust_inc;
 				learntsize_adjust_cnt = (int) learntsize_adjust_confl;
-				max_learnts *= learntsize_inc;
+				if (max_learnts < max_learned_clauses) { // Only increase until some fixed maximum
+					max_learnts *= learntsize_inc;
+				}
 
 				if (verbosity >= 1) {
 					fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
@@ -1366,7 +1375,12 @@ void Solver::setAssumptions(const litlist& assumps) {
 }
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
+int ccount = 0;
 lbool Solver::solve(bool nosearch) {
+//	ccount++;
+//	if(ccount>10){
+//		exit(0);
+//	}
 	if (not assumpset) {
 		getPCSolver().saveState(); // NOTE: to assure that the state has been saved exactly once
 	}
@@ -1379,10 +1393,16 @@ lbool Solver::solve(bool nosearch) {
 	}
 
 	// To get a better estimate of the number of max_learnts allowed, have to ask all propagators their size
-	max_learnts = getPCSolver().getNbOfFormulas() * learntsize_factor;
+	max_learnts = (getPCSolver().getNbOfFormulas() + nLearnts()) * learntsize_factor;
 	learntsize_adjust_confl = learntsize_adjust_start_confl;
 	learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 	auto status = l_Undef;
+
+	/*	if (verbosity >= 1) {
+	 fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
+	 (int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) clauses_literals, (int) max_learnts,
+	 nLearnts(), (double) learnts_literals / nLearnts());
+	 }*/
 
 	// Search:
 	int curr_restarts = 0;
@@ -1451,24 +1471,25 @@ void Solver::printClause(CRef rc) const {
 void Solver::relocAll(ClauseAllocator& to) {
 	// All watchers:
 	//
-	// for (int i = 0; i < watches.size(); i++)
 	watches.cleanAll();
-	for (int v = 0; v < nVars(); v++)
+	for (int v = 0; v < nVars(); v++) {
 		for (int s = 0; s < 2; s++) {
 			Lit p = mkLit(v, s);
 			// printf(" >>> RELOCING: %s%d\n", sign(p)?"-":"", var(p)+1);
 			vec<Watcher>& ws = watches[p];
-			for (int j = 0; j < ws.size(); j++)
+			for (int j = 0; j < ws.size(); j++) {
 				ca.reloc(ws[j].cref, to);
+			}
 		}
+	}
 
 	// All reasons:
 	//
 	for (int i = 0; i < trail.size(); i++) {
 		Var v = var(trail[i]);
-
-		if (reason(v) != CRef_Undef && (ca[reason(v)].reloced() || locked(ca[reason(v)])))
+		if (reason(v) != CRef_Undef && (ca[reason(v)].reloced() || locked(ca[reason(v)]))) {
 			ca.reloc(vardata[v].reason, to);
+		}
 	}
 
 	// All learnt:
@@ -1493,6 +1514,10 @@ void Solver::relocAll(ClauseAllocator& to) {
 		if (save) {
 			newclauses.insert(clauses[i]);
 		}
+	}
+
+	for (auto i=rootunitlits.begin(); i!=rootunitlits.end(); i++) {
+		ca.reloc(i->explan, to);
 	}
 }
 

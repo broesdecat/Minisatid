@@ -43,8 +43,6 @@ public:
 
 	void invalidate(litlist& clause) const;
 
-	void backtrackTo(int level);
-
 	void finishParsing();
 	bool isOptimizationProblem() const;
 	bool isAlwaysAtOptimum() const;

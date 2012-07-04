@@ -11,52 +11,68 @@
 #include "modules/IntVar.hpp"
 #include "modules/DPLLTmodule.hpp"
 
-namespace MinisatID{
+namespace MinisatID {
 
 /**
  * head EQUIV left =< right
  */
-class BinaryConstraint: public Propagator{
+class BinaryConstraint: public Propagator {
 private:
 	Lit head_;
 	IntView *left_, *right_;
 
-	struct BinReason{
+	struct BinReason {
 		IntView* var;
 		bool geq;
 		int bound;
 
-		BinReason(){}
-		BinReason(IntView* var,
-		bool geq,
-		int bound): var(var), geq(geq), bound(bound){}
+		BinReason(): var(NULL), geq(false), bound(0){}
+		BinReason(IntView* var, bool geq, int bound)
+				: var(var), geq(geq), bound(bound) {
+		}
 	};
 	std::map<Lit, BinReason> reasons; // Maps a literal to the propagated intvar (NULL if head) and to the one value necessary for explaining it.
 
 public:
 	BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp, IntVar* right, Var h);
 
-	const Lit& head() const { return head_; }
+	const Lit& head() const {
+		return head_;
+	}
 
 	// Propagator methods
 	virtual rClause getExplanation(const Lit& lit);
-	virtual rClause	notifypropagate();
+	virtual rClause notifypropagate();
 	virtual void accept(ConstraintVisitor& visitor);
-	virtual int getNbOfFormulas() const { return (left_->maxValue()-left_->minValue())*(right_->maxValue()-right_->minValue()); }
-	virtual void notifyNewDecisionLevel(){
+	virtual int getNbOfFormulas() const {
+		return (abs(leftmax() - leftmin())) + (abs(rightmax() - rightmin())) / 2;
+	}
+	virtual void notifyNewDecisionLevel() {
 		throw idpexception("Invalid code path.");
 	}
-	virtual void notifyBacktrack(int , const Lit&) {
+	virtual void notifyBacktrack(int, const Lit&) {
 		throw idpexception("Invalid code path.");
 	}
 
-	IntView* left() const { return left_;}
-	IntView* right() const { return right_;}
+	IntView* left() const {
+		return left_;
+	}
+	IntView* right() const {
+		return right_;
+	}
 
-	int leftmin() const { return left_->minValue(); }
-	int leftmax() const { return left_->maxValue(); }
-	int rightmin() const { return right_->minValue(); }
-	int rightmax() const { return right_->maxValue(); }
+	int leftmin() const {
+		return left_->minValue();
+	}
+	int leftmax() const {
+		return left_->maxValue();
+	}
+	int rightmin() const {
+		return right_->minValue();
+	}
+	int rightmax() const {
+		return right_->maxValue();
+	}
 };
 
 }
