@@ -27,8 +27,8 @@ private:
 
 protected:
 	int currentmin, currentmax;
-	std::vector<IntVarValue> leqlits; // eq[i] =< minvalue+i
-	void updateBounds();
+
+	virtual void updateBounds() = 0;
 
 	void setOrigMin(int min) {
 		minvalue = min;
@@ -39,7 +39,7 @@ protected:
 		currentmax = max;
 	}
 
-	void addConstraints();
+	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
 public:
 	IntVar(PCSolver* solver, int origid);
@@ -71,21 +71,33 @@ public:
 		return currentmax;
 	}
 
-	virtual Lit getLEQLit(int bound) const = 0;
-	virtual Lit getGEQLit(int bound) const = 0;
+	virtual Lit getLEQLit(int bound) = 0;
+	virtual Lit getGEQLit(int bound) = 0;
 };
 
-class RangeIntVar: public IntVar{
+class BasicIntVar: public IntVar{
+protected:
+	std::vector<IntVarValue> leqlits; // eq[i] =< minvalue+i
+
+	void addConstraints();
+
+public:
+	BasicIntVar(PCSolver* solver, int origid);
+
+	virtual void updateBounds();
+};
+
+class RangeIntVar: public BasicIntVar{
 public:
 	RangeIntVar(PCSolver* solver, int origid, int min, int max);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
-	Lit getLEQLit(int bound) const;
-	Lit getGEQLit(int bound) const;
+	virtual Lit getLEQLit(int bound);
+	virtual Lit getGEQLit(int bound);
 };
 
-class EnumIntVar: public IntVar{
+class EnumIntVar: public BasicIntVar{
 private:
 	std::vector<int> _values; // SORTED low to high!
 
@@ -94,8 +106,25 @@ public:
 
 	virtual int getNbOfFormulas() const { return 1; }
 
-	Lit getLEQLit(int bound) const;
-	Lit getGEQLit(int bound) const;
+	virtual Lit getLEQLit(int bound);
+	virtual Lit getGEQLit(int bound);
+};
+
+class LazyIntVar: public IntVar{
+private:
+	std::vector<IntVarValue> leqlits; // ORDERED list such that atom <=> intvar =< value
+
+	Lit checkAddVariable(int value);
+
+public:
+	LazyIntVar(PCSolver* solver, int origid, int min, int max);
+
+	virtual void updateBounds();
+
+	virtual int getNbOfFormulas() const { return 1; }
+
+	virtual Lit getLEQLit(int bound);
+	virtual Lit getGEQLit(int bound);
 };
 
 class IntView{

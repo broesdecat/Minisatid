@@ -16,13 +16,19 @@ using namespace MinisatID;
 using namespace std;
 
 IntVar::IntVar(PCSolver* solver, int _origid)
-		: Propagator(solver, "intvar"), id_(maxid_++), origid_(_origid), engine_(*solver) {
+		: 	Propagator(solver, "intvar"),
+			id_(maxid_++),
+			origid_(_origid),
+			engine_(*solver) {
+}
+
+BasicIntVar::BasicIntVar(PCSolver* solver, int _origid)
+		: 	IntVar(solver, _origid) {
 }
 
 void IntVar::notifyBacktrack(int, const Lit&) {
 	updateBounds();
 }
-
 
 void IntVar::accept(ConstraintVisitor& visitor) {
 	// FIXME
@@ -43,36 +49,49 @@ rClause IntVar::notifypropagate() {
 	return nullPtrClause;
 }
 
+void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next) {
+	// leq[i] => leq[i+1]
+	if (next!=NULL) {
+		internalAdd(Disjunction( { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
+	} else {
+		internalAdd(Disjunction( { getLEQLit(lv.value) }), engine());
+	}
+
+	//~leq[i] => ~leq[i-1]
+	if (prev!=NULL) {
+		internalAdd(Disjunction( { getLEQLit(lv.value), ~getLEQLit(prev->value) }), engine());
+	}
+}
+
 /**
  * x in [min, max]
- * some leq is true
  * leq[i] => leq[i+1]
  * ~leq[i] => ~leq[i-1]
  */
-void IntVar::addConstraints() {
-	Disjunction sometrue;
+void BasicIntVar::addConstraints() {
 	for (uint i = 0; i < leqlits.size(); ++i) {
-		// leq[i] => leq[i+1]
-		if(i<leqlits.size()-1){
-			internalAdd(Disjunction( { ~getLEQLit(leqlits[i].value), getLEQLit(leqlits[i+1].value) }), engine());
-		}else{
-			internalAdd(Disjunction( { getLEQLit(leqlits[i].value)}), engine());
+		IntVarValue* next = NULL;
+		if(i < leqlits.size() - 1){
+			next = &leqlits[i + 1];
 		}
-
-		//~leq[i] => ~leq[i-1]
+		IntVarValue* prev = NULL;
 		if(i>0){
-			internalAdd(Disjunction( { getLEQLit(leqlits[i].value), ~getLEQLit(leqlits[i-1].value)}), engine());
+			prev = &leqlits[i - 1];
 		}
-		sometrue.literals.push_back(getLEQLit(leqlits[i].value));
+		addConstraint(prev, leqlits[i], next);
 	}
-	// some leq is true
-	internalAdd(sometrue, engine());
-	internalAdd(Disjunction( {getLEQLit(origMaxValue())}), engine());
-	internalAdd(Disjunction( {getGEQLit(origMinValue())}), engine());
 }
 
-void IntVar::updateBounds() {
-	for (auto i=leqlits.cbegin(); i<leqlits.cend(); ++i) {
+/**
+ * lazy intvar:
+ *
+ * introduce one variable
+ * When it is assigned a value, introduce one within the relevant remaining interval
+ * If there are two vars which are consecutive in the full interval and one is false and the other one true, then no more introduction is necessary
+ */
+
+void BasicIntVar::updateBounds() {
+	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
 		if (not isFalse(mkPosLit(i->atom))) { // First non-false is lowest remaining value
 			currentmin = i->value;
 			break;
@@ -80,14 +99,14 @@ void IntVar::updateBounds() {
 	}
 
 	bool found = false;
-	for (auto i=leqlits.crbegin(); i<leqlits.crend(); ++i) { // NOTE: reverse iterated!
+	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
 		if (not isTrue(mkPosLit(i->atom))) { // First non true => previous is highest remaining value (LEQ!)
 			currentmax = (--i)->value;
 			found = true;
 			break;
 		}
 	}
-	if(not found){
+	if (not found) {
 		currentmax = leqlits.front().value;
 	}
 	MAssert(isTrue(getGEQLit(minValue())));
@@ -95,9 +114,8 @@ void IntVar::updateBounds() {
 //	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
-
-
-RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max): IntVar(solver, _origid){
+RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max)
+		: BasicIntVar(solver, _origid) {
 	setOrigMax(max);
 	setOrigMin(min);
 
@@ -106,7 +124,7 @@ RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max): IntVa
 		leqlits.push_back(IntVarValue(this, var, i));
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
-		if(verbosity()>3){
+		if (verbosity() > 3) {
 			clog << toString(mkPosLit(var)) << " <=> " << "var" << origid() << "=<" << i << "\n";
 		}
 	}
@@ -120,7 +138,7 @@ RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max): IntVa
 	engine().notifyBoundsChanged(this);
 }
 
-Lit RangeIntVar::getLEQLit(int bound) const {
+Lit RangeIntVar::getLEQLit(int bound) {
 //	cerr <<"Requesting var" <<origid() <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<"=<" <<bound <<"\n";
 	auto index = bound - origMinValue();
 	if (index < 0) {
@@ -132,27 +150,19 @@ Lit RangeIntVar::getLEQLit(int bound) const {
 	return mkPosLit(leqlits[index].atom);
 }
 
-Lit RangeIntVar::getGEQLit(int bound) const {
-//	cerr <<"Requesting var" <<origid() <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<">=" <<bound <<"\n";
-	auto index = bound - origMinValue() - 1;
-	if (index < 0) {
-		return getPCSolver().getTrueLit();
-	}
-	if ((int) leqlits.size() <= index) {
-		return getPCSolver().getFalseLit();
-	}
-	return mkNegLit(leqlits[index].atom);
+Lit RangeIntVar::getGEQLit(int bound) {
+	return not getLEQLit(bound-1);
 }
 
-
 EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& values)
-		: IntVar(solver, _origid), _values(values) {
+		: 	BasicIntVar(solver, _origid),
+			_values(values) {
 	MAssert(_values.size()>0);
 	sort(_values.begin(), _values.end());
 	setOrigMin(values.front());
 	setOrigMax(values.back());
 
-	for (auto i=values.cbegin(); i<values.cend(); ++i) {
+	for (auto i = values.cbegin(); i < values.cend(); ++i) {
 		auto var = engine().newVar();
 		leqlits.push_back(IntVarValue(this, var, *i));
 		engine().accept(this, mkPosLit(var), FASTEST);
@@ -171,15 +181,15 @@ EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& va
 	engine().notifyBoundsChanged(this);
 }
 
-Lit EnumIntVar::getLEQLit(int bound) const {
+Lit EnumIntVar::getLEQLit(int bound) {
 //	cerr <<"Requesting var" <<origid() <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
-	if(origMaxValue()<bound){
+	if (origMaxValue() < bound) {
 		return getPCSolver().getTrueLit();
-	}else if(bound < origMinValue()){
+	} else if (bound < origMinValue()) {
 		return getPCSolver().getFalseLit();
-	}else{
-		for(auto i=leqlits.crbegin(); i<leqlits.crend(); ++i) {
-			if(i->value<=bound){
+	} else {
+		for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) {
+			if (i->value <= bound) {
 				return mkPosLit(i->atom);
 			}
 		}
@@ -187,17 +197,17 @@ Lit EnumIntVar::getLEQLit(int bound) const {
 	}
 }
 
-Lit EnumIntVar::getGEQLit(int bound) const {
+Lit EnumIntVar::getGEQLit(int bound) {
 //	cerr <<"Requesting var" <<origid() <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
-	if(bound<=origMinValue()){
+	if (bound <= origMinValue()) {
 		return getPCSolver().getTrueLit();
-	}else if(origMaxValue()<bound){
+	} else if (origMaxValue() < bound) {
 		return getPCSolver().getFalseLit();
-	}else{
-		for(auto i=leqlits.crbegin(); i<leqlits.crend(); ++i) {
-			if(i->value < bound){
+	} else {
+		for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) {
+			if (i->value < bound) {
 				return mkNegLit(i->atom);
-			}else if(bound == i->value){
+			} else if (bound == i->value) {
 				return mkNegLit((++i)->atom);
 			}
 		}
