@@ -25,15 +25,16 @@ LazyIntVar::LazyIntVar(PCSolver* solver, int _origid, int min, int max)
 
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_STATEFUL);
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 
-	checkAddVariable((min+max)/2);
+	checkAndAddVariable((min+max)/2);
 
 	engine().notifyBoundsChanged(this);
 }
 
 //Add a variable for var =< value
-Lit LazyIntVar::checkAddVariable(int value){
+Lit LazyIntVar::addVariable(int value){
 //	cerr <<"Adding variable with value " <<value <<" for var " <<origid() <<"\n";
 	if(value>origMaxValue()){
 		return getPCSolver().getTrueLit();
@@ -52,13 +53,26 @@ Lit LazyIntVar::checkAddVariable(int value){
 
 	auto var = engine().newVar();
 	leqlits.insert(leqlits.begin()+i, IntVarValue(this, var, value));
+#ifdef DEBUG
+	bool found = false;
+//	cerr <<"Var" <<origid() <<" is grounded for ";
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
+//		cerr <<j->value <<" ";
 		if((j+1)<leqlits.cend()){
 			MAssert(j->value < (j+1)->value);
 		}
+		if(j->value==value){
+			found = true;
+		}
 	}
+//	cerr <<"\n";
+	MAssert(found);
+#endif
 	engine().accept(this, mkPosLit(var), FASTEST);
 	engine().accept(this, mkNegLit(var), FASTEST);
+	if (verbosity() > 3) {
+		clog << toString(mkPosLit(var)) << " <=> " << "var" << origid() << "=<" << value << "\n";
+	}
 	if(value==origMaxValue()){
 		internalAdd(Disjunction( { mkPosLit(var) }), engine());
 	}
@@ -74,6 +88,14 @@ Lit LazyIntVar::checkAddVariable(int value){
 	return mkPosLit(var);
 }
 
+void LazyIntVar::saveState(){
+	savedleqlits = leqlits;
+}
+void LazyIntVar::resetState(){
+	leqlits = savedleqlits; // TODO remove watches on older literals from the queue
+	updateBounds();
+}
+
 /**
  * lazy intvar:
  *
@@ -83,6 +105,11 @@ Lit LazyIntVar::checkAddVariable(int value){
  */
 
 void LazyIntVar::updateBounds() {
+/*	cerr <<"For var" <<origid() <<":\n";
+	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
+		cerr <<toString(mkPosLit(i->atom)) << "<=> var" <<origid() <<"=<" <<i->value <<"\n";
+	}
+	cerr <<"\n";*/
 	int prev = origMinValue();
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
 		if (not isFalse(mkPosLit(i->atom))) { // First non-false: then previous one +1 is lowest remaining value
@@ -101,12 +128,51 @@ void LazyIntVar::updateBounds() {
 	}
 	currentmax = next;
 
-	MAssert(isTrue(getGEQLit(minValue())));
-	MAssert(isTrue(getLEQLit(maxValue())));
-	if(abs(currentmin-currentmax)>1){
-		getLEQLit((currentmin+currentmax)/2); // Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
+	//MAssert(isTrue(getGEQLit(minValue())));
+	//MAssert(isTrue(getLEQLit(maxValue())));
+
+	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
+	if(not checkAndAddVariable(currentmin)){
+		if(not checkAndAddVariable(currentmax)){
+			checkAndAddVariable((currentmin+currentmax)/2);
+		}
 	}
 //	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
+}
+
+struct CompareVarValue{
+	bool operator() (const IntVarValue& left, const IntVarValue& right) const{
+		return left.value < right.value;
+	}
+};
+
+template<class List>
+typename List::const_iterator findVariable(int value, const List& list){
+	auto i = lower_bound(list.cbegin(), list.cend(), IntVarValue(NULL, -1,value), CompareVarValue());
+	if(i!=list.cend() && i->value==value){
+		return i;
+	}else{
+		return list.cend();
+	}
+}
+
+bool LazyIntVar::checkAndAddVariable(int value){ // Returns true if it was newly created
+//	cerr <<"Checking for value " <<value <<" for var " <<origid() <<"\n";
+	auto i = findVariable(value, leqlits);
+#ifdef DEBUG
+	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
+		if(j->value==value){
+			MAssert(i==j);
+			MAssert(i!=leqlits.end() && i->value==value);
+		}
+	}
+#endif
+	if(i!=leqlits.end()){
+		return false;
+	}else{
+		addVariable(value);
+		return true;
+	}
 }
 
 Lit LazyIntVar::getLEQLit(int bound) {
@@ -116,15 +182,12 @@ Lit LazyIntVar::getLEQLit(int bound) {
 	} else if (bound < origMinValue()) {
 		return getPCSolver().getFalseLit();
 	} else {
-		for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
-			if (i->value == bound) {
-				return mkPosLit(i->atom);
-			}
-			if(i->value > bound){
-				break; // Was not found, need to introduce a new one
-			}
+		auto i = findVariable(bound, leqlits);
+		if(i!=leqlits.cend()){
+			return mkPosLit(i->atom);
+		}else{
+			return addVariable(bound);
 		}
-		return checkAddVariable(bound);
 	}
 }
 

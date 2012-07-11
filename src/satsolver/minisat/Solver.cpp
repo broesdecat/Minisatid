@@ -142,6 +142,9 @@ Var Solver::newVar(lbool upol, bool dvar) {
 	decision.push();
 	trail.capacity(v + 1);
 	setDecidable(v, dvar);
+
+	newvars.push_back(v);
+
 	return v;
 }
 
@@ -297,7 +300,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 }
 
 // NOTE: linked to createClause and the dummy variables
-void Solver::addLearnedClause(CRef rc) {
+void Solver::addLearnedClause(CRef rc, bool conflict) {
 	auto& c = ca[rc];
 	MAssert(c.size() > 1);
 
@@ -308,38 +311,19 @@ void Solver::addLearnedClause(CRef rc) {
 			allfalse = false;
 		}
 	}
-	MAssert(not allfalse);
+	MAssert(conflict?allfalse:not allfalse);
 #endif
 
 	addToClauses(rc, true);
-	attachClause(rc);
+	attachClause(rc, conflict);
 	claBumpActivity(c);
 	if (verbosity >= 3) {
-		clog << "Learned clause added: ";
+		clog <<(conflict?"Conflict":"Learned") << " clause added: ";
 		printClause(rc);
 	}
 }
 void Solver::addConflictClause(CRef rc) {
-	auto& c = ca[rc];
-	MAssert(c.size() > 1);
-
-#ifdef DEBUG
-	bool allfalse = true;
-	for (int i = 0; i < c.size() && allfalse; ++i) {
-		if(value(c[i])!=l_False) {
-			allfalse = false;
-		}
-	}
-	MAssert(allfalse);
-#endif
-
-	addToClauses(rc, true);
-	attachClause(rc, true);
-	claBumpActivity(c);
-	if (verbosity >= 3) {
-		clog << "Conflict clause added: ";
-		printClause(rc);
-	}
+	addLearnedClause(rc, true);
 }
 
 void swap(Clause& c, int from, int to) {
@@ -519,6 +503,7 @@ void Solver::saveState() {
 	} else {
 		roottraillim = trail.size();
 	}
+	newvars.clear();
 	newclauses.clear();
 	newlearnts.clear();
 	savedrootlits.clear();
@@ -557,6 +542,10 @@ void Solver::resetState() {
 	}
 	removeUndefs(newclauses, clauses);
 	removeUndefs(newlearnts, learnts);
+
+	for(auto i=newvars.cbegin(); i<newvars.cend(); ++i){ // To guarantee number of model equivalence with previous one (in fact should remove the var)
+		setDecidable(*i, false);
+	}
 
 	for (auto i = rootunitlits.begin(); i != rootunitlits.end();) {
 		if (savedrootlits.find(i->lit) != savedrootlits.cend()) { // NOTE: the explanation can change during search, so only check on the literal!
@@ -1193,6 +1182,10 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 
 	auto confl = nullPtrClause;
 	for (;;) {
+/*		cerr <<"IN DATABASE:\n";
+		for(int i=0; i<clauses.size(); ++i){
+			cerr <<"\t"; printClause(clauses[i]);
+		}*/
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
 		}

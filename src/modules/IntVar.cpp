@@ -53,7 +53,7 @@ void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv
 	// leq[i] => leq[i+1]
 	if (next!=NULL) {
 		internalAdd(Disjunction( { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
-	} else {
+	} else if(lv.value==origMaxValue()){
 		internalAdd(Disjunction( { getLEQLit(lv.value) }), engine());
 	}
 

@@ -112,15 +112,18 @@ public:
 
 class LazyIntVar: public IntVar{
 private:
-	std::vector<IntVarValue> leqlits; // ORDERED list such that atom <=> intvar =< value
+	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
 
-	Lit checkAddVariable(int value);
+	Lit addVariable(int value);
+	bool checkAndAddVariable(int value);
 
 public:
 	LazyIntVar(PCSolver* solver, int origid, int min, int max);
 
 	virtual void updateBounds();
 
+	virtual void saveState();
+	virtual void resetState();
 	virtual int getNbOfFormulas() const { return 1; }
 
 	virtual Lit getLEQLit(int bound);
