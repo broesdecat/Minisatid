@@ -69,7 +69,7 @@ public:
 	bool checkcyclefreeness;
 	int idclausesaving, aggclausesaving;
 	bool selectOneFromUFS;
-	bool tocnf;
+	bool tocnf; // FIXME pbsolver is incorrect, do not enable this!!!
 	bool splitagg;
 	double watchesratio;
 	std::string primesfile;
