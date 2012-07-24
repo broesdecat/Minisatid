@@ -20,6 +20,7 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 		EqType rel, const Weight& bound)
 		: 	Propagator(engine, "fdaggconstr"),
 			_type(getType(type)) {
+	Weight newbound = bound;
 	MAssert(type == AggType::SUM || type==AggType::PROD);
 	std::vector<IntView*> newset;
 	std::vector<Weight> newweights;
@@ -59,47 +60,47 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 		bool unsat = false;
 		if (combinedWeight == 0) {
 			switch (rel) {
-			case EqType::L: //0<bound
-				if (not 0 < bound) {
+			case EqType::L: //0<newbound
+				if (not 0 < newbound) {
 					unsat = true;
 				}
 				break;
 
-			case EqType::LEQ: //0<bound
-				if (not 0 <= bound) {
+			case EqType::LEQ: //0<newbound
+				if (not 0 <= newbound) {
 					unsat = true;
 				}
 				break;
 
-			case EqType::G: //0<bound
-				if (not 0 > bound) {
+			case EqType::G: //0<newbound
+				if (not 0 > newbound) {
 					unsat = true;
 				}
 				break;
 
-			case EqType::GEQ: //0<bound
-				if (not 0 >= bound) {
+			case EqType::GEQ: //0<newbound
+				if (not 0 >= newbound) {
 					unsat = true;
 				}
 				break;
 
-			case EqType::EQ: //0<bound
-				if (not 0 == bound) {
+			case EqType::EQ: //0<newbound
+				if (not 0 == newbound) {
 					unsat = true;
 				}
 				break;
-			case EqType::EQ: //0<bound
-				if (not 0 != bound) {
+			case EqType::NEQ: //0<newbound
+				if (not 0 != newbound) {
 					unsat = true;
 				}
 				break;
 			}
 		}
 		if (rel == EqType::EQ) {
-			if (bound % combinedWeight != 0) {
+			if (newbound % combinedWeight != 0) {
 				unsat = true;
 			} else {
-				bound = bound / combinedWeight;
+				newbound = newbound / combinedWeight;
 				newweights = {1};
 			}
 		}
@@ -108,7 +109,7 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 			newweights = {combinedWeight};
 		}
 		if (unsat) {
-			engine->setTrue(-head, this); //FIXME explanation?
+			engine->setTrue(not head, this); //FIXME explanation?
 			notifyNotPresent();
 		}
 	}
@@ -120,7 +121,7 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 		auto two = mkPosLit(getPCSolver().newVar());
 		internalAdd(Implication(eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true), getPCSolver());
 		_head = one;
-		new FDAggConstraint(engine, two, type, _vars, newweights, EqType::LEQ, bound);
+		new FDAggConstraint(engine, two, type, _vars, newweights, EqType::LEQ, newbound);
 	}
 	if (rel == EqType::L || rel == EqType::G) {
 		_head = not head;
@@ -151,6 +152,7 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 	// TODO remove trivially true aggregates NOTE: done for products.
 }
 
+//NOTE: for products, this does not include the weight!!!
 std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggVals() const {
 	if (_type == getType(AggType::SUM)) {
 		int min = 0, max = 0;
@@ -168,26 +170,42 @@ std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggVals() const {
 		}
 		return {min,max};
 	} else if (_type == getType(AggType::PROD)) {
-		int max = abs(_weights[0]);
-		for (uint i = 0; i < _vars.size(); ++i) {
-			auto absminval = abs(_vars[i]->minValue());
-			auto absmaxval = abs(_vars[i]->maxValue());
-			max *= (absmaxval>absminval?absmaxval:absminval);
+		if (containsNegatives()) {
+			int max = 1;
+			for (uint i = 0; i < _vars.size(); ++i) {
+				auto absminval = abs(_vars[i]->minValue());
+				auto absmaxval = abs(_vars[i]->maxValue());
+				max *= (absmaxval > absminval ? absmaxval : absminval);
+			}
+			return {-max,max};
+		} else {
+			int min = 1, max = 1;
+			for (uint i = 0; i < _vars.size(); ++i) {
+				auto minval = _vars[i]->minValue();
+				auto maxval = _vars[i]->maxValue();
+				min *= minval;
+				max *= maxval;
+			}
+			return {min,max};
 		}
-		return{-max,max}; //TODO: can be improved if no negative values are possible: {0,max}
-
 	} else {
 		throw notYetImplemented("FDAggconstraint for other things than sum and product");
 		return {0,0};
 	}
 }
 
-rClause FDAggConstraint::notifypropagate() {
-	/*cerr <<"Propagating " <<toString(_head) <<" <=> ";
-	 for(uint i=0; i<_vars.size(); ++i) {
-	 cerr <<_weights[i] <<"*var" <<_vars[i]->toString() <<" ";
-	 }
-	 cerr <<">= " <<_bound <<"\n";*/
+bool FDAggConstraint::containsNegatives() const {
+	for (uint i = 0; i < _vars.size(); ++i) {
+		auto var = _vars[i];
+		auto lit = var->getGEQLit(0);
+		if (value(lit) != l_True) {
+			return true;
+		}
+	}
+	return false;
+}
+
+rClause FDAggConstraint::notifypropagateSum() {
 	auto _headval = value(_head);
 	auto minmax = getMinAndMaxPossibleAggVals();
 	int min = minmax.first;
@@ -195,56 +213,38 @@ rClause FDAggConstraint::notifypropagate() {
 
 	//cerr <<"Min " <<min <<", max " <<max <<"\n";
 	if (_headval == l_Undef) {
-		if (_type == getType(AggType::SUM)) {
-			if (min >= _bound) {
-				litlist minlits;
-				minlits.push_back(_head);
-				for (uint i = 0; i < _vars.size(); ++i) {
-					if (_weights[i] < 0) {
-						minlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
-					} else {
-						minlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
-					}
+		if (min >= _bound) {
+			litlist minlits;
+			minlits.push_back(_head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				if (_weights[i] < 0) {
+					minlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
+				} else {
+					minlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
 				}
-				auto c = getPCSolver().createClause(Disjunction(minlits), true);
-				getPCSolver().addLearnedClause(c);
-			} else if (max < _bound) {
-				litlist maxlits;
-				maxlits.push_back(not _head);
-				for (uint i = 0; i < _vars.size(); ++i) {
-					if (_weights[i] < 0) {
-						maxlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
-					} else {
-						maxlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
-					}
-				}
-				auto c = getPCSolver().createClause(Disjunction(maxlits), true);
-				getPCSolver().addLearnedClause(c);
 			}
-			return nullPtrClause;
-		} else if (_type == getType(AggType::PROD)) {
-			if (min >= _bound || max < _bound) {
-				litlist minlits;
-				minlits.push_back(_head);
-				for (uint i = 0; i < _vars.size(); ++i) {
-					auto absminval = abs(_vars[i]->minValue());
-					auto absmaxval = abs(_vars[i]->maxValue());
-					auto absbiggest = absminval > absmaxval ? absminval : absmaxval;
-					minlits.push_back(not _vars[i]->getLEQLit(-absbiggest));
-					minlits.push_back(not _vars[i]->getGEQLit(absbiggest));
+			auto c = getPCSolver().createClause(Disjunction(minlits), true);
+			getPCSolver().addLearnedClause(c);
+		} else if (max < _bound) {
+			litlist maxlits;
+			maxlits.push_back(not _head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				if (_weights[i] < 0) {
+					maxlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
+				} else {
+					maxlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
 				}
-				auto c = getPCSolver().createClause(Disjunction(minlits), true);
-				getPCSolver().addLearnedClause(c);
 			}
+			auto c = getPCSolver().createClause(Disjunction(maxlits), true);
+			getPCSolver().addLearnedClause(c);
 		}
-
+		return nullPtrClause;
 	}
 
 	// Optimize to stop early
 	if ((min >= _bound && _headval == l_True) || (max < _bound && _headval == l_False)) {
 		return nullPtrClause;
 	}
-	//TODO FROM HERE for products
 
 	if (_headval == l_True) {
 		for (uint i = 0; i < _vars.size(); ++i) {
@@ -282,6 +282,7 @@ rClause FDAggConstraint::notifypropagate() {
 				}
 			}
 		}
+
 	} else { // _head is false
 		// for any var:
 		for (uint i = 0; i < _vars.size(); ++i) {
@@ -334,3 +335,198 @@ rClause FDAggConstraint::notifypropagate() {
 	return nullPtrClause;
 }
 
+rClause FDAggConstraint::notifypropagateProd() {
+	if (containsNegatives()) {
+		return notifypropagateProdWithNeg();
+	}
+	return notifypropagateProdWithoutNeg();
+}
+rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
+	auto _headval = value(_head);
+	auto minmax = getMinAndMaxPossibleAggVals();
+	int min = minmax.first;
+	int max = minmax.second;
+	double realbound = _bound / (double) _weights[0];
+
+	//cerr <<"Min " <<min <<", max " <<max <<"\n";
+	if (_headval == l_Undef) {
+		auto posweight = _weights[0] >= 0;
+		if (min >= realbound) {
+			litlist minlits;
+			minlits.push_back(_head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				minlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
+			}
+			auto c = getPCSolver().createClause(Disjunction(minlits), true);
+			getPCSolver().addLearnedClause(c);
+		} else if (max < realbound) {
+			litlist maxlits;
+			maxlits.push_back(not _head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				maxlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
+			}
+			auto c = getPCSolver().createClause(Disjunction(maxlits), true);
+			getPCSolver().addLearnedClause(c);
+		}
+		return nullPtrClause;
+	}
+	// Optimize to stop early
+	if ((min >= realbound && _headval == l_True) || (max < realbound && _headval == l_False)) {
+		return nullPtrClause;
+	}
+	if (_headval == l_True) {
+		// Optimize to stop early
+		if (realbound <= 0) {
+			return nullPtrClause;
+		}
+		for (uint i = 0; i < _vars.size(); ++i) {
+			auto var = _vars[i];
+			double maxWithoutThisVar = max / (double) var->maxValue();
+			int factorMissing = ceil(realbound / maxWithoutThisVar);
+			auto lit = var->getGEQLit(factorMissing);
+
+			if (value(lit) != l_True) {
+				litlist lits;
+				lits.push_back(not _head);
+				for (uint j = 0; j < _vars.size(); ++j) {
+					if (j == i) {
+						continue;
+					}
+					lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
+				}
+				lits.push_back(lit);
+				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				if (value(lit) == l_False) { // Conflict
+					getPCSolver().addConflictClause(c);
+					return c;
+				} else {
+					getPCSolver().addLearnedClause(c);
+				}
+			}
+		}
+	} else { // _head is false
+		//Propagate PROD{x_i} < realbound
+		for (uint i = 0; i < _vars.size(); ++i) {
+			auto var = _vars[i];
+			auto minWithoutThisVar = min / var->minValue();
+			auto val = realbound / minWithoutThisVar;
+			if (val == floor(val)) {
+				val--; //Because we can only get LEQlit
+			} else {
+				val = floor(val);
+			}
+			Lit lit = var->getLEQLit(val);
+
+			if (value(lit) != l_True) {
+				litlist lits;
+				lits.push_back(_head);
+				for (uint j = 0; j < _vars.size(); ++j) {
+					if (j == i) {
+						continue;
+					}
+					lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
+				}
+				lits.push_back(lit);
+				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				if (value(lit) == l_False) { // Conflict
+					getPCSolver().addConflictClause(c);
+					return c;
+				} else {
+					getPCSolver().addLearnedClause(c);
+				}
+			}
+		}
+	}
+	return nullPtrClause;
+
+}
+rClause FDAggConstraint::notifypropagateProdWithNeg() {
+	auto _headval = value(_head);
+	auto minmax = getMinAndMaxPossibleAggVals();
+
+	int min = minmax.first;
+	int max = minmax.second;
+	double realbound = _bound / (double) _weights[0];
+
+	//cerr <<"Min " <<min <<", max " <<max <<"\n";
+	if (_headval == l_Undef) {
+		if (min >= realbound || max < realbound) {
+			litlist minlits;
+			minlits.push_back(_head);
+			for (uint i = 0; i < _vars.size(); ++i) {
+				auto absminval = abs(_vars[i]->minValue());
+				auto absmaxval = abs(_vars[i]->maxValue());
+				auto absbiggest = absminval > absmaxval ? absminval : absmaxval;
+				minlits.push_back(not _vars[i]->getLEQLit(-absbiggest));
+				minlits.push_back(not _vars[i]->getGEQLit(absbiggest));
+			}
+			auto c = getPCSolver().createClause(Disjunction(minlits), true);
+			getPCSolver().addLearnedClause(c);
+		}
+
+	}
+
+	// Optimize to stop early
+	if ((min >= realbound && _headval == l_True) || (max < realbound && _headval == l_False)) {
+		return nullPtrClause;
+	}
+
+	if ((_headval == l_True && realbound >= 0) || (_headval == l_False && realbound <= 0)) {
+		//PROD { x_1.. x_n } >= realbound THUS: we implement abs(PROD { x_1.. x_n }) >= k.
+		//We can only derive useful information if realbound is positive.
+
+		//SECOND CASE:
+		//PROD { x_1.. x_n } < realbound
+		//We only propagate for negative realbound. In that case, we propagate Abs(Prod) >= Abs(realbound)
+
+		for (uint i = 0; i < _vars.size(); ++i) {
+			auto var = _vars[i];
+			auto maxWithoutThisVar1 = abs(max / var->maxValue());
+			auto maxWithoutThisVar2 = abs(max / var->minValue());
+			auto maxWithoutThisVar = maxWithoutThisVar1 > maxWithoutThisVar2 ? maxWithoutThisVar2 : maxWithoutThisVar1;
+			//maxWithoutThisVar is smallest of the two since the biggest value of var.maxval and var.minval was added
+			auto stillNeeded = ceil(abs(realbound / maxWithoutThisVar));
+			Lit bigger = var->getGEQLit(stillNeeded);
+			Lit smaller = var->getGEQLit(-stillNeeded);
+			if (value(bigger) != l_True && value(smaller) != l_True) {
+				litlist lits;
+				lits.push_back(_headval == l_True ? not _head : _head);
+				for (uint j = 0; j < _vars.size(); ++j) {
+					if (j == i) {
+						continue;
+					}
+					auto absminval = abs(_vars[i]->minValue());
+					auto absmaxval = abs(_vars[i]->maxValue());
+					auto absbiggest = absminval > absmaxval ? absminval : absmaxval;
+					lits.push_back(not _vars[i]->getLEQLit(-absbiggest));
+					lits.push_back(not _vars[i]->getGEQLit(absbiggest));
+				}
+				lits.push_back(bigger);
+				lits.push_back(smaller);
+
+				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				if (value(bigger) == l_False && value(smaller) == l_False) { // Conflict
+					getPCSolver().addConflictClause(c);
+					return c;
+				} else {
+					getPCSolver().addLearnedClause(c);
+				}
+			}
+		}
+	}
+
+	return nullPtrClause;
+}
+
+rClause FDAggConstraint::notifypropagate() {
+	/*cerr <<"Propagating " <<toString(_head) <<" <=> ";
+	 for(uint i=0; i<_vars.size(); ++i) {
+	 cerr <<_weights[i] <<"*var" <<_vars[i]->toString() <<" ";
+	 }
+	 cerr <<">= " <<_bound <<"\n";*/
+	if (_type == getType(AggType::SUM)) {
+		return notifypropagateSum();
+	} else {
+		return notifypropagateProd();
+	}
+}
