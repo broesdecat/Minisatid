@@ -8,6 +8,7 @@
 namespace MinisatID {
 
 // NOTE: always GEQ at the moment!
+// Always: AGG >= BOUND
 class FDAggConstraint: public Propagator {
 	Lit _head;
 	std::vector<IntView*> _vars;
@@ -39,6 +40,8 @@ public:
 	virtual void notifyBacktrack(int, const Lit&) {
 		throw idpexception("Invalid code path.");
 	}
+private:
+	std::pair<int,int> getMinAndMaxPossibleAggVals() const;
 };
 
 }
