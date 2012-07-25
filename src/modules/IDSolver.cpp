@@ -1851,6 +1851,8 @@ bool IDSolver::isCycleFree() const {
  */
 bool printednontotalwarning = false;
 
+#define DEFINEDINMIXED(v) (isDefined(v) && (occ(v) == DefOcc::BOTHLOOP || occ(v) == DefOcc::MIXEDLOOP))
+
 rClause IDSolver::isWellFoundedModel() {
 	MAssert(twovalueddef);
 
@@ -1889,7 +1891,9 @@ rClause IDSolver::isWellFoundedModel() {
 	if (verbosity() > 1) {
 		clog << "General SCCs: ";
 		for (uint z = 0; z < wfroot.size(); ++z) {
-			clog << toString(z) << " has root " << toString(wfroot[z]) << "\n";
+			if(DEFINEDINMIXED(z)){
+				clog << toString(z) << " has root " << toString(wfroot[z]) << "\n";
+			}
 		}
 		clog << "\nMixed cycles are " << (rootofmixed.empty() ? "not" : "possibly") << " present.\n";
 	}
@@ -1974,8 +1978,6 @@ void IDSolver::findMixedCycles(varlist &root, vector<int>& rootofmixed) {
 		}
 	}
 }
-
-#define DEFINEDINMIXED(v) (isDefined(v) && (occ(v) == DefOcc::BOTHLOOP || occ(v) == DefOcc::MIXEDLOOP))
 
 void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &stack, varlist &visited, int& counter, bool throughPositiveLit,
 		vector<int>& rootofmixed) {
