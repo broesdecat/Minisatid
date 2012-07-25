@@ -116,6 +116,11 @@ void BasicIntVar::updateBounds() {
 
 RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max)
 		: BasicIntVar(solver, _origid) {
+	if(min>max){
+		getPCSolver().setTrue(getPCSolver().getFalseLit(), this, nullPtrClause); //FIXME not able to explain this atm
+		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
+		return;
+	}
 	setOrigMax(max);
 	setOrigMin(min);
 
@@ -157,7 +162,11 @@ Lit RangeIntVar::getGEQLit(int bound) {
 EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& values)
 		: 	BasicIntVar(solver, _origid),
 			_values(values) {
-	MAssert(_values.size()>0);
+	if(values.empty()){
+		getPCSolver().setTrue(getPCSolver().getFalseLit(), this, nullPtrClause); //FIXME not able to explain this atm
+		notifyNotPresent(); // FIXME what if the explanation is asked later on?
+		return;
+	}
 	sort(_values.begin(), _values.end());
 	setOrigMin(values.front());
 	setOrigMax(values.back());
