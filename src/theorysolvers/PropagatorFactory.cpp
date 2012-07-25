@@ -364,6 +364,19 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 	}
 }
 
+void PropagatorFactory::add(const CPProdWeighted& obj) {
+	notifyMonitorsOfAdding(obj);
+	if (getEngine().modes().usegecode) {
+		throw notYetImplemented("Products and gecode"); //TODO FIX!
+	}else {
+		vector<IntView*> vars;
+		for(auto i=obj.varIDs.cbegin(); i<obj.varIDs.cend(); ++i){
+			vars.push_back(new IntView(intvars.at(*i), 0));
+		}
+		new FDAggConstraint(getEnginep(), mkPosLit(obj.head), AggType::PROD, vars, {obj.prodWeight}, obj.rel, obj.bound);
+	}
+}
+
 void PropagatorFactory::add(const CPCount& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {

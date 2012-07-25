@@ -166,6 +166,7 @@ public:
 	void add(const CPBinaryRel& object);
 	void add(const CPBinaryRelVar& object);
 	void add(const CPSumWeighted& object);
+	void add(const CPProdWeighted& object);
 	void add(const CPCount& object);
 	void add(const CPAllDiff& object);
 	void add(const CPElement& object);

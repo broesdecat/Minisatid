@@ -446,6 +446,28 @@ struct CPSumWeighted: public ID {
 	}
 };
 
+struct CPProdWeighted: public ID {
+	Var head;
+	std::vector<uint> varIDs;
+	Weight prodWeight;
+	EqType rel;
+	Weight bound;
+
+	CPProdWeighted(Var head, const std::vector<uint>& varIDs,Weight prodweight, EqType rel, Weight bound)
+			: 	head(head),
+				varIDs(varIDs),
+				prodWeight(prodweight),
+				rel(rel),
+				bound(bound) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return {head};
+	}
+};
+
 // Encodes: (number of varIDS equal to eqbound) rel rhsvar
 struct CPCount: public ID {
 	std::vector<uint> varIDs;

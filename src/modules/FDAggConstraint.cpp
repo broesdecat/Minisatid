@@ -131,10 +131,10 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 			//Due to the convention: for products: always exactly one weight, this also works for products
 			_weights.push_back(-*i);
 		}
-		_bound = -bound;
+		_bound = -newbound;
 	} else { // GEQ, EQ, NEQ, L
 		_weights = newweights;
-		_bound = bound;
+		_bound = newbound;
 	}
 
 	/*cerr<<"Added fdconstraint " <<toString(_head) <<" <=> ";
@@ -347,8 +347,10 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
 	int min = minmax.first;
 	int max = minmax.second;
 	double realbound = _bound / (double) _weights[0];
+	//TODO: if (double) _weights[0] <0 --> EVERYTHING SPECIAL CASE (it becomes the reverse equation)
 
-	//cerr <<"Min " <<min <<", max " <<max <<"\n";
+	cerr <<"Min " <<min <<", max " <<max <<"\n";
+	cerr << "realbound" << realbound;
 	if (_headval == l_Undef) {
 		auto posweight = _weights[0] >= 0;
 		if (min >= realbound) {
