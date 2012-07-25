@@ -1975,11 +1975,13 @@ void IDSolver::findMixedCycles(varlist &root, vector<int>& rootofmixed) {
 	}
 }
 
+#define DEFINEDINMIXED(v) (isDefined(v) && (occ(v) == DefOcc::BOTHLOOP || occ(v) == DefOcc::MIXEDLOOP))
+
 void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &stack, varlist &visited, int& counter, bool throughPositiveLit,
 		vector<int>& rootofmixed) {
 	MAssert(!incomp[v]);
 	MAssert(isDefined(v));
-	if (occ(v) != DefOcc::BOTHLOOP && occ(v) != DefOcc::MIXEDLOOP) {
+	if (not DEFINEDINMIXED(v)) {
 		return;
 	}
 	MAssert(getDefVar(v)->type()!=DefType::AGGR);
@@ -2013,7 +2015,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		for (uint i = 0; i < definition(v)->size(); ++i) {
 			Lit l = definition(v)->operator [](i);
 			Var w = var(l);
-			if (!isDefined(w)) {
+			if (not DEFINEDINMIXED(w)) {
 				continue;
 			}
 			if (visited[w] == 0) {
@@ -2049,7 +2051,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		}
 		MAssert(var(l)>-1);
 		Var w = var(l);
-		if (isDefined(w)) {
+		if (DEFINEDINMIXED(w)) {
 			if (visited[w] == 0) {
 				visitWF(w, root, incomp, stack, visited, counter, isPositive(l), rootofmixed);
 			} else if (!incomp[w] && !isPositive(l) && visited[v] > 0) {
