@@ -110,6 +110,7 @@ private:
 
 	std::list<ReverseTrailElem> rootunitlits;
 	std::set<Lit> savedrootlits;
+	std::vector<Var> newvars;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
 	void removeClause(CRef cr); // Detach and free a clause.
@@ -137,7 +138,7 @@ public:
 
 	CRef makeClause(const std::vector<Lit>& lits, bool learnt);
 	bool addClause(const std::vector<Lit>& ps); // Add a clause to the solver.
-	void addLearnedClause(CRef c); // Non-conflicting learned clause
+	void addLearnedClause(CRef c, bool conflict = false); // Non-conflicting learned clause
 	void addConflictClause(CRef c); // Conflicting clause
 
 	CRef getClause(int i) const {

@@ -522,46 +522,8 @@ public:
 	}
 };
 
-class LazyGroundingCommand {
-private:
-	bool allreadyground;
-public:
-	LazyGroundingCommand()
-			: allreadyground(false) {
-	}
-	virtual ~LazyGroundingCommand() {
-	}
-
-	virtual void requestGrounding() = 0;
-
-	void notifyGrounded() {
-		allreadyground = true;
-	}
-	bool isAlreadyGround() const {
-		return allreadyground;
-	}
-};
 
 // POCO
-class LazyGroundLit: public ID {
-public:
-	bool watchboth;
-	Lit residual;
-	LazyGroundingCommand* monitor;
-
-	LazyGroundLit(bool watchboth, const Lit& residual, LazyGroundingCommand* monitor)
-			: 	watchboth(watchboth),
-				residual(residual),
-				monitor(monitor) {
-	}
-
-	DATASTRUCTURE_DECLAREACCEPT
-
-	virtual std::vector<Atom> getAtoms() const {
-		return {var(residual)};
-	}
-};
-
 class LazyGrounder {
 public:
 	LazyGrounder() {
@@ -609,6 +571,44 @@ public:
 			atoms.push_back(var(*i));
 		}
 		return atoms;
+	}
+};
+
+class LazyGroundingCommand {
+private:
+	bool allreadyground;
+public:
+	LazyGroundingCommand()
+			: allreadyground(false) {
+	}
+	virtual ~LazyGroundingCommand() {
+	}
+
+	virtual void requestGrounding() = 0;
+
+	void notifyGrounded() {
+		allreadyground = true;
+	}
+	bool isAlreadyGround() const {
+		return allreadyground;
+	}
+};
+class LazyGroundLit: public ID {
+public:
+	bool watchboth;
+	Lit residual;
+	LazyGroundingCommand* monitor;
+
+	LazyGroundLit(bool watchboth, const Lit& residual, LazyGroundingCommand* monitor)
+			: 	watchboth(watchboth),
+				residual(residual),
+				monitor(monitor) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return {var(residual)};
 	}
 };
 

@@ -289,7 +289,13 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			ss << "Integer variable " << obj.varID << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
-		intvars.insert(pair<int, IntVar*>(obj.varID, new RangeIntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
+		IntVar* intvar = NULL;
+		if(obj.maxvalue-obj.minvalue<1000){ // TODO verify whether this is a good choice
+			intvar = new RangeIntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue));
+		}else{
+			intvar = new LazyIntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
+		}
+		intvars.insert(pair<int, IntVar*>(obj.varID, intvar));
 	}
 }
 
@@ -530,10 +536,12 @@ SATVAL PropagatorFactory::finishParsing() {
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments) {
 	for (auto i = intvars.cbegin(); i != intvars.cend(); ++i) {
 		VariableEqValue vareq;
+		if((*i).second->minValue()!=(*i).second->maxValue()){
+			cerr <<"Variable " <<(*i).second->origid() <<"[" <<(*i).second->minValue() <<"," <<(*i).second->maxValue() <<"]" <<" is not assigned.\n";
+			MAssert((*i).second->minValue()==(*i).second->maxValue());
+		}
 		vareq.variable = (*i).second->origid(); // FIXME Correct when it is possible to add internal intvars!
 		vareq.value = (*i).second->minValue();
-	//	cerr <<"Variable " <<vareq.variable <<" is assigned value " <<vareq.value <<"\n";
-		MAssert((*i).second->minValue()==(*i).second->maxValue());
 		varassignments.push_back(vareq);
 	}
 }
