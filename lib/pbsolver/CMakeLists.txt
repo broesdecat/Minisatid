@@ -8,7 +8,7 @@ macro(addToC ARGUMENT)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARGUMENT}")
 endmacro()
 
-addToCXX("-Wno-unused-parameter -Wno-unused-result -Wno-strict-aliasing -Wno-vla -Wno-parentheses -Wno-return-type -Wno-variadic-macros")
+addToCXX("-Wno-long-long -Wno-unused-parameter -Wno-unused-result -Wno-strict-aliasing -Wno-vla -Wno-parentheses -Wno-return-type -Wno-variadic-macros")
 
 add_library(pbsolver Main.C
 		Debug.C Hardware_adders.C Hardware_clausify.C
@@ -30,8 +30,6 @@ add_library(pbsolver Main.C
 		pbbase/h/BNB_SOD_Carry_Cost.h pbbase/h/ForwardSearch.h pbbase/h/GenralBaseFunctions.h
 		pbbase/h/MiniSatOrig.h pbbase/h/RelativeBaseSearch.h pbbase/h/SearchMetaData.h
 		pbbase/h/THeap.h pbbase/h/THeapComp.h)
-		
-set_target_properties(pbsolver PROPERTIES COMPILE_FLAGS "-std=c++0x -Wno-unused-parameter")
 
 # add the binary tree to the search path for include files
 include_directories ("${PROJECT_BINARY_DIR}")
