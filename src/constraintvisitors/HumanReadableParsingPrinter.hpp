@@ -171,6 +171,21 @@ public:
 		target() << " }) " << sum.rel << " " << sum.bound << "\n";
 	}
 
+	void add(const CPProdWeighted& prod) {
+		target() << "Added product constraint " << toString(prod.head, getPrinter()) << " <=> ";
+		target() << prod.prodWeight << " * ";
+		target() << "prod({ ";
+		std::vector<int>::size_type count = 0;
+		auto litit = prod.varIDs.cbegin();
+		for (; litit < prod.varIDs.cend(); ++count, ++litit) {
+			target() << "var" << *litit;
+			if (count < prod.varIDs.size() - 1) {
+				target() << ", ";
+			}
+		}
+		target() << " }) " << prod.rel << " " << prod.bound << "\n";
+	}
+
 	void add(const CPElement& rel) {
 		target() << "Added element constraint {";
 		printConcatBy(rel.varIDs, ", ", target());
@@ -182,7 +197,8 @@ public:
 	}
 
 	virtual void add(const LazyGroundImpl& lg) {
-		target() << "Added lazy " <<(lg.impl.conjunction?"conjunctive":"disjunctive") <<" implication " << lg.id << ": " << toString(lg.impl.head, getPrinter()) << " " << lg.impl.type;
+		target() << "Added lazy " << (lg.impl.conjunction ? "conjunctive" : "disjunctive") << " implication " << lg.id << ": "
+				<< toString(lg.impl.head, getPrinter()) << " " << lg.impl.type;
 		printList(lg.impl.body, lg.impl.conjunction ? " & " : " | ", target(), getPrinter());
 		if (lg.impl.body.size() > 0) {
 			target() << (lg.impl.conjunction ? " & " : " | ");

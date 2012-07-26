@@ -79,7 +79,7 @@ public:
 		UNHANDLED("weighted sum constraints", getName())
 	}
 	virtual void add(const CPProdWeighted&) {
-		UNHANDLED("weighted sum constraints", getName())
+		UNHANDLED("weighted prod constraints", getName())
 	}
 	virtual void add(const CPElement&) {
 		UNHANDLED("element constraints", getName())
