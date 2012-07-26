@@ -45,8 +45,10 @@ private:
 	std::pair<int,int> getMinAndMaxPossibleAggValsWithout(int varloc) const;
 
 	bool containsNegatives() const;
+	bool allDecided() const;
 	virtual rClause notifypropagateSum();
 	virtual rClause notifypropagateProd();
+	virtual rClause checkProduct();
 	virtual rClause notifypropagateProdWithNeg();
 	virtual rClause notifypropagateProdWithoutNeg();
 
