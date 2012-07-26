@@ -10,15 +10,14 @@ include_directories (
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/"
 )
 
-macro(addToCXX ARGUMENT)
+macro(addToCXX ARGUMENT) #NOTE do not use when escape characters are important
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARGUMENT}")
 endmacro()
 
 addToCXX("-std=c++0x")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}-${MinisatID_VERSION_PATCH}\\\"")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"\"")
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
+addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
 
 # CP interface
 file(GLOB_RECURSE CP_SOURCES "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/*.cpp")
@@ -74,5 +73,6 @@ install (TARGETS minisatid minisatid-bin
 	ARCHIVE DESTINATION lib
 )
 
-MESSAGE(STATUS "Options:")
-MESSAGE(STATUS "use gecode support for cp ${WITHGECODE}")
+message(STATUS "Options:")
+message(STATUS "General minisatid options: ${CMAKE_CXX_FLAGS}")
+message(STATUS "use gecode support for cp ${WITHGECODE}")
