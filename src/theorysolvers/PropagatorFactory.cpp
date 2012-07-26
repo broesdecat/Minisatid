@@ -347,7 +347,7 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		new BinaryConstraint(getEnginep(), getIntVar(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
+		new BinaryConstraint(getEnginep(), getIntVar(obj.lhsvarID), obj.rel, getIntVar(obj.rhsvarID), obj.head);
 	}
 }
 
