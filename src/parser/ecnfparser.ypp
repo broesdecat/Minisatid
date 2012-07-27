@@ -276,14 +276,14 @@ rule	:	SEMDEFN NUMBER body ZERO
 			}
 		;
 
-rule	:	SEMDEFN NUMBER NUMBER DEFOP body ZERO
+rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 			{ 	
 				checkVersion(VERSION_NEW);
 				if($1==AggSem::OR){
 					yyerror("Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(cAtom($3), *$5, $1==AggSem::COMP, cID($2));//AggSem is bit of a hack, to be fixed
-				delete $2; delete $3; delete $5;
+				Rule rule(cAtom($4), *$6, $1==AggSem::COMP, cID($2));//AggSem is bit of a hack, to be fixed
+				delete $2; delete $4; delete $6;
 				CR(rule);
 			}
 		;
