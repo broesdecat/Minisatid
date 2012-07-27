@@ -379,7 +379,7 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
 		for(auto i=obj.varIDs.cbegin(); i<obj.varIDs.cend(); ++i){
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDAggConstraint(getEnginep(), mkPosLit(obj.head), AggType::PROD, vars, {obj.prodWeight}, obj.rel, obj.bound);
+		new FDAggConstraint(getEnginep(), mkPosLit(obj.head), AggType::PROD, vars, obj.prodWeight, obj.rel, obj.bound);
 	}
 }
 
