@@ -1,9 +1,5 @@
-c 4 models
-
 p ecnf
 INTVAR 1 -2 2 0 
 INTVAR 2 -2 2 0 
 CPPROD 4 1 2 | -1 = 2 0
 4 0
-
-
