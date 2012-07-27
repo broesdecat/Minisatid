@@ -94,6 +94,7 @@ WHITESPACE	[\t\r ]*
 <theory>^"BINTRT"	{ADJ; return BINTRT;}
 <theory>^"DISTINCT"	{ADJ; return DISTINCT;}
 <theory>^"CPSUM"	{ADJ; return CPSUM;}
+<theory>^"CPPROD"	{ADJ; return CPPROD;}
 <theory>^"COUNT"	{ADJ; return COUNT;}
 <theory>^"ELEMENT"	{ADJ; return ELEMENT;}
 
@@ -104,12 +105,12 @@ WHITESPACE	[\t\r ]*
 <theory>"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::LEQ; return REL;}
 <theory>">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::GEQ; return REL;}
 
- /* Longest match is returned -> if e.g. "20", NUMBER is returned.
+ /* Longest match is returned -> if e.g. "20", NUMBER is returned. 
     If "0", then ZERO is returned since it's the first matching rule.
   */
 <theory>"0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
 <theory>-?[0-9]+	{ADJ; yylval.str = new string(yytext); return NUMBER;}
-			
+			  
 <trans>^"type"			{ return TYPE;				}
 <trans>^"show pred"		{ return SHOWPRED;			}
 <trans>^"pred"			{ return PRED;				}

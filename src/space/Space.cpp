@@ -98,6 +98,9 @@ void Space::add(const CPBinaryRelVar& o){
 void Space::add(const CPSumWeighted& o){
 	internalAdd(o, *getEngine());
 }
+void Space::add(const CPProdWeighted& o){
+	internalAdd(o, *getEngine());
+}
 void Space::add(const CPElement& o){
 	internalAdd(o, *getEngine());
 }

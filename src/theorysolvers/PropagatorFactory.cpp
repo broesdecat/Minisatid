@@ -353,7 +353,7 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
+		new BinaryConstraint(getEnginep(), getIntVar(obj.lhsvarID), obj.rel, getIntVar(obj.rhsvarID), obj.head);
 	}
 }
 
@@ -364,9 +364,22 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 	} else {
 		vector<IntView*> vars;
 		for(auto i=obj.varIDs.cbegin(); i<obj.varIDs.cend(); ++i){
-			vars.push_back(new IntView(intvars.at(*i), 0));
+			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
 		new FDAggConstraint(getEnginep(), mkPosLit(obj.head), AggType::SUM, vars, obj.weights, obj.rel, obj.bound);
+	}
+}
+
+void PropagatorFactory::add(const CPProdWeighted& obj) {
+	notifyMonitorsOfAdding(obj);
+	if (getEngine().modes().usegecode) {
+		throw notYetImplemented("Products and gecode"); //TODO FIX!
+	}else {
+		vector<IntView*> vars;
+		for(auto i=obj.varIDs.cbegin(); i<obj.varIDs.cend(); ++i){
+			vars.push_back(new IntView(getIntVar(*i), 0));
+		}
+		new FDAggConstraint(getEnginep(), mkPosLit(obj.head), AggType::PROD, vars, obj.prodWeight, obj.rel, obj.bound);
 	}
 }
 

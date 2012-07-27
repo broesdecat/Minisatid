@@ -135,7 +135,7 @@ void checkVersion(ECNF_VERSION version);
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF DEFPRESENT AGGPRESENT MINIMPRESENT
-%token INTVAR INTVARDOM CPSUM ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT
+%token INTVAR INTVARDOM CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT
 %token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM
 
 %type <integer> number
@@ -396,10 +396,16 @@ cpconstraint
 				CR(binrel);
 				delete $2;
 			}
-		|	CPSUM NUMBER uibody DELIM weightbody REL weight ZERO 
+		|	CPSUM NUMBER uibody DELIM weightbody REL weight ZERO   
 			{ 	
 				CPSumWeighted sum(cAtom($2), *$3, *$5, $6, cWeight($7));
 				CR(sum);
+				delete $2; delete $3; delete $5; delete $7;
+			}
+		|	CPPROD NUMBER uibody DELIM weight REL weight ZERO   
+			{ 	
+				CPProdWeighted prod(cAtom($2), *$3, cWeight($5), $6, cWeight($7));
+				CR(prod);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	ELEMENT uibody DELIM number number ZERO 
@@ -407,8 +413,8 @@ cpconstraint
 				CR(CPElement(*$2, $4, $6));
 				delete $2;
 			}
-			//only global card at the moment!
-		|	COUNT uibody DELIM weight REL number ZERO 
+			//only global card at the moment! 
+		|	COUNT uibody DELIM weight REL number ZERO   
 			{ 	
 				CPCount count(*$2, cWeight($4), $5, $6);
 				CR(count);

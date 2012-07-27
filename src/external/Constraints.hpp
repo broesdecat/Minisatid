@@ -179,6 +179,14 @@ public:
 	}
 };
 template<typename Engine>
+class ExtAdd<CPProdWeighted, Engine> {
+public:
+	void extAdd(Engine& space, const CPProdWeighted& obj) {
+		CPProdWeighted form(checkAtom(obj.head, *space.getRemapper()), obj.varIDs, obj.prodWeight, obj.rel, obj.bound);
+		space.add(form);
+	}
+};
+template<typename Engine>
 class ExtAdd<CPCount, Engine> {
 public:
 	void extAdd(Engine& space, const CPCount& obj) {
