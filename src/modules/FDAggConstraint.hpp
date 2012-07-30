@@ -47,15 +47,56 @@ public:
 		throw idpexception("Invalid code path.");
 	}
 private:
-	std::pair<int,int> getMinAndMaxPossibleAggVals() const;
-	std::pair<int,int> getMinAndMaxPossibleAggValsWithout(int varloc) const;
-
-	bool containsNegatives() const;
-	bool allDecided() const;
 	virtual rClause notifypropagateSum();
+
+	/**
+	 * Returns a pair (min,max), where the first of the two is an underbound on the values the aggregate can take
+	 * and the second is an upperbound. These bounds are not exact. I.e. in some cases it is possible that the bounds
+	 * can not be achieved. However, if the aggregates value can be decided, it is guaranteed that this method returns
+	 * a pair where both values are equal.
+	 */
+	std::pair<int, int> getMinAndMaxPossibleAggVals() const;
+
+	/**
+	 * Similar to getMinAndMaxPossibleAggVals(), but without taking the excludedVar'th var into account.
+	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
+	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
+	 */
+	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
+
+
+	/**
+	 * This method returns true if and only if one of the variables can still take negative values
+	 */
+	bool canContainNegatives() const;
+
+	/**
+	 * Returns true iff the value of the product aggregate can be decided.
+	 * Can only be called in case _type is product.
+	 */
+	bool productDecided() const;
+
+	/**
+	 * Does propagation for products. The propagation is not complete, unless the product's value is known.
+	 * If one of the variables can have negative values, propagation is done on the absolute values, otherwise, propagation on the real values is done.
+	 */
 	virtual rClause notifypropagateProd();
+
+	/**
+	 * Does complete propagation on products. Can only be called in case the value of the product is known!
+	 * (i.e. iff getMinAndMaxPossibleAggVals() returns a pair with two times the same value)
+	 */
 	virtual rClause checkProduct();
+
+	/**
+	 * Propagation module for products where all variables are positive.
+	 */
 	virtual rClause notifypropagateProdWithNeg();
+
+	/**
+	 * Propagation for products where some variables can still take negative values.
+	 * Propagation on the absolute values is implemented (incomplete)
+	 */
 	virtual rClause notifypropagateProdWithoutNeg();
 
 };
