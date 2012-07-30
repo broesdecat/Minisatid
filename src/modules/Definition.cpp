@@ -12,7 +12,10 @@ void Definition::addIDSolver(int id) {
 
 // Call when grounding/parsing of all definitions is finished and they are in a consistent state
 void Definition::addToPropagators() {
-	for (auto ruleset = rules.begin(); ruleset != rules.end(); ++ruleset) {
+	auto temprules = rules; // NOTE: copy set because adding rule might trigger more grounding and new rules, which should NOT be added to the same datastructures
+	rules.clear();
+
+	for (auto ruleset = temprules .begin(); ruleset != temprules .end(); ++ruleset) {
 		std::vector<TempRule*> r;
 		for (auto i = ruleset->second.cbegin(); i != ruleset->second.cend(); ++i) {
 			if (not i->second->isagg) {
@@ -23,7 +26,6 @@ void Definition::addToPropagators() {
 		getIDSolver(ruleset->first)->addRuleSet(r);
 		deleteList<TempRule, Var>(ruleset->second);
 	}
-	rules.clear();
 }
 
 void Definition::addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset) {
