@@ -15,9 +15,7 @@ using namespace std;
 using namespace MinisatID;
 
 LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor)
-		: 	engine(engine),
-			monitor(monitor),
-			residual(lit) {
+		: engine(engine), monitor(monitor), residual(lit) {
 	engine->accept(this);
 }
 
@@ -31,17 +29,13 @@ const Lit& LazyResidualWatch::getPropLit() const {
 
 // Watch BOTH: so watching when it becomes decidable
 LazyResidual::LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor)
-		: 	Propagator(engine, "lazy residual notifier"),
-			monitor(monitor),
-			residual(mkPosLit(var)) {
+		: Propagator(engine, "lazy residual notifier"), monitor(monitor), residual(mkPosLit(var)) {
 	getPCSolver().accept(this);
 	getPCSolver().acceptForDecidable(var, this);
 }
 
 LazyResidual::LazyResidual(LazyResidualWatch* const watch)
-		: 	Propagator(watch->engine, "lazy residual notifier"),
-			monitor(watch->monitor),
-			residual(watch->residual) {
+		: Propagator(watch->engine, "lazy residual notifier"), monitor(watch->monitor), residual(watch->residual) {
 	getPCSolver().accept(this);
 	getPCSolver().acceptForPropagation(this);
 }
@@ -56,15 +50,19 @@ rClause LazyResidual::notifypropagate() {
 
 	// NOTE: have to make sure that constraints are never added at a level where they will no have full effect!
 
-	// TODO check whether preventprop is still necessary
-//	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.
-	monitor->requestGrounding(); // FIXME should delete the other watch too
-//	getPCSolver().allowPropagation();
+	auto val = getPCSolver().value(residual);
+	auto truthvalue = Value::Unknown;
+	if (val == l_True) {
+		truthvalue = Value::True;
+	} else if (val == l_False) {
+		truthvalue = Value::False;
+	}
+	monitor->requestGrounding(truthvalue);
 
-	if (not getPCSolver().isUnsat() /* FIXME FIXME && getPCSolver().isInitialized()*/) { // NOTE: otherwise, it will be called later and would be incorrect here!
+	if (not getPCSolver().isUnsat()) { // NOTE: otherwise, it will be called later and would be incorrect here!
 		getPCSolver().finishParsing();
 	}
-	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagator is then DELETED
+	notifyNotPresent();
 
 	if (getPCSolver().isUnsat()) {
 		return getPCSolver().createClause( { }, true);
@@ -74,12 +72,7 @@ rClause LazyResidual::notifypropagate() {
 }
 
 LazyTseitinClause::LazyTseitinClause(PCSolver* engine, Implication impl, LazyGrounder* monitor, int ID)
-		: 	Propagator(engine, "lazy tseitin eq"),
-		  	id(ID),
-			monitor(monitor),
-			waseq(impl.type == ImplicationType::EQUIVALENT),
-			implone(impl),
-			impltwo(impl),
+		: Propagator(engine, "lazy tseitin eq"), id(ID), monitor(monitor), waseq(impl.type == ImplicationType::EQUIVALENT), implone(impl), impltwo(impl),
 			alreadypropagating(false) {
 	if (waseq) {
 		implone = Implication(impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
@@ -119,8 +112,7 @@ private:
 	Propagator* p;
 public:
 	BasicPropWatch(const Lit& watch, Propagator* p)
-			: 	watch(watch),
-				p(p){
+			: watch(watch), p(p) {
 		//cerr <<"Watching " <<toString(watch, p->getPCSolver()) <<" in lazy propagator.\n";
 	}
 
@@ -198,9 +190,9 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			bool stilldelayed = true;
 			monitor->requestGrounding(id, true, stilldelayed); // get all grounding
 			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-				internalAdd(Disjunction( { not tocheck.head, signswapped?not *i : *i }), getPCSolver());
+				internalAdd(Disjunction( { not tocheck.head, signswapped ? not *i : *i }), getPCSolver());
 				if (waseq) {
-					complement.body.push_back(signswapped?*i:not *i);
+					complement.body.push_back(signswapped ? *i : not *i);
 				}
 			}
 			auto lits = complement.body;
@@ -210,20 +202,18 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
 		}
 	} else {
-		int nonfalse = 0;
-		int index = 0;
-		if(value(tocheck.head) != l_True){ // Remember, IMPLICATION!
+		uint nonfalse = 0;
+		uint index = 0;
+		if (value(tocheck.head) != l_True) { // Remember, IMPLICATION!
 			nonfalse++;
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
 		}
-		while (nonfalse < 1) { // NOTE 1 or 2 is the difference between one-watched or two-watched schema!
+		while (nonfalse < 1) { // NOTE 1 or 2 in this condition is the difference between one-watched or two-watched schema!
 			MAssert(tocheck.body.size()+1>=index);
 			if (tocheck.body.size() <= index) {
 				bool stilldelayed = true;
 				newgrounding.clear();
-				//cerr <<"Requesting grounding" <<long(this) <<"\n";
 				monitor->requestGrounding(id, false, stilldelayed);
-				//cerr <<"Finished grounding" <<long(this) <<"\n";
 				if (not stilldelayed) {
 					groundedall = true;
 					if (newgrounding.empty()) {
@@ -231,18 +221,16 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 					}
 				}
 				MAssert(not newgrounding.empty());
-				for(auto i=newgrounding.cbegin(); i<newgrounding.cend(); ++i) {
-					tocheck.body.push_back(signswapped?not *i:*i);
+				for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
+					tocheck.body.push_back(signswapped ? not *i : *i);
 				}
 				if (waseq) {
 					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-						//cerr <<"Adding constraint" <<long(this) <<"\n";
-						internalAdd(Disjunction( { not complement.head, signswapped?*i:not *i}), getPCSolver());
-						//cerr <<"Finished constraint" <<long(this) <<"\n";
+						internalAdd(Disjunction( { not complement.head, signswapped ? *i : not *i }), getPCSolver());
 					}
 				}
 			}
-			if(groundedall){
+			if (groundedall) {
 				break;
 			}
 			MAssert(tocheck.body.size()>index);
