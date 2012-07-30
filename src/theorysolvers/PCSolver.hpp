@@ -244,6 +244,7 @@ public:
 	void extractVarModel(std::shared_ptr<Model> fullmodel);
 	std::shared_ptr<Model> getModel();
 	lbool getModelValue(Var v);
+	lbool getModelValue(const Lit& lit);
 	litlist getEntailedLiterals() const;
 
 	// Constraint visiting

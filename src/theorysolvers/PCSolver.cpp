@@ -316,6 +316,9 @@ rClause PCSolver::getExplanation(const Lit& l) {
 lbool PCSolver::getModelValue(Var v) {
 	return getSolver().modelValue(mkPosLit(v));
 }
+lbool PCSolver::getModelValue(const Lit & lit) {
+	return getSolver().modelValue(lit);
+}
 
 litlist PCSolver::getEntailedLiterals() const {
 	litlist list;

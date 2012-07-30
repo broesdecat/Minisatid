@@ -106,6 +106,9 @@ void SearchEngine::extractVarModel(std::shared_ptr<Model> fullmodel) {
 std::shared_ptr<Model> SearchEngine::getModel() {
 	return solver->getModel();
 }
+lbool SearchEngine::getModelValue(const Lit& v) {
+	return solver->getModelValue(v);
+}
 lbool SearchEngine::getModelValue(Var v) {
 	return solver->getModelValue(v);
 }

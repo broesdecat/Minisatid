@@ -113,3 +113,14 @@ void Space::add(const LazyGroundImpl& o){
 void Space::add(const LazyAddition& o){
 	internalAdd(o, *getEngine());
 }
+
+Value Space::getTruthValue(const Lit& lit) const {
+	auto val = getEngine()->getModelValue(lit);
+	if(val==l_True){
+		return Value::True;
+	}else if(val==l_False){
+		return Value::False;
+	}else{
+		return Value::Unknown;
+	}
+}

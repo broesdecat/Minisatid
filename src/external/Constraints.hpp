@@ -207,6 +207,11 @@ public:
 		space.add(obj);
 	}
 };
+
+template<typename Engine>
+Value extGetValue(Engine& space, const Literal& obj){
+	return space.getValue(checkLit(obj, *space.getRemapper()));
+}
 }
 
 #endif /* CONSTRAINTS_HPP_ */

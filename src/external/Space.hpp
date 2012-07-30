@@ -45,6 +45,10 @@ public:
 	Var createVar();
 };
 
+enum class Value{
+	True, False, Unknown
+};
+
 class Space: public ExternalConstraintVisitor{
 private:
 	Monitor* monitor;
@@ -68,9 +72,9 @@ public:
 		executed = true;
 	}
 
-	void addMonitor(PropAndBackMonitor* monitor);
+	void 	addMonitor(PropAndBackMonitor* monitor);
 
-	bool isOptimizationProblem() const;
+	bool 	isOptimizationProblem() const;
 	bool	isAlwaysAtOptimum() const;
 
 	virtual void add(const Disjunction&);
@@ -95,6 +99,8 @@ public:
 	virtual void add(const LazyGroundLit&);
 	virtual void add(const LazyGroundImpl&);
 	virtual void add(const LazyAddition&);
+
+	Value getTruthValue(const Lit& lit) const;
 };
 
 }
