@@ -57,7 +57,8 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 
 FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
 		EqType rel, const Weight& bound)
-		: Propagator(engine, "fdaggconstr"), _type(getType(type)) {
+		: 	Propagator(engine, "fdaggconstr"),
+			_type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
 	std::vector<IntView*> newset;
 	std::vector<Weight> newweights;
@@ -92,7 +93,8 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 
 FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		const Weight& bound)
-		: Propagator(engine, "fdaggconstr"), _type(getType(type)) {
+		: 	Propagator(engine, "fdaggconstr"),
+			_type(getType(type)) {
 	auto newbound = bound;
 	MAssert(type==AggType::PROD);
 	auto newweight = Weight(1);
