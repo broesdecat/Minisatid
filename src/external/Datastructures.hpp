@@ -596,6 +596,10 @@ public:
 	}
 };
 
+enum class Value{
+	True, False, Unknown
+};
+
 class LazyGroundingCommand {
 private:
 	bool allreadyground;
@@ -606,7 +610,7 @@ public:
 	virtual ~LazyGroundingCommand() {
 	}
 
-	virtual void requestGrounding() = 0;
+	virtual void requestGrounding(Value currentValue) = 0;
 
 	void notifyGrounded() {
 		allreadyground = true;

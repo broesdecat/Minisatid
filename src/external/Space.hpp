@@ -45,10 +45,6 @@ public:
 	Var createVar();
 };
 
-enum class Value{
-	True, False, Unknown
-};
-
 class Space: public ExternalConstraintVisitor{
 private:
 	Monitor* monitor;
