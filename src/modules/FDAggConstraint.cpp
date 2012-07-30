@@ -365,7 +365,7 @@ rClause FDAggConstraint::notifypropagateProd() {
 }
 
 rClause FDAggConstraint::checkProduct() {
-	auto _headval = value(_head);
+	auto headval = value(_head);
 	auto minmax = getMinAndMaxPossibleAggVals();
 
 	int min = minmax.first;
@@ -373,13 +373,13 @@ rClause FDAggConstraint::checkProduct() {
 	MAssert(min == max);
 	litlist lits;
 	if ((min * _weights[0]) >= _bound) {
-		if (value(_head) == l_True) {
+		if (headval == l_True) {
 			return nullPtrClause;
 		}
 		lits.push_back(_head);
 
 	} else {
-		if (value(_head) == l_False) {
+		if (headval == l_False) {
 			return nullPtrClause;
 		}
 		lits.push_back(not _head);
@@ -405,7 +405,7 @@ rClause FDAggConstraint::checkProduct() {
 	return nullPtrClause;
 }
 rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
-	auto _headval = value(_head);
+	auto headval = value(_head);
 	auto minmax = getMinAndMaxPossibleAggVals();
 	int min = minmax.first;
 	int max = minmax.second;
@@ -416,7 +416,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
 	bool reverse = (_weights[0] < 0);
 	//if -1 * Prod{x_i} >= bound, then Prod{x_i} =< -bound
 
-	if (_headval == l_Undef) {
+	if (headval == l_Undef) {
 		litlist lits;
 		if (min >= realbound && not reverse) {
 			lits.push_back(_head);
@@ -446,13 +446,13 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
 		return nullPtrClause;
 	}
 	// Optimize to stop early
-	if (not reverse && ((min >= realbound && _headval == l_True) || (max < realbound && _headval == l_False))) {
+	if (not reverse && ((min >= realbound && headval == l_True) || (max < realbound && headval == l_False))) {
 		return nullPtrClause;
 	}
-	if (reverse && ((max <= realbound && _headval == l_True) || (min > realbound && _headval == l_False))) {
+	if (reverse && ((max <= realbound && headval == l_True) || (min > realbound && headval == l_False))) {
 		return nullPtrClause;
 	}
-	if (_headval == l_True) {
+	if (headval == l_True) {
 		// Optimize to stop early
 		if (not reverse && realbound <= 0) {
 			return nullPtrClause;
