@@ -8,7 +8,7 @@
 namespace MinisatID {
 
 // NOTE: always GEQ at the moment!
-// Always: AGG >= BOUND
+// 		_head <=> AGG >= _bound
 class FDAggConstraint: public Propagator {
 private:
 	Lit _head;

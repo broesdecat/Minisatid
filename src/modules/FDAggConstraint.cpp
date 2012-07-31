@@ -12,6 +12,7 @@
 #include "utils/Print.hpp"
 #include "modules/aggsolver/AggProp.hpp"
 #include <cmath>
+#include "utils/NumericLimits.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -55,18 +56,33 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 	// TODO remove trivially true aggregates NOTE: done for products.
 }
 
+bool additionOverflow(int x, int y){
+	if(((double)x)+y>getMaxElem<int>()){
+		return true;
+	}
+	if(((double)x)+y<getMinElem<int>()){
+		return true;
+	}
+	return false;
+}
+
 FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
 		EqType rel, const Weight& bound)
 		: 	Propagator(engine, "fdaggconstr"),
 			_type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
+
+	// Handle duplicate variables by adding their weights
 	std::vector<IntView*> newset;
 	std::vector<Weight> newweights;
 	for (uint i = 0; i < set.size(); ++i) {
 		bool found = false;
 		for (uint j = 0; j < newset.size(); ++j) {
 			if (set[i]->id() == newset[j]->id()) {
-				newweights[j] += weights[i]; //distributivity //FIXME overflows!
+				if(additionOverflow(newweights[j],weights[i])){
+					throw idpexception("Overflow in weights of fd sum constraint");
+				}
+				newweights[j] += weights[i];
 				found = true;
 				break;
 			}
@@ -76,18 +92,20 @@ FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type
 			newweights.push_back(weights[i]);
 		}
 	}
+
+	// Remove all weights "0"
 	auto si = newset.begin();
 	auto wi = newweights.begin();
 	for (; si < newset.end();) {
 		if ((*wi) == Weight(0)) {
 			si = newset.erase(si);
 			wi = newweights.erase(wi);
-
 		} else {
 			++si;
 			++wi;
 		}
 	}
+
 	sharedInitialization(type, engine, head, newset, newweights, rel, bound);
 }
 
@@ -195,7 +213,7 @@ std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
 					}
 					auto absminval = abs(minval);
 					auto absmaxval = abs(maxval);
-					absmax *= (absmaxval > absminval ? absmaxval : absminval);
+					absmax *= max(absmaxval,absminval);
 				}
 			}
 			if(decided){
@@ -643,11 +661,11 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int min, int max) {
 	return nullPtrClause;
 }
 
-rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
+rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval) {
 	auto headval = value(_head);
 
-	double realbound = _bound;
-	int realmax = abs(min * _weights[0] > max * _weights[0] ? min * _weights[0] : max * _weights[0]);
+	Weight realbound = _bound;
+	int realmax = abs(max(minval * _weights[0],maxval * _weights[0]));
 	int realmin = -realmax;
 
 	if (headval == l_Undef) {
@@ -661,7 +679,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
 			for (uint i = 0; i < _vars.size(); ++i) {
 				auto absminval = abs(_vars[i]->minValue());
 				auto absmaxval = abs(_vars[i]->maxValue());
-				auto absbiggest = absminval > absmaxval ? absminval : absmaxval;
+				auto absbiggest = max(absminval,absmaxval);
 				minlits.push_back(not _vars[i]->getLEQLit(-absbiggest));
 				minlits.push_back(not _vars[i]->getGEQLit(absbiggest));
 			}
@@ -676,45 +694,38 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
 		return nullPtrClause;
 	}
 
-	bool canPropagate = false;
-	//PROD { x_1.. x_n } >= realbound
+	// PROD { x_1.. x_n } >= realbound
 
+	bool attemptPropagate = false;
 	if (headval == l_True && realbound >= 0) {
-		canPropagate = true;
-		//PROD { x_1.. x_n } >= realbound THUS: we implement abs(PROD { x_1.. x_n }) >= realbound
-		//We can only derive useful information if realbound is positive.
-
+		attemptPropagate = true;
+		// We can propagate on ABS(PROD { x_1.. x_n }) >= realbound
 	}
 	if (headval == l_False && realbound <= 0) {
-		canPropagate = true;
-		//PROD { x_1.. x_n } < realbound
-		//We only propagate for negative realbound. In that case, we propagate Abs(Prod) > Abs(realbound)
-		realbound = abs(realbound - 0.00000001);
-		//Now, since we modified realbound, we should also propagate abs(PROD { x_1.. x_n }) >= realbound
+		attemptPropagate = true;
+		// We can handle PROD { x_1.. x_n } < realbound with a negative bound
+		// by propagating ABS(PROD { x_1.. x_n }) >= ABS(realbound)+1
+		realbound = Weight((-1*realbound)+1);
 	}
 
-	if (canPropagate) {
+	if (attemptPropagate) {
 		//Now in any case, we should propagate Abs(Prod) >= realbound
+		// For each var, we remove it from the still possible interval and check whether that would violate the bound
 		for (uint i = 0; i < _vars.size(); ++i) {
 			auto var = _vars[i];
-			auto absvarmax = abs(var->maxValue()) > abs(var->minValue()) ? abs(var->maxValue()) : abs(var->minValue());
+			auto absvarmax = max(abs(var->maxValue()),abs(var->minValue()));
 
-			MAssert(absvarmax != 0);
-			//Because in this case, product would have been decided and we couldn't get in this code.
-
+			MAssert(absvarmax != 0); // NOTE: otherwise product was already decided
 			auto maxWithoutThisVar = abs(realmax / absvarmax);
+			MAssert(maxWithoutThisVar != 0);
+			auto stillNeeded = ceil(abs(realbound / maxWithoutThisVar));
 
 			bool propagate = false;
 			bool conflict = false;
 			litlist lits;
 
-			MAssert(maxWithoutThisVar != 0);
-			//Same reason as before
-
-			auto stillNeeded = ceil(abs(realbound / maxWithoutThisVar));
-
-			Lit bigger = var->getGEQLit(stillNeeded);
-			Lit smaller = var->getLEQLit(-stillNeeded);
+			auto bigger = var->getGEQLit(stillNeeded);
+			auto smaller = var->getLEQLit(-stillNeeded);
 			if (value(bigger) != l_True && value(smaller) != l_True) {
 				propagate = true;
 				lits.push_back(bigger);
@@ -723,7 +734,8 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
 			}
 
 			if (propagate) {
-				//We construct the clause: In this situation (for all variables) with this head: propagate that abs(var) should be at least "stillneeded"
+				// We construct the clause:
+				// In this situation (for all variables) with this head: propagate that abs(var) should be at least "stillneeded"
 				lits.push_back(headval == l_True ? not _head : _head);
 				for (uint j = 0; j < _vars.size(); ++j) {
 					if (j == i) {
@@ -731,7 +743,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
 					}
 					auto absminval = abs(_vars[j]->minValue());
 					auto absmaxval = abs(_vars[j]->maxValue());
-					auto absbiggest = absminval > absmaxval ? absminval : absmaxval;
+					auto absbiggest = max(absminval,absmaxval);
 					auto lit = not _vars[j]->getLEQLit(absbiggest);
 					MAssert(value(lit) == l_False);
 					lits.push_back(lit);
@@ -741,7 +753,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
 				}
 
 				auto c = getPCSolver().createClause(Disjunction(lits), true);
-				if (conflict) { // Conflict
+				if (conflict) {
 					getPCSolver().addConflictClause(c);
 					return c;
 				} else {
