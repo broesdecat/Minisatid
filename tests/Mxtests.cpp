@@ -19,19 +19,19 @@ using namespace MinisatID;
 namespace Tests{
 	TEST(MXTest, MultiAssumpSolve) {
 		SolverOption options;
-		options.verbosity = 10;
+		options.verbosity = 0;
 		auto space = new Space(options);
 		extAdd(*space, Disjunction({mkPosLit(1),mkPosLit(2),mkPosLit(3)}));
-		ModelExpandOptions mxopts(0, Models::ALL, Models::ALL);
+		ModelExpandOptions mxopts(0, Models::NONE, Models::NONE);
 		auto mx = ModelExpand(space, mxopts, {mkNegLit(2)});
 		mx.execute();
-		ASSERT_EQ(mx.getSolutions().size(), 3);
+		ASSERT_EQ(mx.getNbModelsFound(), 3);
 		auto mx2 = ModelExpand(space, mxopts, {mkNegLit(1)});
 		mx2.execute();
-		ASSERT_EQ(mx2.getSolutions().size(), 3);
+		ASSERT_EQ(mx2.getNbModelsFound(), 3);
 		auto mx3 = ModelExpand(space, mxopts, {});
 		mx3.execute();
-		ASSERT_EQ(mx3.getSolutions().size(), 7);
+		ASSERT_EQ(mx3.getNbModelsFound(), 7);
 	}
 
 	// TODO lazy addition tests?
