@@ -10,7 +10,7 @@
 #define SATUTILS_H_
 
 #include "external/ExternalUtils.hpp"
-#include "satsolver/minisat/SolverTypes.hpp"
+#include "satsolver/minisat/BasicSolverTypes.hpp"
 
 namespace MinisatID {
 	typedef Minisat::CRef pClause;
