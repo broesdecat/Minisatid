@@ -179,16 +179,29 @@ std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
 		return {min,max};
 	} else {
 		MAssert(_type == getType(AggType::PROD));
-		if (canContainNegatives() && not productDecided()) {
-			int max = 1;
+		if (canContainNegatives()) {
+			int absmax = 1;
+			int decidedval = 1;
+			bool decided = true;
 			for (uint i = 0; i < _vars.size(); ++i) {
 				if (i != excludedVar) {
-					auto absminval = abs(_vars[i]->minValue());
-					auto absmaxval = abs(_vars[i]->maxValue());
-					max *= (absmaxval > absminval ? absmaxval : absminval);
+					auto minval = _vars[i]->minValue();
+					auto maxval = _vars[i]->maxValue();
+					if(decided && minval == maxval){
+						decidedval *= maxval;
+					}
+					else{
+						decided = false;
+					}
+					auto absminval = abs(minval);
+					auto absmaxval = abs(maxval);
+					absmax *= (absmaxval > absminval ? absmaxval : absminval);
 				}
 			}
-			return {-max,max};
+			if(decided){
+				return {decidedval,decidedval};
+			}
+			return {-absmax,absmax};
 		} else {
 			int min = 1, max = 1;
 			for (uint i = 0; i < _vars.size(); ++i) {
@@ -214,21 +227,6 @@ bool FDAggConstraint::canContainNegatives() const {
 		}
 	}
 	return false;
-}
-bool FDAggConstraint::productDecided() const {
-	MAssert(_type == getType(AggType::PROD));
-	bool decided = true;
-	for (auto i = _vars.cbegin(); i < _vars.cend(); ++i) {
-		auto var = *i;
-		if (var->minValue() != var->maxValue()) {
-			decided = false;
-		}
-		if (var->minValue() == 0 && var->maxValue() == 0) {
-			return true;
-		}
-	}
-	return decided;
-
 }
 
 rClause FDAggConstraint::notifypropagateSum() {
@@ -361,25 +359,25 @@ rClause FDAggConstraint::notifypropagateSum() {
 }
 
 rClause FDAggConstraint::notifypropagateProd() {
-	if (productDecided()) {
-		return checkProduct();
+	auto minmax = getMinAndMaxPossibleAggVals();
+	int min = minmax.first;
+	int max = minmax.second;
+
+	if (min == max) {
+		return checkProduct(min);
 	}
 
 	if (canContainNegatives()) {
-		return notifypropagateProdWithNeg();
+		return notifypropagateProdWithNeg(min, max);
 	}
-	return notifypropagateProdWithoutNeg();
+	return notifypropagateProdWithoutNeg(min, max);
 }
 
-rClause FDAggConstraint::checkProduct() {
+rClause FDAggConstraint::checkProduct(int val) {
 	auto headval = value(_head);
-	auto minmax = getMinAndMaxPossibleAggVals();
 
-	int min = minmax.first;
-	int max = minmax.second;
-	MAssert(min == max);
 	litlist lits;
-	if ((min * _weights[0]) >= _bound) {
+	if ((val * _weights[0]) >= _bound) {
 		if (headval == l_True) {
 			return nullPtrClause;
 		}
@@ -412,11 +410,9 @@ rClause FDAggConstraint::checkProduct() {
 	}
 	return nullPtrClause;
 }
-rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
+rClause FDAggConstraint::notifypropagateProdWithoutNeg(int min, int max) {
 	auto headval = value(_head);
-	auto minmax = getMinAndMaxPossibleAggVals();
-	int min = minmax.first;
-	int max = minmax.second;
+
 	MAssert(_weights.size() == 1 && _weights[0] != 0);
 	//Constructor should guarantee this.
 	double realbound = _bound / (double) _weights[0];
@@ -647,16 +643,11 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg() {
 	return nullPtrClause;
 }
 
-//Approximate propagation. Not always strong enough.
-rClause FDAggConstraint::notifypropagateProdWithNeg() {
+rClause FDAggConstraint::notifypropagateProdWithNeg(int min, int max) {
 	auto headval = value(_head);
-	auto minmax = getMinAndMaxPossibleAggVals();
-
-	int minimum = minmax.first;
-	int maximum = minmax.second;
 
 	double realbound = _bound;
-	int realmax = abs(minimum * _weights[0] > maximum * _weights[0] ? minimum * _weights[0] : maximum * _weights[0]);
+	int realmax = abs(min * _weights[0] > max * _weights[0] ? min * _weights[0] : max * _weights[0]);
 	int realmin = -realmax;
 
 	if (headval == l_Undef) {
