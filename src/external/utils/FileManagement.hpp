@@ -15,6 +15,7 @@
 #include <string>
 #include <fstream>
 
+// NOTE: Dirs NEED to and with a forward slash!
 std::vector<std::string> getAllFilesInDirs(const std::string& prefix, const std::vector<std::string>& dirs);
 
 template<typename T>
