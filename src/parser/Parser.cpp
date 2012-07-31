@@ -17,3 +17,6 @@ const char* Parser::getText() const{
 int Parser::getLineNumber() const{
 	return scanner.lineno();
 }
+int Parser::getColumnNumber() const{
+	return scanner.YYLeng();
+}

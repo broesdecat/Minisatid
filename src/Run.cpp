@@ -227,7 +227,7 @@ void initializeAndParseFODOT(const std::string& inputfile, pwls d) {
 		if (d->isCertainlyUnsat()) {
 			printUnsatFoundDuringParsing(clog, d->getOptions().verbosity);
 		} else {
-			throw idpexception(getParseError(e, parser.getLineNumber(), 0, parser.getText()));
+			throw idpexception(getParseError(e, parser.getLineNumber(), parser.getText()));
 		}
 	}
 

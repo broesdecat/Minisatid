@@ -44,14 +44,8 @@
 		
 	FODOTTranslator*	fodottrans = NULL;
 	LParseTranslator*	simpletrans = NULL;
-	extern int 		yylex(void);
-	extern char * 	yytext;
 	
 	void yyerror(const char* msg);
-	
-	//Auxiliary variables, used while parsing.
-	int lineNo = 1;
-	int charPos = 1;
 	
 	pwls solver;
 	

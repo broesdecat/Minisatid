@@ -42,9 +42,9 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	std::string getParseError(const T& e, int linepos, int charpos, const char* yytext){
+	std::string getParseError(const T& e, int linepos, const char* yytext){
 		std::stringstream ss;
-		ss<<">> Parse error: Line " <<linepos <<", column " <<charpos <<", on \"" <<yytext <<"\": " << e.what();
+		ss<<">> Parse error at line " <<linepos <<" on \"" <<yytext <<"\": " << e.what();
 		return ss.str();
 	}
 

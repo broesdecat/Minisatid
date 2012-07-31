@@ -16,16 +16,14 @@ using namespace std;
 
 #include "parser/ECNFScanner.hpp"
 
-extern int lineNo;
-extern int charPos;
-
-#define ADJ (charPos += yyleng)
 #define ET MinisatID::ECNFParser::token
+
 %}
 
 /* lex definitions: */
 %option noyywrap never-interactive nounput
 %option nodefault yyclass="ECNFScanner" c++
+%option yylineno
 
 %s theory
 %s trans
@@ -39,74 +37,74 @@ WHITESPACE	[\t\r ]*
 <*>^"c grounder error".*	{ throw MinisatID::idpexception("There was a grounding error, so no solving is possible.\n");}
 
 
-<*>^"p "			{ADJ; BEGIN(theory);}
-<*>^"translation"	{ADJ; BEGIN(trans); return ET::TRANSHEADER;}
-<*>^"=== atom translation ==="	{ADJ; BEGIN(trans); return ET::TRANSHEADER2;}
+<*>^"p "			{BEGIN(theory);}
+<*>^"translation"	{BEGIN(trans); return ET::TRANSHEADER;}
+<*>^"=== atom translation ==="	{BEGIN(trans); return ET::TRANSHEADER2;}
 
 <theory,INITIAL>^"c\n"	{/* disregard comments */}
 <theory,INITIAL>^"c ".*	{/* disregard comments */}
 
-<theory>"cnf"	{ADJ; return ET::CNF;}
-<theory>"ecnf"	{ADJ; return ET::ECNF;}
-<theory>"def" 	{ADJ; return ET::DEFPRESENT;}
-<theory>"aggr" 	{ADJ; return ET::AGGPRESENT;}
-<theory>"mnmz" 	{ADJ; return ET::MINIMPRESENT;}
+<theory>"cnf"	{return ET::CNF;}
+<theory>"ecnf"	{return ET::ECNF;}
+<theory>"def" 	{return ET::DEFPRESENT;}
+<theory>"aggr" 	{return ET::AGGPRESENT;}
+<theory>"mnmz" 	{return ET::MINIMPRESENT;}
 
-<theory>^"WSet"	{ADJ; return ET::WSETDEFN;}
-<theory>^"Set"	{ADJ; return ET::SETDEFN;}
-<theory>"Card"	{ADJ; /*ecnflval*/yylval->aggr = AggType::CARD; return ET::AGGDEFN;}
-<theory>"Sum"	{ADJ; /*ecnflval*/yylval->aggr = AggType::SUM; return ET::AGGDEFN;}
-<theory>"Prod"	{ADJ; /*ecnflval*/yylval->aggr = AggType::PROD; return ET::AGGDEFN;}
-<theory>"Min"	{ADJ; /*ecnflval*/yylval->aggr = AggType::MIN; return ET::AGGDEFN;}
-<theory>"Max"	{ADJ; /*ecnflval*/yylval->aggr = AggType::MAX; return ET::AGGDEFN;}
+<theory>^"WSet"	{return ET::WSETDEFN;}
+<theory>^"Set"	{return ET::SETDEFN;}
+<theory>"Card"	{/*ecnflval*/yylval->aggr = AggType::CARD; return ET::AGGDEFN;}
+<theory>"Sum"	{/*ecnflval*/yylval->aggr = AggType::SUM; return ET::AGGDEFN;}
+<theory>"Prod"	{/*ecnflval*/yylval->aggr = AggType::PROD; return ET::AGGDEFN;}
+<theory>"Min"	{/*ecnflval*/yylval->aggr = AggType::MIN; return ET::AGGDEFN;}
+<theory>"Max"	{/*ecnflval*/yylval->aggr = AggType::MAX; return ET::AGGDEFN;}
 
-<theory>"<-"	{ADJ; return ET::DEFOP;}
+<theory>"<-"	{return ET::DEFOP;}
 
-<theory>"D"		{ADJ; /*ecnflval*/yylval->sem = AggSem::DEF;  return ET::SEMDEFN;}
-<theory>"C"		{ADJ; /*ecnflval*/yylval->sem = AggSem::COMP;  return ET::SEMDEFN;}
-<theory>"O"		{ADJ; /*ecnflval*/yylval->sem = AggSem::OR;  return ET::SEMDEFN;}
+<theory>"D"		{/*ecnflval*/yylval->sem = AggSem::DEF;  return ET::SEMDEFN;}
+<theory>"C"		{/*ecnflval*/yylval->sem = AggSem::COMP;  return ET::SEMDEFN;}
+<theory>"O"		{/*ecnflval*/yylval->sem = AggSem::OR;  return ET::SEMDEFN;}
 
-<theory>"L"		{ADJ; /*ecnflval*/yylval->sign = AggSign::UB;  return ET::SIGNDEFN;}
-<theory>"G"		{ADJ; /*ecnflval*/yylval->sign = AggSign::LB; return ET::SIGNDEFN;}
+<theory>"L"		{/*ecnflval*/yylval->sign = AggSign::UB;  return ET::SIGNDEFN;}
+<theory>"G"		{/*ecnflval*/yylval->sign = AggSign::LB; return ET::SIGNDEFN;}
 
-<theory>^"Mnmsubset"	{ADJ; return ET::SUBSETMINDEFN;}
-<theory>^"Mnmlist"		{ADJ; return ET::MNMZDEFN;}
-<theory>^"Mnmvar"		{ADJ; return ET::VARMINDEFN;}
-<theory>^"Mnmagg"		{ADJ; return ET::AGGMINDEFN;}
+<theory>^"Mnmsubset"	{return ET::SUBSETMINDEFN;}
+<theory>^"Mnmlist"		{return ET::MNMZDEFN;}
+<theory>^"Mnmvar"		{return ET::VARMINDEFN;}
+<theory>^"Mnmagg"		{return ET::AGGMINDEFN;}
 
-<theory>" "		{ADJ; /* disregard whitespaces */}
-<theory>"\t"	{ADJ; /*                       */}
-<theory>"\n"	{charPos = 1; lineNo++; /*     */}
+<theory>" "		{/* disregard whitespaces */}
+<theory>"\t"	{/*                       */}
+<theory>"\n"	{}
 
-<theory>"|"		{ADJ; return ET::DELIM;}
-<theory>"["		{ADJ; return ET::SYMMSTART;}
-<theory>"]"		{ADJ; return ET::SYMMEND;}
-<theory>"("		{ADJ; return ET::CYCLESTART;}
-<theory>")"		{ADJ; return ET::CYCLEEND;}
-<theory>","		{ADJ; return ET::SYMMDELIM;}
+<theory>"|"		{return ET::DELIM;}
+<theory>"["		{return ET::SYMMSTART;}
+<theory>"]"		{return ET::SYMMEND;}
+<theory>"("		{return ET::CYCLESTART;}
+<theory>")"		{return ET::CYCLEEND;}
+<theory>","		{return ET::SYMMDELIM;}
 
-<theory>^"INTVAR"	{ADJ; return ET::INTVAR;}
-<theory>^"INTVARDOM" {ADJ; return ET::INTVARDOM;}
-<theory>^"BINTRI"	{ADJ; return ET::BINTRI;}
-<theory>^"BINTRT"	{ADJ; return ET::BINTRT;}
-<theory>^"DISTINCT"	{ADJ; return ET::DISTINCT;}
-<theory>^"CPSUM"	{ADJ; return ET::CPSUM;}
-<theory>^"CPPROD"	{ADJ; return ET::CPPROD;}
-<theory>^"COUNT"	{ADJ; return ET::COUNT;}
-<theory>^"ELEMENT"	{ADJ; return ET::ELEMENT;}
+<theory>^"INTVAR"	{return ET::INTVAR;}
+<theory>^"INTVARDOM" {return ET::INTVARDOM;}
+<theory>^"BINTRI"	{return ET::BINTRI;}
+<theory>^"BINTRT"	{return ET::BINTRT;}
+<theory>^"DISTINCT"	{return ET::DISTINCT;}
+<theory>^"CPSUM"	{return ET::CPSUM;}
+<theory>^"CPPROD"	{return ET::CPPROD;}
+<theory>^"COUNT"	{return ET::COUNT;}
+<theory>^"ELEMENT"	{return ET::ELEMENT;}
 
-<theory>"="		{ADJ; /*ecnflval*/yylval->rel = EqType::EQ; return ET::REL;}
-<theory>">"		{ADJ; /*ecnflval*/yylval->rel = EqType::G; return ET::REL;}
-<theory>"<"		{ADJ; /*ecnflval*/yylval->rel = EqType::L; return ET::REL;}
-<theory>"~="	{ADJ; /*ecnflval*/yylval->rel = EqType::NEQ; return ET::REL;}
-<theory>"=<"	{ADJ; /*ecnflval*/yylval->rel = EqType::LEQ; return ET::REL;}
-<theory>">="	{ADJ; /*ecnflval*/yylval->rel = EqType::GEQ; return ET::REL;}
+<theory>"="		{/*ecnflval*/yylval->rel = EqType::EQ; return ET::REL;}
+<theory>">"		{/*ecnflval*/yylval->rel = EqType::G; return ET::REL;}
+<theory>"<"		{/*ecnflval*/yylval->rel = EqType::L; return ET::REL;}
+<theory>"~="	{/*ecnflval*/yylval->rel = EqType::NEQ; return ET::REL;}
+<theory>"=<"	{/*ecnflval*/yylval->rel = EqType::LEQ; return ET::REL;}
+<theory>">="	{/*ecnflval*/yylval->rel = EqType::GEQ; return ET::REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned. 
     If "0", then ZERO is returned since it's the first matching rule.
   */
-<theory>"0"			{ADJ; /*ecnflval*/yylval->integer = 0; return ET::ZERO;}
-<theory>-?[0-9]+	{ADJ; yylval->str = new string(yytext); return ET::NUMBER;}
+<theory>"0"			{/*ecnflval*/yylval->integer = 0; return ET::ZERO;}
+<theory>-?[0-9]+	{yylval->str = new string(yytext); return ET::NUMBER;}
 			  
 <trans>^"type"			{ return ET::TYPE;				}
 <trans>^"show pred"		{ return ET::SHOWPRED;			}

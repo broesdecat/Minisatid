@@ -13,6 +13,7 @@ public:
 
 	const char* getText() const;
 	int getLineNumber() const;
+	int getColumnNumber() const;
 
 	int parse();
 };
