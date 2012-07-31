@@ -1,0 +1,8 @@
+c optimal if only 3 is true, only 4 or only 5
+
+p ecnf def aggr
+Mnmsubset 1 2 3 4 5 0
+-1 -2 -3 -4 0
+3 4 5 0
+-2 0
+-1 0

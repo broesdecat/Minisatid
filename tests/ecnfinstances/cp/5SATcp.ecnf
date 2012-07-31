@@ -1,0 +1,5 @@
+p ecnf
+INTVAR 1 -2 2 0
+INTVAR 2 -5 5 0
+BINTRT 3 1 = 2 0
+3 0

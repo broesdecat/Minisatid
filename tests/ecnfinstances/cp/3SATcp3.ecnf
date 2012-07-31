@@ -1,0 +1,5 @@
+p ecnf
+INTVAR 1 1 2 0
+INTVAR 2 1 3 0
+BINTRT 1 1 < 2 0
+1 0

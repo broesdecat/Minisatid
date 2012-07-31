@@ -1,0 +1,8 @@
+c optimal if 2 is true
+
+p ecnf def aggr
+-1 0
+2 3 4 5 0
+-2 6 0
+6 7 0
+Mnmlist 1 2 3 4 5 0

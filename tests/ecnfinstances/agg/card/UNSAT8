@@ -1,0 +1,8 @@
+p ecnf aggr
+Set 1 1 1 2 -2 3 5 0
+CardCG 6 1 6 0
+CardCL 7 1 6 0
+-6 -7 8 0
+7 -8 0
+6 -8 0
+8 0

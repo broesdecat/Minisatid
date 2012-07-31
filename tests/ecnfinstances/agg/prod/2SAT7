@@ -1,0 +1,4 @@
+p ecnf aggr
+WSet 1 2=2 0
+ProdCG 6 1 0 0
+6 0

@@ -1,0 +1,9 @@
+c optimal size is 1, either 1 or 2 true
+
+p ecnf def aggr
+Mnmsubset 1 2 3 4 0
+1 2 0
+12 3 0
+13 4 0
+-12 -13 14 0
+14 15 0

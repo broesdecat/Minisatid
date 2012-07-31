@@ -1,0 +1,5 @@
+p ecnf def aggr
+WSet 1 1=1 2=2 3=3 4=4 5=5 0
+SumCL 6 1 4 0
+SumCG 7 1 4 0
+-6 -7 0
