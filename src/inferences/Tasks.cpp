@@ -66,6 +66,9 @@ ModelExpand::~ModelExpand() {
 }
 
 int ModelExpand::getNbModelsFound() const {
+	if(getSpace()->isOptimizationProblem() && not _solutions->hasOptimalModel()){
+		return 0;
+	}
 	return _solutions->getNbModelsFound();
 }
 

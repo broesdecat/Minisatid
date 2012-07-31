@@ -97,6 +97,11 @@ public:
 	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
 	~ModelExpand();
 
+	/**
+	 * NOTE: Returns 0 if an optimization problem where no proven minimal model has been found yet!
+	 */
+	int getNbModelsFound() const;
+
 	// Note: do not call unless the models are being saved!
 	const modellist& getSolutions() const;
 	modellist getBestSolutionsFound() const;
@@ -109,7 +114,6 @@ public:
 private:
 	void innerExecute();
 
-	int getNbModelsFound() const;
 	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
 	void invalidate(litlist& clause);
 	SATVAL invalidateModel(const litlist& clause);

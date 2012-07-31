@@ -52,6 +52,9 @@ public:
 	ModelManager(Models saveoption);
 	~ModelManager();
 
+	/**
+	 * NOTE: Returns the total number of models found for the theory, NOT considering any optimization statements!!!
+	 */
 	int getNbModelsFound() const {
 		return nbmodelsfound;
 	}
