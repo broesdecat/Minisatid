@@ -758,6 +758,7 @@ rClause FDAggConstraint::notifypropagate() {
 	if (_type == getType(AggType::SUM)) {
 		return notifypropagateSum();
 	} else {
+		MAssert(_type == getType(AggType::PROD));
 		return notifypropagateProd();
 	}
 }
