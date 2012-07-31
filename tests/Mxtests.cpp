@@ -39,15 +39,53 @@ namespace Tests{
 	// TODO prioritized optimization test
 
 	vector<string> generateListOfMXFiles() {
-		vector<string> testdirs {"ecnfinstances/"};
+		vector<string> testdirs {
+			"simple/",
+			"agg/basic/",
+			"agg/amn/",
+			"agg/card/",
+			"agg/eq/",
+			"agg/max/",
+			"agg/min/",
+			"agg/prod/",
+			"agg/sum/",
+			"id/",
+			"cp/",
+			"cnf/"};
 		return getAllFilesInDirs(getTestDirectory(), testdirs);
 	}
 
 	class MXFileTests: public ::testing::TestWithParam<string> {
 	};
 	TEST_P(MXFileTests, ECNF) {
-		test(InputFormat::FODOT, GetParam());
+		runWithModelCheck(InputFormat::FODOT, GetParam());
 	}
 
 	INSTANTIATE_TEST_CASE_P(ModelExpansion, MXFileTests, ::testing::ValuesIn(generateListOfMXFiles()));
+
+	vector<string> generateListOfASPFiles() {
+		vector<string> testdirs {};
+		return getAllFilesInDirs(getTestDirectory(), testdirs);
+	}
+
+	class ASPFileTests: public ::testing::TestWithParam<string> {
+	};
+	TEST_P(ASPFileTests, ASP) {
+		runWithModelCheck(InputFormat::ASP, GetParam());
+	}
+
+	INSTANTIATE_TEST_CASE_P(ModelExpansion, ASPFileTests, ::testing::ValuesIn(generateListOfASPFiles()));
+
+	vector<string> generateListOfECNFErrorFiles() {
+		vector<string> testdirs {"error/"};
+		return getAllFilesInDirs(getTestDirectory(), testdirs);
+	}
+
+	class ECNFErrorFileTests: public ::testing::TestWithParam<string> {
+	};
+	TEST_P(ECNFErrorFileTests, ECNF) {
+		ASSERT_THROW(runNoModelCheck(InputFormat::FODOT, GetParam()), idpexception);
+	}
+
+	INSTANTIATE_TEST_CASE_P(ModelExpansion, ECNFErrorFileTests, ::testing::ValuesIn(generateListOfECNFErrorFiles()));
 }

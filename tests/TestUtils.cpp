@@ -23,7 +23,7 @@ std::string getTestDirectory() {
 }
 
 namespace Tests {
-void test(MinisatID::InputFormat format, const string& instancefile) {
+void runWithModelCheck(MinisatID::InputFormat format, const string& instancefile) {
 	auto dirlist = split(instancefile, "/");
 	auto list = split(dirlist.back(), "SAT");
 	ASSERT_EQ(list.size(), (uint)2);
@@ -32,9 +32,14 @@ void test(MinisatID::InputFormat format, const string& instancefile) {
 	if(prefix.size()==2 && tolower(prefix[0])=='u' && tolower(prefix[1])=='n'){
 		expectednbmodels = 0;
 	}else{
+		ASSERT_TRUE(list.front().size()>0);
 		expectednbmodels = atoi(list.front().c_str());
 	}
 
+	auto modelsfound = runNoModelCheck(format, instancefile);
+	ASSERT_EQ(modelsfound, expectednbmodels);
+}
+int runNoModelCheck(MinisatID::InputFormat format, const std::string& instancefile) {
 	SolverOption modes;
 	modes.inference = Inference::MODELEXPAND;
 	modes.nbmodels = 0;
@@ -45,14 +50,10 @@ void test(MinisatID::InputFormat format, const string& instancefile) {
 	parseAndInitializeTheory(instancefile, &s);
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
-	if (s.isOptimizationProblem()) { // Change default options added before parsing
-		mxoptions.printmodels = Models::BEST;
-		mxoptions.savemodels = Models::BEST;
-	}
 	mxoptions.nbmodelstofind = s.getOptions().nbmodels;
 
-	auto mx = new ModelExpand(&s, mxoptions, { });
-	mx->execute();
-	ASSERT_EQ(mx->getNbModelsFound(), expectednbmodels);
+	auto mx = ModelExpand(&s, mxoptions, { });
+	mx.execute();
+	return mx.getNbModelsFound();
 }
 }

@@ -23,7 +23,8 @@ std::string getTestDirectory();
 
 namespace Tests {
 
-void test(MinisatID::InputFormat format, const std::string& instancefile);
+void runWithModelCheck(MinisatID::InputFormat format, const std::string& instancefile);
+int runNoModelCheck(MinisatID::InputFormat format, const std::string& instancefile);
 }
 
 #endif /* MINISATID_TESTS_UTILS_HPP_ */
