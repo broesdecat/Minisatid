@@ -120,7 +120,7 @@ struct Option: public Opt{
 };
 
 //Return false if parsing failed
-bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
+bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::string& inputfile){
 	string outputfile = "";
 
 	vector<Opt*> options;
@@ -330,7 +330,7 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 	}
 
 	if(inputfilearg.isSet()){
-		setInputFileUrl(inputfilearg.getValue());
+		inputfile = inputfilearg.getValue();
 	}
 	if(outputfile.compare("")!=0){
 		modes.outputfile = outputfile;

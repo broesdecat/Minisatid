@@ -34,7 +34,7 @@ FILE* FileMan::getFile() {
 		fileptr = fopen(name.c_str(), write ? "wb" : "r");
 		if (fileptr == NULL) {
 			stringstream ss;
-			ss <<">> \"" <<name <<"\" is not a valid filename or not readable.\n";
+			ss << ">> \"" << name << "\" is not a valid filename or not readable.\n";
 			throw idpexception(ss.str());
 		}
 	}
@@ -48,7 +48,7 @@ std::streambuf* FileMan::getBuffer() {
 		filebuf.open(name.c_str(), write ? std::ios::out : std::ios::in);
 		if (!filebuf.is_open()) {
 			stringstream ss;
-			ss <<">> \"" <<name <<"\" is not a valid filename or not readable.\n";
+			ss << ">> \"" << name << "\" is not a valid filename or not readable.\n";
 			throw idpexception(ss.str());
 		}
 	}
@@ -74,44 +74,20 @@ std::streambuf* StdMan::getBuffer() {
 
 // Input/output file management
 
-namespace MinisatID {
-	string inputurl = "";
-	std::shared_ptr<ResMan> input;
-}
-
-void MinisatID::setInputFileUrl(string url) {
-	MAssert(input.get()==NULL);
-	inputurl = url;
-}
-
-void createInput() {
-	if (input.get() == NULL) {
-		if (inputurl == "") {
-			input = std::shared_ptr<ResMan>(new StdMan(true));
-			clog <<"Reading from standard input...\n";
-		} else {
-			input = std::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
-		}
+std::shared_ptr<ResMan> createInput(const std::string& url) {
+	if (url == "") {
+		clog << "Reading from standard input...\n";
+		return std::shared_ptr<ResMan>(new StdMan(true));
+	} else {
+		return std::shared_ptr<ResMan>(new FileMan(url.c_str(), false));
 	}
 }
 
-FILE* MinisatID::getInputFile() {
-	createInput();
-	return input->getFile();
+std::shared_ptr<ResMan> MinisatID::getInput(const std::string& url) {
+	return createInput(url);
 }
 
-std::streambuf* MinisatID::getInputBuffer() {
-	createInput();
-	return input->getBuffer();
-}
-
-void MinisatID::closeInput() {
-	if (input.get() != NULL) {
-		input->close();
-	}
-}
-
-std::shared_ptr<ResMan> MinisatID::createResMan(const std::string& file){
+std::shared_ptr<ResMan> MinisatID::createResMan(const std::string& file) {
 	std::shared_ptr<ResMan> resman;
 	if (file == "") {
 		resman = std::shared_ptr<ResMan>(new StdMan(false));

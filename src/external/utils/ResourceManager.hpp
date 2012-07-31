@@ -74,10 +74,7 @@ public:
 	std::streambuf* getBuffer();
 };
 
-void setInputFileUrl(std::string url);
-FILE* getInputFile();
-std::streambuf* getInputBuffer();
-void closeInput();
+std::shared_ptr<ResMan> getInput(const std::string& url);
 std::shared_ptr<ResMan> createResMan(const std::string& file);
 
 }

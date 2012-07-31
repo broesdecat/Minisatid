@@ -32,6 +32,8 @@ set(LIBMINISATIDCPPFILES "")
 file(GLOB_RECURSE LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE LIBMINISATIDHPPFILES "${PROJECT_SOURCE_DIR}/src/*.hpp")
 LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/Main.cpp")
+LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/Run.hpp")
+LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/Run.cpp")
 if(NOT WITHGECODE)
 	LIST(REMOVE_ITEM LIBMINISATIDCPPFILES ${CP_SOURCES})
 	LIST(REMOVE_ITEM LIBMINISATIDHPPFILES ${CP_HEADERS})
@@ -52,7 +54,7 @@ BISON_TARGET(myparser parser/ecnfparser.ypp ${CMAKE_CURRENT_BINARY_DIR}/parser.c
 FLEX_TARGET(myscanner parser/ecnftoken.lpp  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc)
 ADD_FLEX_BISON_DEPENDENCY(myscanner myparser)
 
-add_executable(minisatid-bin Main.cpp ${BISON_myparser_OUTPUTS} ${FLEX_myscanner_OUTPUTS})
+add_executable(minisatid-bin Main.cpp Run.hpp Run.cpp ${BISON_myparser_OUTPUTS} ${FLEX_myscanner_OUTPUTS})
 target_link_libraries(minisatid-bin pbsolver minisatid)
 set_target_properties(minisatid-bin PROPERTIES OUTPUT_NAME minisatid)
 

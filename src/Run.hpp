@@ -6,13 +6,19 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef PARSEOPTIONS_HPP_
-#define PARSEOPTIONS_HPP_
+#ifndef RUN_HPP_
+#define RUN_HPP_
 
+#include <string>
 #include "external/Options.hpp"
 
 namespace MinisatID{
-	bool parseOptions(int argc, char** argv, SolverOption& modes, std::string& inputfile);
+	class ExternalConstraintVisitor;
+
+	int run(const std::string& inputfile, SolverOption modes);
+
+	void parseAndInitializeTheory(const std::string& inputfile, ExternalConstraintVisitor* d);
 }
 
-#endif /* PARSEOPTIONS_HPP_ */
+
+#endif /* RUN_HPP_ */
