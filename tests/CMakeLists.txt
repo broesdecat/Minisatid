@@ -9,7 +9,7 @@ include_directories ("
 MESSAGE(STATUS "building minisatid tests ${BUILDTESTS}")
 
 if(${BUILDTESTS})
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D MINISATIDTESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests\\\" ")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D MINISATIDTESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests/ecnfinstances\\\" ")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x") #necessary for gtest!
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D TESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests\\\" ")
 	addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
