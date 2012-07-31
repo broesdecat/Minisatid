@@ -21,6 +21,9 @@
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
 
+#include "parser/ECNFScanner.hpp"
+#include "parser/Parser.hpp"
+
 #include "external/Translator.hpp"
 #include "external/utils/ResourceManager.hpp"
 #include "external/Tasks.hpp"
@@ -39,15 +42,7 @@ using namespace MinisatID;
 
 typedef ExternalConstraintVisitor* pwls;
 
-extern char* yytext;
-extern int lineNo;
-extern int charPos;
 extern void setSpace(pwls);
-
-extern FILE* yyin;
-extern int yyparse();
-extern void yydestroy();
-extern void yyinit();
 
 jmp_buf main_loop;
 static void noMoreMem();
@@ -220,23 +215,21 @@ void initializeAndParseOPB(const std::string& inputfile, pwls d) {
 
 void initializeAndParseFODOT(const std::string& inputfile, pwls d) {
 	auto input = getInput(inputfile);
-	yyin = input->getFile();
 
-	yyinit();
+	istream is(input->getBuffer());
+	Parser parser(&is);
 
 	setSpace(d);
 
 	try {
-		yyparse();
+		parser.parse();
 	} catch (const MinisatID::idpexception& e) {
 		if (d->isCertainlyUnsat()) {
 			printUnsatFoundDuringParsing(clog, d->getOptions().verbosity);
 		} else {
-			throw idpexception(getParseError(e, lineNo, charPos, yytext));
+			throw idpexception(getParseError(e, parser.getLineNumber(), 0, parser.getText()));
 		}
 	}
-
-	yydestroy();
 
 	if (d->getOptions().transformat == OutputFormat::PLAIN) {
 		d->setTranslator(new PlainTranslator()); // Empty translator

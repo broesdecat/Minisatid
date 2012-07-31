@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
-include_directories ("${PROJECT_SOURCE_DIR}/src/")
-include_directories ("${PROJECT_SOURCE_DIR}/lib/pluscallback1.7/")
-include_directories ("${PROJECT_SOURCE_DIR}/lib/tclap/include")
-
 include_directories (
+	"${PROJECT_SOURCE_DIR}/src/"
+	"${PROJECT_BINARY_DIR}/src/"
+	"${PROJECT_SOURCE_DIR}/lib/pluscallback1.7/"
+	"${PROJECT_SOURCE_DIR}/lib/tclap/include"
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/"
@@ -15,9 +15,9 @@ macro(addToCXX ARGUMENT) #NOTE do not use when escape characters are important
 endmacro()
 
 addToCXX("-std=c++0x")
+addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}-${MinisatID_VERSION_PATCH}\\\"")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"\"")
-addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
 
 # CP interface
 file(GLOB_RECURSE CP_SOURCES "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/*.cpp")

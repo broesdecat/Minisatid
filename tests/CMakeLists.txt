@@ -4,6 +4,7 @@ include_directories ("
 	"${PROJECT_SOURCE_DIR}/src"
 	"${PROJECT_SOURCE_DIR}/lib/gtest-1.6.0/include/"
 	"${PROJECT_SOURCE_DIR}/lib/pluscallback1.7/"
+	"${PROJECT_BINARY_DIR}/tests/"
 ")
 
 MESSAGE(STATUS "building minisatid tests ${BUILDTESTS}")

@@ -1,110 +1,105 @@
-/*
- * Copyright 2007-2011 Katholieke Universiteit Leuven
- *
- * Use of this software is governed by the GNU LGPLv3.0 license
- *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
- * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
- */
-//%require "2.4.2"
+%require "2.4.1"
+%skeleton "lalr1.cc"
+%defines
+%define namespace "MinisatID"
+//%define api.pure
+%define parser_class_name "ECNFParser"
+%parse-param { MinisatID::ECNFScanner &scanner }
+%lex-param   { MinisatID::ECNFScanner &scanner }
 
-//does not seem to have the same effect as adding it to the makefile
-//%defines
-
-//%skeleton "lalr1.cc"
-//%language "c++"
-
-//%code requires{
-//temporarily, can just ensure that anytime the parser is included, vector etc has already been included.
-%{
-#include <iostream>
-#include <stdio.h>
-#include <cstring>
-#include <string>
-#include <vector>
-#include <list>
-#include <map>
-
-#include "external/ExternalUtils.hpp"
-#include "external/Translator.hpp"
-#include "utils/Print.hpp"
-#include "external/Constraints.hpp"
-#include "theorysolvers/PCSolver.hpp"
-
-#include <limits>
-
-using namespace MinisatID;
-using namespace std;
-
-typedef numeric_limits<int> intlim;
-
-typedef ExternalConstraintVisitor* pwls;
-
-//}
-
-//%code{
+%code requires{
+	#include <iostream>
+	#include <stdio.h>
+	#include <cstring>
+	#include <string>
+	#include <vector>
+	#include <list>
+	#include <map>
 	
-FODOTTranslator*	fodottrans = NULL;
-LParseTranslator*	simpletrans = NULL;
-extern int 		yylex(void);
-extern char * 	yytext;
-
-void yyerror(const char* msg);
-
-//Auxiliary variables, used while parsing.
-int lineNo = 1;
-int charPos = 1;
-
-pwls solver;
-
-/**
- * CR-CheckResult: checks the result of passing some data to the solvers.
- * The result is false if unsat was already detected.
- */
-template<class T>
-void CR(const T& formula);
-
-void setSpace(pwls);
-
-int atoms, clauses;
-
-MinisatID::Atom cAtom(string* c);
-MinisatID::Literal cLiteral(string* c);
-MinisatID::Weight cWeight(string* s);
-int cID(string* c);
-
-// Convert integer to string
-std::string itos(int n) {
-   if(n == 0) return "0";
-   std::string s;
-	int a = abs(n);
-   while(a > 0) {
-      int temp = a % 10;
-      char c = '0' + temp;
-      s = c + s;
-      a = (a - temp) / 10;
-   }
-	if(n < 0) return ('-' + s);
-   else return s;
+	#include "external/ExternalUtils.hpp"
+	#include "external/Translator.hpp"
+	#include "utils/Print.hpp"
+	#include "external/Constraints.hpp"
+	#include "theorysolvers/PCSolver.hpp"
+	
+	#include <limits>
+	
+	using namespace MinisatID;
+	using namespace std;
+	
+	typedef numeric_limits<int> intlim;
+	
+	typedef ExternalConstraintVisitor* pwls;
+	
+	// Forward-declare the Scanner class; the Parser needs to be assigned a 
+	// Scanner, but the Scanner can't be declared without the Parser
+	namespace MinisatID {
+		class ECNFScanner;
+	}
 }
 
-// Parsing
-
-void addTuple(int literalnumber, const string& atom);
-void parsetruelist(std::vector<int>* vi);
-void parsearbitlist(std::vector<int>* vi);
-void parsetype(std::string* name, std::vector<std::string>* inter);
-void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, bool f);
-
-int defaultdefID = 1;
-enum ECNF_VERSION {VERSION_NONE, VERSION_OLD, VERSION_NEW}; 
-ECNF_VERSION currentreadversion = VERSION_NONE;
-
-void checkVersion(ECNF_VERSION version);
-
-%}
-
-//for a reentrant parser, you need to use %pureparser
+%code{
+	// Prototype for the yylex function
+	static int yylex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner);
+		
+	FODOTTranslator*	fodottrans = NULL;
+	LParseTranslator*	simpletrans = NULL;
+	extern int 		yylex(void);
+	extern char * 	yytext;
+	
+	void yyerror(const char* msg);
+	
+	//Auxiliary variables, used while parsing.
+	int lineNo = 1;
+	int charPos = 1;
+	
+	pwls solver;
+	
+	/**
+	 * CR-CheckResult: checks the result of passing some data to the solvers.
+	 * The result is false if unsat was already detected.
+	 */
+	template<class T>
+	void CR(const T& formula);
+	
+	void setSpace(pwls);
+	
+	int atoms, clauses;
+	
+	MinisatID::Atom cAtom(string* c);
+	MinisatID::Literal cLiteral(string* c);
+	MinisatID::Weight cWeight(string* s);
+	int cID(string* c);
+	
+	// Convert integer to string
+	std::string itos(int n) {
+	   if(n == 0) return "0";
+	   std::string s;
+		int a = abs(n);
+	   while(a > 0) {
+	      int temp = a % 10;
+	      char c = '0' + temp;
+	      s = c + s;
+	      a = (a - temp) / 10;
+	   }
+		if(n < 0) return ('-' + s);
+	   else return s;
+	}
+	
+	// Parsing
+	
+	void addTuple(int literalnumber, const string& atom);
+	void parsetruelist(std::vector<int>* vi);
+	void parsearbitlist(std::vector<int>* vi);
+	void parsetype(std::string* name, std::vector<std::string>* inter);
+	void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, bool f);
+	
+	int defaultdefID = 1;
+	enum ECNF_VERSION {VERSION_NONE, VERSION_OLD, VERSION_NEW}; 
+	ECNF_VERSION currentreadversion = VERSION_NONE;
+	
+	void checkVersion(ECNF_VERSION version);
+}
 
 %union {
 	int integer;
@@ -663,4 +658,16 @@ void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool 
 	if(fodottrans!=NULL){
 		fodottrans->addPred(*name, startingnumber, *argtypes, isfunction);
 	}
+}
+
+// We have to implement the error function
+void MinisatID::ECNFParser::error(const MinisatID::ECNFParser::location_type &loc, const std::string &msg) {
+	std::cerr << "Error: " << msg << std::endl;
+}
+
+// Now that we have the Parser declared, we can declare the Scanner and implement
+// the yylex function
+#include "parser/ECNFScanner.hpp"
+static int yylex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner) {
+	return scanner.yylex(yylval);
 }

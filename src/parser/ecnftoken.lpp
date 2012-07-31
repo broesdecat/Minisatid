@@ -10,25 +10,22 @@
 /* C++ declarations: */
 #include <iostream>
 
-/*
- * Temporarily, until new bison is available
- * SHOULD BE REMOVED THEN
- */
 #include <vector>
 #include "external/ExternalUtils.hpp"
 using namespace std; 
-//UP TILL HERE!
 
-#include "parser.hh"
+#include "parser/ECNFScanner.hpp"
 
 extern int lineNo;
 extern int charPos;
 
 #define ADJ (charPos += yyleng)
+#define ET MinisatID::ECNFParser::token
 %}
 
 /* lex definitions: */
 %option noyywrap never-interactive nounput
+%option nodefault yyclass="ECNFScanner" c++
 
 %s theory
 %s trans
@@ -43,83 +40,83 @@ WHITESPACE	[\t\r ]*
 
 
 <*>^"p "			{ADJ; BEGIN(theory);}
-<*>^"translation"	{ADJ; BEGIN(trans); return TRANSHEADER;}
-<*>^"=== atom translation ==="	{ADJ; BEGIN(trans); return TRANSHEADER2;}
+<*>^"translation"	{ADJ; BEGIN(trans); return ET::TRANSHEADER;}
+<*>^"=== atom translation ==="	{ADJ; BEGIN(trans); return ET::TRANSHEADER2;}
 
 <theory,INITIAL>^"c\n"	{/* disregard comments */}
 <theory,INITIAL>^"c ".*	{/* disregard comments */}
 
-<theory>"cnf"	{ADJ; return CNF;}
-<theory>"ecnf"	{ADJ; return ECNF;}
-<theory>"def" 	{ADJ; return DEFPRESENT;}
-<theory>"aggr" 	{ADJ; return AGGPRESENT;}
-<theory>"mnmz" 	{ADJ; return MINIMPRESENT;}
+<theory>"cnf"	{ADJ; return ET::CNF;}
+<theory>"ecnf"	{ADJ; return ET::ECNF;}
+<theory>"def" 	{ADJ; return ET::DEFPRESENT;}
+<theory>"aggr" 	{ADJ; return ET::AGGPRESENT;}
+<theory>"mnmz" 	{ADJ; return ET::MINIMPRESENT;}
 
-<theory>^"WSet"	{ADJ; return WSETDEFN;}
-<theory>^"Set"	{ADJ; return SETDEFN;}
-<theory>"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::CARD; return AGGDEFN;}
-<theory>"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::SUM; return AGGDEFN;}
-<theory>"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::PROD; return AGGDEFN;}
-<theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::MIN; return AGGDEFN;}
-<theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::MAX; return AGGDEFN;}
+<theory>^"WSet"	{ADJ; return ET::WSETDEFN;}
+<theory>^"Set"	{ADJ; return ET::SETDEFN;}
+<theory>"Card"	{ADJ; /*ecnflval*/yylval->aggr = AggType::CARD; return ET::AGGDEFN;}
+<theory>"Sum"	{ADJ; /*ecnflval*/yylval->aggr = AggType::SUM; return ET::AGGDEFN;}
+<theory>"Prod"	{ADJ; /*ecnflval*/yylval->aggr = AggType::PROD; return ET::AGGDEFN;}
+<theory>"Min"	{ADJ; /*ecnflval*/yylval->aggr = AggType::MIN; return ET::AGGDEFN;}
+<theory>"Max"	{ADJ; /*ecnflval*/yylval->aggr = AggType::MAX; return ET::AGGDEFN;}
 
-<theory>"<-"	{ADJ; return DEFOP;}
+<theory>"<-"	{ADJ; return ET::DEFOP;}
 
-<theory>"D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::DEF;  return SEMDEFN;}
-<theory>"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::COMP;  return SEMDEFN;}
-<theory>"O"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::OR;  return SEMDEFN;}
+<theory>"D"		{ADJ; /*ecnflval*/yylval->sem = AggSem::DEF;  return ET::SEMDEFN;}
+<theory>"C"		{ADJ; /*ecnflval*/yylval->sem = AggSem::COMP;  return ET::SEMDEFN;}
+<theory>"O"		{ADJ; /*ecnflval*/yylval->sem = AggSem::OR;  return ET::SEMDEFN;}
 
-<theory>"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AggSign::UB;  return SIGNDEFN;}
-<theory>"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AggSign::LB; return SIGNDEFN;}
+<theory>"L"		{ADJ; /*ecnflval*/yylval->sign = AggSign::UB;  return ET::SIGNDEFN;}
+<theory>"G"		{ADJ; /*ecnflval*/yylval->sign = AggSign::LB; return ET::SIGNDEFN;}
 
-<theory>^"Mnmsubset"	{ADJ; return SUBSETMINDEFN;}
-<theory>^"Mnmlist"		{ADJ; return MNMZDEFN;}
-<theory>^"Mnmvar"		{ADJ; return VARMINDEFN;}
-<theory>^"Mnmagg"		{ADJ; return AGGMINDEFN;}
+<theory>^"Mnmsubset"	{ADJ; return ET::SUBSETMINDEFN;}
+<theory>^"Mnmlist"		{ADJ; return ET::MNMZDEFN;}
+<theory>^"Mnmvar"		{ADJ; return ET::VARMINDEFN;}
+<theory>^"Mnmagg"		{ADJ; return ET::AGGMINDEFN;}
 
 <theory>" "		{ADJ; /* disregard whitespaces */}
 <theory>"\t"	{ADJ; /*                       */}
 <theory>"\n"	{charPos = 1; lineNo++; /*     */}
 
-<theory>"|"		{ADJ; return DELIM;}
-<theory>"["		{ADJ; return SYMMSTART;}
-<theory>"]"		{ADJ; return SYMMEND;}
-<theory>"("		{ADJ; return CYCLESTART;}
-<theory>")"		{ADJ; return CYCLEEND;}
-<theory>","		{ADJ; return SYMMDELIM;}
+<theory>"|"		{ADJ; return ET::DELIM;}
+<theory>"["		{ADJ; return ET::SYMMSTART;}
+<theory>"]"		{ADJ; return ET::SYMMEND;}
+<theory>"("		{ADJ; return ET::CYCLESTART;}
+<theory>")"		{ADJ; return ET::CYCLEEND;}
+<theory>","		{ADJ; return ET::SYMMDELIM;}
 
-<theory>^"INTVAR"	{ADJ; return INTVAR;}
-<theory>^"INTVARDOM" {ADJ; return INTVARDOM;}
-<theory>^"BINTRI"	{ADJ; return BINTRI;}
-<theory>^"BINTRT"	{ADJ; return BINTRT;}
-<theory>^"DISTINCT"	{ADJ; return DISTINCT;}
-<theory>^"CPSUM"	{ADJ; return CPSUM;}
-<theory>^"CPPROD"	{ADJ; return CPPROD;}
-<theory>^"COUNT"	{ADJ; return COUNT;}
-<theory>^"ELEMENT"	{ADJ; return ELEMENT;}
+<theory>^"INTVAR"	{ADJ; return ET::INTVAR;}
+<theory>^"INTVARDOM" {ADJ; return ET::INTVARDOM;}
+<theory>^"BINTRI"	{ADJ; return ET::BINTRI;}
+<theory>^"BINTRT"	{ADJ; return ET::BINTRT;}
+<theory>^"DISTINCT"	{ADJ; return ET::DISTINCT;}
+<theory>^"CPSUM"	{ADJ; return ET::CPSUM;}
+<theory>^"CPPROD"	{ADJ; return ET::CPPROD;}
+<theory>^"COUNT"	{ADJ; return ET::COUNT;}
+<theory>^"ELEMENT"	{ADJ; return ET::ELEMENT;}
 
-<theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::EQ; return REL;}
-<theory>">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::G; return REL;}
-<theory>"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::L; return REL;}
-<theory>"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::NEQ; return REL;}
-<theory>"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::LEQ; return REL;}
-<theory>">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::GEQ; return REL;}
+<theory>"="		{ADJ; /*ecnflval*/yylval->rel = EqType::EQ; return ET::REL;}
+<theory>">"		{ADJ; /*ecnflval*/yylval->rel = EqType::G; return ET::REL;}
+<theory>"<"		{ADJ; /*ecnflval*/yylval->rel = EqType::L; return ET::REL;}
+<theory>"~="	{ADJ; /*ecnflval*/yylval->rel = EqType::NEQ; return ET::REL;}
+<theory>"=<"	{ADJ; /*ecnflval*/yylval->rel = EqType::LEQ; return ET::REL;}
+<theory>">="	{ADJ; /*ecnflval*/yylval->rel = EqType::GEQ; return ET::REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned. 
     If "0", then ZERO is returned since it's the first matching rule.
   */
-<theory>"0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
-<theory>-?[0-9]+	{ADJ; yylval.str = new string(yytext); return NUMBER;}
+<theory>"0"			{ADJ; /*ecnflval*/yylval->integer = 0; return ET::ZERO;}
+<theory>-?[0-9]+	{ADJ; yylval->str = new string(yytext); return ET::NUMBER;}
 			  
-<trans>^"type"			{ return TYPE;				}
-<trans>^"show pred"		{ return SHOWPRED;			}
-<trans>^"pred"			{ return PRED;				}
-<trans>^"show func"		{ return SHOWFUNC;			}
-<trans>^"func"			{ return FUNC;				}
-<trans>^"true"			{ return TRUE;				}
-<trans>^"arbitrary"		{ return ARBIT;				}
-<trans>{ID}				{ yylval.str = new string(yytext);	return T_ID;	}
-<trans>{INT}			{ yylval.integer = atoi(yytext); 	return T_NUM;		}
+<trans>^"type"			{ return ET::TYPE;				}
+<trans>^"show pred"		{ return ET::SHOWPRED;			}
+<trans>^"pred"			{ return ET::PRED;				}
+<trans>^"show func"		{ return ET::SHOWFUNC;			}
+<trans>^"func"			{ return ET::FUNC;				}
+<trans>^"true"			{ return ET::TRUE;				}
+<trans>^"arbitrary"		{ return ET::ARBIT;				}
+<trans>{ID}				{ yylval->str = new string(yytext);	return ET::T_ID;	}
+<trans>{INT}			{ yylval->integer = atoi(yytext); 	return ET::T_NUM;	}
 <trans>{WHITESPACE}   	{                      		}
 <trans>.				{ return *yytext;			}
 
@@ -127,5 +124,5 @@ WHITESPACE	[\t\r ]*
 <theory,INITIAL>.	{/* Anything else: parse error */
 						char s[100];
 						sprintf(s, "Encountered unexpected character '%s'.\n", yytext);
-						throw MinisatID::idpexception(s);
+						throw idpexception(s);
 					}
