@@ -30,6 +30,10 @@ if(${BUILDTESTS})
 		Janhunentest.cpp
 		${PROJECT_SOURCE_DIR}/src/Run.cpp
 		${PROJECT_SOURCE_DIR}/src/Run.hpp
+		${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
+		${PROJECT_SOURCE_DIR}/src/parser/Parser.hpp
+		${PROJECT_SOURCE_DIR}/src/parser/ECNFScanner.hpp
+		${PROJECT_SOURCE_DIR}/src/parser/ECNFScanner.cpp
 		${BISON_myparser_OUTPUTS} ${FLEX_myscanner_OUTPUTS}
 	)
 	
