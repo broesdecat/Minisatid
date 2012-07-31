@@ -23,7 +23,7 @@ std::string getTestDirectory() {
 }
 
 namespace Tests {
-void runWithModelCheck(MinisatID::InputFormat format, const string& instancefile) {
+void runWithModelCheck(SolverOption options, const string& instancefile) {
 	auto dirlist = split(instancefile, "/");
 	auto list = split(dirlist.back(), "SAT");
 	ASSERT_EQ(list.size(), (uint)2);
@@ -36,17 +36,11 @@ void runWithModelCheck(MinisatID::InputFormat format, const string& instancefile
 		expectednbmodels = atoi(list.front().c_str());
 	}
 
-	auto modelsfound = runNoModelCheck(format, instancefile);
+	auto modelsfound = runNoModelCheck(options, instancefile);
 	ASSERT_EQ(modelsfound, expectednbmodels);
 }
-int runNoModelCheck(MinisatID::InputFormat format, const std::string& instancefile) {
-	SolverOption modes;
-	modes.inference = Inference::MODELEXPAND;
-	modes.nbmodels = 0;
-	modes.format = format;
-	modes.verbosity = 0;
-
-	Space s(modes);
+int runNoModelCheck(SolverOption options, const std::string& instancefile) {
+	Space s(options);
 	parseAndInitializeTheory(instancefile, &s);
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);

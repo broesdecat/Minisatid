@@ -58,7 +58,32 @@ namespace Tests{
 	class MXFileTests: public ::testing::TestWithParam<string> {
 	};
 	TEST_P(MXFileTests, ECNF) {
-		runWithModelCheck(InputFormat::FODOT, GetParam());
+		SolverOption options;
+		options.inference = Inference::MODELEXPAND;
+		options.nbmodels = 0;
+		options.format = InputFormat::FODOT;
+		options.verbosity = 0;
+		runWithModelCheck(options, GetParam());
+	}
+
+	TEST_P(MXFileTests, ECNFFullWatches) {
+		SolverOption options;
+		options.inference = Inference::MODELEXPAND;
+		options.nbmodels = 0;
+		options.format = InputFormat::FODOT;
+		options.verbosity = 0;
+		options.watchesratio = 1;
+		runWithModelCheck(options, GetParam());
+	}
+
+	TEST_P(MXFileTests, ECNFOptimalWatches) {
+		SolverOption options;
+		options.inference = Inference::MODELEXPAND;
+		options.nbmodels = 0;
+		options.format = InputFormat::FODOT;
+		options.verbosity = 0;
+		options.watchesratio = 0.76;
+		runWithModelCheck(options, GetParam());
 	}
 
 	INSTANTIATE_TEST_CASE_P(ModelExpansion, MXFileTests, ::testing::ValuesIn(generateListOfMXFiles()));
@@ -71,7 +96,12 @@ namespace Tests{
 	class ASPFileTests: public ::testing::TestWithParam<string> {
 	};
 	TEST_P(ASPFileTests, ASP) {
-		runWithModelCheck(InputFormat::ASP, GetParam());
+		SolverOption options;
+		options.inference = Inference::MODELEXPAND;
+		options.nbmodels = 0;
+		options.format = InputFormat::ASP;
+		options.verbosity = 0;
+		runWithModelCheck(options, GetParam());
 	}
 
 	INSTANTIATE_TEST_CASE_P(ModelExpansion, ASPFileTests, ::testing::ValuesIn(generateListOfASPFiles()));
@@ -84,7 +114,12 @@ namespace Tests{
 	class ECNFErrorFileTests: public ::testing::TestWithParam<string> {
 	};
 	TEST_P(ECNFErrorFileTests, ECNF) {
-		ASSERT_THROW(runNoModelCheck(InputFormat::FODOT, GetParam()), idpexception);
+		SolverOption options;
+		options.inference = Inference::MODELEXPAND;
+		options.nbmodels = 0;
+		options.format = InputFormat::FODOT;
+		options.verbosity = 0;
+		ASSERT_THROW(runNoModelCheck(options, GetParam()), idpexception);
 	}
 
 	INSTANTIATE_TEST_CASE_P(ModelExpansion, ECNFErrorFileTests, ::testing::ValuesIn(generateListOfECNFErrorFiles()));
