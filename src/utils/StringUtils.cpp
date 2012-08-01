@@ -98,8 +98,8 @@ void tokenize(const std::string& str, ContainerT& tokens, const std::string& del
 				break;
 			}
 			auto temppos = pos;
-			for(int i=0; i<delimiters.size(); ++i){
-				if(str[temppos]!=delimiters[i]){
+			for(auto c:delimiters){
+				if(str[temppos]!=c){
 					searchpos = pos + 1;
 					continue;
 				}
