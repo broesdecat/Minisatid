@@ -1,20 +1,31 @@
 #pragma once
 
 #include <istream>
-#include "parser/ECNFScanner.hpp"
 
 namespace MinisatID {
+template<class TScanner, class TParser, class Monitor>
 class Parser {
 private:
-	MinisatID::ECNFScanner scanner;
-	MinisatID::ECNFParser parser;
+	TScanner scanner;
+	TParser parser;
 public:
-	Parser(std::istream* input);
+	Parser(std::istream* input, Monitor& monitor)
+			: scanner(TScanner(input)), parser(TParser(scanner, monitor)) {
+	}
 
-	const char* getText() const;
-	int getLineNumber() const;
-	int getColumnNumber() const;
+	int parse() {
+		return parser.parse();
+	}
 
-	int parse();
+	const char* getText() const {
+		return scanner.YYText();
+	}
+
+	int getLineNumber() const {
+		return scanner.lineno();
+	}
+	int getColumnNumber() const {
+		return scanner.YYLeng();
+	}
 };
 }

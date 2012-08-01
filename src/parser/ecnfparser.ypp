@@ -1,10 +1,21 @@
+/*
+ * Copyright 2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 %require "2.4.1"
 %skeleton "lalr1.cc"
 %defines
+//%debug
+%error-verbose
+%name-prefix="ecnf"
 %define namespace "MinisatID"
-//%define api.pure
 %define parser_class_name "ECNFParser"
 %parse-param { MinisatID::ECNFScanner &scanner }
+%parse-param { MinisatID::ExternalConstraintVisitor& wrapper }
 %lex-param   { MinisatID::ECNFScanner &scanner }
 
 %code requires{
@@ -40,25 +51,19 @@
 
 %code{
 	// Prototype for the yylex function
-	static int yylex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner);
+	static int ecnflex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner);
 		
+	// External state (to be removed in future)
 	FODOTTranslator*	fodottrans = NULL;
 	LParseTranslator*	simpletrans = NULL;
-	
-	void yyerror(const char* msg);
-	
-	pwls solver;
+	int atoms, clauses;
 	
 	/**
 	 * CR-CheckResult: checks the result of passing some data to the solvers.
 	 * The result is false if unsat was already detected.
 	 */
-	template<class T>
-	void CR(const T& formula);
-	
-	void setSpace(pwls);
-	
-	int atoms, clauses;
+	template<class Wrapper, class T>
+	void CR(Wrapper& wrapper, const T& formula);
 	
 	MinisatID::Atom cAtom(string* c);
 	MinisatID::Literal cLiteral(string* c);
@@ -107,6 +112,7 @@
     std::vector<MinisatID::WLtuple>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
     MinisatID::EqType rel;
+    MinisatID::ImplicationType impl;
     MinisatID::AggType aggr;
     MinisatID::AggSign sign;
     MinisatID::AggSem sem;
@@ -122,9 +128,11 @@
 %token <sem> SEMDEFN
 %token <sign> SIGNDEFN 
 %token <rel> REL
+%token <impl> IMPL
 %token <aggr> AGGDEFN
 %token CNF ECNF DEFPRESENT AGGPRESENT MINIMPRESENT
-%token INTVAR INTVARDOM CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT
+%token ORSEM
+%token INTVAR INTVARDOM CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT IMPLICATION
 %token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM
 
 %type <integer> number
@@ -164,7 +172,6 @@
 
 %%
 
-
 /*
  * Decides whether to use CNF or ECNF
  */
@@ -191,7 +198,7 @@ cnfclause: 	body ZERO
 				{	
 					Disjunction clause;
 					clause.literals = *$1;
-					CR(clause);
+					CR(wrapper, clause);
 					delete $1;
 				}
 		;
@@ -203,6 +210,7 @@ cnfclause: 	body ZERO
 ecnftheory	:	/* empty */
 			|	ecnftheory clause
 			|	ecnftheory rule
+			|	ecnftheory implication
 			| 	ecnftheory agg
 			|	ecnftheory set
 			|	ecnftheory wset
@@ -218,29 +226,29 @@ ecnftheory	:	/* empty */
 			
 mnmz	:	MNMZDEFN body ZERO
 			{
-				CR(MinimizeOrderedList(1, *$2));
+				CR(wrapper, MinimizeOrderedList(1, *$2));
 				delete $2; 
 			}
 subsetmnmz: SUBSETMINDEFN body ZERO
 			{
-				CR(MinimizeSubset(1, *$2));
+				CR(wrapper, MinimizeSubset(1, *$2));
 				delete $2; 
 			}
 varmnmz :	VARMINDEFN NUMBER ZERO
 			{ 
-				CR(MinimizeVar(1, cID($2)));
+				CR(wrapper, MinimizeVar(1, cID($2)));
 			}
 			
 aggmnmz :	AGGMINDEFN AGGDEFN NUMBER ZERO 	
 			{
-				CR(MinimizeAgg(1, cID($3), $2));
+				CR(wrapper, MinimizeAgg(1, cID($3), $2));
 				delete $3;
 			}
 
 // NOTE: only for compatibility (has redundant head atom)
 summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO 	
 			{
-				CR(MinimizeAgg(1, cID($4), $2));
+				CR(wrapper, MinimizeAgg(1, cID($4), $2));
 				delete $3; delete $4;
 			}
 		
@@ -249,7 +257,7 @@ clause	:	body ZERO
 				Disjunction clause;
 				clause.literals = *$1;
 				delete $1;
-				CR(clause);
+				CR(wrapper, clause);
 			}
 		;
 
@@ -257,11 +265,11 @@ rule	:	SEMDEFN NUMBER body ZERO
 			{ 	
 				checkVersion(VERSION_OLD);
 				if($1==AggSem::OR){
-					yyerror("Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
+					error(yyloc, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
 				Rule rule(cAtom($2), *$3, $1==AggSem::COMP, defaultdefID); //AggSem is bit of a hack, to be fixed
 				delete $2; delete $3;
-				CR(rule);
+				CR(wrapper, rule);
 			}
 		;
 
@@ -269,11 +277,19 @@ rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 			{ 	
 				checkVersion(VERSION_NEW);
 				if($1==AggSem::OR){
-					yyerror("Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
+					error(yyloc, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
 				Rule rule(cAtom($4), *$6, $1==AggSem::COMP, cID($2));//AggSem is bit of a hack, to be fixed
 				delete $2; delete $4; delete $6;
-				CR(rule);
+				CR(wrapper, rule);
+			}
+		;
+		
+implication: IMPLICATION SEMDEFN NUMBER IMPL body ZERO
+			{ 	
+				Implication implic(cLiteral($3), $4, *$5, $2==AggSem::COMP);
+				delete $3; delete $5;
+				CR(wrapper, implic);
 			}
 		;
 
@@ -283,22 +299,26 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 					checkVersion(VERSION_OLD);
 				}
 	
-				CR(Aggregate(cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID));
+				CR(wrapper, Aggregate(cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID));
 				delete $4; delete $5; delete $6;
 			}
-		;
-agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
+		|	AGGDEFN ORSEM SIGNDEFN NUMBER NUMBER weight ZERO	
+			{	
+				CR(wrapper, Aggregate(cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID));
+				delete $4; delete $5; delete $6;
+			}
+		|	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
 				checkVersion(VERSION_NEW);
 
-				CR(Aggregate(mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3)));
+				CR(wrapper, Aggregate(mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3)));
 				delete $5; delete $6; delete $7;
 			}
 		;
 
 set		:	SETDEFN NUMBER body ZERO	
 			{ 	
-				CR(createSet(cID($2), *$3, 1));
+				CR(wrapper, createSet(cID($2), *$3, 1));
 				delete $2; delete $3;
 			}
 		;
@@ -307,7 +327,7 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 			{	
 				WLSet set(cID($2), *$3);
 				delete $2; delete $3;
-				CR(set);
+				CR(wrapper, set);
 			}
 		;
 		
@@ -321,13 +341,13 @@ symmetryblock
 symmetries
 		: symmetry
 			{
-				CR(Symmetry(*$1));
+				CR(wrapper, Symmetry(*$1));
 				delete($1);
 			
 			}
 		| symmetries SYMMDELIM symmetry
 			{
-				CR(Symmetry(*$3));
+				CR(wrapper, Symmetry(*$3));
 				delete($3);
 			}
 		;
@@ -354,20 +374,20 @@ cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete(
 intvar	:	INTVAR number weight weight ZERO 
 			{
 				IntVarRange var($2, cWeight($3), cWeight($4));
-				CR(var);
+				CR(wrapper, var);
 				delete $3; delete $4;
 			}
 		|	INTVARDOM number weightbody DELIM ZERO 
 			{
 				IntVarEnum var($2,*$3);
-				CR(var);
+				CR(wrapper, var);
 				delete $3;
 			}
 		;
 
 //intvarset
 //		:	INTVARSET number ibody ZERO 
-//				{ 	CR(solver->addIntVarSet($2, *$3)); delete $3; }
+//				{ 	CR(wrapper, wrapper.addIntVarSet($2, *$3)); delete $3; }
 //		;
 
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
@@ -376,44 +396,44 @@ cpconstraint
 		:	BINTRI NUMBER number REL weight ZERO 
 			{ 	
 				CPBinaryRel binrel(cAtom($2), $3, $4, cWeight($5));
-				CR(binrel);
+				CR(wrapper, binrel);
 				delete $2; delete $5;
 			}
 		|	BINTRT NUMBER number REL number ZERO 
 			{ 	
 				CPBinaryRelVar binrel(cAtom($2), $3, $4, $5);
-				CR(binrel);
+				CR(wrapper, binrel);
 				delete $2;
 			}
 		|	CPSUM NUMBER uibody DELIM weightbody REL weight ZERO   
 			{ 	
 				CPSumWeighted sum(cAtom($2), *$3, *$5, $6, cWeight($7));
-				CR(sum);
+				CR(wrapper, sum);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	CPPROD NUMBER uibody DELIM weight REL weight ZERO   
 			{ 	
 				CPProdWeighted prod(cAtom($2), *$3, cWeight($5), $6, cWeight($7));
-				CR(prod);
+				CR(wrapper, prod);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	ELEMENT uibody DELIM number number ZERO 
 			{ 	
-				CR(CPElement(*$2, $4, $6));
+				CR(wrapper, CPElement(*$2, $4, $6));
 				delete $2;
 			}
 			//only global card at the moment! 
 		|	COUNT uibody DELIM weight REL number ZERO   
 			{ 	
 				CPCount count(*$2, cWeight($4), $5, $6);
-				CR(count);
+				CR(wrapper, count);
 				delete $2; delete $4;
 			}
 			//only global alldiff at the moment!
 		|	DISTINCT uibody DELIM ZERO //DELIM to remove shift-reduce conflict 
 			{ 	
 				CPAllDiff alldiff(*$2);
-				CR(alldiff);
+				CR(wrapper, alldiff);
 				delete $2;
 			}
 		;
@@ -423,15 +443,15 @@ cpconstraint
 translation	: /* empty */
 			|	TRANSHEADER 
 				{
-					fodottrans = new FODOTTranslator(solver->getOptions().transformat==OutputFormat::ASP);	
-					solver->setTranslator(fodottrans);
+					fodottrans = new FODOTTranslator(wrapper.getOptions().transformat==OutputFormat::ASP);	
+					wrapper.setTranslator(fodottrans);
 				} 
 				typelist predlist funclist truelist arbitlist
 				
 			| 	TRANSHEADER2 
 				{	
 					simpletrans = new LParseTranslator();				
-					solver->setTranslator(simpletrans);
+					wrapper.setTranslator(simpletrans);
 				}
 				tuplelist
 			;
@@ -533,21 +553,9 @@ weight	:	NUMBER	{ $$ = $1; }
 
 %%
 
-int yywrap() {
+int ecnfwrap() {
 	clog << "End of file reached before it was expected... bailing out.\n";
 	return 1;
-}
-
-void yyinit(){ }
-
-void yydestroy(){
-}
-
-// If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
-//Should NOT be used any more: if an idpexception is thrown during parsing, even from deep within
-//the code, the error handling will print the parsing position itself.
-void yyerror(const char* msg) {
-	throw idpexception(msg);
 }
 
 void checkVersion(ECNF_VERSION version){
@@ -558,10 +566,6 @@ void checkVersion(ECNF_VERSION version){
 		throw idpexception("Cannot combine previous ecnf format with the new one "
 				"(using rules/aggregates with and without definition id).\n");
 	}
-}
-
-void setSolver(pwls space){
-	solver = space;
 }
 
 Atom cAtom(string* c){
@@ -612,16 +616,12 @@ Weight cWeight(string* s){
  * CR-CheckResult: checks the result of passing some data to the solvers.
  * The result is false if unsat was already detected.
  */
-template<class T>
-void CR(const T& formula){
-	extAdd(*solver, formula);
-	if(solver->isCertainlyUnsat()){
+template<class Wrapper, class T>
+void CR(Wrapper& wrapper, const T& formula){
+	extAdd(wrapper, formula);
+	if(wrapper.isCertainlyUnsat()){
 		throw idpexception("Unsat during parsing.\n");
 	}		
-}
-
-void setSpace(pwls space){
-	solver = space;
 }
 
 void addTuple(int literalnumber, const string& atom) {
@@ -655,13 +655,13 @@ void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool 
 }
 
 // We have to implement the error function
-void MinisatID::ECNFParser::error(const MinisatID::ECNFParser::location_type &loc, const std::string &msg) {
+void MinisatID::ECNFParser::error(const MinisatID::ECNFParser::location_type&, const std::string &msg) {
 	std::cerr << "Error: " << msg << std::endl;
 }
 
 // Now that we have the Parser declared, we can declare the Scanner and implement
 // the yylex function
 #include "parser/ECNFScanner.hpp"
-static int yylex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner) {
-	return scanner.yylex(yylval);
+static int ecnflex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner) {
+	return scanner.ecnflex(yylval);
 }

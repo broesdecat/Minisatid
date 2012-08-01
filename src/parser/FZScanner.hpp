@@ -5,33 +5,33 @@
 // Only include FlexLexer.h if it hasn't been already included
 #if ! defined(yyFlexLexerOnce)
 #undef yyFlexLexer
-#define yyFlexLexer ecnfFlexLexer
+#define yyFlexLexer fzFlexLexer
 #include <FlexLexer.h>
 #endif
 
 // Override the interface for yylex since we namespaced it
 #undef YY_DECL
-#define YY_DECL int MinisatID::ECNFScanner::ecnflex()
+#define YY_DECL int FZ::FZScanner::fzlex()
 
 // Include Bison for types / tokens
-#include "ecnfparser/ecnfparser.hh"
+#include "fzparser/fzparser.hh"
 
-namespace MinisatID {
-class ECNFScanner: public ecnfFlexLexer {
+namespace FZ {
+class FZScanner: public fzFlexLexer {
 public:
-	ECNFScanner(std::istream* input)
-			: ecnfFlexLexer(input), ecnflval(NULL) {
+	FZScanner(std::istream* input)
+			: fzFlexLexer(input), fzlval(NULL) {
 	}
 
 	// save the pointer to yylval so we can change it, and invoke scanner
-	int ecnflex(ECNFParser::semantic_type * lval);
+	int fzlex(FZ::FZParser::semantic_type * lval);
 
 private:
 	// Scanning function created by Flex; make this private to force usage
 	// of the overloaded method so we can get a pointer to Bison's yylval
-	int ecnflex();
+	int fzlex();
 
 	// point to yylval (provided by Bison in overloaded yylex)
-	ECNFParser::semantic_type * ecnflval;
+	FZ::FZParser::semantic_type * fzlval;
 };
 }

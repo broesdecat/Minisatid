@@ -1,6 +1,7 @@
 #ifndef DATASTRUCTUREMACROS_HPP_
 #define DATASTRUCTUREMACROS_HPP_
 
+#define IMPLICATIONSTR "Implication"
 #define WSETSTR "WSet"
 #define SETSTR "Set"
 #define CARDSTR "Card"

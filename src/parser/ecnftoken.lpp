@@ -1,4 +1,3 @@
-%{
 /*
  * Copyright 2007-2011 Katholieke Universiteit Leuven
  *
@@ -7,22 +6,22 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-/* C++ declarations: */
-#include <iostream>
 
+%{
+#include <iostream>
 #include <vector>
 #include "external/ExternalUtils.hpp"
-using namespace std; 
+using namespace std;
 
-#include "parser/ECNFScanner.hpp"
+#include "parser/ECNFScanner.hpp" 
 
 #define ET MinisatID::ECNFParser::token
 
 %}
 
-/* lex definitions: */
-%option noyywrap never-interactive nounput
-%option nodefault yyclass="ECNFScanner" c++
+%option noyywrap never-interactive nounput nodefault
+%option prefix="ecnf"
+%option c++ yyclass="ECNFScanner"
 %option yylineno
 
 %s theory
@@ -52,20 +51,21 @@ WHITESPACE	[\t\r ]*
 
 <theory>^"WSet"	{return ET::WSETDEFN;}
 <theory>^"Set"	{return ET::SETDEFN;}
-<theory>"Card"	{/*ecnflval*/yylval->aggr = AggType::CARD; return ET::AGGDEFN;}
-<theory>"Sum"	{/*ecnflval*/yylval->aggr = AggType::SUM; return ET::AGGDEFN;}
-<theory>"Prod"	{/*ecnflval*/yylval->aggr = AggType::PROD; return ET::AGGDEFN;}
-<theory>"Min"	{/*ecnflval*/yylval->aggr = AggType::MIN; return ET::AGGDEFN;}
-<theory>"Max"	{/*ecnflval*/yylval->aggr = AggType::MAX; return ET::AGGDEFN;}
+<theory>"Card"	{ecnflval->aggr = AggType::CARD; return ET::AGGDEFN;}
+<theory>"Sum"	{ecnflval->aggr = AggType::SUM; return ET::AGGDEFN;}
+<theory>"Prod"	{ecnflval->aggr = AggType::PROD; return ET::AGGDEFN;}
+<theory>"Min"	{ecnflval->aggr = AggType::MIN; return ET::AGGDEFN;}
+<theory>"Max"	{ecnflval->aggr = AggType::MAX; return ET::AGGDEFN;}
 
 <theory>"<-"	{return ET::DEFOP;}
 
-<theory>"D"		{/*ecnflval*/yylval->sem = AggSem::DEF;  return ET::SEMDEFN;}
-<theory>"C"		{/*ecnflval*/yylval->sem = AggSem::COMP;  return ET::SEMDEFN;}
-<theory>"O"		{/*ecnflval*/yylval->sem = AggSem::OR;  return ET::SEMDEFN;}
+<theory>"D"		{ecnflval->sem = AggSem::DEF;  return ET::SEMDEFN;}
+<theory>"C"		{ecnflval->sem = AggSem::COMP;  return ET::SEMDEFN;}
 
-<theory>"L"		{/*ecnflval*/yylval->sign = AggSign::UB;  return ET::SIGNDEFN;}
-<theory>"G"		{/*ecnflval*/yylval->sign = AggSign::LB; return ET::SIGNDEFN;}
+<theory>"O"		{/*ecnflval*/ return ET::ORSEM;}
+
+<theory>"L"		{ecnflval->sign = AggSign::UB;  return ET::SIGNDEFN;}
+<theory>"G"		{ecnflval->sign = AggSign::LB; return ET::SIGNDEFN;}
 
 <theory>^"Mnmsubset"	{return ET::SUBSETMINDEFN;}
 <theory>^"Mnmlist"		{return ET::MNMZDEFN;}
@@ -83,28 +83,32 @@ WHITESPACE	[\t\r ]*
 <theory>")"		{return ET::CYCLEEND;}
 <theory>","		{return ET::SYMMDELIM;}
 
-<theory>^"INTVAR"	{return ET::INTVAR;}
-<theory>^"INTVARDOM" {return ET::INTVARDOM;}
-<theory>^"BINTRI"	{return ET::BINTRI;}
-<theory>^"BINTRT"	{return ET::BINTRT;}
-<theory>^"DISTINCT"	{return ET::DISTINCT;}
-<theory>^"CPSUM"	{return ET::CPSUM;}
-<theory>^"CPPROD"	{return ET::CPPROD;}
-<theory>^"COUNT"	{return ET::COUNT;}
-<theory>^"ELEMENT"	{return ET::ELEMENT;}
+<theory>^"Implication"	{return ET::IMPLICATION;}
+<theory>^"INTVAR"		{return ET::INTVAR;}
+<theory>^"INTVARDOM" 	{return ET::INTVARDOM;}
+<theory>^"BINTRI"		{return ET::BINTRI;}
+<theory>^"BINTRT"		{return ET::BINTRT;}
+<theory>^"DISTINCT"		{return ET::DISTINCT;}
+<theory>^"CPSUM"		{return ET::CPSUM;}
+<theory>^"CPPROD"		{return ET::CPPROD;}
+<theory>^"COUNT"		{return ET::COUNT;}
+<theory>^"ELEMENT"		{return ET::ELEMENT;}
 
-<theory>"="		{/*ecnflval*/yylval->rel = EqType::EQ; return ET::REL;}
-<theory>">"		{/*ecnflval*/yylval->rel = EqType::G; return ET::REL;}
-<theory>"<"		{/*ecnflval*/yylval->rel = EqType::L; return ET::REL;}
-<theory>"~="	{/*ecnflval*/yylval->rel = EqType::NEQ; return ET::REL;}
-<theory>"=<"	{/*ecnflval*/yylval->rel = EqType::LEQ; return ET::REL;}
-<theory>">="	{/*ecnflval*/yylval->rel = EqType::GEQ; return ET::REL;}
+<theory>"="		{ecnflval->rel = EqType::EQ; return ET::REL;}
+<theory>">"		{ecnflval->rel = EqType::G; return ET::REL;}
+<theory>"<"		{ecnflval->rel = EqType::L; return ET::REL;}
+<theory>"~="	{ecnflval->rel = EqType::NEQ; return ET::REL;}
+<theory>"=<"	{ecnflval->rel = EqType::LEQ; return ET::REL;}
+<theory>">="	{ecnflval->rel = EqType::GEQ; return ET::REL;}
+
+<theory>"=>"	{ecnflval->impl = ImplicationType::IMPLIES; return ET::IMPL;}
+<theory>"<=>"	{ecnflval->impl = ImplicationType::EQUIVALENT; return ET::IMPL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned. 
     If "0", then ZERO is returned since it's the first matching rule.
   */
-<theory>"0"			{/*ecnflval*/yylval->integer = 0; return ET::ZERO;}
-<theory>-?[0-9]+	{yylval->str = new string(yytext); return ET::NUMBER;}
+<theory>"0"			{ecnflval->integer = 0; return ET::ZERO;}
+<theory>-?[0-9]+	{ecnflval->str = new string(yytext); return ET::NUMBER;}
 			  
 <trans>^"type"			{ return ET::TYPE;				}
 <trans>^"show pred"		{ return ET::SHOWPRED;			}
@@ -113,8 +117,8 @@ WHITESPACE	[\t\r ]*
 <trans>^"func"			{ return ET::FUNC;				}
 <trans>^"true"			{ return ET::TRUE;				}
 <trans>^"arbitrary"		{ return ET::ARBIT;				}
-<trans>{ID}				{ yylval->str = new string(yytext);	return ET::T_ID;	}
-<trans>{INT}			{ yylval->integer = atoi(yytext); 	return ET::T_NUM;	}
+<trans>{ID}				{ ecnflval->str = new string(yytext);	return ET::T_ID;	}
+<trans>{INT}			{ ecnflval->integer = atoi(yytext); 	return ET::T_NUM;	}
 <trans>{WHITESPACE}   	{                      		}
 <trans>.				{ return *yytext;			}
 
