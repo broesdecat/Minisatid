@@ -4,9 +4,6 @@ project (pbsolver)
 macro(addToCXX ARGUMENT)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARGUMENT}")
 endmacro()
-macro(addToC ARGUMENT)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARGUMENT}")
-endmacro()
 
 addToCXX("-Wno-long-long -Wno-unused-parameter -Wno-unused-result -Wno-strict-aliasing -Wno-vla -Wno-parentheses -Wno-return-type -Wno-variadic-macros")
 
