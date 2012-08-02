@@ -150,7 +150,7 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 #ifdef DEBUG
 	MAssert(ws->getSet()==getSetp());
 	bool foundlit = false;
-	for(vwl::const_iterator i=getSet().getWL().cbegin(); i<getSet().getWL().cend(); ++i) {
+	for(auto i=getSet().getWL().cbegin(); i<getSet().getWL().cend(); ++i) {
 		if(var(i->getLit())==var(p)) {
 			foundlit = true;
 		}
@@ -779,16 +779,6 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	//TODO but bigger problem is that he keeps on deriving the same propagations!
 	//=> add a check that does not do propagations if the derived weight bound is the same
 	//=> add a check that if only cp or cc is adapted, only aggs with such bound are checked!
-
-	/*#ifdef DEBUG
-	 bool allknown = true;
-	 for (auto u = wls.cbegin(); allknown && u < wls.cend(); ++u) {
-	 if((*u).getWeight()>=weightbound && value((*u).getLit())==l_Undef) {
-	 allknown = false;
-	 }
-	 }
-	 MAssert(c!=nullPtrClause || allknown);
-	 #endif*/
 
 	return c;
 }

@@ -65,11 +65,6 @@ void EventQueue::resetState() {
 
 // NOTE: EACH propagator has to register here for the general methods
 void EventQueue::accept(Propagator* propagator) {
-#ifdef DEBUG
-	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i) {
-		MAssert(propagator!=*i);
-	}
-#endif
 	allpropagators.push_back(propagator);
 	if (savingstate) {
 		newpropagators.push_back(propagator);

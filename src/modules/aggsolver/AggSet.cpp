@@ -48,7 +48,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
-	for (agglist::const_iterator i = getAgg().cbegin(); i<getAgg().cend(); ++i) {
+	for (auto i = getAgg().cbegin(); i<getAgg().cend(); ++i) {
 		MAssert(this==(*i)->getSet());
 		MAssert(getAgg()[(*i)->getIndex()]==(*i));
 	}
