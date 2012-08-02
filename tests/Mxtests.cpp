@@ -34,6 +34,8 @@ TEST(MXTest, MultiAssumpSolve) {
 	ASSERT_EQ(mx3.getNbModelsFound(), 7);
 }
 
+// TODO enable fullmodelcheck for small enough tests
+
 // TODO lazy addition tests?
 
 // TODO prioritized optimization test
@@ -96,7 +98,9 @@ TEST_P(ASPFileTests, ASP) {
 }
 
 TEST_P(OPBFileTests, OPB) {
-	runWithModelCheck(createMXOptions(InputFormat::OPB), GetParam());
+	auto options = createMXOptions(InputFormat::OPB);
+	//options.watchesratio = 0.76;
+	runWithModelCheck(options, GetParam());
 }
 
 TEST_P(ECNFErrorFileTests, ECNF) {
