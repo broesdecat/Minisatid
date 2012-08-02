@@ -133,7 +133,8 @@ void ModelExpand::innerExecute() {
 	if (getSpace()->isOptimizationProblem()) {
 		bool optimumfound = true;
 		if (getSpace()->isAlwaysAtOptimum()) {
-			optimumfound = findNext(assumptions, _options) != MXState::UNSAT;
+			findNext(assumptions, _options);
+			optimumfound = _solutions->getNbModelsFound()>0;
 		} else {
 			while (getSolver().hasNextOptimum() && optimumfound) {
 				optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
@@ -142,7 +143,6 @@ void ModelExpand::innerExecute() {
 
 		if (optimumfound) {
 			_solutions->notifyOptimalModelFound();
-			//cerr <<"Optimum found, searching for more.\n";
 		} else {
 			moremodelspossible = false;
 		}
