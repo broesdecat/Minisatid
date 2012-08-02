@@ -1,0 +1,13 @@
+p ecnf def aggr
+C 2 1 0
+C 5 2 0
+-5 1 0
+5 -1 0
+
+translation
+show pred 1 P :
+show pred 2 Q :
+show pred 3 A :
+show pred 4 B :
+true : A/0 B/0 
+arbitrary : 

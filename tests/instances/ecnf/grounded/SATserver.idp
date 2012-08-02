@@ -1,0 +1,16 @@
+p ecnf def aggr
+Set 1 1 2 3 4 5 0
+Card C L 90 1 2 0
+Card C G 91 1 2 0
+92 -91 -90 0
+-92 90 0
+-92 91 0
+92 0
+
+translation
+type PC : A B C D E
+type Switch : S1 S2
+type Interface : A1 B1 C1 D1 E1 S11 S12 S13 S21 S22 S23 S24
+show pred 1 DHCP : PC
+true : 
+arbitrary : 

@@ -1,0 +1,50 @@
+p ecnf def aggr
+WSet 1 -10=1 -11=2 -12=3 0
+Max D L 19 1 3 0
+Max D G 20 1 0 0
+C 21 20 19 0
+WSet 2 10=1 11=2 12=3 0
+Max D L 22 2 3 0
+Max D G 23 2 1 0
+C 24 23 22 0
+C 25 21 24 0
+WSet 3 -13=1 -14=2 -15=3 0
+Max D L 26 3 3 0
+Max D G 27 3 0 0
+C 28 27 26 0
+WSet 4 13=1 14=2 15=3 0
+Max D L 29 4 3 0
+Max D G 30 4 1 0
+C 31 30 29 0
+C 32 28 31 0
+WSet 5 -16=1 -17=2 -18=3 0
+Max D L 33 5 3 0
+Max D G 34 5 0 0
+C 35 34 33 0
+WSet 6 16=1 17=2 18=3 0
+Max D L 36 6 3 0
+Max D G 37 6 1 0
+C 38 37 36 0
+C 39 35 38 0
+C 4 25 0
+C 5 25 0
+C 6 25 0
+C 7 32 0
+C 8 32 0
+C 9 32 0
+C 10 0
+C 13 0
+C 16 0
+C 14 5 0
+C 15 6 0
+C 17 8 0
+C 18 9 0
+D 11 0
+D 12 0
+
+translation
+type N : 1 2 3
+show pred 1 R : N N
+show pred 10 Q : N N
+true : 
+arbitrary : 
