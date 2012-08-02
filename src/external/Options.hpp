@@ -82,6 +82,7 @@ public:
 	bool usegecode;
 	std::string outputfile;
 	int maxNbOfLearnedClauses;
+	bool fullmodelcheck; // Check whether the model satisfies all constraints
 
 	SolverOption();
 
