@@ -461,7 +461,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 
 	// transform into SAT if requested
 	// TODO handle all aggregates in some way!
-	if (getEngine().modes().tocnf && not optimagg) {
+	if ((getEngine().modes().tocnf || (set->wl.size()<4 && aggs.size()<3))&& not optimagg) {
 		if (not AggStorage::hasStorage()) {
 			AggStorage::addStorage(getEnginep());
 		}
