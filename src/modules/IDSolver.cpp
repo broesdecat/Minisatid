@@ -258,6 +258,13 @@ void IDSolver::initialize() {
 	if (not modes().lazy) {
 		defdVars.clear();
 		defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
+		varlist temp;
+		for(auto root: sccroots){
+			if(isDefined(root)){
+				temp.push_back(root);
+			}
+		}
+		sccroots = temp;
 	}
 
 	if (atoms_in_pos_loops == 0) {
@@ -296,7 +303,8 @@ void IDSolver::initialize() {
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-CHECKSEEN}
+		CHECKSEEN
+	}
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
@@ -674,24 +682,38 @@ void IDSolver::bumpHeadHeuristic() {
 }
 
 SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
-	vector<toCNF::Rule*> rules;
 	bool unsat = false;
-	for (auto root = sccroots.cbegin(); root != sccroots.cend(); ++root) {
-		// TODO better to store full sccs instead having to loop over them here?
-		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-			if (scc(*root) == scc(*i)) {
-				litlist defbodylits, openbodylits;
-				auto proprule = getDefVar(*i)->definition();
-				for (auto bodylit = proprule->cbegin(); bodylit != proprule->cend(); ++bodylit) {
-					if (not sign(*bodylit) && hasDefVar(var(*bodylit)) && scc(var(*bodylit)) == scc(*root)) {
-						defbodylits.push_back(*bodylit);
-					} else {
-						openbodylits.push_back(*bodylit);
-					}
+	map<Var, std::vector<Var> > root2sccs;
+	for (auto root : sccroots) {
+		MAssert(isDefined(root));
+		bool hasaggs = true;
+		for (auto head : defdVars) {
+			if (scc(root) == scc(head)) {
+				if(isDefinedByAggr(head)){
+					hasaggs = true;
+					break;
 				}
-				auto rule = new toCNF::Rule(isDisjunctive(*i), *i, defbodylits, openbodylits);
-				rules.push_back(rule);
+				root2sccs[root].push_back(head);
 			}
+		}
+		if(hasaggs){
+			root2sccs.erase(root);
+		}
+	}
+	for(auto root2scc: root2sccs){
+		vector<toCNF::Rule*> rules;
+		for (auto head: root2scc.second) {
+			litlist defbodylits, openbodylits;
+			auto proprule = getDefVar(head)->definition();
+			for (auto bodylit = proprule->cbegin(); bodylit != proprule->cend(); ++bodylit) {
+				if (not sign(*bodylit) && hasDefVar(var(*bodylit)) && scc(var(*bodylit)) == scc(root2scc.first)) {
+					defbodylits.push_back(*bodylit);
+				} else {
+					openbodylits.push_back(*bodylit);
+				}
+			}
+			auto rule = new toCNF::Rule(isDisjunctive(head), head, defbodylits, openbodylits);
+			rules.push_back(rule);
 		}
 		unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
 		deleteList<toCNF::Rule>(rules);
