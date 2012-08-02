@@ -41,7 +41,9 @@ void runWithModelCheck(SolverOption options, const string& instancefile) {
 		}
 	}
 
+//	cerr <<"Expecting " <<(satcheck?"at least ":"exactly ") <<expectednbmodels <<" models.\n";
 	auto modelsfound = runNoModelCheck(options, instancefile, (expectednbmodels==0?0:expectednbmodels+1));
+//	cerr <<"Found " <<modelsfound <<" models.\n";
 	if(satcheck){
 		ASSERT_LT(0, modelsfound);
 	}else{
@@ -50,6 +52,7 @@ void runWithModelCheck(SolverOption options, const string& instancefile) {
 }
 
 int runNoModelCheck(SolverOption options, const std::string& instancefile, int findatmost) {
+	cerr <<"Running instance " <<instancefile <<"\n";
 	options.nbmodels = findatmost;
 	Space s(options);
 	parseAndInitializeTheory(instancefile, &s);
