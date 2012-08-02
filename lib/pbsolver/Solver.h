@@ -2,63 +2,55 @@
 #define Solver_h
 
 #include "MiniSat.h"
-#include "SatELite.h"
-#include "Main.h"
+#include "Hardware.h"
 
 namespace MiniSatPP {
 //=================================================================================================
 
 class Solver {
-    MiniSat ::Solver*   minisat;
-    SatELite::Solver*   satelite;
+	MiniSat::Solver* minisat;
+
 public:
-    bool&             ok_ref     () { return (minisat != NULL) ? minisat->ok      : satelite->ok     ; }
-    vec<int>&         assigns_ref() { return (minisat != NULL) ? minisat->assigns : satelite->assigns; }
-    vec<Lit>&         trail_ref  () { return (minisat != NULL) ? minisat->trail   : satelite->trail  ; }
-    BasicSolverStats& stats_ref  () { return (minisat != NULL) ? (BasicSolverStats&)minisat->stats : (BasicSolverStats&)satelite->stats  ; }
+	// Global clausification data:
+	CMap<int> occ;
+	CMap<Var> vmap;
+	CMap<Lit,true> vmapp;
 
-    void setVerbosity(int level) {
-        if (minisat != NULL)
-            minisat->verbosity = level;
-        else
-            satelite->verbosity = level; }
+	Solver() : minisat(new MiniSat::Solver()), occ(0), vmap(var_Undef), vmapp(lit_Undef) {}
+	~Solver(){
+		delete(minisat);
+	}
+	bool& ok_ref () {return minisat->ok;}
+	vec<int>& assigns_ref() {return minisat->assigns;}
+	vec<Lit>& trail_ref () {return minisat->trail;}
+	BasicSolverStats& stats_ref () {return (BasicSolverStats&)minisat->stats;}
 
-    int         numOfClouses   ()                   { return (minisat != NULL) ? minisat->numOfClouses()  :  satelite->numOfClouses(); }
-    Var         newVar         (bool dvar = true)   { return (minisat != NULL) ? minisat->newVar(dvar) : satelite->newVar(dvar); }
-    bool        addClause      (const vec<Lit>& ps) { return (minisat != NULL) ? minisat->addClause(ps) : (satelite->addClause(ps), satelite->okay()); }
-    bool        addUnit        (Lit p)              { return (minisat != NULL) ? minisat->addUnit(p) : (satelite->addUnit(p), satelite->okay()); }
-    void        freeze         (Var x)              { if (minisat == NULL) satelite->freeze(x); }
-    void        suggestPolarity(Var x, lbool value) { if (minisat != NULL) minisat->polarity_sug[x] = toInt(value); else satelite->polarity_sug[x] = toInt(value); }
-    bool        solve     (const vec<Lit>& assumps) { return (minisat != NULL) ? minisat->solve(assumps) : satelite->solve(assumps); }
-    bool        solve          ()                   { vec<Lit> tmp; return solve(tmp); }
-    vec<lbool>& model          ()                   { return (minisat != NULL) ? minisat->model : satelite->model; }
-    bool        varElimed      (Var x)              { return (minisat != NULL) ? false : satelite->var_elimed[x]; }
-    bool        okay           ()                   { return (minisat != NULL) ? minisat->okay() : satelite->okay(); }
-    int         nVars          ()                   { return (minisat != NULL) ? minisat->nVars() : satelite->nVars(); }
-    void        exportCnf      (cchar* filename)    {
-        if (minisat != NULL){
-            minisat->simplifyDB();
-            minisat->exportClauses(filename);
-        }else{
+	void setVerbosity(int level) {
+		minisat->verbosity = level;}
 
-            SatELite::opt_pre_sat = true;
-            SatELite::output_file = filename;
-            if (opt_verbosity >= 1) reportf("=================================[SATELITE+]==================================\n");
-            satelite->simplifyDB(true);
-        } }
-        
-    void toCNF(std::vector<std::vector<Lit> >& cnf)    {
-        if (minisat != NULL){
-            minisat->simplifyDB();
-            minisat->toCNF(cnf);
-        }
-        else reportf("CNF export to vector<vector<int> > is unsported for satlite");
-    } 
-    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	int numOfClouses () {return minisat->numOfClouses();}
+	Var newVar (bool dvar = true) {return minisat->newVar(dvar);}
+	bool addClause (const vec<Lit>& ps) {return minisat->addClause(ps);}
+	bool addUnit (Lit p) {return minisat->addUnit(p);}
+	void freeze (Var x) {}
+	void suggestPolarity(Var x, lbool value) {minisat->polarity_sug[x] = toInt(value);}
+	bool solve (const vec<Lit>& assumps) {return minisat->solve(assumps);}
+	bool solve () {vec<Lit> tmp; return solve(tmp);}
+	vec<lbool>& model () {return minisat->model;}
+	bool varElimed (Var x) {return false;}
+	bool okay () {return minisat->okay();}
+	int nVars () {return minisat->nVars();}
+	void exportCnf (cchar* filename) {
+		minisat->simplifyDB();
+		minisat->exportClauses(filename);
+	}
 
-    Solver(bool use_minisat) : minisat(use_minisat ? new MiniSat::Solver : NULL), satelite(use_minisat ? NULL : new SatELite::Solver) {}
+	void toCNF(std::vector<std::vector<Lit> >& cnf) {
+		minisat->simplifyDB();
+		minisat->toCNF(cnf);
+
+	}
 };
-
 
 //=================================================================================================
 }

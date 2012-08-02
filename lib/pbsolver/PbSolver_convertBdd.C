@@ -1,6 +1,5 @@
 #include "PbSolver.h"
 #include "FEnv.h"
-#include "Debug.h"
 
 namespace MiniSatPP {
 //=================================================================================================
@@ -42,7 +41,7 @@ Formula buildBDD(const Linear& c, int size, Int sum, Int material_left, Map<Pair
 
 // New school: Use the new 'ITE' construction of the formula environment 'FEnv'.
 //
-Formula convertToBdd(const Linear& c, int max_cost)
+Formula convertToBdd(const Linear& c, int verbosity, int max_cost)
 {
     Map<Pair<int,Int>, Formula> memo;
 
@@ -55,7 +54,7 @@ Formula convertToBdd(const Linear& c, int max_cost)
     if (ret == _undef_)
         FEnv::pop();
     else{
-        if (opt_verbosity >= 1)
+        if (verbosity >= 1)
             reportf("BDD-cost:%5d\n", FEnv::topSize());
         FEnv::keep();
     }

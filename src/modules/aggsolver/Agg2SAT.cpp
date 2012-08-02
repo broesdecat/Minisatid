@@ -132,13 +132,13 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 
 SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	auto& pcsolver = transformer.pcsolver;
-	auto pbsolver = new MiniSatPP::PbSolver();
-	MiniSatPP::opt_verbosity = pcsolver.verbosity() - 1; //Gives a bit too much output on 1
-	MiniSatPP::opt_abstract = true; //Should be true
-	MiniSatPP::opt_tare = true; //Experimentally set to true
-	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
-	MiniSatPP::opt_convert_weak = false;
-	MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
+	MiniSatPP::PBOptions options;
+	options.opt_verbosity = pcsolver.verbosity() - 1; //Gives a bit too much output on 1
+	options.opt_abstract = true; //Should be true
+	options.opt_tare = true; //Experimentally set to true
+	options.opt_convert_weak = false;
+	options.opt_convert = MiniSatPP::ct_Adders;
+	auto pbsolver = new MiniSatPP::PbSolver(pcsolver.modes().getPrimesFile(), &options);
 	pbsolver->allocConstrs(transformer.maxvar, transformer.pbaggs.size());
 
 	bool unsat = false;

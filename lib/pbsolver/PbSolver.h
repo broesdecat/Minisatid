@@ -5,11 +5,11 @@
 #include "Map.h"
 #include "StackAlloc.h"
 #include "pbbase/h/GenralBaseFunctions.h"
+#include "PBOptions.h"
 
 namespace MiniSatPP {
 
-void printBasesAndTerminate();
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase);
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase, PBOptions* options);
 
 //=================================================================================================
 // Linear -- a class for storing pseudo-boolean constraints:
@@ -43,7 +43,8 @@ public:
 
 class PbSolver {
 protected:
-    Solver              sat_solver;     // Underlying SAT solver.
+    Solver*              sat_solver;     // Underlying SAT solver.
+    PBOptions* 			options;
     bool&               ok;             // True means unsatisfiability has not been detected.
     vec<int>&           assigns;        // Var -> lbool: The current assignments (lbool:s stored as char:s).  ('atype' is 'char' or 'int' depending on solver) 
     vec<Lit>&           trail;          // Chronological assignment stack.
@@ -69,7 +70,7 @@ protected:
     //
     bool    propagate(Linear& c);
     void    propagate();
-    bool    addUnit  (Lit p) { return sat_solver.addUnit(p); }
+    bool    addUnit  (Lit p) { return sat_solver->addUnit(p); }
     bool    normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv);
     void    storePb    (const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi);
     void    setupOccurs();   // Called on demand from 'propagate()'.
@@ -78,20 +79,24 @@ protected:
     bool    convertPbs(bool first_call);   // Called from 'solve()' to convert PB constraints to clauses.
 
 public:
-    PbSolver()  : sat_solver(opt_solver == st_MiniSat)
-                , ok     (sat_solver.ok_ref())
-                , assigns(sat_solver.assigns_ref())
-                , trail  (sat_solver.trail_ref())
+    PbSolver(const std::string& primesfile, PBOptions* options)  : sat_solver(new Solver()), options(options)
+                , ok     (sat_solver->ok_ref())
+                , assigns(sat_solver->assigns_ref())
+                , trail  (sat_solver->trail_ref())
                 , goal(NULL)
                 , formulaSize(0)
 	            , numOfClouses(0)
-    			, primesLoader(opt_primes_file)
+    			, primesLoader(primesfile.c_str())
     			, propQ_head(0)
-                , stats(sat_solver.stats_ref())
+                , stats(sat_solver->stats_ref())
                 , declared_n_vars(-1)
                 , declared_n_constrs(-1)
 	            , best_goalvalue(Int_MAX)
                 {}
+
+    ~PbSolver(){
+    	delete(sat_solver);
+    }
 
     // Helpers (semi-internal):
     //

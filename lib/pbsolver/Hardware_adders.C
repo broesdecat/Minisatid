@@ -1,5 +1,4 @@
 #include "Hardware.h"
-#include "Debug.h"
 
 namespace MiniSatPP {
 	

@@ -5,6 +5,9 @@
 #include "PbSolver.h"
 
 namespace MiniSatPP {
+class Solver;
+class Linear;
+class PBOptions;
 //=================================================================================================
 
 
@@ -15,8 +18,8 @@ void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter,boo
 void rippleAdder(const vec<Formula>& xs, const vec<Formula>& ys, vec<Formula>& out);
 void addPb(const vec<Formula>& ps, const vec<Int>& Cs_, vec<Formula>& out, int bits);
 
-void clausify(Solver& s, const vec<Formula>& fs, vec<Lit>& out);
-void clausify(Solver& s, const vec<Formula>& fs);
+void clausify(Solver& s, PBOptions* options, const vec<Formula>& fs, vec<Lit>& out);
+void clausify(Solver& s, PBOptions* options, const vec<Formula>& fs);
 
 
 //=================================================================================================

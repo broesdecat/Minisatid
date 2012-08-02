@@ -7,18 +7,18 @@ endmacro()
 
 addToCXX("-Wno-long-long -Wno-unused-parameter -Wno-unused-result -Wno-strict-aliasing -Wno-vla -Wno-parentheses -Wno-return-type -Wno-variadic-macros")
 
-add_library(pbsolver Main.C
-		Debug.C Hardware_adders.C Hardware_clausify.C
-		Hardware_sorters.C MiniSat.C PbParser.C
+add_library(pbsolver PBOptions.C
+		Hardware_adders.C Hardware_clausify.C
+		Hardware_sorters.C MiniSat.C
 		PbSolver.C PbSolver_convertAdd.C PbSolver_convertBdd.C PbSolver_convert.C
-		PbSolver_convertSort.C SatELite.C
+		PbSolver_convertSort.C
 		ADTs/FEnv.C ADTs/File.C ADTs/Global.C pbbase/src/ForwardSearch.cpp
 		pbbase/src/BNB_oddEven_Cost.cpp pbbase/src/BNB_Comp_Cost.cpp pbbase/src/BNB_SOD_Carry_Cost.cpp
 		pbbase/src/GenralBaseFunctions.cpp pbbase/src/MiniSatOrig.cpp pbbase/src/RelativeBaseSearch.cpp
 		pbbase/src/SearchMetaData.cpp pbbase/src/THeapComp.cpp pbbase/src/THeap.cpp
-		Main.h Hardware.h 
-		Debug.h DebugSolver.h MiniSat.h PbParser.h
-		PbSolver.h SatELite.h Solver.h SolverTypes.h VarOrder.h
+		PBOptions.h Hardware.h 
+		MiniSat.h
+		PbSolver.h SolverTypes.h VarOrder.h
 		ADTs/FEnv.h ADTs/File.h ADTs/Global.h ADTs/Hash_standard.h
 		ADTs/Heap.h ADTs/Int.h ADTs/Map.h ADTs/Sort.h ADTs/StackAlloc.h
 		ADTs/VecAlloc.h ADTs/VecMaps.h

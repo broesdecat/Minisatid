@@ -1,7 +1,6 @@
 #include "MiniSat.h"
 #include "Sort.h"
 #include <cmath>
-#include "Main.h"
 #include <iostream>
 
 namespace MiniSatPP {
@@ -724,24 +723,14 @@ bool Solver::solve(const vec<Lit>& assumps)
             return false; }
     root_level = decisionLevel();
 
-    if (verbosity >= 1){
-        reportf("==================================[MINISAT+]==================================\n");
-        reportf("| %-9s | %-16s | %-32s | %-8s |\n", "Conflicts", "Original", "Learnt", "Progress");
-        reportf("| %9s | %7s %8s | %7s %7s %8s %7s | %8s |\n","", "Clauses","Literals", "Max", "Clauses", "Literals", "LPC", "");
-        reportf("==============================================================================\n");
-    }
-
     while (status == l_Undef){
         if (verbosity >= 1){
-            reportf("| %9d | %7d %8d | %7d %7d %8d %7.1f | %6.3f %% |\n",(int)stats.conflicts,(int)stats.clauses, (int)stats.clauses_literals,(int)nof_learnts, (int)stats.learnts, (int)stats.learnts_literals,(double)stats.learnts_literals / (double)stats.learnts,progress_estimate*100);
             fflush(stdout);
         }
         status = search((int)nof_conflicts, (int)nof_learnts, params);
         nof_conflicts *= 1.5;
         nof_learnts   *= 1.1;
     }
-    if (verbosity >= 1)
-        reportf("==============================================================================\n");
 
     cancelUntil(0);
     return status == l_True;
