@@ -20,9 +20,8 @@
 using namespace std;
 using namespace FZ;
 
-//TODO minisatid generates unsat on kakuro while it is sat (might be translation, might be gecode, but probably translation)
-
-InsertWrapper::InsertWrapper(MinisatID::ExternalConstraintVisitor* store) :storage(new Storage(store)){
+InsertWrapper::InsertWrapper(MinisatID::ExternalConstraintVisitor* store)
+		: storage(new Storage(store)) {
 	name2type["bool2int"] = bool2int;
 	name2type["bool_and"] = booland;
 	name2type["bool_clause"] = boolclause;
@@ -63,7 +62,7 @@ InsertWrapper::InsertWrapper(MinisatID::ExternalConstraintVisitor* store) :stora
 }
 
 InsertWrapper::~InsertWrapper() {
-	delete(storage);
+	delete (storage);
 }
 
 bool InsertWrapper::isCertainlyUnsat() const {
@@ -143,13 +142,13 @@ void InsertWrapper::add(Constraint* var) {
 
 	switch ((*it).second) {
 	case bool2int: {
-		parseArgs(arguments, args, {ARG_BOOL , ARG_INT});
-		storage->addBinI(args[0], args[1], "=", 1);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_INT });
+		storage->addBinI(args[0], args[1], MinisatID::EqType::EQ, 1);
 		break;
 	}
 	case booland: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL,ARG_BOOL});
-		storage->writeEquiv(args[2], {args[0],args[1]}, true);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL, ARG_BOOL });
+		storage->writeEquiv(args[2], { args[0], args[1] }, true);
 		break;
 	}
 	case boolclause: {
@@ -180,156 +179,151 @@ void InsertWrapper::add(Constraint* var) {
 		break;
 	}
 	case booleq: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL});
-		storage->writeEquiv(args[0], {args[1]}, true);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL });
+		storage->writeEquiv(args[0], { args[1] }, true);
 		break;
 	}
 	case booleqr: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL,ARG_BOOL});
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL, ARG_BOOL });
 		int bothtruereif = createOneShotVar();
 		int bothfalsereif = createOneShotVar();
-		storage->writeEquiv(bothtruereif, {args[0],args[1]}, true);
-		storage->writeEquiv(bothfalsereif, {-args[0],-args[1]}, true);
-		storage->writeEquiv(args[2], {bothfalsereif,bothtruereif}, false);
+		storage->writeEquiv(bothtruereif, { args[0], args[1] }, true);
+		storage->writeEquiv(bothfalsereif, { -args[0], -args[1] }, true);
+		storage->writeEquiv(args[2], { bothfalsereif, bothtruereif }, false);
 		break;
 	}
 	case boolle: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL});
-		storage->addClause({args[0], args[1]},{});
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL });
+		storage->addClause( { args[0], args[1] }, { });
 		break;
 	}
 	case booller: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL,ARG_BOOL});
-		storage->writeEquiv(args[2], {-args[0],args[1]}, false);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL, ARG_BOOL });
+		storage->writeEquiv(args[2], { -args[0], args[1] }, false);
 		break;
 	}
 	case boollt: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL});
-		storage->addClause({args[1]},{args[0]});
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL });
+		storage->addClause( { args[1] }, { args[0] });
 		break;
 	}
 	case boolltr: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL,ARG_BOOL});
-		storage->writeEquiv(args[2], {-args[0], args[1]}, true);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL, ARG_BOOL });
+		storage->writeEquiv(args[2], { -args[0], args[1] }, true);
 		break;
 	}
 	case boolnot: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL});
-		storage->writeEquiv(args[1], {-args[0]}, true);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL });
+		storage->writeEquiv(args[1], { -args[0] }, true);
 		break;
 	}
 	case boolor: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL,ARG_BOOL});
-		storage->writeEquiv(args[2], {args[0],args[1]}, false);
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL, ARG_BOOL });
+		storage->writeEquiv(args[2], { args[0], args[1] }, false);
 		break;
 	}
 	case boolxor: {
-		parseArgs(arguments, args, {ARG_BOOL,ARG_BOOL,ARG_BOOL});
+		parseArgs(arguments, args, { ARG_BOOL, ARG_BOOL, ARG_BOOL });
 		auto firstfalsereif = createOneShotVar();
 		auto secondfalsereif = createOneShotVar();
-		storage->writeEquiv(firstfalsereif, {-args[0], args[1]}, true);
-		storage->writeEquiv(secondfalsereif, {args[0],-args[1]}, true);
-		storage->writeEquiv(args[2], {firstfalsereif,secondfalsereif}, false);
+		storage->writeEquiv(firstfalsereif, { -args[0], args[1] }, true);
+		storage->writeEquiv(secondfalsereif, { args[0], -args[1] }, true);
+		storage->writeEquiv(args[2], { firstfalsereif, secondfalsereif }, false);
 		break;
 	}
 	case inteq: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT});
-		storage->addBinT(storage->getTrue(), args[0], "=", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT });
+		storage->addBinT(storage->getTrue(), args[0], MinisatID::EqType::EQ, args[1]);
 		break;
 	}
 	case inteqr: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_BOOL});
-		storage->addBinT(args[2], args[0], "=", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT, ARG_BOOL });
+		storage->addBinT(args[2], args[0], MinisatID::EqType::EQ, args[1]);
 		break;
 	}
 	case intle: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT});
-		storage->addBinT(storage->getTrue(), args[0], "=<", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT });
+		storage->addBinT(storage->getTrue(), args[0], MinisatID::EqType::LEQ, args[1]);
 		break;
 	}
 	case intler: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_BOOL});
-		storage->addBinT(args[2], args[0], "=<", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT, ARG_BOOL });
+		storage->addBinT(args[2], args[0], MinisatID::EqType::LEQ, args[1]);
 		break;
 	}
 	case intlt: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT});
-		storage->addBinT(storage->getTrue(), args[0], "<", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT });
+		storage->addBinT(storage->getTrue(), args[0], MinisatID::EqType::L, args[1]);
 		break;
 	}
 	case intltr: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_BOOL});
-		storage->addBinT(args[2], args[0], "<", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT, ARG_BOOL });
+		storage->addBinT(args[2], args[0], MinisatID::EqType::L, args[1]);
 		break;
 	}
 	case intne: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT});
-		storage->addBinT(storage->getTrue(), args[0], "~=", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT });
+		storage->addBinT(storage->getTrue(), args[0], MinisatID::EqType::NEQ, args[1]);
 		break;
 	}
 	case intner: {
-		parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_BOOL});
-		storage->addBinT(args[2], args[0], "~=", args[1]);
+		parseArgs(arguments, args, { ARG_INT, ARG_INT, ARG_BOOL });
+		storage->addBinT(args[2], args[0], MinisatID::EqType::NEQ, args[1]);
 		break;
 	}
 		//TODO binary/ternary functions
 		/*	case intabs: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
+		 parseArgs(arguments, args, {ARG_INT,ARG_INT});
 		 //theory <<tab() <<"abs(" <<args[0] <<")= " <<args[1] <<endst();
 		 break;}
 		 case intdiv: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
+		 parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_INT});
 		 //theory <<tab() <<args[0] <<" / " <<args[1] <<" = " <<args[2] <<endst();
 		 break;}
 		 case intmax: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
+		 parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_INT});
 		 //theory <<tab() <<"max(" <<args[0] <<", " <<args[1] <<")= " <<args[2]<<endst();
 		 break;}
 		 case intmin: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
+		 parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_INT});
 		 //theory <<tab() <<"min(" <<args[0] <<", " <<args[1] <<")= " <<args[2] <<endst();
 		 break;}
 		 case intmod: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
+		 parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_INT});
 		 //theory <<tab() <<args[0] <<" mod " <<args[1] <<" = " <<args[2] <<endst();
-		 break;}
-		 case intplus: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
-		 //theory <<tab() <<args[0] <<" + " <<args[1] <<" = " <<args[2] <<endst();
-		 break;}
-		 case inttimes: {
-		 types.push_back(ARG_INT); types.push_back(ARG_INT); types.push_back(ARG_INT);
-		 parseArgs(arguments, args, types);
-		 //theory <<tab() <<args[0] <<" * " <<args[1] <<" = " <<args[2] <<endst();
 		 break;}*/
+	case intplus: {
+		parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_INT});
+		storage->addLinear(storage->getTrue(), {args[0], args[1], args[2]}, {1,1,-1}, MinisatID::EqType::EQ, 0);
+		break;
+	}
+	case inttimes: {
+		parseArgs(arguments, args, {ARG_INT,ARG_INT,ARG_INT});
+		// FIXME addLinear(getProduct(), {args[0], args[1]}, args[2]);
+		break;
+	}
 	case intlineq: {
-		storage->addLinear(arguments, "=", false);
+		storage->addLinear(arguments, MinisatID::EqType::EQ, false);
 		break;
 	}
 	case intlineqr: {
-		storage->addLinear(arguments, "=", true);
+		storage->addLinear(arguments, MinisatID::EqType::EQ, true);
 		break;
 	}
 	case intlinle: {
-		storage->addLinear(arguments, "=<", false);
+		storage->addLinear(arguments, MinisatID::EqType::LEQ, false);
 		break;
 	}
 	case intlinler: {
-		storage->addLinear(arguments, "=<", true);
+		storage->addLinear(arguments, MinisatID::EqType::LEQ, true);
 		break;
 	}
 	case intlinne: {
-		storage->addLinear(arguments, "~=", false);
+		storage->addLinear(arguments, MinisatID::EqType::NEQ, false);
 		break;
 	}
 	case intlinner: {
-		storage->addLinear(arguments, "~=", true);
+		storage->addLinear(arguments, MinisatID::EqType::NEQ, true);
 		break;
 	}
 	default:
@@ -339,17 +333,40 @@ void InsertWrapper::add(Constraint* var) {
 	}
 }
 
+MIntVar* InsertWrapper::createNegation(const MIntVar& var){
+	auto newvar = new MIntVar();
+	if(var.range){
+		newvar->range = true;
+		newvar->begin = -var.end;
+		newvar->end = -var.begin;
+	}else{
+		newvar->range = false;
+		for(auto v:var.values){
+			newvar->values.push_back(-v);
+		}
+	}
+	newvar->var = createOneShotVar();
+	storage->writeIntVar(var);
+	storage->addLinear(storage->getTrue(), {var.var, newvar->var}, {1,-1}, MinisatID::EqType::EQ, 0);
+	return newvar;
+}
+
 void InsertWrapper::addOptim(Expression& expr, bool maxim) {
-	MIntVar* intvar;
+	MIntVar* var;
 	if (expr.type == EXPR_ARRAYACCESS) {
-		intvar = getIntVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index);
+		var = getIntVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index);
 	} else if (expr.type == EXPR_IDENT) {
-		intvar = getIntVar(*expr.ident->name);
+		var = getIntVar(*expr.ident->name);
 	} else {
 		throw fzexception("Unexpected type.\n");
 	}
 
-	storage->addMinim(intvar);
+	if (maxim) {
+		auto newvar = createNegation(*var);
+		var = newvar;
+	}
+
+	storage->addMinim(*var);
 }
 
 void InsertWrapper::add(Search* search) {

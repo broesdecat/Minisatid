@@ -73,6 +73,7 @@ private:
 	void addFunc(const std::string& func, const std::vector<Expression*>& origargs);
 	void parseArgs(const std::vector<Expression*>& origargs, std::vector<int>& args, const std::vector<ARG_TYPE>& expectedtypes);
 
+	MIntVar* createNegation(const MIntVar& var);
 	void addOptim(Expression& expr, bool maxim);
 
 public:

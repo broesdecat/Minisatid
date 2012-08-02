@@ -77,7 +77,7 @@ MIntVar* FZ::getIntVar(const string& name) {
 //IMPORTANT: index starts at ONE, so map to 0 based!
 MBoolVar* FZ::getBoolVar(const string& name, int index) {
 	auto it = name2boolarray.find(name);
-	if (it == name2boolarray.end() || (*it).second->vars.size() < index) {
+	if (it == name2boolarray.end() || (*it).second->vars.size() < (uint)index) {
 		throw fzexception("Array was not declared or not initialized.\n");
 	}
 	return (*it).second->vars[index - 1];
@@ -85,7 +85,7 @@ MBoolVar* FZ::getBoolVar(const string& name, int index) {
 
 MIntVar* FZ::getIntVar(const string& name, int index) {
 	auto it = name2intarray.find(name);
-	if (it == name2intarray.end() || (*it).second->vars.size() < index) {
+	if (it == name2intarray.end() || (*it).second->vars.size() < (uint)index) {
 		throw fzexception("Array was not declared or not initialized.\n");
 	}
 	return (*it).second->vars[index - 1];
@@ -107,7 +107,7 @@ int FZ::getVar(const string& name, int index, bool expectbool) {
 	}
 }
 
-void Var::add(Storage& storage) {
+void FZ::Var::add(Storage& storage) {
 	if (type != VAR_BOOL) {
 		throw fzexception("Incorrect type.\n");
 	}
@@ -240,7 +240,7 @@ int FZ::parseInt(Storage& storage, const Expression& expr) {
 	}
 }
 
-int FZ::parseParInt(Storage& storage, const Expression& expr) {
+int FZ::parseParInt(Storage&, const Expression& expr) {
 	if (expr.type == EXPR_INT) {
 		return expr.intlit;
 	} else if (expr.type == EXPR_ARRAYACCESS) {
