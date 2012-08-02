@@ -73,6 +73,7 @@ public:
 
 	virtual Lit getLEQLit(int bound) = 0;
 	virtual Lit getGEQLit(int bound) = 0;
+	Lit getEQLit(int bound);
 };
 
 class BasicIntVar: public IntVar{
@@ -167,6 +168,14 @@ public:
 
 	Lit getGEQLit(int bound) const {
 		return var()->getGEQLit(bound-constdiff());
+	}
+
+	Lit getEQLit(int bound) const{
+		return var()->getEQLit(bound);
+	}
+
+	bool isKnown() const{
+		return minValue()==maxValue();
 	}
 
 	std::string toString() const {

@@ -49,6 +49,12 @@ rClause IntVar::notifypropagate() {
 	return nullPtrClause;
 }
 
+Lit IntVar::getEQLit(int bound){
+	auto head = mkPosLit(getPCSolver().newVar()); // TODO table
+	internalAdd(Implication(head, ImplicationType::EQUIVALENT, {getGEQLit(bound), getLEQLit(bound)}, true), engine());
+	return head;
+}
+
 void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next) {
 	// leq[i] => leq[i+1]
 	if (next!=NULL) {
