@@ -26,20 +26,31 @@ namespace Tests {
 void runWithModelCheck(SolverOption options, const string& instancefile) {
 	auto dirlist = split(instancefile, "/");
 	auto list = split(dirlist.back(), "SAT");
-	ASSERT_EQ(list.size(), (uint)2);
+	ASSERT_EQ((uint)2, list.size());
 	auto expectednbmodels = 0;
 	auto prefix = list.front();
+	bool satcheck = false;
 	if(prefix.size()==2 && tolower(prefix[0])=='u' && tolower(prefix[1])=='n'){
 		expectednbmodels = 0;
 	}else{
-		ASSERT_TRUE(list.front().size()>0);
-		expectednbmodels = atoi(list.front().c_str());
+		if(list.front().size()==0){
+			satcheck = true;
+			expectednbmodels = 1;
+		}else{
+			expectednbmodels = atoi(list.front().c_str());
+		}
 	}
 
-	auto modelsfound = runNoModelCheck(options, instancefile);
-	ASSERT_EQ(modelsfound, expectednbmodels);
+	auto modelsfound = runNoModelCheck(options, instancefile, (expectednbmodels==0?0:expectednbmodels+1));
+	if(satcheck){
+		ASSERT_LT(0, modelsfound);
+	}else{
+		ASSERT_EQ(expectednbmodels, modelsfound);
+	}
 }
-int runNoModelCheck(SolverOption options, const std::string& instancefile) {
+
+int runNoModelCheck(SolverOption options, const std::string& instancefile, int findatmost) {
+	options.nbmodels = findatmost;
 	Space s(options);
 	parseAndInitializeTheory(instancefile, &s);
 
