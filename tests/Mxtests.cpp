@@ -78,7 +78,14 @@ class ECNFErrorFileTests: public ::testing::TestWithParam<string> {
 };
 
 TEST_P(MXFileTests, ECNF) {
-	runWithModelCheck(createMXOptions(InputFormat::FODOT), GetParam());
+	auto options = createMXOptions(InputFormat::FODOT);
+	runWithModelCheck(options, GetParam());
+}
+
+TEST_P(MXFileTests, ECNFToCNF) {
+	auto options = createMXOptions(InputFormat::FODOT);
+	options.tocnf = true;
+	runWithModelCheck(options, GetParam());
 }
 
 TEST_P(MXFileTests, ECNFFullWatches) {
