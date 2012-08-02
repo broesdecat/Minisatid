@@ -260,7 +260,9 @@ private:
 		return *queue;
 	}
 public:
+	// IMPORTANT: EACH PROPAGATOR SHOULD DO THIS ONLY ONCE!!!
 	void accept(Propagator* propagator);
+
 	void accept(GenWatch* const watch);
 	void acceptForPropagation(Propagator* propagator);
 	void accept(Propagator* propagator, EVENT event);

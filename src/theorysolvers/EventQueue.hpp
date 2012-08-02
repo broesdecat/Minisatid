@@ -59,6 +59,7 @@ public:
 	virtual ~EventQueue();
 
 	// NOTE: EACH propagator has to register here for the general methods
+	// IMPORTANT: EACH PROPAGATOR SHOULD DO THIS ONLY ONCE!!!
 	void accept(Propagator* propagator);
 
 	void acceptForPropagation(Propagator* propagator){
