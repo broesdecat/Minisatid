@@ -51,6 +51,7 @@ public:
 	bool rnd_pol; // Use random polarities for branching heuristics.
 	int max_learned_clauses;
 	bool oneshot, assumpset;
+	bool fullmodelcheck; // If true, check whether all clauses are satisfied when a model is found.
 
 	void setInitialPolarity(Var var, bool pol) {
 		polarity[var] = pol;

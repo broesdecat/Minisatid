@@ -64,7 +64,9 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 
 Solver::Solver(PCSolver* s, bool oneshot)
 		: Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), needsimplify(true),
+			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false),
+			fullmodelcheck(false),
+			needsimplify(true),
 			backtracked(true),
 
 			clause_decay(opt_clause_decay),
@@ -1420,25 +1422,25 @@ lbool Solver::solve(bool nosearch) {
 		for (int i = 0; i < nVars(); i++) {
 			model[i] = value(mkPosLit(i));
 		}
-#ifndef NDEBUG
-		for (int i = 0; i < nbClauses(); ++i) {
-			auto c = getClause(i);
-			bool clausetrue = false, clauseHasNonFalseDecidable = false;
-			for (int j = 0; j < getClauseSize(c); ++j) {
-				if (not isFalse(getClauseLit(c, j)) && isDecisionVar(var(getClauseLit(c, j)))) {
-					clauseHasNonFalseDecidable = true;
+		if(fullmodelcheck){
+			for (int i = 0; i < nbClauses(); ++i) {
+				auto c = getClause(i);
+				bool clausetrue = false, clauseHasNonFalseDecidable = false;
+				for (int j = 0; j < getClauseSize(c); ++j) {
+					if (not isFalse(getClauseLit(c, j)) && isDecisionVar(var(getClauseLit(c, j)))) {
+						clauseHasNonFalseDecidable = true;
+					}
+					if (isTrue(getClauseLit(c, j))) {
+						clausetrue = true;
+					}
 				}
-				if (isTrue(getClauseLit(c, j))) {
-					clausetrue = true;
+				if (not clausetrue || not clauseHasNonFalseDecidable) {
+					clog << (clausetrue ? "True" : "False") << ", " << (clauseHasNonFalseDecidable ? "decidable" : "undecidable") << " clause ";
+					printClause(c);
 				}
+				MAssert(clausetrue && clauseHasNonFalseDecidable);
 			}
-			if (not clausetrue || not clauseHasNonFalseDecidable) {
-				clog << (clausetrue ? "True" : "False") << ", " << (clauseHasNonFalseDecidable ? "decidable" : "undecidable") << " clause ";
-				printClause(c);
-			}
-			MAssert(clausetrue && clauseHasNonFalseDecidable);
 		}
-#endif
 	} else if (status == l_False && conflict.size() == 0) {
 		ok = false;
 	}
