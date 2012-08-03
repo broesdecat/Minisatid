@@ -258,7 +258,7 @@ uint EventQueue::size(EVENT event) const {
 	return event2propagator.at(event).size();
 }
 
-void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
+void EventQueue::acceptForDecidable(Atom v, Propagator* prop) {
 	MAssert((uint)v<var2decidable.size());
 	if (not getPCSolver().isDecisionVar(v)) {
 		var2decidable[v].push_back(prop);
@@ -267,7 +267,7 @@ void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
 	}
 }
 
-void EventQueue::notifyBecameDecidable(Var v) {
+void EventQueue::notifyBecameDecidable(Atom v) {
 	MAssert((uint)v<var2decidable.size());
 	for (auto i = var2decidable[v].cbegin(); i < var2decidable[v].cend(); ++i) {
 		fastqueue.push_back(*i);

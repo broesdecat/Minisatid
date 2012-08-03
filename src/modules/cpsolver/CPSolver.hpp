@@ -34,7 +34,7 @@ class LitTrail {
 private:
 	std::vector<std::vector<Lit>::size_type> trailindexoflevel;
 	std::vector<Lit> trail;
-	std::map<Var, lbool> values;
+	std::map<Atom, lbool> values;
 
 public:
 	LitTrail();
@@ -70,7 +70,7 @@ private:
 	bool searchedandnobacktrack;
 	Gecode::DFS<CPScript>* savedsearchengine;
 
-	std::set<Var> heads;
+	std::set<Atom> heads;
 
 	bool fullassignmentfound;
 

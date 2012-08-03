@@ -14,14 +14,14 @@
 using namespace MinisatID;
 using namespace std;
 
-BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, Var h)
+BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, Atom h)
 		: Propagator(engine, "binary constraint") {
 	switch (comp) {
 	case EqType::EQ: {
 		auto lefthead = getPCSolver().newVar();
 		auto righthead = getPCSolver().newVar();
 		internalAdd(Implication(mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, true), getPCSolver());
-		internalAdd(CPBinaryRelVar(righthead, _left->origid(), EqType::GEQ, _right->origid()), getPCSolver());
+		internalAdd(CPBinaryRelVar(righthead, _left->id(), EqType::GEQ, _right->id()), getPCSolver());
 		head_ = mkPosLit(lefthead);
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, 0);
@@ -31,7 +31,7 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp,
 		auto lefthead = getPCSolver().newVar();
 		auto righthead = getPCSolver().newVar();
 		internalAdd(Implication(mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, false), getPCSolver());
-		internalAdd(CPBinaryRelVar(righthead, _left->origid(), EqType::G, _right->origid()), getPCSolver());
+		internalAdd(CPBinaryRelVar(righthead, _left->id(), EqType::G, _right->id()), getPCSolver());
 		head_ = mkPosLit(lefthead);
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, -1);

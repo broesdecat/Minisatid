@@ -42,7 +42,8 @@ public:
 	VarCreation(Remapper* r)
 			: remapper(r) {
 	}
-	Var createVar();
+	uint createID();
+	Atom createVar();
 };
 
 class Space: public ExternalConstraintVisitor{

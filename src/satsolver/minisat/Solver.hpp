@@ -53,7 +53,7 @@ public:
 	bool oneshot, assumpset;
 	bool fullmodelcheck; // If true, check whether all clauses are satisfied when a model is found.
 
-	void setInitialPolarity(Var var, bool pol) {
+	void setInitialPolarity(Atom var, bool pol) {
 		polarity[var] = pol;
 	}
 
@@ -111,13 +111,13 @@ private:
 
 	std::list<ReverseTrailElem> rootunitlits;
 	std::set<Lit> savedrootlits;
-	std::vector<Var> newvars;
+	std::vector<Atom> newvars;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
 	void removeClause(CRef cr); // Detach and free a clause.
 	void checkedEnqueue(Lit p, CRef from = CRef_Undef); // Enqueue a literal if it is not already true
 public:
-	CRef reason(Var x) const;
+	CRef reason(Atom x) const;
 
 	bool isUnsat() const {
 		return not ok;
@@ -125,7 +125,7 @@ public:
 	void notifyUnsat() {
 		ok = false;
 	}
-	int printECNF(std::ostream& stream, std::set<Var>& printedvars); // Returns the number of clauses that were added
+	int printECNF(std::ostream& stream, std::set<Atom>& printedvars); // Returns the number of clauses that were added
 
 private:
 	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
@@ -174,16 +174,16 @@ public:
 	int getStartLastLevel() const {
 		return trail_lim.size() == 0 ? 0 : trail_lim.last();
 	}
-	void varBumpActivity(Var v); // Increase a variable with the current 'bump' value.
-	void varReduceActivity(Var v);
+	void varBumpActivity(Atom v); // Increase a variable with the current 'bump' value.
+	void varReduceActivity(Atom v);
 
 	uint64_t nbVars() const; // The current number of variables.
 
-	bool isDecisionVar(Var v) const {
+	bool isDecisionVar(Atom v) const {
 		MAssert(v<decision.size());
 		return decision[v];
 	}
-	void setDecidable(Var v, bool decide);
+	void setDecidable(Atom v, bool decide);
 
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
 
@@ -211,15 +211,15 @@ public:
 		throw MinisatID::idpexception("Invalid operation on propagator.");
 	}
 
-	bool isDecided(Var v);
+	bool isDecided(Atom v);
 
-	int getLevel(Var x) const;
+	int getLevel(Atom x) const;
 
 	Solver(MinisatID::PCSolver* s, bool oneshot);
 	virtual ~Solver();
 
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
-	Var newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
+	Atom newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
 
 	void setAssumptions(const std::vector<Lit>& assumps);
 	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
@@ -293,7 +293,7 @@ protected:
 
 	struct VarOrderLt {
 		const vec<double>& activity;
-		bool operator ()(Var x, Var y) const {
+		bool operator ()(Atom x, Atom y) const {
 			return activity[x] > activity[y];
 		}
 		VarOrderLt(const vec<double>& act)
@@ -340,7 +340,7 @@ protected:
 	bool savedok;
 	uint roottraillim;
 
-	void insertVarOrder(Var x); // Insert a variable in the decision order priority queue.
+	void insertVarOrder(Atom x); // Insert a variable in the decision order priority queue.
 	Lit pickBranchLit(); // Return the next decision variable.
 	void createNewDecisionLevel(); // Begins a new decision level.
 	bool enqueue(Lit p, CRef from = CRef_Undef); // Test if fact 'p' contradicts current state, enqueue otherwise.
@@ -354,7 +354,7 @@ protected:
 	void rebuildOrderHeap();
 
 	// Maintaining Variable/Clause activity
-	void varBumpActivity(Var v, double inc); // Increase a variable with the current 'bump' value.
+	void varBumpActivity(Atom v, double inc); // Increase a variable with the current 'bump' value.
 	void claBumpActivity(Clause& c); // Increase a clause with the current 'bump' value.
 
 	// Operations on clauses
@@ -366,7 +366,7 @@ protected:
 	void relocAll(ClauseAllocator& to);
 
 	// Misc
-	uint32_t abstractLevel(Var x) const; // Used to represent an abstraction of sets of decision levels.
+	uint32_t abstractLevel(Atom x) const; // Used to represent an abstraction of sets of decision levels.
 
 	void checkDecisionVars(const Clause& c);
 
@@ -389,14 +389,14 @@ protected:
 //=================================================================================================
 // Implementation of inline methods:
 
-inline CRef Solver::reason(Var x) const {
+inline CRef Solver::reason(Atom x) const {
 	return vardata[x].reason;
 }
-inline int Solver::getLevel(Var x) const {
+inline int Solver::getLevel(Atom x) const {
 	return vardata[x].level;
 }
 
-inline void Solver::insertVarOrder(Var x) {
+inline void Solver::insertVarOrder(Atom x) {
 	if (!order_heap.inHeap(x) && decision[x])
 		order_heap.insert(x);
 }
@@ -404,13 +404,13 @@ inline void Solver::insertVarOrder(Var x) {
 inline void Solver::varDecayActivity() {
 	var_inc *= (1 / var_decay);
 }
-inline void Solver::varBumpActivity(Var v) {
+inline void Solver::varBumpActivity(Atom v) {
 	varBumpActivity(v, var_inc);
 }
-inline void Solver::varReduceActivity(Var v) {
+inline void Solver::varReduceActivity(Atom v) {
 	varBumpActivity(v, -var_inc);
 }
-inline void Solver::varBumpActivity(Var v, double inc) {
+inline void Solver::varBumpActivity(Atom v, double inc) {
 	if ((activity[v] += inc) > 1e100) {
 		// Rescale:
 		for (int i = 0; i < nVars(); i++)
@@ -454,7 +454,7 @@ inline bool Solver::locked(const Clause& c) const {
 inline int Solver::decisionLevel() const {
 	return trail_lim.size();
 }
-inline uint32_t Solver::abstractLevel(Var x) const {
+inline uint32_t Solver::abstractLevel(Atom x) const {
 	return 1 << (getLevel(x) & 31);
 }
 inline lbool Solver::value(Lit p) const {

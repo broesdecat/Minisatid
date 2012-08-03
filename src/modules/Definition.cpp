@@ -24,7 +24,7 @@ void Definition::addToPropagators() {
 			r.push_back(i->second);
 		}
 		getIDSolver(ruleset->first)->addRuleSet(r);
-		deleteList<TempRule, Var>(ruleset->second);
+		deleteList<TempRule, Atom>(ruleset->second);
 	}
 }
 
@@ -51,7 +51,7 @@ void Definition::addDefinedAggregate(const Aggregate& inneragg, const WLSet& inn
 	prevrule->body.push_back(mkPosLit(newvar));
 }
 
-void Definition::addRule(int defID, bool conj, Var head, const litlist& ps) {
+void Definition::addRule(int defID, bool conj, Atom head, const litlist& ps) {
 	auto& def = rules[defID];
 	auto it = def.find(head);
 	if (it == def.cend()) {

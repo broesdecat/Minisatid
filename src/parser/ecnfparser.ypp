@@ -66,7 +66,7 @@
 	void CR(Wrapper& wrapper, const T& formula);
 	
 	MinisatID::Atom cAtom(string* c);
-	MinisatID::Literal cLiteral(string* c);
+	MinisatID::Lit cLiteral(string* c);
 	MinisatID::Weight cWeight(string* s);
 	int cID(string* c);
 	
@@ -108,7 +108,7 @@
     std::vector<int>* vints;
     std::vector<MinisatID::Weight>* vweights;
     std::vector<uint>* vuints;
-    std::vector<MinisatID::Literal>* vlits;
+    std::vector<MinisatID::Lit>* vlits;
     std::vector<MinisatID::WLtuple>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
     MinisatID::EqType rel;
@@ -116,7 +116,7 @@
     MinisatID::AggType aggr;
     MinisatID::AggSign sign;
     MinisatID::AggSem sem;
-    std::vector<std::vector<MinisatID::Literal> >* DCNSymmetry;
+    std::vector<std::vector<MinisatID::Lit> >* DCNSymmetry;
 	std::vector<std::string>*	vstr;
 }
 
@@ -359,13 +359,13 @@ symmetry
 			}
 		| CYCLESTART cycle CYCLEEND
 			{
-				$$ = new std::vector<std::vector<MinisatID::Literal> >(1,*$2);
+				$$ = new std::vector<std::vector<MinisatID::Lit> >(1,*$2);
 			}
 		;
 			
 
 cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete($3); }
-		|	NUMBER				{ $$ = new std::vector<MinisatID::Literal>(1,cLiteral($1));	}
+		|	NUMBER				{ $$ = new std::vector<MinisatID::Lit>(1,cLiteral($1));	}
 		;
 		
 		
@@ -514,7 +514,7 @@ identifier	: T_ID	{ $$ = $1;	}
 			
 //Clauses can be empty!
 body	:	body NUMBER { $$ = $1; $$->push_back(cLiteral($2));	delete($2); }
-		|				{ $$ = new std::vector<MinisatID::Literal>();	}
+		|				{ $$ = new std::vector<MinisatID::Lit>();	}
 		;
 		
 wbody	:	wbody NUMBER REL 
@@ -584,7 +584,7 @@ int cID(string* c){
 	return i;
 }
 
-Literal cLiteral(string* c){
+Lit cLiteral(string* c){
 	int i = atoi(c->c_str());
 	return mkLit(abs(i), i<0);
 }

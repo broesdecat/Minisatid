@@ -63,13 +63,13 @@ IDSolver::~IDSolver() {
 	deleteList<DefinedVar>(definitions);
 }
 
-void IDSolver::createDefinition(Var head, PropRule* r, DefType type) {
+void IDSolver::createDefinition(Atom head, PropRule* r, DefType type) {
 	MAssert(not hasDefVar(head));
 	defdVars.push_back(head);
 	setDefVar(head, new DefinedVar(r, type));
 	MAssert(isDefined(head));
 }
-void IDSolver::createDefinition(Var head, IDAgg* agg) {
+void IDSolver::createDefinition(Atom head, IDAgg* agg) {
 	MAssert(not hasDefVar(head));
 	defdVars.push_back(head);
 	setDefVar(head, new DefinedVar(agg));
@@ -79,7 +79,7 @@ int IDSolver::getNbOfFormulas() const {
 	return defdVars.size() == 0 ? 0 : defdVars.size() * log((double) defdVars.size()) / log(2);
 }
 
-inline void IDSolver::addCycleSource(Var v) {
+inline void IDSolver::addCycleSource(Atom v) {
 	if (!isCS(v)) {
 		isCS(v) = true;
 		css.push_back(v);
@@ -92,7 +92,7 @@ inline void IDSolver::clearCycleSources() {
 	css.clear();
 }
 
-void IDSolver::adaptStructsToHead(Var) {
+void IDSolver::adaptStructsToHead(Atom) {
 	nbvars = nVars();
 	definitions.resize(nbvars, NULL);
 }
@@ -233,7 +233,7 @@ void IDSolver::initialize() {
 	int atoms_in_pos_loops = 0;
 	varlist reducedVars;
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
+		Atom v = (*i);
 
 		bool addtonetwork = false;
 		if (loopPossibleOver(v)) { //might be in pos loop
@@ -322,7 +322,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 
 	varlist usedseen; //stores which elements in the "seen" datastructure we adapted to reset them later on
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
+		Atom v = (*i);
 		if (isFalse(mkPosLit(v))) {
 			continue;
 		}
@@ -389,7 +389,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		ss << "Initialization of justification makes these atoms false: [";
 	}
 
-	set<Var> test;
+	set<Atom> test;
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		if (test.find(*i) != test.cend()) {
 			MAssert(false);
@@ -406,7 +406,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 	posrecagg = false;
 	mixedrecagg = false;
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
+		Atom v = (*i);
 		if (occ(v) == NONDEFOCC) {
 			continue; // Not defined at the moment, but might be later on if lazy
 		}
@@ -463,7 +463,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 	conj.resize(2 * nVars());
 	aggr.resize(2 * nVars());
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
+		Atom v = (*i);
 		if (type(v) == DefType::CONJ || type(v) == DefType::DISJ) {
 			auto dfn = *definition(v);
 			for (auto litit = dfn.cbegin(); litit < dfn.cend(); ++litit) {
@@ -510,7 +510,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 	}
 	int count = 0;
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var var = *i;
+		Atom var = *i;
 		MAssert(hasDefVar(var));
 		//MAssert(justification(var).size()>0 || type(var)!=DefType::DISJ || occ(var)==MIXEDLOOP); FIXME lazy grounding hack (because invar that def gets deleted)
 
@@ -599,7 +599,7 @@ void IDSolver::generateSCCs() {
 	}
 }
 
-bool IDSolver::loopPossibleOver(Var v) {
+bool IDSolver::loopPossibleOver(Atom v) {
 	DefType t = type(v);
 	switch (t) {
 	case DefType::DISJ:
@@ -623,7 +623,7 @@ bool IDSolver::loopPossibleOver(Var v) {
 	return false;
 }
 
-void IDSolver::addToNetwork(Var v) {
+void IDSolver::addToNetwork(Atom v) {
 	//IMPORTANT: also add mixed loop rules to the network for checking well-founded model
 	//could be moved to different datastructure to speed up
 	switch (type(v)) {
@@ -671,7 +671,7 @@ void IDSolver::addToNetwork(Var v) {
 void IDSolver::bumpHeadHeuristic() {
 	//This heuristic on its own solves hamiltonian path for slow decay
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		const Var& v = *i;
+		const Atom& v = *i;
 		if (isDefined(v) && type(v) == DefType::DISJ) {
 			const PropRule& r = *definition(v);
 			for (uint j = 0; j < r.size(); ++j) {
@@ -683,7 +683,7 @@ void IDSolver::bumpHeadHeuristic() {
 
 SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 	bool unsat = false;
-	map<Var, std::vector<Var> > root2sccs;
+	map<Atom, std::vector<Atom> > root2sccs;
 	for (auto root : sccroots) {
 		MAssert(isDefined(root));
 		bool hasaggs = true;
@@ -724,7 +724,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 	return unsat ? SATVAL::UNSAT : SATVAL::POS_SAT;
 }
 
-void IDSolver::removeDefinition(Var head) {
+void IDSolver::removeDefinition(Atom head) {
 	if (modes().lazy) { // NOTE: it might not currently be in a loop, but might be in future when more rules are added
 		return;
 	}
@@ -738,7 +738,7 @@ void IDSolver::removeDefinition(Var head) {
  * @post: root will be a partition that will be the exact partition of SCCs, by setting everything on the stack to the same root in the end
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
-void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, bool throughPositiveLit, varlist& posroots,
+void IDSolver::visitFull(Atom i, vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, bool throughPositiveLit, varlist& posroots,
 		varlist& rootofmixed, varlist& nodeinmixed) {
 	MAssert(!incomp[i]);
 	MAssert(isDefined(i));
@@ -818,7 +818,7 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
  * @post: root will be a partition that will be the exact partition of SCCs, by setting everything on the stack to the same root in the end
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
-void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, varlist& roots) {
+void IDSolver::visit(Atom i, vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, varlist& roots) {
 	MAssert(scc(i)>=0 && scc(i)<nbvars);
 	MAssert(!incomp[i]);
 	visited[i] = ++counter;
@@ -897,7 +897,7 @@ void IDSolver::propagateJustificationDisj(const Lit& l, vector<litlist>& jstf, l
 void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) {
 	const varlist& ll = conj.occurs(l);
 	for (auto i = ll.cbegin(); i < ll.cend(); ++i) {
-		const Var& v = *i;
+		const Atom& v = *i;
 		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
@@ -911,7 +911,7 @@ void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) 
 void IDSolver::propagateJustificationConj(const Lit& l, litlist& heads) {
 	const varlist& ll = conj.occurs(l);
 	for (auto i = ll.cbegin(); i < ll.cend(); ++i) {
-		const Var& v = *i;
+		const Atom& v = *i;
 		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
@@ -929,7 +929,7 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
 			continue;
 		}
 
-		Var head = var(agg.getHead());
+		Atom head = var(agg.getHead());
 		if (seen(head) > 0) { //only check its body for justification when it has not yet been derived
 			litlist jstf;
 			varlist nonjstf;
@@ -985,7 +985,7 @@ rClause IDSolver::notifypropagate() {
 
 	uint64_t old_justify_calls = stats.justify_calls;
 
-	std::set<Var> ufs;
+	std::set<Atom> ufs;
 	rClause confl = nullPtrClause;
 	bool ufs_found = false;
 	for (auto j = css.cbegin(); confl == nullPtrClause && j < css.cend(); ++j) {
@@ -1102,7 +1102,7 @@ void IDSolver::findCycleSources() {
 	stats.cycle_sources += css.size();
 }
 
-void IDSolver::checkJustification(Var head) {
+void IDSolver::checkJustification(Atom head) {
 	if (!isDefInPosGraph(head) || isFalse(mkPosLit(head)) || isCS(head)) {
 		return;
 	}
@@ -1126,6 +1126,7 @@ void IDSolver::checkJustification(Var head) {
 
 	if (type(head) == DefType::DISJ) {
 		findJustificationDisj(head, jstf);
+		MAssert(jstf.size()>0);
 	} else {
 		MAssert(type(head)==DefType::AGGR);
 		findJustificationAggr(head, jstf);
@@ -1135,7 +1136,6 @@ void IDSolver::checkJustification(Var head) {
 			external = false;
 		}
 	}
-	MAssert(jstf.size()>0);
 	if (external) {
 		changejust(head, jstf);
 	} else {
@@ -1147,7 +1147,7 @@ void IDSolver::checkJustification(Var head) {
  * Looks for a justification for the given var. Attempts to find one that is not within the same positive dependency
  * graph scc (and certainly not false).
  */
-void IDSolver::findJustificationDisj(Var v, litlist& jstf) {
+void IDSolver::findJustificationDisj(Atom v, litlist& jstf) {
 	const PropRule& c = *definition(v);
 	int pos = -1;
 	for (uint i = 0; i < c.size(); ++i) {
@@ -1185,11 +1185,11 @@ bool IDSolver::shouldCheckPropagation() {
  * the justification of the cycle source can be safely changed. If a loop is found, the cycle source becomes
  * false, so its justification can be kept to the original one, which will be correct when backtracking.
  */
-bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
+bool IDSolver::unfounded(Atom cs, std::set<Atom>& ufs) {
 	++stats.justify_calls;
 	varlist tmpseen; // use to speed up the cleaning of data structures in "Finish"
-	queue<Var> q;
-	Var v;
+	queue<Atom> q;
+	Atom v;
 
 #ifdef DEBUG
 	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
@@ -1264,7 +1264,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 inline bool IDSolver::isJustified(const InterMediateDataStruct& currentjust, Lit x) const {
 	return isJustified(currentjust, var(x)) || !isPositive(x);
 }
-inline bool IDSolver::isJustified(const InterMediateDataStruct& currentjust, Var x) const {
+inline bool IDSolver::isJustified(const InterMediateDataStruct& currentjust, Atom x) const {
 	return currentjust.hasElem(x) && currentjust.getElem(x) == 0;
 }
 inline bool IDSolver::oppositeIsJustified(const InterMediateDataStruct& currentjust, const WL& l, bool real) const {
@@ -1285,7 +1285,7 @@ inline bool IDSolver::isJustified(const InterMediateDataStruct& currentjust, con
 /**
  * Checks whether there is a justification for v given the current justification counters
  */
-bool IDSolver::findJustificationDisj(Var v, litlist& jstf, varlist& nonjstf) {
+bool IDSolver::findJustificationDisj(Atom v, litlist& jstf, varlist& nonjstf) {
 	const PropRule& c = *definition(v);
 	bool externallyjustified = false;
 	seen(v) = 1;
@@ -1315,7 +1315,7 @@ bool IDSolver::findJustificationDisj(Var v, litlist& jstf, varlist& nonjstf) {
 	return seen(v) == 0;
 }
 
-bool IDSolver::findJustificationConj(Var v, litlist&, varlist& nonjstf) {
+bool IDSolver::findJustificationConj(Atom v, litlist&, varlist& nonjstf) {
 	const PropRule& c = *definition(v);
 	seen(v) = 0;
 	for (uint i = 0; i < c.size(); ++i) {
@@ -1327,7 +1327,7 @@ bool IDSolver::findJustificationConj(Var v, litlist&, varlist& nonjstf) {
 	return seen(v) == 0;
 }
 
-bool IDSolver::findJustificationAggr(Var v, litlist& jstf, varlist& nonjstf) {
+bool IDSolver::findJustificationAggr(Atom v, litlist& jstf, varlist& nonjstf) {
 	seen(v) = 1; //used as boolean (0 is justified, 1 is not)
 	if (directlyJustifiable(v, jstf, nonjstf, *_seen)) {
 		seen(v) = 0;
@@ -1342,7 +1342,7 @@ bool IDSolver::findJustificationAggr(Var v, litlist& jstf, varlist& nonjstf) {
  * @Post: v is now justified if a justification can be found based on the current seen vector
  * @Returns: true if v is now justified
  */
-bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, queue<Var>& q) {
+bool IDSolver::directlyJustifiable(Atom v, std::set<Atom>& ufs, queue<Atom>& q) {
 	litlist jstf;
 	varlist nonjstf;
 	bool justified;
@@ -1391,11 +1391,11 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, queue<Var>& q) {
  *
  * Returns true if cs is now justified (and no longer a cycle source)
  */
-bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
+bool IDSolver::propagateJustified(Atom v, Atom cs, std::set<Atom>& ufs) {
 	varlist justifiedq;
 	justifiedq.push_back(v); // literals that have to be justified
 	while (justifiedq.size() > 0) {
-		Var k = justifiedq.back();
+		Atom k = justifiedq.back();
 		justifiedq.pop_back();
 
 		// Make it justified.
@@ -1437,7 +1437,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 }
 
 // Change sp_justification: v is now justified by j.
-void IDSolver::changejust(Var v, litlist& just) {
+void IDSolver::changejust(Atom v, litlist& just) {
 	MAssert(just.size()>0 || type(v)==DefType::AGGR);
 	//justification can be empty for aggregates
 	justification(v) = just;
@@ -1450,7 +1450,7 @@ void IDSolver::changejust(Var v, litlist& just) {
  * Given an unfounded sets, constructs the loop formula:
  * the set of all relevant external literals of the rules with heads in the unfounded set.
  */
-void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf) {
+void IDSolver::addExternalDisjuncts(const std::set<Atom>& ufs, litlist& loopf) {
 #ifdef DEBUG
 	MAssert(loopf.size()==1); //Space for the head/new variable
 	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should be cleared
@@ -1463,7 +1463,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf) {
 	//seen(A)==2 indicates that not A has been added
 	//Both can be added once, because of the assumption that a rule has been simplified to only contain any of them once
 
-	for (std::set<Var>::const_iterator tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
+	for (std::set<Atom>::const_iterator tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
 		switch (type(*tch)) {
 		case DefType::CONJ: //
 			break;
@@ -1506,7 +1506,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf) {
  *
  * Returns a non-owning pointer
  */
-rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
+rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 	MAssert(!ufs.empty());
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
@@ -1634,11 +1634,11 @@ rClause IDSolver::getExplanation(const Lit& l) {
 /* Precondition:  seen(i)==0 for each i.
  * Postcondition: seen(i)  for exactly those i that are ancestors of cs in sp_justification. If modes.defn_search==stop_at_cs, there should not be other cycle sources then cs in the path from added literals to cs.
  */
-void IDSolver::markNonJustified(Var cs, varlist& tmpseen) {
-	queue<Var> q;
+void IDSolver::markNonJustified(Atom cs, varlist& tmpseen) {
+	queue<Atom> q;
 	markNonJustifiedAddParents(cs, cs, q, tmpseen);
 	// Now recursively do the same with each enqueued Var.
-	Var x;
+	Atom x;
 	while (q.size() > 0) {
 		x = q.front();
 		q.pop();
@@ -1646,7 +1646,7 @@ void IDSolver::markNonJustified(Var cs, varlist& tmpseen) {
 	}
 }
 
-void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, varlist& tmpseen) {
+void IDSolver::markNonJustifiedAddParents(Atom x, Atom cs, queue<Atom> &q, varlist& tmpseen) {
 	Lit poslit = mkPosLit(x);
 	const varlist& v = disj.occurs(poslit);
 	for (auto i = v.cbegin(); i < v.cend(); ++i) {
@@ -1670,7 +1670,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, varlist&
 	}
 }
 
-inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varlist& tmpseen) {
+inline void IDSolver::markNonJustifiedAddVar(Atom v, Atom cs, queue<Atom> &q, varlist& tmpseen) {
 	// TODO prove whether this false can be here?
 	if (/*!isFalse(v) && */inSameSCC(v, cs) && (getPCSolver().modes().defn_search == include_cs || v == cs || !isCS(v))) {
 		if (seen(v) == 0) {
@@ -1791,7 +1791,7 @@ bool IDSolver::isCycleFree() const {
 		}
 
 		for (auto i = disj.occurs(l).cbegin(); i < disj.occurs(l).cend(); ++i) {
-			Var d = *i;
+			Atom d = *i;
 			MAssert(type(d)==DefType::DISJ && (!isDefInPosGraph(*i) || justification(d).size()==1));
 			if (isfree[d] > 0 && justification(d)[0] == l) {
 				MAssert(isfree[d]==1);
@@ -1803,7 +1803,7 @@ bool IDSolver::isCycleFree() const {
 		}
 
 		for (auto i = conj.occurs(l).cbegin(); i < conj.occurs(l).cend(); ++i) {
-			Var c = *i;
+			Atom c = *i;
 			MAssert(type(c)==DefType::CONJ);
 			if (isfree[c] > 0) {
 				isfree[c]--;
@@ -1817,7 +1817,7 @@ bool IDSolver::isCycleFree() const {
 
 		varlist as = getDefAggHeadsWithBodyLit(var(l));
 		for (uint i = 0; i < as.size(); ++i) {
-			Var d = as[i];
+			Atom d = as[i];
 			bool found = false;
 			for (uint j = 0; j < justification(d).size(); ++j) {
 				if (justification(d)[j] == l && isfree[d] > 0) {
@@ -1989,19 +1989,19 @@ rClause IDSolver::isWellFoundedModel() {
  */
 void IDSolver::findMixedCycles(varlist &root, vector<int>& rootofmixed) {
 	vector<bool> incomp(nbvars, false);
-	stack<Var> stack;
+	stack<Atom> stack;
 	vector<int> visited(nbvars, 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
 	int counter = 1;
 
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = *i;
+		Atom v = *i;
 		if (visited[v] == 0) {
 			visitWF(v, root, incomp, stack, visited, counter, true, rootofmixed);
 		}
 	}
 }
 
-void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &stack, varlist &visited, int& counter, bool throughPositiveLit,
+void IDSolver::visitWF(Atom v, varlist &root, vector<bool> &incomp, stack<Atom> &stack, varlist &visited, int& counter, bool throughPositiveLit,
 		vector<int>& rootofmixed) {
 	MAssert(!incomp[v]);
 	MAssert(isDefined(v));
@@ -2038,7 +2038,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		//head is false and disj, or head is true and conj: all body literals are its justification
 		for (uint i = 0; i < definition(v)->size(); ++i) {
 			Lit l = definition(v)->operator [](i);
-			Var w = var(l);
+			Atom w = var(l);
 			if (not DEFINEDINMIXED(w)) {
 				continue;
 			}
@@ -2074,7 +2074,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 			}
 		}
 		MAssert(var(l)>-1);
-		Var w = var(l);
+		Atom w = var(l);
 		if (DEFINEDINMIXED(w)) {
 			if (visited[w] == 0) {
 				visitWF(w, root, incomp, stack, visited, counter, isPositive(l), rootofmixed);
@@ -2115,7 +2115,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 /**
  * Marks the head of a rule
  */
-void IDSolver::mark(Var h) {
+void IDSolver::mark(Atom h) {
 	Lit l = mkLit(h, isFalse(mkPosLit(h))); //holds the literal that has to be propagated, so has the model value
 	if (!wfisMarked[h] && getDefVar(h)->type() != DefType::AGGR) { //FIXME: initializecounters cannot handle aggregates, but at this moment we know they will not be recursive!
 		wfqueue.push(l);
@@ -2129,7 +2129,7 @@ void IDSolver::mark(Var h) {
  */
 void IDSolver::markUpward() {
 	for (varlist::size_type n = 0; n < wfrootnodes.size(); ++n) {
-		Var temp = wfrootnodes[n];
+		Atom temp = wfrootnodes[n];
 		mark(temp);
 	}
 
@@ -2173,7 +2173,7 @@ void IDSolver::markUpward() {
  */
 void IDSolver::initializeCounters() {
 	for (auto i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
-		Var v = *i;
+		Atom v = *i;
 		seen(v) = 0;
 		bool canbepropagated = false;
 		for (uint j = 0; !canbepropagated && j < definition(v)->size(); ++j) {
@@ -2223,7 +2223,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		//Literal l has become true, so for all rules with body literal l and marked head,
 		//if DefType::DISJ, then head will be true, so add true head to queue and set counter to 0
 		for (auto i = disj.occurs(l).cbegin(); i < disj.occurs(l).cend(); ++i) {
-			Var head = *i;
+			Atom head = *i;
 			if (wfisMarked[head]) {
 				wfqueue.push(mkPosLit(head));
 				seen(head) = 0;
@@ -2232,7 +2232,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 
 		//if DefType::CONJ and counter gets 0, then head will be true, so add true head to queue
 		for (auto i = conj.occurs(l).cbegin(); i < conj.occurs(l).cend(); ++i) {
-			Var head = *i;
+			Atom head = *i;
 			if (wfisMarked[head] && --seen(head) == 0) {
 				wfqueue.push(mkPosLit(head));
 			}
@@ -2243,7 +2243,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		//Literal l has become false, so for all rules with body literal l and marked head,
 		//if DefType::DISJ and counter gets 0, then head will be false, so add false head to queue
 		for (auto i = disj.occurs(l).cbegin(); i < disj.occurs(l).cend(); ++i) {
-			Var head = *i;
+			Atom head = *i;
 			if (wfisMarked[head] && --seen(head) == 0) {
 				wfqueue.push(mkNegLit(head));
 			}
@@ -2251,7 +2251,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 
 		//if DefType::CONJ, then head will be false, so add false head to queue and set counter to 0
 		for (auto i = conj.occurs(l).cbegin(); i < conj.occurs(l).cend(); ++i) {
-			Var head = *i;
+			Atom head = *i;
 			if (wfisMarked[head]) {
 				wfqueue.push(mkNegLit(head));
 				seen(head) = 0;
@@ -2266,8 +2266,8 @@ void IDSolver::forwardPropagate(bool removemarks) {
  * Overestimate the counters by making all negative defined marked body literals true.
  */
 void IDSolver::overestimateCounters() {
-	for (set<Var>::iterator i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
-		Var v = *i;
+	for (set<Atom>::iterator i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
+		Atom v = *i;
 		MAssert(seen(v) > 0);
 
 		for (uint j = 0; j < definition(v)->size(); ++j) {
@@ -2293,9 +2293,9 @@ else				{
  * are marked again.
  */
 void IDSolver::removeMarks() {
-	stack<Var> temp;
-	for (set<Var>::iterator i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
-		Var v = *i;
+	stack<Atom> temp;
+	for (set<Atom>::iterator i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
+		Atom v = *i;
 		if (wfisMarked[v]) {
 			temp.push(v);
 			wfisMarked[v] = false;
@@ -2426,12 +2426,12 @@ bool IDSolver::canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjst
 	return justified;
 }
 
-IDAgg* IDSolver::getAggDefiningHead(Var v) const {
+IDAgg* IDSolver::getAggDefiningHead(Atom v) const {
 	//FIXME checks en mooiere code
 	return aggdefinition(v);
 }
 
-varlist IDSolver::getDefAggHeadsWithBodyLit(Var x) const {
+varlist IDSolver::getDefAggHeadsWithBodyLit(Atom x) const {
 	varlist heads;
 	for (auto i = aggr.occurs(mkPosLit(x)).cbegin(); i < aggr.occurs(mkPosLit(x)).cend(); ++i) {
 		heads.push_back(*i);
@@ -2442,11 +2442,11 @@ varlist IDSolver::getDefAggHeadsWithBodyLit(Var x) const {
 	return heads;
 }
 
-vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
+vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadBegin(Atom x) const {
 	return getAggDefiningHead(x)->getWL().cbegin();
 }
 
-vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
+vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Atom x) const {
 	return getAggDefiningHead(x)->getWL().cend();
 }
 
@@ -2459,7 +2459,7 @@ vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  * Probably NEVER usable external clause!
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
-void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, litlist& loopf, InterMediateDataStruct& seen) {
+void IDSolver::addExternalLiterals(Atom v, const std::set<Atom>& ufs, litlist& loopf, InterMediateDataStruct& seen) {
 	for (vwl::const_iterator i = getAggDefiningHead(v)->getWL().cbegin(); i < getAggDefiningHead(v)->getWL().cend(); ++i) {
 		Lit l = i->getLit();
 		if (ufs.find(var(l)) != ufs.cend() || seen.getElem(var(l)) == (isPositive(l) ? 2 : 1)) {
@@ -2482,7 +2482,7 @@ void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, litlist& loo
 /**
  * The given head is not false. So it has a (possibly looping) justification. Find this justification
  */
-void IDSolver::findJustificationAggr(Var head, litlist& outjstf) {
+void IDSolver::findJustificationAggr(Atom head, litlist& outjstf) {
 	varlist nonjstf;
 	InterMediateDataStruct* currentjust = new InterMediateDataStruct(0, 0); //create an empty justification
 	const IDAgg& agg = *getAggDefiningHead(head);
@@ -2495,7 +2495,7 @@ void IDSolver::findJustificationAggr(Var head, litlist& outjstf) {
  * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
  * all body literals of v that are not justified.
  */
-bool IDSolver::directlyJustifiable(Var v, litlist& jstf, varlist& nonjstf, InterMediateDataStruct& currentjust) {
+bool IDSolver::directlyJustifiable(Atom v, litlist& jstf, varlist& nonjstf, InterMediateDataStruct& currentjust) {
 	const IDAgg& agg = *getAggDefiningHead(v);
 	return canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }

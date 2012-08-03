@@ -52,12 +52,12 @@ public:
 		return varnb;
 	}
 
-	MinisatID::Literal get(int lit){
+	MinisatID::Lit get(int lit){
 		return lit>0?mkPosLit(lit):mkNegLit(lit);
 	}
 
-	std::vector<MinisatID::Literal> get(const std::vector<int>& lits){
-		std::vector<MinisatID::Literal> literals;
+	std::vector<MinisatID::Lit> get(const std::vector<int>& lits){
+		std::vector<MinisatID::Lit> literals;
 		for(auto lit: lits){
 			literals.push_back(get(lit));
 		}

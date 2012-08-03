@@ -32,7 +32,7 @@ void LitTrail::newDecisionLevel() {
 	trailindexoflevel.push_back(trail.size());
 }
 void LitTrail::backtrackDecisionLevels(int untillevel) {
-	vector<Var>::size_type earliest = trailindexoflevel[(uint) untillevel + 1];
+	vector<Atom>::size_type earliest = trailindexoflevel[(uint) untillevel + 1];
 	while (trail.size() > earliest) {
 		values[var(trail.back())] = l_Undef;
 		trail.pop_back();
@@ -47,7 +47,7 @@ void LitTrail::propagate(const Lit& l) {
 	values[var(l)] = sign(l) ? l_False : l_True;
 }
 lbool LitTrail::value(const Lit& l) const {
-	map<Var, lbool>::const_iterator it = values.find(var(l));
+	map<Atom, lbool>::const_iterator it = values.find(var(l));
 	if (it == values.cend()) {
 		return l_Undef;
 	}

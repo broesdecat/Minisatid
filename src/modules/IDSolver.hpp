@@ -36,7 +36,7 @@ enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
 class PropRule {
 private:
-	const Var head;
+	const Atom head;
 	litlist lits;
 
 public:
@@ -153,7 +153,7 @@ public:
 	const varlist&	occurs		(const Lit& l) const { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
 	varlist&		occurs		(const Lit& l) { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
 	bool 			inNetwork	(const Lit& l) const { return _occurs.size()>(unsigned int)toInt(l); }
-	void			add			(const Lit& l, Var v) { occurs(l).push_back(v); /*MAssert(IDSolver::type(v)==type);*/ }
+	void			add			(const Lit& l, Atom v) { occurs(l).push_back(v); /*MAssert(IDSolver::type(v)==type);*/ }
 	void 			resize		(int n) { _occurs.resize(n, varlist()); }
 	void 			clear		() { _occurs.clear(); }
 };
@@ -165,7 +165,7 @@ private:
 	bool needinitialization;
 	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
-	Var minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
+	Atom minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 
 	NetworkHandling conj, disj, aggr;
 
@@ -186,7 +186,7 @@ private:
 
 	varlist				css; // List of possible support violators.
 
-	std::set<Var>		savedufs;
+	std::set<Atom>		savedufs;
 	Disjunction	savedloopf;
 
 	IDStats				stats;
@@ -218,76 +218,76 @@ public:
 
 	rClause				isWellFoundedModel		();
 
-	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
-	bool 				isConjunctive			(Var v)		const {	return type(v) == DefType::CONJ; }
-	bool 				isDisjunctive			(Var v) 	const {	return type(v) == DefType::DISJ;	}
-	bool 				isDefinedByAggr			(Var v) 	const {	return type(v) == DefType::AGGR;	}
-	const PropRule&		getDefinition			(Var var) 	const { MAssert(hasDefVar(var)); return *definition(var); }
+	bool				isDefined				(Atom var) 	const { return hasDefVar(var); }
+	bool 				isConjunctive			(Atom v)		const {	return type(v) == DefType::CONJ; }
+	bool 				isDisjunctive			(Atom v) 	const {	return type(v) == DefType::DISJ;	}
+	bool 				isDefinedByAggr			(Atom v) 	const {	return type(v) == DefType::AGGR;	}
+	const PropRule&		getDefinition			(Atom var) 	const { MAssert(hasDefVar(var)); return *definition(var); }
 
 private:
 	void 				initialize				();
 	void 				generateSCCs();
 	void 				bumpHeadHeuristic();
 
-	void 				addToNetwork(Var v);
+	void 				addToNetwork(Atom v);
 
-	bool 				loopPossibleOver(Var v);
+	bool 				loopPossibleOver(Atom v);
 
 	SATVAL 				transformToCNF		(const varlist& sccroots);
 	bool 				simplifyGraph		(int& atomsinposloops); //False if problem unsat
 
-	void 				adaptStructsToHead	(Var head);
-	DefinedVar* 		getDefVar			(Var v) const { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }
-	void				setDefVar			(Var v, DefinedVar* newvar) { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); definitions[v-minvar] = newvar; }
-	bool 				hasDefVar			(Var v) const { return minvar<=v && v-minvar<nbvars && getDefVar(v)!=NULL; }
+	void 				adaptStructsToHead	(Atom head);
+	DefinedVar* 		getDefVar			(Atom v) const { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }
+	void				setDefVar			(Atom v, DefinedVar* newvar) { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); definitions[v-minvar] = newvar; }
+	bool 				hasDefVar			(Atom v) const { return minvar<=v && v-minvar<nbvars && getDefVar(v)!=NULL; }
 
-	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
+	bool 				isDefInPosGraph		(Atom v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
 
 	bool 				canBecomeTrue		(Lit l) const { return value(l) != l_False; }
-	bool 				inSameSCC			(Var x, Var y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
+	bool 				inSameSCC			(Atom x, Atom y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
 
-	litlist& 			reason		(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->reason(); }
-	PropRule const*		definition	(Var v) const { MAssert(hasDefVar(v)); return getDefVar(v)->definition(); }
-	IDAgg *				aggdefinition(Var v) const { MAssert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
-	DefType& 			type		(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->type(); }
-	DefOcc& 			occ			(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->occ(); }
-	bool &				isCS		(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->isCS(); }
-	int &				scc			(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->scc(); }
-	litlist& 			justification(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->justification(); }
+	litlist& 			reason		(Atom v){ MAssert(hasDefVar(v)); return getDefVar(v)->reason(); }
+	PropRule const*		definition	(Atom v) const { MAssert(hasDefVar(v)); return getDefVar(v)->definition(); }
+	IDAgg *				aggdefinition(Atom v) const { MAssert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
+	DefType& 			type		(Atom v){ MAssert(hasDefVar(v)); return getDefVar(v)->type(); }
+	DefOcc& 			occ			(Atom v){ MAssert(hasDefVar(v)); return getDefVar(v)->occ(); }
+	bool &				isCS		(Atom v){ MAssert(hasDefVar(v)); return getDefVar(v)->isCS(); }
+	int &				scc			(Atom v){ MAssert(hasDefVar(v)); return getDefVar(v)->scc(); }
+	litlist& 			justification(Atom v){ MAssert(hasDefVar(v)); return getDefVar(v)->justification(); }
 
-	const litlist& 		reason		(Var v)const { return getDefVar(v)->reason(); }
-	const DefType& 		type		(Var v)const { return getDefVar(v)->type(); }
-	const DefOcc& 		occ			(Var v)const { return getDefVar(v)->occ(); }
-	bool 				isCS		(Var v)const { return getDefVar(v)->isCS(); }
-	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
-	const litlist& 		justification(Var v)const { return getDefVar(v)->justification(); }
+	const litlist& 		reason		(Atom v)const { return getDefVar(v)->reason(); }
+	const DefType& 		type		(Atom v)const { return getDefVar(v)->type(); }
+	const DefOcc& 		occ			(Atom v)const { return getDefVar(v)->occ(); }
+	bool 				isCS		(Atom v)const { return getDefVar(v)->isCS(); }
+	int 				scc			(Atom v)const { return getDefVar(v)->scc(); }
+	const litlist& 		justification(Atom v)const { return getDefVar(v)->justification(); }
 
-	bool				hasSeen		(Var v) const 	{ return _seen->hasElem(v); }
-	int&				seen		(Var v) 		{ MAssert(hasSeen(v)); return _seen->getElem(v); }
-	const int&			seen		(Var v) const 	{ MAssert(hasSeen(v)); return _seen->getElem(v); }
+	bool				hasSeen		(Atom v) const 	{ return _seen->hasElem(v); }
+	int&				seen		(Atom v) 		{ MAssert(hasSeen(v)); return _seen->getElem(v); }
+	const int&			seen		(Atom v) const 	{ MAssert(hasSeen(v)); return _seen->getElem(v); }
 
-	void	createDefinition(Var head, PropRule* r, DefType type);
-	void	createDefinition(Var head, IDAgg* agg);
-	void	removeDefinition(Var head);
+	void	createDefinition(Atom head, PropRule* r, DefType type);
+	void	createDefinition(Atom head, IDAgg* agg);
+	void	removeDefinition(Atom head);
 
 	void 	propagateJustificationDisj(const Lit& l, std::vector<litlist>& jstf, litlist& heads);
 	void 	propagateJustificationAggr(const Lit& l, std::vector<litlist>& jstf, litlist& heads);
 	void 	propagateJustificationConj(const Lit& l, std::queue<Lit>& heads);
 	void 	propagateJustificationConj(const Lit& l, litlist& heads);
 
-	void 	findJustificationDisj(Var v, litlist& jstf);
-	bool 	findJustificationDisj(Var v, litlist& jstf, varlist& nonjstf);
-	bool 	findJustificationConj(Var v, litlist& jstf, varlist& nonjstf);
-	bool 	findJustificationAggr(Var v, litlist& jstf, varlist& nonjstf);
+	void 	findJustificationDisj(Atom v, litlist& jstf);
+	bool 	findJustificationDisj(Atom v, litlist& jstf, varlist& nonjstf);
+	bool 	findJustificationConj(Atom v, litlist& jstf, varlist& nonjstf);
+	bool 	findJustificationAggr(Atom v, litlist& jstf, varlist& nonjstf);
 
-	void 	changejust		(Var v, litlist& j);
+	void 	changejust		(Atom v, litlist& j);
 
 	// Cycle source methods:
-	void	addCycleSource				(Var v);
+	void	addCycleSource				(Atom v);
 	void	clearCycleSources			();
 	void	findCycleSources			();
-	void	findJustification			(Var v);
-	void 	checkJustification			(Var head);
+	void	findJustification			(Atom v);
+	void 	checkJustification			(Atom head);
 
 private:
 	bool twovalueddef;
@@ -297,25 +297,25 @@ private:
 public:
 
 	bool	shouldCheckPropagation();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
-	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
-	rClause	assertUnfoundedSet (const std::set<Var>& ufs);
+	bool	unfounded          (Atom cs, std::set<Atom>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
+	rClause	assertUnfoundedSet (const std::set<Atom>& ufs);
 
-	void	markNonJustified   			(Var cs, varlist& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
-	void	markNonJustifiedAddVar		(Var v, Var cs, std::queue<Var> &q, varlist& tmpseen);
-	void	markNonJustifiedAddParents	(Var x, Var cs, std::queue<Var> &q, varlist& tmpseen);
-	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, std::queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	void	markNonJustified   			(Atom cs, varlist& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
+	void	markNonJustifiedAddVar		(Atom v, Atom cs, std::queue<Atom> &q, varlist& tmpseen);
+	void	markNonJustifiedAddParents	(Atom x, Atom cs, std::queue<Atom> &q, varlist& tmpseen);
+	bool	directlyJustifiable			(Atom v, std::set<Atom>& ufs, std::queue<Atom>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
 	bool	isJustified					(const InterMediateDataStruct& currentjust, Lit x) const;
-	bool	isJustified					(const InterMediateDataStruct& currentjust, Var x) const;
+	bool	isJustified					(const InterMediateDataStruct& currentjust, Atom x) const;
 	bool 	oppositeIsJustified			(const InterMediateDataStruct& currentjust, const WL& wl, bool real) const;
 	bool 	isJustified					(const InterMediateDataStruct& currentjust, const WL& wl, bool real) const;
 
-	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
+	bool	propagateJustified			(Atom v, Atom cs, std::set<Atom>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 	void	addLoopfClause				(Lit l, Disjunction& lits);
 
-	void visit(Var i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, varlist& roots); // Method to initialize 'scc'.
-	void visitFull(Var i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, bool throughPositiveLit, varlist& posroots, varlist& rootofmixed, varlist& nodeinmixed);
+	void visit(Atom i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, varlist& roots); // Method to initialize 'scc'.
+	void visitFull(Atom i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, bool throughPositiveLit, varlist& posroots, varlist& rootofmixed, varlist& nodeinmixed);
 
-	void	addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf);
+	void	addExternalDisjuncts(const std::set<Atom>& ufs, litlist& loopf);
 
 	// Debug:
 	void 	printPosGraphJustifications() const;
@@ -327,11 +327,11 @@ public:
 	bool 				wffixpoint;
 	varlist 			wfroot, wfrootnodes;
 	std::queue<Lit> 	wfqueue;
-	std::set<Var> 		wfmarkedAtoms;
+	std::set<Atom> 		wfmarkedAtoms;
 	std::vector<bool> 	wfisMarked;
 
 	// Implementation of Tarjan's algorithm for detecting strongly connected components.
-	void visitWF(Var i, varlist &root, std::vector<bool> &incomp, std::stack<Var> &stack, varlist &visited, int& counter, bool throughPositiveLit, std::vector<int>& rootofmixed);
+	void visitWF(Atom i, varlist &root, std::vector<bool> &incomp, std::stack<Atom> &stack, varlist &visited, int& counter, bool throughPositiveLit, std::vector<int>& rootofmixed);
 	/*
 	 * Search for mixed cycles in the justification graph of the current model.
 	 * @post For every mixed cycle in the justification graph, there is one literal of the cycle on \c _mixedCycleRoots.
@@ -339,7 +339,7 @@ public:
 	void findMixedCycles(varlist &root, std::vector<int>& rootofmixed);
 	// Mark all atoms that are above the mixed cycle roots in the justification graph.
 	void markUpward();
-	void mark(Var);
+	void mark(Atom);
 	// For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
 	void initializeCounters();
 	void forwardPropagate(bool);
@@ -350,13 +350,13 @@ public:
 	bool canJustifyHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
 	bool canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
 	bool canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
-	IDAgg* getAggDefiningHead(Var v) const;
-	varlist getDefAggHeadsWithBodyLit(Var x) const;
-	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
-	vwl::const_iterator getSetLitsOfAggWithHeadEnd(Var x) const ;
-	void addExternalLiterals(Var v, const std::set<Var>& ufs, litlist& loopf, InterMediateDataStruct& seen);
-	void findJustificationAggr(Var head, litlist& outjstf) ;
-	bool directlyJustifiable(Var v, litlist& jstf, varlist& nonjstf, InterMediateDataStruct& currentjust);
+	IDAgg* getAggDefiningHead(Atom v) const;
+	varlist getDefAggHeadsWithBodyLit(Atom x) const;
+	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Atom x) const;
+	vwl::const_iterator getSetLitsOfAggWithHeadEnd(Atom x) const ;
+	void addExternalLiterals(Atom v, const std::set<Atom>& ufs, litlist& loopf, InterMediateDataStruct& seen);
+	void findJustificationAggr(Atom head, litlist& outjstf) ;
+	bool directlyJustifiable(Atom v, litlist& jstf, varlist& nonjstf, InterMediateDataStruct& currentjust);
 	bool isInitiallyJustified(const IDAgg& agg);
 };
 

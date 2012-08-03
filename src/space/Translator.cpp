@@ -28,7 +28,7 @@ void Translator::printModel(std::ostream& output, const Model& model){
 		ss <<toString(*i) <<" ";
 	}
 	for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
-		ss <<(*i).variable <<"=" <<(*i).value <<" ";
+		ss <<toString((*i).variable) <<"=" <<(*i).value <<" ";
 	}
 	ss << "0\n";
 	//TODO start critical section
@@ -49,9 +49,9 @@ void Translator::printTranslation(std::ostream& output, const List& l){
 	}
 }
 
-template void Translator::printTranslation(std::ostream& output, const std::vector<std::pair<unsigned int, MinisatID::Literal> >& l);
-template void Translator::printTranslation(std::ostream& output, const std::set<std::pair<unsigned int, MinisatID::Literal> >& l);
-template void Translator::printTranslation(std::ostream& output, const std::map<unsigned int, MinisatID::Literal>& l);
+template void Translator::printTranslation(std::ostream& output, const std::vector<std::pair<unsigned int, MinisatID::Lit> >& l);
+template void Translator::printTranslation(std::ostream& output, const std::set<std::pair<unsigned int, MinisatID::Lit> >& l);
+template void Translator::printTranslation(std::ostream& output, const std::map<unsigned int, MinisatID::Lit>& l);
 
 void OPBPolicy::printCurrentOptimum(std::ostream& output, const Weight& value){
 	output <<"o " <<value <<std::endl; // NOTE: has to FLUSH after each print!
@@ -232,12 +232,12 @@ void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINT
 	output.flush();
 }
 
-bool FODOTTranslator::hasTranslation(const MinisatID::Literal& lit) const{
+bool FODOTTranslator::hasTranslation(const MinisatID::Lit& lit) const{
 	return deriveStringFromAtomNumber(var(lit)).hastranslation;
 }
 
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
-std::string FODOTTranslator::toString(const Literal& lit) const {
+std::string FODOTTranslator::toString(const Lit& lit) const {
 	MAssert(finisheddata);
 
 	stringstream ss;

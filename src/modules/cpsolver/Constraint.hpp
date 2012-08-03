@@ -58,13 +58,13 @@ namespace MinisatID{
 	// Represents ATOM <=> ConstraintReifiedBy(BoolVars[var])
 	class ReifiedConstraint: public Constraint{
 	private:
-		Var head;
+		Atom head;
 		boolindex var;
 
 	public:
-		ReifiedConstraint(Var atom, CPScript& space);
+		ReifiedConstraint(Atom atom, CPScript& space);
 
-		Var 	getHead			() 						const { return head; }
+		Atom 	getHead			() 						const { return head; }
 		Gecode::BoolVar getBoolVar(const CPScript& space) const;
 
 		bool	isAssigned		(const CPScript& space) const { return MinisatID::isAssigned(getBoolVar(space)); }
@@ -87,7 +87,7 @@ namespace MinisatID{
 		std::vector<int> mult;
 
 	public:
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, Var atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, Atom atom);
 
 		virtual void accept(ConstraintVisitor& visitor);
 	};
@@ -117,8 +117,8 @@ namespace MinisatID{
 		int irhs;
 
 	public:
-		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
-		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, int rhs, Var atom);
+		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, Atom atom);
+		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, int rhs, Atom atom);
 
 		virtual void accept(ConstraintVisitor& visitor);
 	};

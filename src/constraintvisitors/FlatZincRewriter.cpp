@@ -70,7 +70,7 @@ const WLSet& FlatZincRewriter<Stream>::getSet(uint i) const {
 }
 
 //INVARIANT: always have already done a "check" operation on the Var
-string getVarName(Var Var) {
+string getVarName(Atom Var) {
 	stringstream ss;
 	ss << "BOOL____" << Var;
 	return ss.str();
@@ -109,7 +109,7 @@ void addDefAnnotation(int defID, ostream& stream) {
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::check(const Var& Var) {
+void FlatZincRewriter<Stream>::check(const Atom& Var) {
 	check(mkPosLit(Var));
 }
 
@@ -261,21 +261,21 @@ void FlatZincRewriter<Stream>::addBinRel(const string& left, const string& right
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, Var head, string constr, string bound) {
+void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, Atom head, string constr, string bound) {
 	constraints << "constraint " << constr << "([";
 	addIntList(weights, constraints);
 	constraints << "],[" << vars << "], " << bound << ", " << getVarName(head) << ");\n";
 }
 
 template<typename Stream>
-Var FlatZincRewriter<Stream>::createAtom() {
-	Var lit = Var(maxatomnumber + 1);
+Atom FlatZincRewriter<Stream>::createAtom() {
+	Atom lit = Atom(maxatomnumber + 1);
 	check(lit);
 	return lit;
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, const Weight& bound) {
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<uint>& vars, Atom head, EqType rel, const Weight& bound) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
@@ -289,7 +289,7 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<ui
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, Var head, EqType rel, const Weight& bound) {
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, Atom head, EqType rel, const Weight& bound) {
 	string constr = "";
 	Weight newbound = bound;
 	switch (rel) {
@@ -304,13 +304,13 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& v
 		newbound = bound - 1;
 		break;
 	case EqType::G: {
-		Var newhead = createAtom();
+		Atom newhead = createAtom();
 		constr = "int_lin_le_reif";
 		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
 		break;
 	}
 	case EqType::GEQ: {
-		Var newhead = createAtom();
+		Atom newhead = createAtom();
 		constr = "int_lin_le_reif";
 		newbound = bound - 1;
 		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
@@ -328,7 +328,7 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& v
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, uint rhsvar) {
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<uint>& vars, Atom head, EqType rel, uint rhsvar) {
 	vector<uint> newvars = vars;
 	newvars.push_back(rhsvar);
 
@@ -339,7 +339,7 @@ void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, Var head, EqType rel, uint rhsvar) {
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, uint rhsvar) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {

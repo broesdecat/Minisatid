@@ -96,7 +96,7 @@ Solver::~Solver() {
 
 // VARIABLE CREATION
 
-void Solver::setDecidable(Var v, bool decide) { // NOTE: no-op if already a decision var!
+void Solver::setDecidable(Atom v, bool decide) { // NOTE: no-op if already a decision var!
 	bool newdecidable = decide && not decision[v];
 	if (newdecidable) {
 		dec_vars++;
@@ -124,7 +124,7 @@ void Solver::setDecidable(Var v, bool decide) { // NOTE: no-op if already a deci
 
 // Creates a new SAT variable in the solver. If 'decision' is cleared, variable will not be
 // used as a decision variable (NOTE! This has effects on the meaning of a SATISFIABLE result).
-Var Solver::newVar(lbool upol, bool dvar) {
+Atom Solver::newVar(lbool upol, bool dvar) {
 	int v = nVars();
 	watches.init(mkLit(v, false));
 	watches.init(mkLit(v, true));
@@ -587,7 +587,7 @@ void Solver::uncheckedBacktrack(int level) {
 	}
 	Lit decision = trail[trail_lim[level]];
 	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
-		Var x = var(trail[c]);
+		Atom x = var(trail[c]);
 		assigns[x] = l_Undef;
 		if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) {
 			polarity[x] = sign(trail[c]);
@@ -612,7 +612,7 @@ void Solver::cancelUntil(int level) {
 // VARIABLE CHOICE
 
 Lit Solver::pickBranchLit() {
-	Var next = var_Undef;
+	Atom next = var_Undef;
 
 	// Random decision:
 	if (drand(random_seed) < random_var_freq && !order_heap.empty()) {
@@ -803,7 +803,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 
 	} else if (ccmin_mode == 1) {
 		for (i = j = 1; i < out_learnt.size(); i++) {
-			Var x = var(out_learnt[i]);
+			Atom x = var(out_learnt[i]);
 
 			if (reason(x) == CRef_Undef)
 				out_learnt[j++] = out_learnt[i];
@@ -896,7 +896,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 	seen[var(p)] = 1;
 
 	for (int i = trail.size() - 1; i >= trail_lim[0]; i--) {
-		Var x = var(trail[i]);
+		Atom x = var(trail[i]);
 		if (seen[x]) {
 			auto explan = getPCSolver().getExplanation(value(mkPosLit(x)) == l_True ? mkPosLit(x) : mkNegLit(x));
 			if (explan == CRef_Undef) {
@@ -945,7 +945,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 	}
 }
 
-bool Solver::isDecided(Var v) {
+bool Solver::isDecided(Atom v) {
 	if (value(mkPosLit(v)) == l_Undef) {
 		return false;
 	}
@@ -1121,8 +1121,8 @@ void Solver::removeSatisfied(vec<CRef>& cs) {
 }
 
 void Solver::rebuildOrderHeap() {
-	vec<Var> vs;
-	for (Var v = 0; v < nVars(); v++) {
+	vec<Atom> vs;
+	for (Atom v = 0; v < nVars(); v++) {
 		if (decision[v] && value(mkPosLit(v)) == l_Undef)
 			vs.push(v);
 	}
@@ -1481,7 +1481,7 @@ void Solver::relocAll(ClauseAllocator& to) {
 	// All reasons:
 	//
 	for (int i = 0; i < trail.size(); i++) {
-		Var v = var(trail[i]);
+		Atom v = var(trail[i]);
 		if (reason(v) != CRef_Undef && (ca[reason(v)].reloced() || locked(ca[reason(v)]))) {
 			ca.reloc(vardata[v].reason, to);
 		}
@@ -1537,7 +1537,7 @@ void Solver::printStatistics() const {
 	std::clog << "> conflict literals     : " << tot_literals << "  (" << ((max_literals - tot_literals) * 100 / (double) max_literals) << " % deleted)\n";
 }
 
-int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
+int Solver::printECNF(std::ostream& stream, std::set<Atom>& printedvars) {
 	if (not okay()) {
 		stream << "0\n";
 		return 0;

@@ -93,7 +93,7 @@ void SymmetryPropagator::notifyEnqueued(const Lit& l) {
 	notifiedLits.push_back(l);
 
 #ifdef DEBUG
-	set<Var> unique;
+	set<Atom> unique;
 	for(auto i=notifiedLits.cbegin(); i<notifiedLits.cend(); ++i){
 		auto it = unique.find(var(*i));
 		MAssert(it==unique.cend());
@@ -131,7 +131,7 @@ Lit SymmetryPropagator::getNextToPropagate() {
 	}
 
 #ifdef DEBUG
-	set<Var> unique;
+	set<Atom> unique;
 	for(auto i=notifiedLits.cbegin(); i<notifiedLits.cend(); ++i){
 		auto it = unique.find(var(*i));
 		MAssert(it==unique.cend());

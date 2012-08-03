@@ -12,16 +12,15 @@ class IntVar;
 
 struct IntVarValue{
 	IntVar* intvar;
-	Var atom;
+	Atom atom;
 	int value;
 
-	IntVarValue(IntVar* intvar, Var atom, int value): intvar(intvar), atom(atom), value(value){}
+	IntVarValue(IntVar* intvar, Atom atom, int value): intvar(intvar), atom(atom), value(value){}
 };
 
 class IntVar: public Propagator{
 private:
-	static int maxid_;
-	int id_, origid_;
+	int id_;
 	PCSolver& engine_;
 	int minvalue, maxvalue;
 
@@ -42,7 +41,7 @@ protected:
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
 public:
-	IntVar(PCSolver* solver, int origid);
+	IntVar(PCSolver* solver, int id);
 
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
@@ -52,7 +51,6 @@ public:
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
 	int id() const { return id_; }
-	int origid() const { return origid_; }
 	PCSolver& engine() { return engine_; }
 
 	int origMinValue() const {
@@ -144,7 +142,6 @@ public:
 	IntVar* var() const { return var_; }
 
 	int id() const { return var()->id(); }
-	int origid() const { return var()->origid(); }
 
 	int origMinValue() const {
 		return var()->origMinValue()+constdiff();
@@ -180,7 +177,7 @@ public:
 
 	std::string toString() const {
 		std::stringstream ss;
-		ss <<"var" <<origid();
+		ss <<"var" <<var()->toString(id());
 		if(constdiff_!=0){
 			if(constdiff_>0){
 				ss <<"+";

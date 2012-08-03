@@ -43,7 +43,7 @@ std::vector<uint> getIDs(const std::vector<TermIntVar>& vars){
 	return ids;
 }
 
-ReifiedConstraint::ReifiedConstraint(Var atom, CPScript& space)
+ReifiedConstraint::ReifiedConstraint(Atom atom, CPScript& space)
 		: head(atom), var(space.addBoolVar()) {
 }
 
@@ -59,7 +59,7 @@ rClause ReifiedConstraint::propagate(bool becametrue, CPScript& space) {
 	return nullPtrClause;
 }
 
-SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> set, vector<int> mult, IntRelType rel, int rhs, Var atom)
+SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> set, vector<int> mult, IntRelType rel, int rhs, Atom atom)
 		: ReifiedConstraint(atom, space), set(set), rel(rel), intrhs(true), irhs(rhs), withmult(true), mult(mult) {
 	IntVarArgs ar(set.size());
 	for (uint i = 0; i < set.size(); i++) {
@@ -96,14 +96,14 @@ void CountConstraint::accept(ConstraintVisitor& visitor) {
 	visitor.add(CPCount(getIDs(set), Weight(intrhs), toEqType(rel), trhs.getID()));
 }
 
-BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, Var atom)
+BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, Atom atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(false), trhs(rhs) {
 	IntVar ialhs = lhs.getIntVar(space), iarhs = trhs.getIntVar(space);
 
 	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
 }
 
-BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, Var atom)
+BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, Atom atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs) {
 	IntVar ialhs = lhs.getIntVar(space);
 	int iarhs = irhs;

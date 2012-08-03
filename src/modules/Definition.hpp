@@ -14,7 +14,7 @@ namespace MinisatID{
 class PCSolver;
 
 struct TempRule{
-	Var head;
+	Atom head;
 	std::vector<Lit> body;
 	bool conjunctive;
 
@@ -22,7 +22,7 @@ struct TempRule{
 	Aggregate* inneragg;
 	WLSet* innerset;
 
-	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
+	TempRule(Atom head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
 	TempRule(Aggregate* inneragg, WLSet* innerset): head(var(inneragg->head)), isagg(true), inneragg(inneragg), innerset(innerset){
 		MAssert(isPositive(inneragg->head));
 		MAssert(inneragg->sem==AggSem::DEF);
@@ -59,7 +59,7 @@ private:
 
 	PCSolver* solver;
 
-	std::map<int, std::map<Var, TempRule*> > rules;
+	std::map<int, std::map<Atom, TempRule*> > rules;
 
 public:
 	Definition(PCSolver* solver): solver(solver){
@@ -70,7 +70,7 @@ public:
 	void addToPropagators();
 
 	void addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset);
-	void addRule(int defID, bool conj, Var head, const litlist& ps);
+	void addRule(int defID, bool conj, Atom head, const litlist& ps);
 
 private:
 	void addFinishedRule(TempRule* rule);

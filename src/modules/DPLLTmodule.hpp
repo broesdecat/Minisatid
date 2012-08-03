@@ -81,7 +81,8 @@ public:
 	int verbosity() const {
 		return getPCSolver().verbosity();
 	}
-	std::string toString(Var atom) const;
+	std::string toString(Atom atom) const;
+	std::string toString(uint id) const;
 	std::string toString(const Lit& lit) const;
 	std::string toString(const Lit& lit, lbool value) const;
 	bool isTrue(const Lit& l) const {
@@ -105,7 +106,7 @@ protected:
 		return getPCSolver().nVars();
 	}
 
-	void addWatch(Var atom);
+	void addWatch(Atom atom);
 	void addWatch(const Lit& lit);
 };
 

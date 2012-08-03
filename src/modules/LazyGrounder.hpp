@@ -53,7 +53,7 @@ private:
 	Lit residual;
 
 public:
-	LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor);
+	LazyResidual(PCSolver* engine, Atom var, LazyGroundingCommand* monitor);
 	LazyResidual(LazyResidualWatch* const watch);
 
 	virtual rClause notifypropagate();

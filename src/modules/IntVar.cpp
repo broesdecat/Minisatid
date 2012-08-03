@@ -15,10 +15,13 @@
 using namespace MinisatID;
 using namespace std;
 
-IntVar::IntVar(PCSolver* solver, int _origid)
+IntVar::IntVar(PCSolver* solver, int id)
 		: 	Propagator(solver, "intvar"),
-			id_(maxid_++),
-			origid_(_origid),
+			id_(id),
+			currentmin(0),
+			currentmax(0),
+			minvalue(0),
+			maxvalue(0),
 			engine_(*solver) {
 }
 
@@ -41,7 +44,7 @@ rClause IntVar::notifypropagate() {
 	updateBounds();
 	if (lastmin != currentmin || lastmax != currentmax) {
 		if (verbosity() > 7) {
-			clog << ">>> After bounds update: var range is " << origid() << "[" << currentmin << "," << currentmax << "]\n";
+			clog << ">>> After bounds update: var range is " << toString(id()) << "[" << currentmin << "," << currentmax << "]\n";
 		}
 		engine().notifyBoundsChanged(this);
 	}
@@ -136,7 +139,7 @@ RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max)
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
 		if (verbosity() > 3) {
-			clog << toString(mkPosLit(var)) << " <=> " << "var" << origid() << "=<" << i << "\n";
+			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(id()) << "=<" << i << "\n";
 		}
 	}
 
@@ -183,7 +186,7 @@ EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& va
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
 		if (verbosity() > 3) {
-			clog << toString(mkPosLit(var)) << " <=> " << "var" << origid() << "=<" << *i << "\n";
+			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(id()) << "=<" << *i << "\n";
 		}
 	}
 

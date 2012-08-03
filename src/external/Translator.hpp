@@ -26,8 +26,8 @@ struct TupleInterpr {
 	FIXEDVAL value;
 	std::vector<std::string> arguments;
 
-	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg) :
-			value(value), arguments(arg) {
+	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg)
+			: value(value), arguments(arg) {
 	}
 };
 
@@ -35,8 +35,8 @@ struct Type {
 	std::string name;
 	std::vector<std::string> domainelements;
 
-	Type(std::string name, std::vector<std::string> domainelements) :
-			name(name), domainelements(domainelements) {
+	Type(std::string name, std::vector<std::string> domainelements)
+			: name(name), domainelements(domainelements) {
 	}
 };
 
@@ -57,8 +57,8 @@ public:
 	std::vector<Type*> types;
 	bool isfunction;
 
-	Symbol(std::string name, int startnumber, int endnumber, std::vector<Type*> types, bool isfunction) :
-			name(name), startnumber(startnumber), endnumber(endnumber), types(types), isfunction(isfunction) {
+	Symbol(std::string name, int startnumber, int endnumber, std::vector<Type*> types, bool isfunction)
+			: name(name), startnumber(startnumber), endnumber(endnumber), types(types), isfunction(isfunction) {
 	}
 };
 
@@ -66,8 +66,8 @@ struct SymbolInterpr {
 	Symbol* symbol;
 	std::vector<TupleInterpr> tuples;
 
-	SymbolInterpr(Symbol* symbol) :
-			symbol(symbol) {
+	SymbolInterpr(Symbol* symbol)
+			: symbol(symbol) {
 	}
 };
 typedef std::vector<SymbolInterpr> modelvec;
@@ -82,7 +82,7 @@ public:
 	template<typename List> // vector/map/set with pairs of unsigned int and MinisatID::Literal
 	void printTranslation(std::ostream& output, const List& l);
 
-	virtual bool hasTranslation(const MinisatID::Literal&) const {
+	virtual bool hasTranslation(const MinisatID::Lit&) const {
 		return false;
 	}
 
@@ -98,7 +98,7 @@ public:
 
 class PlainTranslator: public Translator {
 public:
-	virtual bool hasTranslation(const MinisatID::Literal&) const {
+	virtual bool hasTranslation(const MinisatID::Lit&) const {
 		return true;
 	}
 };
@@ -125,8 +125,8 @@ private:
 	std::map<Symbol*, bool> symbolasarbitatomlist;
 
 public:
-	FODOTTranslator(bool asaspstructure) :
-			Translator(), tofodot(not asaspstructure), finisheddata(false), emptytrans(true), largestnottseitinatom(-1), printedArbitrary(false) {
+	FODOTTranslator(bool asaspstructure)
+			: Translator(), tofodot(not asaspstructure), finisheddata(false), emptytrans(true), largestnottseitinatom(-1), printedArbitrary(false) {
 	}
 
 	virtual ~FODOTTranslator() {
@@ -161,9 +161,9 @@ public:
 		emptytrans = false;
 	}
 
-	bool hasTranslation(const MinisatID::Literal& lit) const;
+	bool hasTranslation(const MinisatID::Lit& lit) const;
 
-	std::string toString(const Literal& lit) const ;
+	std::string toString(const Lit& lit) const;
 	void printModel(std::ostream& output, const Model& model);
 	void printHeader(std::ostream& output) {
 		if (!finisheddata) {
@@ -215,15 +215,16 @@ template<class OptimumPolicy>
 class TupleTranslator: public Translator, public OptimumPolicy {
 private:
 	std::map<Atom, std::string> lit2name;
+	std::map<uint, std::string> var2name;
 
 public:
-	TupleTranslator() :
-			Translator() {
+	TupleTranslator()
+			: Translator() {
 	}
 	virtual ~TupleTranslator() {
 	}
 
-	bool hasTranslation(const MinisatID::Literal& lit) const {
+	bool hasTranslation(const MinisatID::Lit& lit) const {
 		return lit2name.find(lit.getAtom()) != lit2name.cend();
 	}
 
@@ -231,25 +232,38 @@ public:
 		lit2name[atom] = name;
 	}
 
+	void addTuple(uint var, std::string name) {
+		var2name[var] = name;
+	}
+
 	void printModel(std::ostream& output, const Model& model) {
-		for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i) {
-			if (!(*i).hasSign()) { //Do not print false literals
-				auto it = lit2name.find((*i).getAtom());
-				if (it != lit2name.cend()) {
-					output << (*it).second << " ";
-				}
+		for (auto lit : model.literalinterpretations) {
+			if (not lit.hasSign()) { //Do not print false literals
+				output << toString(lit) << " ";
 			}
+		}
+		for (auto vareq : model.variableassignments) {
+			output << toString(vareq.variable) << "=(" << vareq.value << ") ";
 		}
 		output << "\n";
 		output.flush();
-		MAssert(model.variableassignments.size()==0);
 	}
 
-	void toString(std::ostream& output, const Literal& lit) {
+	std::string toString(uint var) {
+		std::stringstream ss;
+		auto it = var2name.find(var);
+		if (it != var2name.cend()) {
+			ss << (*it).second;
+		}
+		return ss.str();
+	}
+	std::string toString(const Lit& lit) {
+		std::stringstream ss;
 		auto it = lit2name.find(lit.getAtom());
 		if (it != lit2name.cend()) {
-			output << (lit.hasSign() ? "~" : "") << (*it).second << "";
+			ss << (lit.hasSign() ? "~" : "") << (*it).second;
 		}
+		return ss.str();
 	}
 
 	virtual void printCurrentOptimum(std::ostream& output, const Weight& value) {

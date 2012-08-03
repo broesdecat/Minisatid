@@ -15,13 +15,13 @@
 
 namespace MinisatID {
 
-Var checkAtom(const Atom& atom, Remapper& remapper);
-Lit checkLit(const Literal& lit, Remapper& remapper);
-std::vector<Lit> checkLits(const std::vector<Literal>& lits, Remapper& remapper);
-std::vector<std::vector<Lit> > checkLits(const std::vector<std::vector<Literal> >& lits, Remapper& remapper);
-std::map<Lit, Lit> checkLits(const std::map<Literal, Literal>& lits, Remapper& remapper);
-std::vector<Var> checkAtoms(const std::vector<Atom>& atoms, Remapper& remapper);
-std::map<Var, Var> checkAtoms(const std::map<Atom, Atom>& atoms, Remapper& remapper);
+Atom checkAtom(const Atom& atom, Remapper& remapper);
+Lit checkLit(const Lit& lit, Remapper& remapper);
+std::vector<Lit> checkLits(const std::vector<Lit>& lits, Remapper& remapper);
+std::vector<std::vector<Lit> > checkLits(const std::vector<std::vector<Lit> >& lits, Remapper& remapper);
+std::map<Lit, Lit> checkLits(const std::map<Lit, Lit>& lits, Remapper& remapper);
+std::vector<Atom> checkAtoms(const std::vector<Atom>& atoms, Remapper& remapper);
+std::map<Atom, Atom> checkAtoms(const std::map<Atom, Atom>& atoms, Remapper& remapper);
 
 template<typename Constraint, typename Engine>
 class ExtAdd{
@@ -209,7 +209,7 @@ public:
 };
 
 template<typename Engine>
-Value extGetValue(Engine& space, const Literal& obj){
+Value extGetValue(Engine& space, const Lit& obj){
 	return space.getValue(checkLit(obj, *space.getRemapper()));
 }
 }

@@ -270,8 +270,6 @@ void PropagatorFactory::addCP(const T& formula) {
 #endif
 }
 
-int IntVar::maxid_ = 0;
-
 IntVar* PropagatorFactory::getIntVar(int varID) const {
 	if (intvars.find(varID) == intvars.cend()) {
 		throw idpexception("Integer variable was not declared before use.\n");
@@ -373,7 +371,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 void PropagatorFactory::add(const CPProdWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
-		throw notYetImplemented("Products and gecode"); //TODO FIX!
+		throw notYetImplemented("Products and gecode"); //TODO
 	}else {
 		vector<IntView*> vars;
 		for(auto i=obj.varIDs.cbegin(); i<obj.varIDs.cend(); ++i){
@@ -549,12 +547,13 @@ SATVAL PropagatorFactory::finishParsing() {
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments) {
 	for (auto i = intvars.cbegin(); i != intvars.cend(); ++i) {
 		VariableEqValue vareq;
-		if((*i).second->minValue()!=(*i).second->maxValue()){
-			cerr <<"Variable " <<(*i).second->origid() <<"[" <<(*i).second->minValue() <<"," <<(*i).second->maxValue() <<"]" <<" is not assigned.\n";
-			MAssert((*i).second->minValue()==(*i).second->maxValue());
+		auto ivar = (*i).second;
+		if(ivar->minValue()!=ivar->maxValue()){
+			cerr <<"Variable " <<ivar->toString(ivar->id()) <<"[" <<ivar->minValue() <<"," <<ivar->maxValue() <<"]" <<" is not assigned.\n";
+			MAssert(ivar->minValue()==ivar->maxValue());
 		}
-		vareq.variable = (*i).second->origid(); // FIXME Correct when it is possible to add internal intvars!
-		vareq.value = (*i).second->minValue();
+		vareq.variable = ivar->id();
+		vareq.value = ivar->minValue();
 		varassignments.push_back(vareq);
 	}
 }
@@ -562,7 +561,7 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 void PropagatorFactory::add(const LazyGroundLit& object) {
 	MAssert(getEngine().modes().lazy);
 	MAssert(not getEngine().isDecisionVar(var(object.residual)));
-	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
+		// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	if (getEngine().verbosity() > 4) {
 		clog << toString(object.residual, getEngine()) << " is delayed " << (object.watchboth ? "on unknown" : "on true") << "\n";
 	}

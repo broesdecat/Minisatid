@@ -33,7 +33,11 @@
 using namespace std;
 using namespace MinisatID;
 
-Var VarCreation::createVar() {
+uint VarCreation::createID(){
+	return remapper->getNewID();
+}
+
+Atom VarCreation::createVar() {
 	return remapper->getNewVar();
 }
 
@@ -54,9 +58,9 @@ void SpaceTask::notifyTerminateRequested() {
 }
 
 // NOTE: EXTERNAL literals
-ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions) :
-		MXTask(space), _options(options), assumptions(checkLits(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)), printer(
-				new Printer(_solutions, space, options.printmodels, space->getOptions())) {
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
+		: MXTask(space), _options(options), assumptions(checkLits(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }
 
@@ -66,7 +70,7 @@ ModelExpand::~ModelExpand() {
 }
 
 int ModelExpand::getNbModelsFound() const {
-	if(getSpace()->isOptimizationProblem() && not _solutions->hasOptimalModel()){
+	if (getSpace()->isOptimizationProblem() && not _solutions->hasOptimalModel()) {
 		return 0;
 	}
 	return _solutions->getNbModelsFound();
@@ -76,8 +80,8 @@ SearchEngine& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-SpaceTask::SpaceTask(Space* space) :
-		Task(space->getOptions()), space(space) {
+SpaceTask::SpaceTask(Space* space)
+		: Task(space->getOptions()), space(space) {
 
 }
 
@@ -95,7 +99,7 @@ bool ModelExpand::isUnsat() const {
 	return _solutions->isUnsat();
 }
 
-litlist ModelExpand::getUnsatExplanation() const{
+litlist ModelExpand::getUnsatExplanation() const {
 	return getSolver().getUnsatExplanation();
 }
 
@@ -134,7 +138,7 @@ void ModelExpand::innerExecute() {
 		bool optimumfound = true;
 		if (getSpace()->isAlwaysAtOptimum()) {
 			findNext(assumptions, _options);
-			optimumfound = _solutions->getNbModelsFound()>0;
+			optimumfound = _solutions->getNbModelsFound() > 0;
 		} else {
 			while (getSolver().hasNextOptimum() && optimumfound) {
 				optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
@@ -171,20 +175,29 @@ void ModelExpand::innerExecute() {
 }
 
 //Translate into original vocabulary
-vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
-	vector<Literal> outmodel;
-	for (auto i = model.cbegin(); i != model.cend(); ++i) {
-		if (r.wasInput(*i)) {
-			outmodel.push_back(r.getLiteral(*i));
+vector<Lit> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
+	vector<Lit> outmodel;
+	for (auto lit : model) {
+		if (r.wasInput(lit)) {
+			outmodel.push_back(r.getLiteral(lit));
 		}
 	}
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
 }
+vector<VariableEqValue> getBackMappedModel(const std::vector<VariableEqValue>& model, const Remapper& r) {
+	vector<VariableEqValue> outmodel;
+	for (auto vareq : model) {
+		if (r.wasInput(vareq.variable)) {
+			outmodel.push_back({r.getOrigID(vareq.variable),vareq.value});
+		}
+	}
+	return outmodel;
+}
 void addModelToSolution(const std::shared_ptr<Model>& model, const Remapper& remapper, ModelManager& solution, Printer& printer) {
 	auto outmodel = new Model();
 	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, remapper);
-	outmodel->variableassignments = model->variableassignments;
+	outmodel->variableassignments = getBackMappedModel(model->variableassignments, remapper);
 	solution.addModel(outmodel);
 	printer.addModel(outmodel);
 
@@ -194,7 +207,7 @@ void ModelExpand::addModel(std::shared_ptr<Model> model) {
 	addModelToSolution(model, *getSpace()->getRemapper(), *_solutions, *printer);
 }
 
-bool findmoreModels(const ModelExpandOptions& options, ModelManager* m){
+bool findmoreModels(const ModelExpandOptions& options, ModelManager* m) {
 	return options.nbmodelstofind == 0 || m->getNbModelsFound() < options.nbmodelstofind;
 }
 
@@ -212,7 +225,7 @@ bool findmoreModels(const ModelExpandOptions& options, ModelManager* m){
 MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& options) {
 	bool moremodels = true; // True if more models might exist
 	getSolver().setAssumptions(assmpt);
-	while (moremodels && findmoreModels(options,_solutions)) {
+	while (moremodels && findmoreModels(options, _solutions)) {
 		auto state = getSolver().solve(true);
 		if (state == l_Undef || terminateRequested()) {
 			return MXState::UNKNOWN;
@@ -231,7 +244,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		bool morecpmodels = getSolver().hasCPSolver();
 		if (morecpmodels) {
 			//Check for more models with different var assignment
-			while (morecpmodels && findmoreModels(options,_solutions)) {
+			while (morecpmodels && findmoreModels(options, _solutions)) {
 				if (getSolver().findNextCPModel() == SATVAL::UNSAT) {
 					morecpmodels = false;
 				} else {
@@ -240,7 +253,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 			}
 		}
 
-		if(not findmoreModels(options,_solutions)){ // Do not invalidate if enough models have been found
+		if (not findmoreModels(options, _solutions)) { // Do not invalidate if enough models have been found
 			break;
 		}
 
@@ -355,11 +368,11 @@ bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
 		clog << "> Current optimal value " << latestvarvalue << "\n";
 	}
 
-	if(var->origMinValue()==latestvarvalue){
+	if (var->origMinValue() == latestvarvalue) {
 		return true;
 	}
 
-	invalidation.push_back(var->getLEQLit(latestvarvalue-1));
+	invalidation.push_back(var->getLEQLit(latestvarvalue - 1));
 	return false;
 }
 
@@ -479,8 +492,8 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		}
 		case Optim::VAR: {
-			internalAdd(Disjunction({optim.var->getLEQLit(latestvarvalue)}), getSolver());
-			internalAdd(Disjunction({optim.var->getGEQLit(latestvarvalue)}), getSolver());
+			internalAdd(Disjunction( { optim.var->getLEQLit(latestvarvalue) }), getSolver());
+			internalAdd(Disjunction( { optim.var->getGEQLit(latestvarvalue) }), getSolver());
 			break;
 		}
 		}

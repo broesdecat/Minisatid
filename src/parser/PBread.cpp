@@ -118,7 +118,7 @@ template<class T> void DefaultCallback<T>::endConstraint() {
 	wset = WLSet(++setid);
 }
 
-template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){
+template<class T> Lit DefaultCallback<T>::createLiteralFromOPBVar(int var){
 	return mkLit(::abs(var), var<0);
 }
 

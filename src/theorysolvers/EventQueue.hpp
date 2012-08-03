@@ -89,8 +89,8 @@ public:
 
 	int		getNbOfFormulas			() const;
 
-	void 	acceptForDecidable(Var v, Propagator* prop);
-	void 	notifyBecameDecidable(Var v);
+	void 	acceptForDecidable(Atom v, Propagator* prop);
+	void 	notifyBecameDecidable(Atom v);
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();

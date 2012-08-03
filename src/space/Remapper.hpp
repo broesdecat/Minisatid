@@ -15,54 +15,77 @@
 
 namespace MinisatID{
 
-typedef std::unordered_map<int, int> atommap;
+typedef std::unordered_map<uint, uint> idmap;
 
 class Remapper{
 protected:
-	int maxnumber;
+	uint maxnumber; // NOTE: guaranteed not to be larger than max<int>
 public:
 	Remapper(): maxnumber(0){}
-	Var		largestVar	() const { return maxnumber; }
+	uint		largestID	() const { return maxnumber; }
 private:
-	//Maps from NON-INDEXED to INDEXED atoms
-	atommap 		origtocontiguousatommapper, contiguoustoorigatommapper;
+	//Maps from NON-INDEXED to INDEXED ids
+	idmap origtocontiguousatommapper, contiguoustoorigatommapper;
 
-	void checkVar(const Atom& atom){
-		if(atom<1 || atom == std::numeric_limits<int>::max()){
-			throw idpexception(">>> Variables can only be numbered starting from 1 and not be equal to max-int.\n");
+	void checkVar(uint atom){
+		if(atom >= (uint)std::numeric_limits<int>::max()){
+			throw idpexception(">>> Variables cannot be larger to or equal than to max-int.\n");
 		}
 	}
 
 public:
-	Var getVar(const Atom& atom){
+	Atom getVar(const Atom& atom){
+		if(atom <1 ){
+			throw idpexception(">>> Variables can only be numbered starting from 1.\n");
+		}
+		return (int)getID(atom);
+	}
+	uint getID(uint atom){
 		checkVar(atom);
 
 		auto i = origtocontiguousatommapper.find(atom);
-		Var v = 0;
+		uint v = 0;
 		if(i==origtocontiguousatommapper.cend()){
 			origtocontiguousatommapper.insert({atom, maxnumber});
 			contiguoustoorigatommapper.insert({maxnumber, atom});
-			v = maxnumber++;
+			v = getNewID();
 		}else{
 			v = (*i).second;
 		}
 		return v;
 	}
 
-	Var getNewVar(){
+	Atom getNewVar(){
+		return getNewID();
+	}
+	uint getNewID(){
+		if(maxnumber==(uint)std::numeric_limits<int>::max()){ // Overflow check
+			throw idpexception("Cannot create additional variables.");
+		}
 		return maxnumber++;
 	}
 
 	bool wasInput(const Lit& lit) const {
-		return contiguoustoorigatommapper.find(var(lit))!=contiguoustoorigatommapper.cend();
+		auto v = var(lit);
+		MAssert(v>=0);
+		return wasInput((uint)v);
+	}
+
+	bool wasInput(uint id) const {
+		return contiguoustoorigatommapper.find(id)!=contiguoustoorigatommapper.cend();
 	}
 
 	// NOTE: if newvar was called internally, it cannot be mapped back to input (and shouldn't).
-	Literal getLiteral(const Lit& lit) const{
-		auto atom = contiguoustoorigatommapper.find(var(lit));
-		MAssert(atom!=contiguoustoorigatommapper.cend());
-		int origatom = (*atom).second;
+	Lit getLiteral(const Lit& lit) const{
+		auto v = var(lit);
+		MAssert(v>=1);
+		auto origatom = (int)getOrigID((uint)v);
 		return mkLit(origatom, sign(lit));
+	}
+	uint getOrigID(uint id) const{
+		auto origidit = contiguoustoorigatommapper.find(id);
+		MAssert(origidit!=contiguoustoorigatommapper.cend());
+		return origidit->second;
 	}
 };
 

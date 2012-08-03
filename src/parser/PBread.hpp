@@ -14,7 +14,7 @@
 
 namespace MinisatID {
 	struct Factor{
-		std::vector<Literal> vars;
+		std::vector<Lit> vars;
 	};
 }
 
@@ -46,7 +46,7 @@ private:
 	T& solver;
 	T& getSolver() { return solver; }
 
-	Literal createLiteralFromOPBVar(int var);
+	Lit createLiteralFromOPBVar(int var);
 
 	IntegerType bound;
 	bool equality;

@@ -56,11 +56,12 @@ public:
 private:
 	VarCreation* varcreator;
 public:
-	Var newVar();
-	void createVar(Var v);
+	uint newID();
+	Atom newVar();
+	void createVar(Atom v);
 public:
-	void varBumpActivity(Var v);
-	void varReduceActivity(Var v);
+	void varBumpActivity(Atom v);
+	void varReduceActivity(Atom v);
 	lbool value(Lit p) const; // The current value of a literal.
 	lbool rootValue(Lit p) const; // The current value of a literal if it is known at level 0, otherwise l_Undef
 	uint64_t nVars() const; // The current number of variables.
@@ -68,9 +69,9 @@ public:
 
 	// Decision information
 public:
-	bool isDecisionVar(Var var);
-	void notifyDecisionVar(Var var);
-	bool isDecided(Var var);
+	bool isDecisionVar(Atom var);
+	void notifyDecisionVar(Atom var);
+	bool isDecided(Atom var);
 	std::vector<Lit> getDecisions() const;
 	void invalidate(litlist& clause) const;
 	bool moreModelsPossible() const;
@@ -163,7 +164,7 @@ public:
 	// State
 private:
 	// Explanation dummies: used to fix up learned clauses which are too small
-	Var dummy1, dummy2, dummyfalse;
+	Atom dummy1, dummy2, dummyfalse;
 public:
 	Lit getTrueLit() const;
 	Lit getFalseLit() const;
@@ -192,11 +193,11 @@ public:
 	void backtrackTo(int level); // Backtrack until a certain level.
 	void backtrackDecisionLevel(int untillevel, const Lit& decision);
 	rClause propagate();
-	int getTime(const Var& var) const;
-	bool assertedBefore(const Var& l, const Var& p) const;
+	int getTime(const Atom& var) const;
+	bool assertedBefore(const Atom& l, const Atom& p) const;
 	rClause getExplanation(const Lit& l); //NON-OWNING pointer
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
-	void notifyBecameDecidable(Var v);
+	void notifyBecameDecidable(Atom v);
 	void notifyBoundsChanged(IntVar* var);
 	rClause notifyFullAssignmentFound();
 
@@ -233,7 +234,8 @@ public:
 private:
 	LiteralPrinter* printer;
 public:
-	std::string toString(const Lit& lit) const;
+	virtual std::string toString(uint id) const;
+	virtual std::string toString(const Lit& lit) const;
 	void printEnqueued(const Lit& p) const;
 	void printChoiceMade(int level, const Lit& l) const;
 	void printClause(rClause clause) const;
@@ -243,7 +245,7 @@ public:
 	void extractLitModel(std::shared_ptr<Model> fullmodel);
 	void extractVarModel(std::shared_ptr<Model> fullmodel);
 	std::shared_ptr<Model> getModel();
-	lbool getModelValue(Var v);
+	lbool getModelValue(Atom v);
 	lbool getModelValue(const Lit& lit);
 	litlist getEntailedLiterals() const;
 
@@ -268,7 +270,7 @@ public:
 	void accept(Propagator* propagator, EVENT event);
 	void acceptBounds(IntView* var, Propagator* propagator);
 	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
-	void acceptForDecidable(Var v, Propagator* prop);
+	void acceptForDecidable(Atom v, Propagator* prop);
 
 	int getNbOfFormulas() const;
 };

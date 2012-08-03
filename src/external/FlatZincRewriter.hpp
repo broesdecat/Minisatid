@@ -35,11 +35,11 @@ enum OptimFZ { MNMZ_NONE, MNMZ_VAR, MNMZ_LIST, MNMZ_SUBSET, MNMZ_AGG };
 enum CloseConstraint {CLOSE, OPEN};
 
 struct BinRel{
-	Var head;
+	Atom head;
 	std::string left, right;
 	EqType rel;
 
-	BinRel():head(Var(0)){}
+	BinRel():head(Atom(0)){}
 };
 
 template<typename Stream>
@@ -113,13 +113,13 @@ protected:
 
 	void add(const litlist& lits);
 
-	void check(const Var& Var);
+	void check(const Atom& Var);
 	void check(const Lit& lit);
 	void check(const std::vector<Lit>& lits);
 	void checkOnlyPos(const std::vector<Lit>& lits);
 	void check(const std::vector<std::vector<Lit> >& lits);
 
-	Var createAtom();
+	Atom createAtom();
 	uint createCpVar(const Weight& min, const Weight& max);
 	uint createCpVar(const std::vector<Weight>& values);
 	void createIntVar(const Lit& lit, bool defined, int defID);
@@ -130,12 +130,12 @@ protected:
 
 	void printRel(const std::string& left, const std::string& right, const Lit& head, const std::string& constr);
 	void addBinRel(const std::string& left, const std::string& right, const Lit& head, EqType rel);
-	void printSum(const weightlist& weights, const std::string& vars, Var head, std::string constr, std::string bound);
-	void addSum(const weightlist& weights, const std::vector<uint>& vars, Var head, EqType rel, const Weight& bound);
-	void addSum(const weightlist& weights, const std::string& vars, Var head, EqType rel, const Weight& bound);
-	void addVarSum(const weightlist& weights, const std::string& vars, Var head, EqType rel, uint rhsvar, const Weight& min, const Weight& max);
-	void addVarSum(const weightlist& weights, const std::vector<uint>& lits, Var head, EqType rel, uint bound);
-	void addVarSum(const weightlist& weights, const litlist& lits, Var head, EqType rel, uint bound);
+	void printSum(const weightlist& weights, const std::string& vars, Atom head, std::string constr, std::string bound);
+	void addSum(const weightlist& weights, const std::vector<uint>& vars, Atom head, EqType rel, const Weight& bound);
+	void addSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, const Weight& bound);
+	void addVarSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, uint rhsvar, const Weight& min, const Weight& max);
+	void addVarSum(const weightlist& weights, const std::vector<uint>& lits, Atom head, EqType rel, uint bound);
+	void addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, uint bound);
 	void addProduct(const Aggregate& agg, const WLSet& set);
 	void addSum(const Aggregate& agg, const WLSet& set);
 	void addEquiv(const Implication& impl, CloseConstraint close);

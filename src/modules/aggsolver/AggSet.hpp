@@ -33,7 +33,7 @@ protected:
 
 	bool usingwatches;
 
-	std::map<Var, AggReason*> reasons;
+	std::map<Atom, AggReason*> reasons;
 
 private:
 	void addAgg(const TempAgg& tempagg, bool optim);

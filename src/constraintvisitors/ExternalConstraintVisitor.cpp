@@ -26,6 +26,20 @@ void ExternalConstraintVisitor::notifyFinishParsing() {
 	getTranslator()->finish();
 }
 
+std::string ExternalConstraintVisitor::toString(uint id) const {
+	std::stringstream ss;
+	if (getRemapper()->wasInput(id)) {
+		auto origid = getRemapper()->getOrigID(id);
+		ss <<origid;
+		return ss.str();
+		/*if (getTranslator()->hasTranslation(origid)) { TODO var to translated string
+			ss << getTranslator()->toString(origid);
+			return ss.str();
+		}*/
+	}
+	ss << "internvar_" << id;
+	return ss.str();
+}
 std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 	std::stringstream ss;
 	if (getRemapper()->wasInput(l)) {
