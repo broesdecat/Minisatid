@@ -105,8 +105,12 @@ private:
 	 * A lower bound on the value of the aggregate (without incorporating the weight)
 	 * @param max
 	 * An upper bound on the value of the aggregate (without incorporating the weight)
+	 * @param minbound
+	 * The minimum value for the bound
+	 * @param maxbound
+	 * The maximum value for the bound
 	 */
-	virtual rClause notifypropagateProdWithNeg(int min, int max);
+	virtual rClause notifypropagateProdWithNeg(int min, int max, int minbound, int maxbound);
 
 	/**
 	 * Propagation for products where some variables can still take negative values.
@@ -132,6 +136,17 @@ private:
 	 */
 	IntView* createBound(const Weight& bound);
 
+	/**
+	 * For every variable (different from the "excludedvar"),
+	 * add lits that stand for Not the current absval situation.
+	 * I.e. ,if in the current situation, a variable is in absolute value smaller than
+	 * x, we add lits
+	 * var < -x || var > x
+	 *
+	 * NOTE, excludedvarloc, can be a value that is bigger than (or equal to) the size of _vars,
+	 * In that case, it means we don't want to exclude a variable
+	 */
+	void getLitsNotCurrentAbsValSituation(litlist& lits, uint excludedvarloc);
 };
 
 
