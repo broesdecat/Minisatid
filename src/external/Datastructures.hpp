@@ -28,6 +28,8 @@ enum class EqType {
 	EQ, NEQ, L, G, GEQ, LEQ
 };
 
+EqType invertEqType(EqType type);
+
 // Aggregate specification operators
 enum class AggType {
 	SUM, PROD, MIN, MAX, CARD

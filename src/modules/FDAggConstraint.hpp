@@ -15,16 +15,29 @@ private:
 	std::vector<IntView*> _vars;
 	std::vector<Weight> _weights; // If SUM: one for each var, if PROD: just one for the whole expression
 	AggProp const * const _type;
-	Weight _bound;
+	IntView* _bound;
 
 	void sharedInitialization(AggType type, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
-			const Weight& bound);
+			IntView* bound);
+
+	void initializeSum(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
+				IntView* bound);
+	void initializeProd(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
+					IntView* bound);
+
+	// Sum constraint: one weight for each var, where bound is an intview.
+	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
+			IntView* bound);
 public:
-	// Sum constraint: one weight for each var
+	// Sum constraint: one weight for each var, where bound is an int.
 	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
 			const int& bound);
-	// Product constraint: one weight for the whole expression
-	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const int& bound);
+
+	// Product constraint: one weight for the whole expression, bound is a variable!
+	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
+
+	// Product constraint: one weight for the whole expression, bound is an integer!
+	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
 
 	// Propagator methods
 	virtual int getNbOfFormulas() const {
@@ -81,8 +94,10 @@ private:
 	 * (i.e. iff getMinAndMaxPossibleAggVals() returns a pair with two times the same value)
 	 * @param value
 	 * The exact value of the aggregate (without incorporating the weight)
+	 * @param boundvalue
+	 * The exact value of the bound
 	 */
-	virtual rClause checkProduct(int value);
+	virtual rClause checkProduct(int value, int boundvalue);
 
 	/**
 	 * Propagation module for products where all variables are positive.
@@ -100,10 +115,26 @@ private:
 	 * A lower bound on the value of the aggregate (without incorporating the weight)
 	 * @param max
 	 * An upper bound on the value of the aggregate (without incorporating the weight)
+	 * @param minbound
+	 * The minimum value for the bound
+	 * @param maxbound
+	 * The maximum value for the bound
 	 */
-	virtual rClause notifypropagateProdWithoutNeg(int min, int max);
+	virtual rClause notifypropagateProdWithoutNeg(int min, int max, int minbound, int maxbound);
+
+	/**
+	 * Returns the unary negation of this bound (-bound)
+	 */
+	IntView* negation(IntView* bound);
+
+	/**
+	 * Creates an intview which can only take the value of bound.
+	 */
+	IntView* createBound(const Weight& bound);
 
 };
+
+
 
 }
 
