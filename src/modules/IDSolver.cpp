@@ -686,7 +686,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 	map<Atom, std::vector<Atom> > root2sccs;
 	for (auto root : sccroots) {
 		MAssert(isDefined(root));
-		bool hasaggs = true;
+		bool hasaggs = false;
 		for (auto head : defdVars) {
 			if (scc(root) == scc(head)) {
 				if (isDefinedByAggr(head)) {
