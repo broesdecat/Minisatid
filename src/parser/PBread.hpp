@@ -43,6 +43,7 @@ namespace MinisatID {
 template<class T>
 class DefaultCallback {
 private:
+	uint maxid;
 	T& solver;
 	T& getSolver() { return solver; }
 
@@ -56,7 +57,7 @@ private:
 	Atom dummyhead;
 
 public:
-	DefaultCallback(T& solver):solver(solver), setid(0), wset(setid), dummyhead(Atom(-1)){
+	DefaultCallback(T& solver):maxid(1), solver(solver), setid(0), wset(setid), dummyhead(Atom(-1)){
 
 	}
 

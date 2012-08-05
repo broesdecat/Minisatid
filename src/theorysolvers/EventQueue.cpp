@@ -84,14 +84,14 @@ void EventQueue::notifyNbOfVars(uint64_t nbvars) {
 }
 
 void EventQueue::acceptBounds(IntView* var, Propagator* propagator) {
-	if (intvarid2propagators.size() <= (uint) var->id()) {
-		intvarid2propagators.resize((uint) var->id() + 1, proplist());
+	if (intvarid2propagators.size() <= (uint) var->getVarID()) {
+		intvarid2propagators.resize((uint) var->getVarID() + 1, proplist());
 	}
-	intvarid2propagators[(uint) var->id()].push_back(propagator);
+	intvarid2propagators[(uint) var->getVarID()].push_back(propagator);
 }
 
 void EventQueue::notifyBoundsChanged(IntVar* var) {
-	for (auto i = intvarid2propagators[var->id()].cbegin(); i < intvarid2propagators[var->id()].cend(); ++i) {
+	for (auto i = intvarid2propagators[var->getVarID()].cbegin(); i < intvarid2propagators[var->getVarID()].cend(); ++i) {
 		if (!(*i)->isPresent()) {
 			continue;
 		}

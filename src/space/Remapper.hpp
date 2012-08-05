@@ -40,14 +40,14 @@ public:
 		}
 		return (int)getID(atom);
 	}
-	uint getID(uint atom){
-		checkVar(atom);
+	uint getID(uint id){
+		checkVar(id);
 
-		auto i = origtocontiguousatommapper.find(atom);
+		auto i = origtocontiguousatommapper.find(id);
 		uint v = 0;
 		if(i==origtocontiguousatommapper.cend()){
-			origtocontiguousatommapper.insert({atom, maxnumber});
-			contiguoustoorigatommapper.insert({maxnumber, atom});
+			origtocontiguousatommapper.insert({id, maxnumber});
+			contiguoustoorigatommapper.insert({maxnumber, id});
 			v = getNewID();
 		}else{
 			v = (*i).second;

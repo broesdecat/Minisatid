@@ -71,6 +71,7 @@ struct ChoiceRule{
 template<class T>
 class Read{
 private:
+	uint maxid;
 	bool endedparsing;
 	int maxatomnumber;
 	int setcount;
@@ -95,6 +96,7 @@ private:
 
 public:
 	Read(T& solver, LParseTranslator* trans):
+		maxid(1),
 		endedparsing(false),
 		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
 		solver(solver), optim(false),

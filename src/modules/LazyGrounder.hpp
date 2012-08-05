@@ -66,7 +66,7 @@ public:
 
 class LazyTseitinClause: public Propagator{
 private:
-	int id;
+	int clauseID;
 	LazyGrounder* monitor;
 	bool waseq;
 	Implication implone, impltwo;
@@ -76,7 +76,7 @@ private:
 	bool alreadypropagating;
 
 public:
-	LazyTseitinClause(PCSolver* engine, Implication impl, LazyGrounder* monitor, int ID);
+	LazyTseitinClause(uint id, PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID);
 
 	void addGrounding(const litlist& list);
 

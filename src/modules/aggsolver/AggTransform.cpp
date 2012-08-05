@@ -117,6 +117,18 @@ void MinisatID::setReduce(PCSolver* solver, WLSet* set, std::vector<TempAgg*>&, 
 	std::sort(set->wl.begin(), set->wl.end(), compareByWeights<WL>);
 }
 
+template<class List>
+List combine(const List& listone, const List& listtwo){
+	auto v = listone;
+	v.insert(v.end(), listtwo.cbegin(), listtwo.cend());
+	return v;
+}
+
+Disjunction implies(const TempAgg& from, const TempAgg& to){
+	// FIXME combine both id for unsat core
+	return Disjunction(DEFAULTCONSTRID, {not from.getHead(), to.getHead()});
+}
+
 void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
 	if (aggs.size() > 1 && aggs[0]->getSem() != AggSem::OR) {
 		tempagglist lbaggs, ubaggs;
@@ -132,15 +144,9 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 			TempAgg* first = *lbaggs.cbegin();
 			for (auto i = lbaggs.cbegin() + 1; i < lbaggs.cend(); ++i) {
 				TempAgg* second = *i;
-				Disjunction disj;
-				disj.literals.push_back(first->getHead());
-				disj.literals.push_back(not second->getHead());
-				internalAdd(disj, *solver);
+				internalAdd(implies(*second, *first), *solver);
 				if (first->getBound() == second->getBound()) {
-					Disjunction disj2;
-					disj2.literals.push_back(not first->getHead());
-					disj2.literals.push_back(second->getHead());
-					internalAdd(disj2, *solver);
+					internalAdd(implies(*first, *second), *solver);
 				}
 				first = second;
 			}
@@ -151,15 +157,9 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 			TempAgg* first = *ubaggs.cbegin();
 			for (auto i = ubaggs.cbegin() + 1; i < ubaggs.cend(); ++i) {
 				TempAgg* second = *i;
-				Disjunction disj;
-				disj.literals.push_back(first->getHead());
-				disj.literals.push_back(not second->getHead());
-				internalAdd(disj, *solver);
+				internalAdd(implies(*second, *first), *solver);
 				if (first->getBound() == second->getBound()) {
-					Disjunction disj2;
-					disj2.literals.push_back(not first->getHead());
-					disj2.literals.push_back(second->getHead());
-					internalAdd(disj2, *solver);
+					internalAdd(implies(*first, *second), *solver);
 				}
 				first = second;
 			}
@@ -183,8 +183,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 	const TempAgg& agg = *aggs[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
-	Disjunction clause;
-	clause.literals.push_back(ub ? agg.getHead() : not agg.getHead());
+	Disjunction clause(agg.getID(), {ub ? agg.getHead() : not agg.getHead()});
 	for (auto i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
 			break;
@@ -196,9 +195,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		if (ub && (*i).getWeight() == bound) {
 			break;
 		}
-		clause.literals.clear();
-		clause.literals.push_back(ub ? not agg.getHead() : agg.getHead());
-		clause.literals.push_back(not (*i).getLit());
+		clause.literals = { ub ? not agg.getHead() : agg.getHead(), not (*i).getLit()};
 		internalAdd(clause, *solver);
 	}
 	aggs.clear();
@@ -228,15 +225,15 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 				lbool headvalue = solver->rootValue(agg.getHead());
 				if (headvalue != l_False) {
 					if (headvalue == l_Undef) {
-						internalAdd(Disjunction( { agg.getHead() }), *solver);
+						internalAdd(Disjunction(agg.getID(), { agg.getHead() }), *solver);
 					}
 				}
 			} else if (agg.hasLB() && bound == 1) {
 				litlist body;
-				for (uint j = 0; j < set->getWL().size(); ++j) {
-					body.push_back(set->getWL()[j].getLit());
+				for (auto wl: set->getWL()) {
+					body.push_back(wl.getLit());
 				}
-				Implication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
+				Implication eq(agg.getID(), agg.getHead(), ImplicationType::EQUIVALENT, body, false);
 				internalAdd(eq, *solver);
 			} else {
 				remaggs.push_back(*i);
@@ -293,8 +290,8 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 		}else{
 			auto weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
 			auto signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
-			auto one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
-			auto two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
+			auto one = new TempAgg(agg.getID(), ~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
+			auto two = new TempAgg(agg.getID(), agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
 			implaggs.push_back(one);
 			implaggs.push_back(two);
 			del.push_back(*i);

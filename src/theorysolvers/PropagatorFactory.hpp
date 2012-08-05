@@ -128,8 +128,6 @@ private:
 
 	Definition* definitions;
 
-	int dummyvar; // dummy, true head
-
 	std::map<int, IntVar*> intvars;
 
 	// Parsing support
@@ -183,8 +181,6 @@ public:
 private:
 	template<class T>
 	void addCP			(const T& formula);
-
-	void addAggrExpr	(const Lit& head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;

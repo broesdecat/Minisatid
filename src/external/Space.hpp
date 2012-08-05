@@ -4,8 +4,7 @@
 	(c) K.U.Leuven
 ************************************/
 
-#ifndef SPACE_HPP_
-#define SPACE_HPP_
+#pragma once
 
 #include <vector>
 #include "Options.hpp"
@@ -101,5 +100,3 @@ public:
 };
 
 }
-
-#endif /* SPACE_HPP_ */

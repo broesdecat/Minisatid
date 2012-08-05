@@ -21,7 +21,7 @@ TEST(MXTest, MultiAssumpSolve) {
 	SolverOption options;
 	options.verbosity = 0;
 	auto space = new Space(options);
-	extAdd(*space, Disjunction( { mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
+	extAdd(*space, Disjunction(DEFAULTCONSTRID, { mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
 	ModelExpandOptions mxopts(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxopts, { mkNegLit(2) });
 	mx.execute();
@@ -101,7 +101,9 @@ TEST_P(MXFileTests, ECNFOptimalWatches) {
 }
 
 TEST_P(ASPFileTests, ASP) {
-	runWithModelCheck(createMXOptions(InputFormat::ASP), GetParam());
+	auto options = createMXOptions(InputFormat::ASP);
+	options.defsem = DEFSEM::DEF_STABLE;
+	runWithModelCheck(options, GetParam());
 }
 
 TEST_P(OPBFileTests, OPB) {

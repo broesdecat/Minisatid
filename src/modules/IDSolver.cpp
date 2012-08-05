@@ -40,15 +40,15 @@ using namespace MinisatID;
 #define CHECKSEEN
 #endif
 
-IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& origwls) :
-		bound(b), head(head), sem(sem), index(-1), type(type), wls(origwls) {
+IDAgg::IDAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& origwls)
+		: id(id), bound(b), head(head), sem(sem), index(-1), type(type), wls(origwls) {
 	std::sort(wls.begin(), wls.end(), compareByWeights<WL>);
 }
 
-IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s, "definition"), definitionID(definitionID), needinitialization(false), infactnotpresent(false), minvar(0), nbvars(0), conj(
-				DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(
-				false), posloops(true), negloops(true), backtracked(true), adaption_total(0), adaption_current(0), twovalueddef(false) {
+IDSolver::IDSolver(PCSolver* s, int definitionID)
+		: Propagator( { }, s, "definition"), definitionID(definitionID), needinitialization(false), infactnotpresent(false), minvar(0), nbvars(0),
+			conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(false),
+			posloops(true), negloops(true), backtracked(true), adaption_total(0), adaption_current(0), twovalueddef(false), savedloopf(DEFAULTCONSTRID, { }) {
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
@@ -125,7 +125,7 @@ void IDSolver::addFinishedRule(const TempRule& rule) {
 	}
 
 	conj = conj || rule.body.size() == 1; //rules with only one body atom are treated as conjunctive
-	auto r = new PropRule(mkLit(head), rule.body);
+	auto r = new PropRule(rule.id, mkLit(head), rule.body);
 	createDefinition(head, r, conj ? DefType::CONJ : DefType::DISJ);
 }
 
@@ -141,7 +141,7 @@ void IDSolver::addFinishedDefinedAggregate(const TempRule& rule) {
 	}
 
 	AggBound b(rule.inneragg->sign, rule.inneragg->bound);
-	auto agg = new IDAgg(mkLit(head), b, rule.inneragg->sem, rule.inneragg->type, rule.innerset->getWL());
+	auto agg = new IDAgg(rule.id, mkLit(head), b, rule.inneragg->sem, rule.inneragg->type, rule.innerset->getWL());
 	if (isInitiallyJustified(*agg)) {
 		delete (agg);
 		return;
@@ -171,10 +171,10 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
 				visitor.add(WLSet(setid, rule->getWL()));
 				// NOTE: leads to duplicate aggregates!
 				visitor.add(
-						Aggregate(rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID()));
+						Aggregate(rule->getID(), rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID()));
 			} else {
 				auto rule = defvar->definition();
-				visitor.add(Rule(var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID()));
+				visitor.add(Rule(rule->getID(), var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID()));
 			}
 		}
 	}
@@ -259,8 +259,8 @@ void IDSolver::initialize() {
 		defdVars.clear();
 		defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
 		varlist temp;
-		for(auto root: sccroots){
-			if(isDefined(root)){
+		for (auto root : sccroots) {
+			if (isDefined(root)) {
 				temp.push_back(root);
 			}
 		}
@@ -303,16 +303,16 @@ void IDSolver::initialize() {
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-		CHECKSEEN
+		CHECKSEEN;
 	}
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
 // In default model expansion, this turned out to be quite expensive, so it was disabled.
 bool IDSolver::simplifyGraph(int& atomsinposloops) {
-	CHECKNOTUNSAT
+	CHECKNOTUNSAT;
 	if (!posloops) {
-		CHECKNOTUNSAT
+		CHECKNOTUNSAT;
 		return true;
 	}
 
@@ -338,7 +338,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		usedseen.push_back(v);
 	}
 
-	// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
+// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
 	queue<Lit> propq;
 	for (int i = 0; i < nVars(); ++i) {
 		Lit l = mkNegLit(i);
@@ -354,8 +354,8 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		}
 	}
 
-	// propagate safeness to defined literals until fixpoint.
-	// While we do this, we build the initial justification.
+// propagate safeness to defined literals until fixpoint.
+// While we do this, we build the initial justification.
 	while (!propq.empty()) {
 		Lit l = propq.front(); //only heads are added to the queue
 		MAssert(sign(l) || !isDefined(var(l)) || (seen(var(l))==0));
@@ -455,7 +455,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 	defdVars.clear();
 	defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
 
-	//reconstruct the disj and conj occurs with the reduced number of definitions
+//reconstruct the disj and conj occurs with the reduced number of definitions
 	disj.clear();
 	conj.clear();
 	aggr.clear();
@@ -483,8 +483,8 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		}
 	}
 
-	//Reset the elements in "seen" that were changed
-	//NOTE: do not return before this call!
+//Reset the elements in "seen" that were changed
+//NOTE: do not return before this call!
 	for (auto i = usedseen.cbegin(); i < usedseen.cend(); ++i) {
 		seen(*i) = 0;
 	}
@@ -553,8 +553,8 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 }
 
 void IDSolver::generateSCCs() {
-	// Initialize scc of full dependency graph
-	//TODO remove nVars!
+// Initialize scc of full dependency graph
+//TODO remove nVars!
 	vector<bool> incomp(nVars(), false);
 	varlist stack;
 	vector<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
@@ -573,9 +573,9 @@ void IDSolver::generateSCCs() {
 		negloops = false;
 	}
 
-	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
+//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
 
-	// Initialize scc of positive dependency graph
+// Initialize scc of positive dependency graph
 	for (auto i = nodeinmixed.cbegin(); i != nodeinmixed.cend(); ++i) {
 		incomp[*i] = false;
 		occ(*i) = MIXEDLOOP;
@@ -624,8 +624,8 @@ bool IDSolver::loopPossibleOver(Atom v) {
 }
 
 void IDSolver::addToNetwork(Atom v) {
-	//IMPORTANT: also add mixed loop rules to the network for checking well-founded model
-	//could be moved to different datastructure to speed up
+//IMPORTANT: also add mixed loop rules to the network for checking well-founded model
+//could be moved to different datastructure to speed up
 	switch (type(v)) {
 	case DefType::DISJ:
 		for (auto j = definition(v)->cbegin(); j < definition(v)->cend(); ++j) {
@@ -669,7 +669,7 @@ void IDSolver::addToNetwork(Atom v) {
 }
 
 void IDSolver::bumpHeadHeuristic() {
-	//This heuristic on its own solves hamiltonian path for slow decay
+//This heuristic on its own solves hamiltonian path for slow decay
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		const Atom& v = *i;
 		if (isDefined(v) && type(v) == DefType::DISJ) {
@@ -689,20 +689,20 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 		bool hasaggs = true;
 		for (auto head : defdVars) {
 			if (scc(root) == scc(head)) {
-				if(isDefinedByAggr(head)){
+				if (isDefinedByAggr(head)) {
 					hasaggs = true;
 					break;
 				}
 				root2sccs[root].push_back(head);
 			}
 		}
-		if(hasaggs){
+		if (hasaggs) {
 			root2sccs.erase(root);
 		}
 	}
-	for(auto root2scc: root2sccs){
+	for (auto root2scc : root2sccs) {
 		vector<toCNF::Rule*> rules;
-		for (auto head: root2scc.second) {
+		for (auto head : root2scc.second) {
 			litlist defbodylits, openbodylits;
 			auto proprule = getDefVar(head)->definition();
 			for (auto bodylit = proprule->cbegin(); bodylit != proprule->cend(); ++bodylit) {
@@ -712,7 +712,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 					openbodylits.push_back(*bodylit);
 				}
 			}
-			auto rule = new toCNF::Rule(isDisjunctive(head), head, defbodylits, openbodylits);
+			auto rule = new toCNF::Rule(proprule->getID(), isDisjunctive(head), head, defbodylits, openbodylits);
 			rules.push_back(rule);
 		}
 		unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
@@ -777,8 +777,7 @@ void IDSolver::visitFull(Atom i, vector<bool> &incomp, varlist &stack, varlist &
 			}
 
 			if (visited[w] == 0) {
-				visitFull(w, incomp, stack, visited, counter, false /*Over-approximation of negative occurences*/, posroots, rootofmixed,
-						nodeinmixed);
+				visitFull(w, incomp, stack, visited, counter, false /*Over-approximation of negative occurences*/, posroots, rootofmixed, nodeinmixed);
 			} else if (!incomp[w] && visited[i] > 0) { // Over-approximation of negative occurences
 				visited[i] = -visited[i];
 			}
@@ -952,7 +951,7 @@ rClause IDSolver::notifypropagate() {
 	if (needinitialization) {
 		initialize();
 		if (getPCSolver().isUnsat()) {
-			return getPCSolver().createClause( { }, true);
+			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 		}
 	}
 	CHECKSEEN CHECKNOTUNSAT
@@ -1510,8 +1509,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 	MAssert(!ufs.empty());
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
-	Disjunction loopf;
-	loopf.literals.push_back(mkLit(-1));
+	Disjunction loopf(DEFAULTCONSTRID, { mkLit(-1) });
 	addExternalDisjuncts(ufs, loopf.literals);
 
 	// Check if any of the literals in the set are already true, which leads to a conflict.
@@ -1552,7 +1550,8 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 			addLoopfClause(mkNegLit(v), loopf);
 
 			// \forall d \in \extdisj{L}: not d \vee v
-			Disjunction binaryclause({ mkLit(-1), mkPosLit(v) });
+			// UNSAT core extraction correct because of rule rewriting earlier on.
+			Disjunction binaryclause(DEFAULTCONSTRID, { mkLit(-1), mkPosLit(v) });
 			for (uint i = 1; i < loopf.literals.size(); ++i) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
@@ -1626,8 +1625,7 @@ void IDSolver::addLoopfClause(Lit l, Disjunction& lits) {
 
 rClause IDSolver::getExplanation(const Lit& l) {
 	MAssert(getPCSolver().modes().idclausesaving>0);
-	Disjunction clause;
-	clause.literals = reason(var(l));
+	Disjunction clause(DEFAULTCONSTRID, reason(var(l)));
 	return getPCSolver().createClause(clause, true);
 }
 
@@ -1690,7 +1688,7 @@ inline void IDSolver::markNonJustifiedAddVar(Atom v, Atom cs, queue<Atom> &q, va
 
 void IDSolver::printPosGraphJustifications() const {
 	clog << ">>>> Justifications (on pos graph):\n";
-	for(auto i=defdVars.cbegin(); i<defdVars.cend(); ++i) {
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		auto var = *i;
 		if (isDefined(var) && occ(var) != MIXEDLOOP) {
 			clog << "    " << toString(mkPosLit(var)) << "<-";
@@ -1913,7 +1911,7 @@ rClause IDSolver::isWellFoundedModel() {
 	if (verbosity() > 1) {
 		clog << "General SCCs: ";
 		for (uint z = 0; z < wfroot.size(); ++z) {
-			if(DEFINEDINMIXED(z)){
+			if (DEFINEDINMIXED(z)) {
 				clog << toString(z) << " has root " << toString(wfroot[z]) << "\n";
 			}
 		}
@@ -1975,7 +1973,7 @@ rClause IDSolver::isWellFoundedModel() {
 	}
 
 	//Returns the found assignment (TODO might be optimized to just return the loop)
-	Disjunction invalidation;
+	Disjunction invalidation(DEFAULTCONSTRID, { });
 	getPCSolver().invalidate(invalidation.literals);
 	auto confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addConflictClause(confl);
@@ -2275,7 +2273,7 @@ void IDSolver::overestimateCounters() {
 			if (wfisMarked[var(bdl)] && !isPositive(bdl) && v != var(bdl)) {
 				if (type(v) == DefType::CONJ) {
 					seen(v)--;}
-else				{
+				else {
 					seen(v) = 0;
 				}
 			}

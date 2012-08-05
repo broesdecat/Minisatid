@@ -14,14 +14,14 @@
 using namespace MinisatID;
 using namespace std;
 
-BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, Atom h)
-		: Propagator(engine, "binary constraint") {
+BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, Atom h)
+		: Propagator(id, engine, "binary constraint") {
 	switch (comp) {
 	case EqType::EQ: {
 		auto lefthead = getPCSolver().newVar();
 		auto righthead = getPCSolver().newVar();
-		internalAdd(Implication(mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, true), getPCSolver());
-		internalAdd(CPBinaryRelVar(righthead, _left->id(), EqType::GEQ, _right->id()), getPCSolver());
+		internalAdd(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, true), getPCSolver());
+		internalAdd(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()), getPCSolver());
 		head_ = mkPosLit(lefthead);
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, 0);
@@ -30,8 +30,8 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp,
 	case EqType::NEQ: {
 		auto lefthead = getPCSolver().newVar();
 		auto righthead = getPCSolver().newVar();
-		internalAdd(Implication(mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, false), getPCSolver());
-		internalAdd(CPBinaryRelVar(righthead, _left->id(), EqType::G, _right->id()), getPCSolver());
+		internalAdd(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, false), getPCSolver());
+		internalAdd(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()), getPCSolver());
 		head_ = mkPosLit(lefthead);
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, -1);
@@ -74,23 +74,23 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	MAssert(reason!=reasons.cend());
 	if (var(lit) == var(head())) {
 		if (lit == head()) {
-			return getPCSolver().createClause(Disjunction( { lit, ~left()->getLEQLit(reason->second.bound), ~right()->getGEQLit(reason->second.bound) }), true);
+			return getPCSolver().createClause(Disjunction(getID(),  { lit, ~left()->getLEQLit(reason->second.bound), ~right()->getGEQLit(reason->second.bound) }), true);
 		} else { // head false
-			return getPCSolver().createClause(Disjunction( { lit, ~left()->getGEQLit(reason->second.bound), ~right()->getLEQLit(reason->second.bound - 1) }),
+			return getPCSolver().createClause(Disjunction(getID(),  { lit, ~left()->getGEQLit(reason->second.bound), ~right()->getLEQLit(reason->second.bound - 1) }),
 					true);
 		}
 	} else {
 		if (reason->second.var == left()) {
 			if (reason->second.geq) { // left GEQ bound was propagated
-				return getPCSolver().createClause(Disjunction( { lit, head(), ~right()->getGEQLit(reason->second.bound - 1) }), true);
+				return getPCSolver().createClause(Disjunction(getID(),  { lit, head(), ~right()->getGEQLit(reason->second.bound - 1) }), true);
 			} else { // left LEQ bound
-				return getPCSolver().createClause(Disjunction( { lit, ~head(), ~right()->getLEQLit(reason->second.bound) }), true);
+				return getPCSolver().createClause(Disjunction(getID(),  { lit, ~head(), ~right()->getLEQLit(reason->second.bound) }), true);
 			}
 		} else { // right var explanation
 			if (reason->second.geq) {
-				return getPCSolver().createClause(Disjunction( { lit, ~head(), ~left()->getGEQLit(reason->second.bound) }), true);
+				return getPCSolver().createClause(Disjunction(getID(),  { lit, ~head(), ~left()->getGEQLit(reason->second.bound) }), true);
 			} else {
-				return getPCSolver().createClause(Disjunction( { lit, head(), ~left()->getLEQLit(reason->second.bound + 1) }), true);
+				return getPCSolver().createClause(Disjunction(getID(),  { lit, head(), ~left()->getLEQLit(reason->second.bound + 1) }), true);
 			}
 		}
 	}

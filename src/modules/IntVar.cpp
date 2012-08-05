@@ -15,9 +15,9 @@
 using namespace MinisatID;
 using namespace std;
 
-IntVar::IntVar(PCSolver* solver, int id)
-		: 	Propagator(solver, "intvar"),
-			id_(id),
+IntVar::IntVar(uint id, PCSolver* solver, int varid)
+		: 	Propagator(id, solver, "intvar"),
+			varid_(varid),
 			currentmin(0),
 			currentmax(0),
 			minvalue(0),
@@ -25,8 +25,8 @@ IntVar::IntVar(PCSolver* solver, int id)
 			engine_(*solver) {
 }
 
-BasicIntVar::BasicIntVar(PCSolver* solver, int _origid)
-		: 	IntVar(solver, _origid) {
+BasicIntVar::BasicIntVar(uint id, PCSolver* solver, int varid)
+		: 	IntVar(id, solver, varid) {
 }
 
 void IntVar::notifyBacktrack(int, const Lit&) {
@@ -44,7 +44,7 @@ rClause IntVar::notifypropagate() {
 	updateBounds();
 	if (lastmin != currentmin || lastmax != currentmax) {
 		if (verbosity() > 7) {
-			clog << ">>> After bounds update: var range is " << toString(id()) << "[" << currentmin << "," << currentmax << "]\n";
+			clog << ">>> After bounds update: var range is " << toString(getVarID()) << "[" << currentmin << "," << currentmax << "]\n";
 		}
 		engine().notifyBoundsChanged(this);
 	}
@@ -54,21 +54,21 @@ rClause IntVar::notifypropagate() {
 
 Lit IntVar::getEQLit(int bound){
 	auto head = mkPosLit(getPCSolver().newVar()); // TODO table
-	internalAdd(Implication(head, ImplicationType::EQUIVALENT, {getGEQLit(bound), getLEQLit(bound)}, true), engine());
+	internalAdd(Implication(getID(), head, ImplicationType::EQUIVALENT, {getGEQLit(bound), getLEQLit(bound)}, true), engine());
 	return head;
 }
 
 void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next) {
 	// leq[i] => leq[i+1]
 	if (next!=NULL) {
-		internalAdd(Disjunction( { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
+		internalAdd(Disjunction(getID(),  { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
 	} else if(lv.value==origMaxValue()){
-		internalAdd(Disjunction( { getLEQLit(lv.value) }), engine());
+		internalAdd(Disjunction(getID(),  { getLEQLit(lv.value) }), engine());
 	}
 
 	//~leq[i] => ~leq[i-1]
 	if (prev!=NULL) {
-		internalAdd(Disjunction( { getLEQLit(lv.value), ~getLEQLit(prev->value) }), engine());
+		internalAdd(Disjunction(getID(),  { getLEQLit(lv.value), ~getLEQLit(prev->value) }), engine());
 	}
 }
 
@@ -123,8 +123,8 @@ void BasicIntVar::updateBounds() {
 //	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
-RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max)
-		: BasicIntVar(solver, _origid) {
+RangeIntVar::RangeIntVar(uint id, PCSolver* solver, int varid, int min, int max)
+		: BasicIntVar(id, solver, varid) {
 	if(min>max){
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
@@ -139,7 +139,7 @@ RangeIntVar::RangeIntVar(PCSolver* solver, int _origid, int min, int max)
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
 		if (verbosity() > 3) {
-			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(id()) << "=<" << i << "\n";
+			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << i << "\n";
 		}
 	}
 
@@ -168,8 +168,8 @@ Lit RangeIntVar::getGEQLit(int bound) {
 	return not getLEQLit(bound-1);
 }
 
-EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& values)
-		: 	BasicIntVar(solver, _origid),
+EnumIntVar::EnumIntVar(uint id, PCSolver* solver, int varid, const std::vector<int>& values)
+		: 	BasicIntVar(id, solver, varid),
 			_values(values) {
 	if(values.empty()){
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
@@ -186,7 +186,7 @@ EnumIntVar::EnumIntVar(PCSolver* solver, int _origid, const std::vector<int>& va
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
 		if (verbosity() > 3) {
-			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(id()) << "=<" << *i << "\n";
+			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << *i << "\n";
 		}
 	}
 

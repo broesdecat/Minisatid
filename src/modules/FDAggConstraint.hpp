@@ -21,10 +21,10 @@ private:
 			const Weight& bound);
 public:
 	// Sum constraint: one weight for each var
-	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
+	FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
 			const int& bound);
 	// Product constraint: one weight for the whole expression
-	FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const int& bound);
+	FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const int& bound);
 
 	// Propagator methods
 	virtual int getNbOfFormulas() const {

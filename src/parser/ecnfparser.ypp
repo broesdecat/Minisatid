@@ -15,7 +15,8 @@
 %define namespace "MinisatID"
 %define parser_class_name "ECNFParser"
 %parse-param { MinisatID::ECNFScanner &scanner }
-%parse-param { MinisatID::ExternalConstraintVisitor& wrapper }
+%parse-param { MinisatID::ExternalConstraintVisitor* wrapper }
+%parse-param { uint id }
 %lex-param   { MinisatID::ECNFScanner &scanner }
 
 %code requires{
@@ -53,7 +54,7 @@
 	// Prototype for the yylex function
 	static int ecnflex(MinisatID::ECNFParser::semantic_type * yylval, MinisatID::ECNFScanner &scanner);
 		
-	// External state (to be removed in future)
+	// TODO External state (to be removed in future)
 	FODOTTranslator*	fodottrans = NULL;
 	LParseTranslator*	simpletrans = NULL;
 	int atoms, clauses;
@@ -63,7 +64,7 @@
 	 * The result is false if unsat was already detected.
 	 */
 	template<class Wrapper, class T>
-	void CR(Wrapper& wrapper, const T& formula);
+	void CR(Wrapper* wrapper, const T& formula);
 	
 	MinisatID::Atom cAtom(string* c);
 	MinisatID::Lit cLiteral(string* c);
@@ -162,7 +163,7 @@
 /** Non-terminals with semantic value **/
 %type <str>	identifier
 %type <vints>	numlist
-%type <vstr>	idlist
+%type <vstr>	uint
 %type <vstr>	idnlist
 
 //Blijkt nog niet te werken, zal ook wel in een nieuwere versie zijn
@@ -196,8 +197,7 @@ cnftheory:	/*empty*/
 			
 cnfclause: 	body ZERO	
 				{	
-					Disjunction clause;
-					clause.literals = *$1;
+					Disjunction clause(id++, *$1);
 					CR(wrapper, clause);
 					delete $1;
 				}
@@ -254,10 +254,9 @@ summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO
 		
 clause	:	body ZERO	
 			{
-				Disjunction clause;
-				clause.literals = *$1;
-				delete $1;
+				Disjunction clause(id++, *$1);
 				CR(wrapper, clause);
+				delete $1;
 			}
 		;
 
@@ -267,7 +266,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 				if($1==AggSem::OR){
 					error(yyloc, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(cAtom($2), *$3, $1==AggSem::COMP, defaultdefID); //AggSem is bit of a hack, to be fixed
+				Rule rule(id++, cAtom($2), *$3, $1==AggSem::COMP, defaultdefID); //AggSem is bit of a hack, to be fixed
 				delete $2; delete $3;
 				CR(wrapper, rule);
 			}
@@ -279,7 +278,7 @@ rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 				if($1==AggSem::OR){
 					error(yyloc, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(cAtom($4), *$6, $1==AggSem::COMP, cID($2));//AggSem is bit of a hack, to be fixed
+				Rule rule(id++, cAtom($4), *$6, $1==AggSem::COMP, cID($2));//AggSem is bit of a hack, to be fixed
 				delete $2; delete $4; delete $6;
 				CR(wrapper, rule);
 			}
@@ -287,7 +286,7 @@ rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 		
 implication: IMPLICATION SEMDEFN NUMBER IMPL body ZERO
 			{ 	
-				Implication implic(cLiteral($3), $4, *$5, $2==AggSem::COMP);
+				Implication implic(id++, cLiteral($3), $4, *$5, $2==AggSem::COMP);
 				delete $3; delete $5;
 				CR(wrapper, implic);
 			}
@@ -299,19 +298,19 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 					checkVersion(VERSION_OLD);
 				}
 	
-				CR(wrapper, Aggregate(cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID));
+				CR(wrapper, Aggregate(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID));
 				delete $4; delete $5; delete $6;
 			}
 		|	AGGDEFN ORSEM SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
-				CR(wrapper, Aggregate(cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID));
+				CR(wrapper, Aggregate(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID));
 				delete $4; delete $5; delete $6;
 			}
 		|	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
 				checkVersion(VERSION_NEW);
 
-				CR(wrapper, Aggregate(mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3)));
+				CR(wrapper, Aggregate(id++, mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3)));
 				delete $5; delete $6; delete $7;
 			}
 		;
@@ -373,13 +372,13 @@ cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete(
 
 intvar	:	INTVAR number weight weight ZERO 
 			{
-				IntVarRange var($2, cWeight($3), cWeight($4));
+				IntVarRange var(id++, $2, cWeight($3), cWeight($4));
 				CR(wrapper, var);
 				delete $3; delete $4;
 			}
 		|	INTVARDOM number weightbody DELIM ZERO 
 			{
-				IntVarEnum var($2,*$3);
+				IntVarEnum var(id++, $2,*$3);
 				CR(wrapper, var);
 				delete $3;
 			}
@@ -387,7 +386,7 @@ intvar	:	INTVAR number weight weight ZERO
 
 //intvarset
 //		:	INTVARSET number ibody ZERO 
-//				{ 	CR(wrapper, wrapper.addIntVarSet($2, *$3)); delete $3; }
+//				{ 	CR(wrapper, wrapper->addIntVarSet($2, *$3)); delete $3; }
 //		;
 
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
@@ -395,44 +394,44 @@ intvar	:	INTVAR number weight weight ZERO
 cpconstraint
 		:	BINTRI NUMBER number REL weight ZERO 
 			{ 	
-				CPBinaryRel binrel(cAtom($2), $3, $4, cWeight($5));
+				CPBinaryRel binrel(id++, cAtom($2), $3, $4, cWeight($5));
 				CR(wrapper, binrel);
 				delete $2; delete $5;
 			}
 		|	BINTRT NUMBER number REL number ZERO 
 			{ 	
-				CPBinaryRelVar binrel(cAtom($2), $3, $4, $5);
+				CPBinaryRelVar binrel(id++, cAtom($2), $3, $4, $5);
 				CR(wrapper, binrel);
 				delete $2;
 			}
 		|	CPSUM NUMBER uibody DELIM weightbody REL weight ZERO   
 			{ 	
-				CPSumWeighted sum(cAtom($2), *$3, *$5, $6, cWeight($7));
+				CPSumWeighted sum(id++, cAtom($2), *$3, *$5, $6, cWeight($7));
 				CR(wrapper, sum);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	CPPROD NUMBER uibody DELIM weight REL weight ZERO   
 			{ 	
-				CPProdWeighted prod(cAtom($2), *$3, cWeight($5), $6, cWeight($7));
+				CPProdWeighted prod(id++, cAtom($2), *$3, cWeight($5), $6, cWeight($7));
 				CR(wrapper, prod);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	ELEMENT uibody DELIM number number ZERO 
 			{ 	
-				CR(wrapper, CPElement(*$2, $4, $6));
+				CR(wrapper, CPElement(id++, *$2, $4, $6));
 				delete $2;
 			}
 			//only global card at the moment! 
 		|	COUNT uibody DELIM weight REL number ZERO   
 			{ 	
-				CPCount count(*$2, cWeight($4), $5, $6);
+				CPCount count(id++, *$2, cWeight($4), $5, $6);
 				CR(wrapper, count);
 				delete $2; delete $4;
 			}
 			//only global alldiff at the moment!
 		|	DISTINCT uibody DELIM ZERO //DELIM to remove shift-reduce conflict 
 			{ 	
-				CPAllDiff alldiff(*$2);
+				CPAllDiff alldiff(id++, *$2);
 				CR(wrapper, alldiff);
 				delete $2;
 			}
@@ -443,15 +442,15 @@ cpconstraint
 translation	: /* empty */
 			|	TRANSHEADER 
 				{
-					fodottrans = new FODOTTranslator(wrapper.getOptions().transformat==OutputFormat::ASP);	
-					wrapper.setTranslator(fodottrans);
+					fodottrans = new FODOTTranslator(wrapper->getOptions().transformat==OutputFormat::ASP);	
+					wrapper->setTranslator(fodottrans);
 				} 
 				typelist predlist funclist truelist arbitlist
 				
 			| 	TRANSHEADER2 
 				{	
 					simpletrans = new LParseTranslator();				
-					wrapper.setTranslator(simpletrans);
+					wrapper->setTranslator(simpletrans);
 				}
 				tuplelist
 			;
@@ -467,16 +466,16 @@ predlist	: /* empty */
 			| predlist pred
 			;
 
-pred		: SHOWPRED T_NUM identifier ':' idlist	{ parsepred($3,$2,$5,false); delete($3); delete($5);	}
-			| PRED T_NUM identifier ':' idlist		{ delete($3); delete($5);								}
+pred		: SHOWPRED T_NUM identifier ':' uint	{ parsepred($3,$2,$5,false); delete($3); delete($5);	}
+			| PRED T_NUM identifier ':' uint		{ delete($3); delete($5);								}
 			;
 
 funclist	: /* empty */
 			| funclist func
 			;
 
-func		: SHOWFUNC T_NUM identifier ':' idlist	{ parsepred($3,$2,$5,true); delete($3); delete($5); 	}
-			| FUNC T_NUM identifier ':' idlist { delete($3); delete($5); }
+func		: SHOWFUNC T_NUM identifier ':' uint	{ parsepred($3,$2,$5,true); delete($3); delete($5); 	}
+			| FUNC T_NUM identifier ':' uint { delete($3); delete($5); }
 			;
 
 truelist	: TRUE ':' numlist	{ parsetruelist($3); delete($3); }
@@ -491,8 +490,8 @@ idnlist		: idnlist identifier	{ $1->push_back(*$2); $$ = $1; delete($2); }
 			| T_NUM					{ $$ = new vector<string>(1,itos($1)); }
 			;
 
-idlist		: /* empty */		{ $$ = new vector<string>(0); }
-			| idlist identifier	{ $1->push_back(*$2); $$ = $1; delete($2); }
+uint		: /* empty */		{ $$ = new vector<string>(0); }
+			| uint identifier	{ $1->push_back(*$2); $$ = $1; delete($2); }
 			;
 
 numlist		: /* empty */		{ $$ = new vector<int>(0); }
@@ -617,9 +616,9 @@ Weight cWeight(string* s){
  * The result is false if unsat was already detected.
  */
 template<class Wrapper, class T>
-void CR(Wrapper& wrapper, const T& formula){
-	extAdd(wrapper, formula);
-	if(wrapper.isCertainlyUnsat()){
+void CR(Wrapper* wrapper, const T& formula){
+	extAdd(*wrapper, formula);
+	if(wrapper->isCertainlyUnsat()){
 		throw idpexception("Unsat during parsing.\n");
 	}		
 }

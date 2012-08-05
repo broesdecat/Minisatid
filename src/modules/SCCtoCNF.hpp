@@ -23,14 +23,16 @@ namespace MinisatID {
 namespace toCNF{
 
 class Rule{
+	uint id_;
 	bool disjunctive_;
 	Atom head_;
 	litlist defbody_, openbody_;
 
 public:
-	Rule(bool disjunctive, Atom head, const litlist& deflits, const litlist& openlits)
-			:disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){}
+	Rule(uint id, bool disjunctive, Atom head, const litlist& deflits, const litlist& openlits)
+			:id_(id), disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){}
 
+	uint			getID() 		const { return id_; }
 	Atom 			getHead() 		const { return head_; }
 	bool 			isDisjunctive() const { return disjunctive_; }
 	const litlist& 	def() 			const { return defbody_; }
@@ -317,7 +319,7 @@ private:
 	}
 
 	SATVAL addClause(const litlist& lits){
-		internalAdd(Disjunction(lits), solver_);
+		internalAdd(Disjunction(DEFAULTCONSTRID, lits), solver_);
 		return solver_.satState();
 	}
 
@@ -350,7 +352,7 @@ private:
 			return solver_.getTrueLit();
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
 		return tseitin;
 	}
 
@@ -371,7 +373,7 @@ private:
 			return solver_.getFalseLit();
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
 		return tseitin;
 	}
 };

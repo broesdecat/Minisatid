@@ -59,7 +59,7 @@ void SpaceTask::notifyTerminateRequested() {
 
 // NOTE: EXTERNAL literals
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: MXTask(space), _options(options), assumptions(checkLits(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+		: MXTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
 			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }
@@ -259,7 +259,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 
 		//Invalidate SAT model
 		if (getSolver().moreModelsPossible()) { //choices were made, so other models possible
-			Disjunction invalidation;
+			Disjunction invalidation(DEFAULTCONSTRID, {});
 			getSolver().invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
 		} else {
@@ -276,7 +276,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
 SATVAL ModelExpand::invalidateModel(const litlist& clause) {
-	Disjunction d(clause);
+	Disjunction d(DEFAULTCONSTRID, clause);
 
 	if (getOptions().verbosity >= 3) {
 		clog << "Adding model-invalidating clause: [ ";
@@ -420,7 +420,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		getSolver().saveState();
 
 		//invalidate the solver
-		Disjunction invalidation;
+		Disjunction invalidation(DEFAULTCONSTRID, {});
 		switch (optim.optim) {
 		case Optim::LIST:
 			unsatreached = invalidateValue(invalidation.literals, optim);
@@ -458,11 +458,8 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		// TODO In fact from here the state no longer has to be saved
 
 		// Prevent to find the first model again
-		Disjunction d;
-		for (auto i = savedinvalidation.cbegin(); i < savedinvalidation.cend(); ++i) {
-			d.literals.push_back(*i);
-		}
-		internalAdd(d, getSolver());
+		internalAdd(Disjunction(DEFAULTCONSTRID, savedinvalidation), getSolver());
+
 		// If resetting state, also fix the optimization constraints to their optimal condition
 		switch (optim.optim) {
 		case Optim::LIST:
@@ -470,9 +467,9 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 				if (*i == latestlistoptimum) {
 					break;
 				}
-				internalAdd(Disjunction( { ~*i }), getSolver());
+				internalAdd(Disjunction(DEFAULTCONSTRID, { ~*i }), getSolver());
 			}
-			internalAdd(Disjunction( { latestlistoptimum }), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { latestlistoptimum }), getSolver());
 			break;
 		case Optim::SUBSET: {
 			WLSet set(getSolver().newSetID());
@@ -481,8 +478,8 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			}
 			internalAdd(set, getSolver());
 			auto var = getSolver().newVar();
-			internalAdd(Disjunction( { mkPosLit(var) }), getSolver());
-			internalAdd(Aggregate(mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(var) }), getSolver());
+			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
 			break;
 		}
 		case Optim::AGG: {
@@ -492,8 +489,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		}
 		case Optim::VAR: {
-			internalAdd(Disjunction( { optim.var->getLEQLit(latestvarvalue) }), getSolver());
-			internalAdd(Disjunction( { optim.var->getGEQLit(latestvarvalue) }), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { optim.var->getEQLit(latestvarvalue) }), getSolver());
 			break;
 		}
 		}

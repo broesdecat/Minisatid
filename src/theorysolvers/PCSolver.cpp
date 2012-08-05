@@ -56,9 +56,9 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 	dummy1 = newVar();
 	dummy2 = newVar();
 	dummyfalse = newVar();
-	internalAdd(Disjunction( { mkPosLit(dummy1) }), *this);
-	internalAdd(Disjunction( { mkPosLit(dummy2) }), *this);
-	internalAdd(Disjunction( { mkNegLit(dummyfalse) }), *this);
+	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy1) }), *this);
+	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy2) }), *this);
+	internalAdd(Disjunction(DEFAULTCONSTRID, { mkNegLit(dummyfalse) }), *this);
 }
 
 Lit PCSolver::getTrueLit() const {
@@ -518,7 +518,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::VAR:
-			visitor.add(MinimizeVar((*i).priority, (*i).var->id()));
+			visitor.add(MinimizeVar((*i).priority, (*i).var->getVarID()));
 			break;
 		}
 	}

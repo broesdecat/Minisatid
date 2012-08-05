@@ -3,14 +3,14 @@
 #include <istream>
 
 namespace MinisatID {
-template<class TScanner, class TParser, class Monitor>
+template<class TScanner, class TParser, class ... Values>
 class Parser {
 private:
 	TScanner scanner;
 	TParser parser;
 public:
-	Parser(std::istream* input, Monitor& monitor)
-			: scanner(TScanner(input)), parser(TParser(scanner, monitor)) {
+	Parser(std::istream* input, Values... values)
+			: scanner(TScanner(input)), parser(TParser(scanner, values...)) {
 	}
 
 	int parse() {

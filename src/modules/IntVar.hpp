@@ -20,7 +20,7 @@ struct IntVarValue{
 
 class IntVar: public Propagator{
 private:
-	int id_;
+	int varid_;
 	PCSolver& engine_;
 	int minvalue, maxvalue;
 
@@ -41,7 +41,7 @@ protected:
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
 public:
-	IntVar(PCSolver* solver, int id);
+	IntVar(uint id, PCSolver* solver, int varid);
 
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
@@ -50,7 +50,7 @@ public:
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
-	int id() const { return id_; }
+	int getVarID() const { return varid_; }
 	PCSolver& engine() { return engine_; }
 
 	int origMinValue() const {
@@ -81,14 +81,14 @@ protected:
 	void addConstraints();
 
 public:
-	BasicIntVar(PCSolver* solver, int origid);
+	BasicIntVar(uint id, PCSolver* solver, int varid);
 
 	virtual void updateBounds();
 };
 
 class RangeIntVar: public BasicIntVar{
 public:
-	RangeIntVar(PCSolver* solver, int origid, int min, int max);
+	RangeIntVar(uint id, PCSolver* solver, int varid, int min, int max);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -101,7 +101,7 @@ private:
 	std::vector<int> _values; // SORTED low to high!
 
 public:
-	EnumIntVar(PCSolver* solver, int origid, const std::vector<int>& values);
+	EnumIntVar(uint id, PCSolver* solver, int varid, const std::vector<int>& values);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -117,7 +117,7 @@ private:
 	bool checkAndAddVariable(int value);
 
 public:
-	LazyIntVar(PCSolver* solver, int origid, int min, int max);
+	LazyIntVar(uint id, PCSolver* solver, int varid, int min, int max);
 
 	virtual void updateBounds();
 
@@ -141,7 +141,7 @@ public:
 
 	IntVar* var() const { return var_; }
 
-	int id() const { return var()->id(); }
+	int getVarID() const { return var()->getVarID(); }
 
 	int origMinValue() const {
 		return var()->origMinValue()+constdiff();
@@ -177,7 +177,7 @@ public:
 
 	std::string toString() const {
 		std::stringstream ss;
-		ss <<"var" <<var()->toString(id());
+		ss <<"var" <<var()->toString(getVarID());
 		if(constdiff_!=0){
 			if(constdiff_>0){
 				ss <<"+";

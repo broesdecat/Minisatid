@@ -217,15 +217,33 @@ void initializeAndParseOPB(const std::string& inputfile, pwls d) {
 	}
 }
 
-typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor> ECNFParsing;
+typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, uint> ECNFParsing;
 typedef Parser<FZ::FZScanner, FZ::FZParser, FZ::InsertWrapper> FZParsing;
 
-template<class Parser, class Monitor>
+template<class Monitor>
 void initializeAndParseFODOT(const std::string& inputfile, Monitor* d, const SolverOption& modes) {
 	auto input = getInput(inputfile);
 
 	istream is(input->getBuffer());
-	Parser parser(&is, *d);
+	ECNFParsing parser(&is, d, 1);
+
+	try {
+		parser.parse();
+	} catch (const MinisatID::idpexception& e) {
+		if (d->isCertainlyUnsat()) {
+			printUnsatFoundDuringParsing(clog, modes.verbosity);
+		} else {
+			throw idpexception(getParseError(e, parser.getLineNumber(), parser.getText()));
+		}
+	}
+}
+
+template<class Monitor>
+void initializeAndParseFZ(const std::string& inputfile, Monitor* d, const SolverOption& modes) {
+	auto input = getInput(inputfile);
+
+	istream is(input->getBuffer());
+	FZParsing parser(&is, *d);
 
 	try {
 		parser.parse();
@@ -249,14 +267,14 @@ void MinisatID::parseAndInitializeTheory(const std::string& inputfile, ExternalC
 		initializeAndParseOPB(inputfile, d);
 		break;
 	case InputFormat::FODOT: {
-		initializeAndParseFODOT<ECNFParsing>(inputfile, d, d->getOptions());
+		initializeAndParseFODOT(inputfile, d, d->getOptions());
 		if (d->getOptions().transformat == OutputFormat::PLAIN) {
 			d->setTranslator(new PlainTranslator()); // Empty translator
 		}
 		break;
 	}
 	case InputFormat::FLATZINC: {
-		initializeAndParseFODOT<FZParsing>(inputfile, new FZ::InsertWrapper(d), d->getOptions());
+		initializeAndParseFZ(inputfile, new FZ::InsertWrapper(d), d->getOptions());
 		if (d->getOptions().transformat == OutputFormat::PLAIN) {
 			d->setTranslator(new PlainTranslator()); // Empty translator
 		}

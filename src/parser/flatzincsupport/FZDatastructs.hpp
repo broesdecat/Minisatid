@@ -209,7 +209,6 @@ public:
 			delete (expr);
 		}
 	}
-	;
 
 	const std::string& getName() const {
 		return *id->name;
@@ -239,7 +238,6 @@ public:
 			delete (values);
 		}
 	}
-	;
 
 	void add(Storage& storage);
 };
@@ -254,7 +252,6 @@ public:
 	virtual ~SetVar() {
 		delete (var);
 	}
-	;
 };
 
 class ArrayVar: public Var {
@@ -286,7 +283,6 @@ public:
 			delete (arraylit);
 		}
 	}
-	;
 
 	void add(Storage& storage);
 };

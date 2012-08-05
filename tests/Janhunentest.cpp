@@ -62,8 +62,8 @@ namespace Tests{
 		vector<toCNF::Rule*> rules;
 		auto varone = moc.newVar();
 		auto vartwo = moc.newVar();
-		rules.push_back(new toCNF::Rule(false, varone, {mkPosLit(vartwo)}, {}));
-		rules.push_back(new toCNF::Rule(false, vartwo, {mkPosLit(varone)}, {}));
+		rules.push_back(new toCNF::Rule(DEFAULTCONSTRID, false, varone, {mkPosLit(vartwo)}, {}));
+		rules.push_back(new toCNF::Rule(DEFAULTCONSTRID, false, vartwo, {mkPosLit(varone)}, {}));
 		auto notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
 		EXPECT_TRUE(notunsat);
 	}

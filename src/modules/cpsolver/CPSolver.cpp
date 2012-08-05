@@ -55,7 +55,7 @@ lbool LitTrail::value(const Lit& l) const {
 }
 
 CPSolver::CPSolver(PCSolver * solver)
-		: 	Propagator(solver, "CP-solver"),
+		: 	Propagator(DEFAULTCONSTRID, solver, "CP-solver"),
 			solverdata(new CPSolverData()),
 			addedconstraints(false),
 			searchedandnobacktrack(false),
@@ -213,8 +213,7 @@ rClause CPSolver::getExplanation(const Lit& p) {
 
 	MAssert(propreason[p]!=(uint)-1);
 
-	Disjunction clause;
-	clause.literals.push_back(p);
+	Disjunction clause(DEFAULTCONSTRID, {p});
 	for (uint i = 0; i < propreason[p]; i++) {
 		// FIXME skip all those not propagated into the cp solver
 		clause.literals.push_back(~trail.getTrail()[i]);
@@ -365,7 +364,7 @@ rClause CPSolver::genFullConflictClause() {
 	 }
 	 reportf("Conflicting literal: "); gprintLit(*nonassigned); reportf("\n");*/
 	// END
-	Disjunction clause;
+	Disjunction clause(DEFAULTCONSTRID, {});
 	for (auto i = trail.getTrail().rbegin(); i < trail.getTrail().rend(); i++) {
 		//FIXME skip all literals that were propagated BY the CP solver
 		clause.literals.push_back(~(*i));

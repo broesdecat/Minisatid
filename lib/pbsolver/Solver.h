@@ -32,12 +32,12 @@ public:
 	Var newVar (bool dvar = true) {return minisat->newVar(dvar);}
 	bool addClause (const vec<Lit>& ps) {return minisat->addClause(ps);}
 	bool addUnit (Lit p) {return minisat->addUnit(p);}
-	void freeze (Var x) {}
+	void freeze (Var) {}
 	void suggestPolarity(Var x, lbool value) {minisat->polarity_sug[x] = toInt(value);}
 	bool solve (const vec<Lit>& assumps) {return minisat->solve(assumps);}
 	bool solve () {vec<Lit> tmp; return solve(tmp);}
 	vec<lbool>& model () {return minisat->model;}
-	bool varElimed (Var x) {return false;}
+	bool varElimed (Var) {return false;}
 	bool okay () {return minisat->okay();}
 	int nVars () {return minisat->nVars();}
 	void exportCnf (cchar* filename) {

@@ -42,7 +42,7 @@ void runWithModelCheck(SolverOption options, const string& instancefile) {
 	}
 
 //	cerr <<"Expecting " <<(satcheck?"at least ":"exactly ") <<expectednbmodels <<" models.\n";
-	auto modelsfound = runNoModelCheck(options, instancefile, (expectednbmodels==0?0:expectednbmodels+1));
+	auto modelsfound = runNoModelCheck(options, instancefile, expectednbmodels+1);
 //	cerr <<"Found " <<modelsfound <<" models.\n";
 	if(satcheck){
 		ASSERT_LT(0, modelsfound);

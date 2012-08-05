@@ -1,5 +1,4 @@
-#ifndef CONSTRAINTADDITIONINTERFACE_HPP_
-#define CONSTRAINTADDITIONINTERFACE_HPP_
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -135,5 +134,3 @@ public:
 };
 
 }
-
-#endif /* CONSTRAINTADDITIONINTERFACE_HPP_ */

@@ -381,14 +381,14 @@ void FlatZincRewriter<Stream>::addSum(const Aggregate& agg, const WLSet& set) {
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::createCpVar(const Weight& min, const Weight& max) {
-	IntVarRange newvar(maxcpnumber + 1, min, max);
+	IntVarRange newvar(DEFAULTCONSTRID, maxcpnumber + 1, min, max);
 	add(newvar);
 	return newvar.varID;
 }
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
-	IntVarEnum newvar(maxcpnumber + 1, values);
+	IntVarEnum newvar(DEFAULTCONSTRID, maxcpnumber + 1, values);
 	add(newvar);
 	return newvar.varID;
 }
@@ -423,8 +423,7 @@ uint FlatZincRewriter<Stream>::addOptimization() {
 
 		auto head = createAtom();
 		addVarSum(getWeigths(set), getLiterals(set), head, EqType::EQ, optimvar);
-		Disjunction d;
-		d.literals.push_back(mkPosLit(head));
+		Disjunction d(1,{mkPosLit(head)});
 		add(d);
 	} else if (savedlistmnmz.size() > 0) {
 		auto mnm = savedlistmnmz[0];
@@ -569,15 +568,14 @@ void FlatZincRewriter<Stream>::addEquiv(const Implication& implication, CloseCon
 		break;
 	case ImplicationType::IMPLIES:
 		if (implication.conjunction) {
-			Disjunction d;
+			Disjunction d(DEFAULTCONSTRID, litlist());
 			d.literals.resize(2, not implication.head);
 			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
 				d.literals[1] = *i;
 				add(d);
 			}
 		} else {
-			Disjunction d;
-			d.literals.insert(d.literals.begin(), implication.body.cbegin(), implication.body.cend());
+			Disjunction d(DEFAULTCONSTRID, implication.body);
 			d.literals.push_back(not implication.head);
 			add(d);
 		}
@@ -627,11 +625,10 @@ void FlatZincRewriter<Stream>::add(const Rule& rule) {
 	if (not rule.conjunctive) {
 		if (rule.body.size() > 1) {
 			for (auto i = rule.body.cbegin(); i < rule.body.cend(); ++i) {
-				add(Rule(rule.head, { *i }, true, rule.definitionID));
+				add(Rule(DEFAULTCONSTRID, rule.head, { *i }, true, rule.definitionID));
 			}
 		} else if (rule.body.size() == 0) {
-			Disjunction clause;
-			clause.literals.push_back(mkPosLit(rule.head));
+			Disjunction clause(DEFAULTCONSTRID, {mkPosLit(rule.head)});
 			add(clause);
 		}
 	}
@@ -713,7 +710,7 @@ void FlatZincRewriter<Stream>::add(const Aggregate& origagg) {
 			lits.push_back(ub ? ~set.wl[i].getLit() : set.wl[i].getLit());
 		}
 
-		addEquiv(Implication(agg.head, ImplicationType::EQUIVALENT, lits, ub), OPEN);
+		addEquiv(Implication(DEFAULTCONSTRID, agg.head, ImplicationType::EQUIVALENT, lits, ub), OPEN);
 		if (agg.sem == AggSem::DEF) {
 			addDefAnnotation(agg.defID, constraints);
 		}
