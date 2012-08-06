@@ -30,8 +30,8 @@ using namespace MinisatID;
 using Minisat::vec;
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot)
-		: _modes(modes), varcreator(varcreator), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
+PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot)
+		: theoryID(theoryID), _modes(modes), varcreator(varcreator), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
 			searchengine(NULL),
 #ifdef CPSUPPORT
 			cpsolver(NULL),
@@ -244,14 +244,15 @@ Atom PCSolver::newVar() {
 	if ((uint64_t) var >= nVars()) {
 		getEventQueue().notifyNbOfVars(var); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
 	}
-	createVar(var);
+	createVar(var, getTheoryID());
 	return var;
 }
 
 /**
  * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
  */
-void PCSolver::createVar(Atom v) {
+void PCSolver::createVar(Atom v, TheoryID theoryID) {
+	MAssert(getTheoryID()==theoryID);
 	MAssert(v>-1);
 
 	if (((uint64_t) v) >= nVars()) {

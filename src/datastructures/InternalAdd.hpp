@@ -16,16 +16,16 @@
 namespace MinisatID{
 
 template<typename VarList, typename ConstraintDB>
-void addVars(const VarList& vars, ConstraintDB& engine) {
+void addVars(const VarList& vars, TheoryID theoryid, ConstraintDB& engine) {
 	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
-		engine.createVar(*i);
+		engine.createVar(*i, theoryid);
 	}
 }
 
 template<typename Constraint, typename ConstraintDB>
 void internalAdd(const Constraint& obj, ConstraintDB& engine){
-	addVars(obj.getAtoms(), engine);
-	engine.getFactory().add(obj);
+	addVars(obj.getAtoms(), obj.theoryid, engine);
+	engine.getFactory(obj.theoryid).add(obj);
 }
 }
 

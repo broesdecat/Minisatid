@@ -134,7 +134,7 @@ private:
 	int minnewset; // Interal sets count downwards!
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<Aggregate*> parsedaggs;
-	std::map<int, LazyTseitinClause*> grounder2clause;
+	std::vector<LazyTseitinClause*> grounder2clause;
 
 	// Logging
 	std::vector<ConstraintPrinter*> parsingmonitors;

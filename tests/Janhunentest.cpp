@@ -25,7 +25,7 @@ namespace Tests{
 		SolverMOC():start(3){}
 		std::vector<Disjunction*> disj;
 		std::vector<Implication*> eqs;
-		void createVar(Atom v){
+		void createVar(Atom v, TheoryID){
 			start = v+1;
 		}
 		int newVar() { return start++; }
@@ -39,7 +39,7 @@ namespace Tests{
 		Lit getTrueLit() const { return mkPosLit(1); }
 		Lit getFalseLit() const { return mkPosLit(2); }
 		int verbosity() const { return 1; }
-		SolverMOC& getFactory() { return *const_cast<SolverMOC*>(this); }
+		SolverMOC& getFactory(TheoryID) { return *const_cast<SolverMOC*>(this); }
 	};
 
 	void add(const Disjunction& d, SolverMOC& moc){

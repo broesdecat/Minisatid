@@ -15,118 +15,341 @@ using namespace MinisatID;
 using namespace std;
 
 SearchEngine::~SearchEngine(){
-	delete(solver);
+	for(auto solver: solvers){
+		delete(solver);
+	}
 }
 
-PropagatorFactory& SearchEngine::getFactory() {
-	return solver->getFactory();
+PropagatorFactory& SearchEngine::getFactory(TheoryID theoryID) {
+	return getSolver(theoryID)->getFactory(theoryID);
 }
-void SearchEngine::createVar(Atom v) {
-	solver->createVar(v);
+void SearchEngine::createVar(Atom v, TheoryID theoryID) {
+	getSolver(theoryID)->createVar(v, theoryID);
 }
+
 int SearchEngine::verbosity() const {
-	return solver->verbosity();
+	return getSolver()->verbosity();
 }
 const SolverOption& SearchEngine::modes() const {
-	return solver->modes();
+	return getSolver()->modes();
 }
 Atom SearchEngine::newVar() {
-	return solver->newVar();
+	return getSolver()->newVar();
 }
 int SearchEngine::newSetID() {
-	return solver->newSetID();
+	return getSolver()->newSetID();
 }
 lbool SearchEngine::rootValue(Lit p) const {
-	return solver->rootValue(p);
+	return getSolver()->rootValue(p);
 }
 Lit SearchEngine::getTrueLit() const {
-	return solver->getTrueLit();
+	return getSolver()->getTrueLit();
 }
 Lit SearchEngine::getFalseLit() const {
-	return solver->getFalseLit();
+	return getSolver()->getFalseLit();
 }
 
 void SearchEngine::notifyUnsat() {
-	solver->notifyUnsat();
+	getSolver()->notifyUnsat();
 }
 SATVAL SearchEngine::satState() const {
-	return solver->satState();
+	return getSolver()->satState();
 }
 bool SearchEngine::isUnsat() const {
-	return solver->isUnsat();
+	return getSolver()->isUnsat();
 }
 std::string SearchEngine::toString(VarID id) const {
-	return solver->toString(id);
+	return getSolver()->toString(id);
 }
 std::string SearchEngine::toString(const Lit& lit) const {
-	return solver->toString(lit);
+	return getSolver()->toString(lit);
 }
 
 void SearchEngine::invalidate(litlist& clause) const {
-	solver->invalidate(clause);
+	getSolver()->invalidate(clause);
 }
 
 void SearchEngine::finishParsing() {
-	solver->finishParsing();
+	getSolver()->finishParsing();
 }
 bool SearchEngine::isOptimizationProblem() const {
-	return solver->isOptimizationProblem();
+	return getSolver()->isOptimizationProblem();
 }
 bool SearchEngine::isAlwaysAtOptimum() const{
-	return solver->isAlwaysAtOptimum();
+	return getSolver()->isAlwaysAtOptimum();
 }
 bool SearchEngine::hasNextOptimum() const {
-	return solver->hasNextOptimum();
+	return getSolver()->hasNextOptimum();
 }
 OptimStatement& SearchEngine::getNextOptimum() {
-	return solver->getNextOptimum();
+	return getSolver()->getNextOptimum();
 }
 
 bool SearchEngine::hasCPSolver() const {
-	return solver->hasCPSolver();
+	return getSolver()->hasCPSolver();
 }
 SATVAL SearchEngine::findNextCPModel() {
-	return solver->findNextCPModel();
+	return getSolver()->findNextCPModel();
 }
 
 void SearchEngine::notifyTerminateRequested() {
-	solver->notifyTerminateRequested();
+	getSolver()->notifyTerminateRequested();
 }
 
 void SearchEngine::saveState() {
-	solver->saveState();
+	getSolver()->saveState();
 }
 void SearchEngine::resetState() {
-	solver->resetState();
+	getSolver()->resetState();
 }
 
 std::shared_ptr<Model> SearchEngine::getModel() {
-	return solver->getModel();
+	return getSolver()->getModel();
 }
 lbool SearchEngine::getModelValue(const Lit& v) {
-	return solver->getModelValue(v);
+	return getSolver()->getModelValue(v);
 }
 lbool SearchEngine::getModelValue(Atom v) {
-	return solver->getModelValue(v);
+	return getSolver()->getModelValue(v);
 }
 
 void SearchEngine::accept(ConstraintVisitor& visitor) {
-	solver->accept(visitor);
+	getSolver()->accept(visitor);
 }
 
 void SearchEngine::setAssumptions(const litlist& assumps) {
-	solver->setAssumptions(assumps);
+	getSolver()->setAssumptions(assumps);
 }
 lbool SearchEngine::solve(bool search) {
-	return solver->solve(search);
+	return getSolver()->solve(search);
 }
 litlist SearchEngine::getUnsatExplanation() const{
-	return solver->getUnsatExplanation();
+	return getSolver()->getUnsatExplanation();
 }
 
 litlist SearchEngine::getEntailedLiterals() const {
-	return solver->getEntailedLiterals();
+	return getSolver()->getEntailedLiterals();
 }
 bool SearchEngine::moreModelsPossible() const {
-	return solver->moreModelsPossible();
+	return getSolver()->moreModelsPossible();
 }
+
+//Get information on hierarchy
+void SearchEngine::checkHasSolver(uint level) const {
+	if (not hasSolver(level)) {
+		std::stringstream ss;
+		ss << ">> No modal operator with id " << level << "was declared! ";
+		throw idpexception(ss.str());
+	}
+}
+bool SearchEngine::hasSolver(uint level) const {
+	return level-1 < solvers.size() && solvers[level-1] != NULL;
+}
+PCSolver* SearchEngine::getSolver() const{
+	return solvers.front();
+}
+PCSolver* SearchEngine::getSolver(TheoryID level) const {
+	checkHasSolver(level.id);
+	return solvers[level.id-1];
+}
+
+
+/**
+ * USEFUL EXTRA PROPAGATION RULES FROM PAPER "An algorithm for QBF and experimental evaluation":
+ *
+ * forall reduction in qdimacs format: if a clause only contains universally quantified
+ * literals, then it has to be a tautology or it is unsat (so anyway it can be dropped)
+ * => need to store the quantifier of variables
+ *
+ * all clauses only containing existentially quantified vars have to be SAT or whole problem is UNSAT.
+ * => SAT CALL
+ * Initially, take all clauses only containing EQ vars.
+ * Later, take all clauses containing EQ vars and decided UQ vars.
+ * => Simulate by taking full theory, replace all literals = \lnot UQ var with a new var (#atoms+var), and make
+ * 		all true that have not yet been decided.
+ * Then incremental SAT solving with assumptions
+ *
+ * if the theory with all universally quantified vars dropped is SAT, then the whole theory is SAT
+ * => SAT CALL
+ * Initially, take all clauses with all UQ left out
+ * Later, take all clauses containing EQ vars and decided UQ vars, leaving out the undecided ones.
+ * => Simulate by taking full theory, replace all literals = \lnot AQ var with a new var (#atoms+var), and make
+ * 		all false that have not yet been decided.
+ * Then incremental SAT solving with assumptions
+ *
+ * monotone literals can be immediately assigned a value
+ *
+ * propagation if a clause only contains one existentially quantified literal and only later universally
+ * quantified literals.
+ *
+ * something called pairwise falsity
+ *
+ */
+
+//void SOSolver::finishParsing(){
+//	verifyHierarchy();
+//	solvers[0]->finishParsingDown();
+//}
+//
+//SATVAL SOSolver::add(int modid, const InnerSubTheory& subtheory){
+//	assert(state==LOADINGHIER);
+//
+//	int child = subtheory.child;
+//	checkexistsModSolver(modid);
+//	if(sign(subtheory.head)){
+//		stringstream ss;
+//		ss <<">> Modal operator " <<child+1 <<" has a negative head.\n";
+//		throw idpexception(ss.str());
+//	}
+//	if(solvers.size()<(uint)child+1){
+//		solvers.resize(child+1, NULL);
+//	}
+//	Var head = var(subtheory.head);
+//	solvers[child] = new ModSolver(child, head, this);
+//	solvers[child]->setParent(modid);
+//	return SATVAL::POS_SAT;
+//}
+//SATVAL SOSolver::add(int modid, const InnerRigidAtoms& rigid){
+//	assert(state==LOADINGHIER);
+//	//allAtoms.insert(allAtoms.cend(), atoms.cbegin(), atoms.cend());
+//	checkexistsModSolver(modid);
+//	return getModSolver(modid)->add(rigid);
+//}
+//
+////Add information for PC-Solver
+//
+///**
+// * Try to add the clause as high up in the hierarchy as possible.
+// *
+// * How can this be done: if all literals of a clause are rigid atoms, then the clause
+// * if effectively relevant to the parent modal operator.
+// * The sign of the modal operators decides whether the clause has to be negated or not.
+// * If it is too difficult too negate it, it is not pushed upwards.
+// *
+// * This is only possible if the sign of the modal operator is fixed. It is guaranteed that if
+// * it is certainly fixed, the head will be known at this point in time.
+// *
+// * Currently done substitutions
+// */
+//SATVAL SOSolver::add(int modid, const InnerDisjunction& disj){
+//	if(state==LOADINGHIER){
+//		state = LOADINGREST;
+//	}
+//	assert(state==LOADINGREST);
+///*
+//	//Check two initial propagation rules
+//	bool allexist = true;
+//	litlist onlyexists;
+//	for(int i=0; i<lits.size(); ++i){
+//		if(isForall(lits[i])){
+//			allexist = false;
+//		}else{
+//			onlyexists.push(lits[i]);
+//			//TODO forall reduction necessary!
+//		}
+//	}
+//	if(allexist){
+//		initialsolverone->addClause(lits);
+//	}
+//	initialsolvertwo->addClause(onlyexists);*/
+//
+//	//Try to add a clause as high up in the hierarchy as possible.
+//	const litlist& lits = disj.literals;
+//	checkexistsModSolver(modid);
+//	uint previd = modid, currentid = modid;
+//	ModSolver* m = NULL;
+//	bool negated = false;
+//	while(true){
+//		m = getModSolver(currentid);
+//		bool alloccur = true;
+//		for(uint i=0; alloccur && i<lits.size(); ++i){
+//			bool seen = false;
+//			for(vector<Var>::const_iterator j=m->getAtoms().cbegin(); !seen && j<m->getAtoms().cend(); ++j){
+//				if(*j==var(lits[i])){
+//					seen = true;
+//				}
+//			}
+//			if(!seen){
+//				alloccur = false;
+//			}
+//		}
+//		if(!alloccur){
+//			break;
+//		}
+//		int parentid = m->getParentId();
+//		if(parentid==-1){
+//			break;
+//		}else{
+//			if(m->getHeadValue()==l_Undef){
+//				break;
+//			}else if(m->getHeadValue()==l_False){
+//				negated = !negated;
+//			}
+//		}
+//		currentid = parentid;
+//		if(!negated){
+//			 previd = currentid;
+//		}
+//	}
+//	SATVAL result;
+//	if(negated){
+//		result = getModSolver(previd)->add(disj);
+//	}else{
+//		result = getModSolver(currentid)->add(disj);
+//	}
+//	return result;
+//}
+//
+//SATVAL SOSolver::add(int modid, const InnerRule& rule){
+//	return getModSolverDuringAdding(modid).add(rule);
+//}
+//SATVAL SOSolver::add(int modid, const InnerWLSet& wset){
+//	return getModSolverDuringAdding(modid).add(wset);
+//}
+//SATVAL SOSolver::add(int modid, const InnerAggregate& agg){
+//	return getModSolverDuringAdding(modid).add(agg);
+//}
+//SATVAL SOSolver::add(int modid, const InnerReifAggregate& agg){
+//	return getModSolverDuringAdding(modid).add(agg);
+//}
+//
+///**
+// * Verifies whether the hierarchy is indeed a tree:
+// * no loops exist
+// * no-one is child of more than one solver
+// * no solver has no parent unless it is the root
+// *
+// * Algorithm:
+// * go through the tree BREADTH-FIRST, starting from the root
+// * remember whether a solver has been seen and how many times
+// */
+////TODO: should verify that any head only occurs in the theory of the parent modal solver.
+//void SOSolver::verifyHierarchy(){
+//	assert(state == ALLLOADED);
+//
+//	vector<uint> queue;
+//	vector<int> visitcount(solvers.size(), 0);
+//	queue.push_back(0);
+//	++visitcount[0];
+//	while(queue.size()>0){
+//		uint s = queue.back();
+//		queue.pop_back();
+//		ModSolver* solver = getModSolver(s);
+//		for(vmodindex::const_iterator i=getSolver()->getChildren().cbegin(); i<getSolver()->getChildren().cend(); ++i){
+//			if(visitcount[*i]==0){
+//				queue.push_back(*i);
+//			}
+//			++visitcount[*i];
+//		}
+//	}
+//	for(vmsolvers::const_iterator i=solvers.cbegin(); i<solvers.cend(); ++i){
+//		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
+//			stringstream ss;
+//			ss <<">>The hierarchy of modal solvers does not form a tree. ";
+//			ss <<"The Solver with id " <<(*i)->getPrintId() <<"is ";
+//			ss <<(visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
+//			ss <<".\n";
+//			throw idpexception(ss.str());
+//		}
+//	}
+//}

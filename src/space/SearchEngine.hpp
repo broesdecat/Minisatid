@@ -13,7 +13,7 @@
 #include "utils/Utils.hpp"
 #include <memory>
 
-namespace MinisatID{
+namespace MinisatID {
 
 class PCSolver;
 class PropagatorFactory;
@@ -21,17 +21,23 @@ struct OptimStatement;
 
 class SearchEngine: public LiteralPrinter {
 private:
-	PCSolver* solver;
+	std::vector<PCSolver*> solvers; // Earlier in list is higher in hierarchy
 public:
 	// NOTE: ownership is passed in
-	SearchEngine(PCSolver* solver): solver(solver){}
+	SearchEngine(PCSolver* solver) {
+		solvers.push_back(solver);
+	}
 	~SearchEngine();
-	PropagatorFactory& getFactory();
-	void createVar(Atom v);
-	int verbosity() const;
-	const SolverOption& modes() const;
+
+	void createVar(Atom v, TheoryID theoryID);
+	PropagatorFactory& getFactory(TheoryID theoryID);
+
 	Atom newVar();
 	int newSetID();
+
+	int verbosity() const;
+	const SolverOption& modes() const;
+
 	lbool rootValue(Lit p) const;
 	Lit getTrueLit() const;
 	Lit getFalseLit() const;
@@ -71,6 +77,16 @@ public:
 
 	litlist getEntailedLiterals() const;
 	bool moreModelsPossible() const;
+
+	// MODAL SUPPORT
+	//Get information on hierarchy
+	void checkHasSolver(uint level) const;
+	bool hasSolver(uint level) const;
+	PCSolver* getSolver() const;
+	PCSolver* getSolver(TheoryID level) const;
+
+	void verifyHierarchy();
+	void add(uint level, int constraints);
 };
 
 }

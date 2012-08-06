@@ -217,7 +217,7 @@ void initializeAndParseOPB(const std::string& inputfile, pwls d) {
 	}
 }
 
-typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, uint> ECNFParsing;
+typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, uint, TheoryID> ECNFParsing;
 typedef Parser<FZ::FZScanner, FZ::FZParser, FZ::InsertWrapper> FZParsing;
 
 template<class Monitor>
@@ -225,7 +225,7 @@ void initializeAndParseFODOT(const std::string& inputfile, Monitor* d, const Sol
 	auto input = getInput(inputfile);
 
 	istream is(input->getBuffer());
-	ECNFParsing parser(&is, d, 1);
+	ECNFParsing parser(&is, d, 1, {1});
 
 	try {
 		parser.parse();

@@ -57,6 +57,8 @@ WHITESPACE	[\t\r ]*
 <theory>"Min"	{ecnflval->aggr = AggType::MIN; return ET::AGGDEFN;}
 <theory>"Max"	{ecnflval->aggr = AggType::MAX; return ET::AGGDEFN;}
 
+<theory>^"Level" { return ET::LEVEL; }
+
 <theory>"<-"	{return ET::DEFOP;}
 
 <theory>"D"		{ecnflval->sem = AggSem::DEF;  return ET::SEMDEFN;}

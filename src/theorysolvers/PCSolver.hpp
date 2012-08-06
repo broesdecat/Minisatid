@@ -37,8 +37,13 @@ class Printer;
 class Monitor;
 
 class PCSolver: public LiteralPrinter{
+private:
+	TheoryID theoryID;
+	TheoryID getTheoryID() const{
+		return theoryID;
+	}
 public:
-	PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot);
+	PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot);
 	virtual ~PCSolver();
 
 	// Options
@@ -58,7 +63,7 @@ private:
 public:
 	VarID newID();
 	Atom newVar();
-	void createVar(Atom v);
+	void createVar(Atom v, TheoryID theoryID);
 public:
 	void varBumpActivity(Atom v);
 	void varReduceActivity(Atom v);
@@ -149,8 +154,12 @@ private:
 	const PropagatorFactory& getFactory() const {
 		return *factory;
 	}
-public:
 	PropagatorFactory& getFactory() {
+		return *factory;
+	}
+public:
+	PropagatorFactory& getFactory(TheoryID id) {
+		MAssert(id==getTheoryID());
 		return *factory;
 	}
 
@@ -178,13 +187,15 @@ public:
 
 // Search management
 public:
+	void setAssumptions(const litlist& assumps);
+
 	/**
 	 * Return true iff a model has been found
 	 * Returns false iff unsat has been found
 	 * Unknown otherwise (e.g. terminated)
 	 */
-	void setAssumptions(const litlist& assumps);
 	lbool solve(bool search);
+
 	litlist getUnsatExplanation() const;
 	void finishParsing();
 	void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause); // Enqueue a literal. Assumes value of literal is undefined

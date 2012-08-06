@@ -32,201 +32,185 @@ std::vector<std::vector<Lit> > map(const std::vector<std::vector<Lit> >& lits, R
 std::map<Lit, Lit> map(const std::map<Lit, Lit>& lits, Remapper& remapper);
 std::map<Atom, Atom> map(const std::map<Atom, Atom>& atoms, Remapper& remapper);
 
-template<typename Constraint, typename Engine>
+template<typename Constraint, typename Remapper>
 class ExtAdd {
 public:
-	void extAdd(Engine& space, const Constraint& obj);
+	Constraint extAdd(Remapper& r, const Constraint& obj);
 };
 
 template<typename Constraint, typename Engine>
 void extAdd(Engine& space, const Constraint& obj) {
-	ExtAdd<Constraint, Engine> f;
-	f.extAdd(space, obj);
+	ExtAdd<Constraint, Remapper> f;
+	auto constraint = f.extAdd(*space.getRemapper(), obj);
+	constraint.theoryid = obj.theoryid;
+	space.add(constraint);
 }
 
-template<typename Engine>
-class ExtAdd<Disjunction, Engine> {
+template<typename Remapper>
+class ExtAdd<Disjunction, Remapper> {
 public:
-	void extAdd(Engine& space, const Disjunction& obj) {
-		space.add(Disjunction(obj.getID(), map(obj.literals, *space.getRemapper())));
+	Disjunction extAdd(Remapper& r, const Disjunction& obj) {
+		return Disjunction(obj.getID(), map(obj.literals, r));
 	}
 };
 
-template<typename Engine>
-class ExtAdd<Implication, Engine> {
+template<typename Remapper>
+class ExtAdd<Implication, Remapper> {
 public:
-	void extAdd(Engine& space, const Implication& obj) {
-		auto& s = *space.getRemapper();
-		Implication eq(obj.getID(), map(obj.head, s), obj.type, map(obj.body, s), obj.conjunction);
-		space.add(eq);
+	Implication extAdd(Remapper& r, const Implication& obj) {
+		return Implication(obj.getID(), map(obj.head, r), obj.type, map(obj.body, r), obj.conjunction);
 	}
 };
 
-template<typename Engine>
-class ExtAdd<Rule, Engine> {
+template<typename Remapper>
+class ExtAdd<Rule, Remapper> {
 public:
-	void extAdd(Engine& space, const Rule& obj) {
-		auto& s = *space.getRemapper();
-		Rule rule(obj.getID(), map(obj.head, s), map(obj.body, s), obj.conjunctive, obj.definitionID);
-		space.add(rule);
+	Rule extAdd(Remapper& r, const Rule& obj) {
+		return Rule(obj.getID(), map(obj.head, r), map(obj.body, r), obj.conjunctive, obj.definitionID);
 	}
 };
-template<typename Engine>
-class ExtAdd<WLSet, Engine> {
+template<typename Remapper>
+class ExtAdd<WLSet, Remapper> {
 public:
-	void extAdd(Engine& space, const WLSet& obj) {
+	WLSet extAdd(Remapper& r, const WLSet& obj) {
 		WLSet set(obj.setID);
 		if (obj.setID < 0) {
 			throw idpexception("External sets should have a positive id.");
 		}
 		for (auto i = obj.wl.cbegin(); i < obj.wl.cend(); ++i) {
-			set.wl.push_back(WLtuple(map((*i).l, *space.getRemapper()), (*i).w));
+			set.wl.push_back(WLtuple(map((*i).l, r), (*i).w));
 		}
-		space.add(set);
+		return set;
 	}
 };
-template<typename Engine>
-class ExtAdd<Aggregate, Engine> {
+template<typename Remapper>
+class ExtAdd<Aggregate, Remapper> {
 public:
-	void extAdd(Engine& space, const Aggregate& obj) {
-		space.add(Aggregate(obj.getID(), map(obj.head, *space.getRemapper()), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID));
+	Aggregate extAdd(Remapper& r, const Aggregate& obj) {
+		return Aggregate(obj.getID(), map(obj.head, r), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID);
 	}
 };
-template<typename Engine>
-class ExtAdd<MinimizeSubset, Engine> {
+template<typename Remapper>
+class ExtAdd<MinimizeSubset, Remapper> {
 public:
-	void extAdd(Engine& space, const MinimizeSubset& obj) {
-		space.add(MinimizeSubset(obj.priority, map(obj.literals, *space.getRemapper())));
+	MinimizeSubset extAdd(Remapper& r, const MinimizeSubset& obj) {
+		return MinimizeSubset(obj.priority, map(obj.literals, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<MinimizeOrderedList, Engine> {
+template<typename Remapper>
+class ExtAdd<MinimizeOrderedList, Remapper> {
 public:
-	void extAdd(Engine& space, const MinimizeOrderedList& obj) {
-		space.add(MinimizeOrderedList(obj.priority, map(obj.literals, *space.getRemapper())));
+	MinimizeOrderedList extAdd(Remapper& r, const MinimizeOrderedList& obj) {
+		return MinimizeOrderedList(obj.priority, map(obj.literals, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<MinimizeVar, Engine> {
+template<typename Remapper>
+class ExtAdd<MinimizeVar, Remapper> {
 public:
-	void extAdd(Engine& space, const MinimizeVar& obj) {
-		space.add(MinimizeVar( obj.priority, map(obj.varID, *space.getRemapper())));
+	MinimizeVar extAdd(Remapper& r, const MinimizeVar& obj) {
+		return MinimizeVar( obj.priority, map(obj.varID, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<MinimizeAgg, Engine> {
+template<typename Remapper>
+class ExtAdd<MinimizeAgg, Remapper> {
 public:
-	void extAdd(Engine& space, const MinimizeAgg& obj) {
-		space.add(obj);
+	MinimizeAgg extAdd(Remapper&, const MinimizeAgg& obj) {
+		return obj;
 	}
 };
-template<typename Engine>
-class ExtAdd<Symmetry, Engine> {
+template<typename Remapper>
+class ExtAdd<Symmetry, Remapper> {
 public:
-	void extAdd(Engine& space, const Symmetry& obj) {
-		space.add(Symmetry(map(obj.symmetry, *space.getRemapper())));
+	Symmetry extAdd(Remapper& r, const Symmetry& obj) {
+		return Symmetry(map(obj.symmetry, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<LazyGroundLit, Engine> {
+template<typename Remapper>
+class ExtAdd<LazyGroundLit, Remapper> {
 public:
-	void extAdd(Engine& space, const LazyGroundLit& obj) {
-		LazyGroundLit lc(obj.watchboth, map(obj.residual, *space.getRemapper()), obj.monitor);
-		space.add(lc);
+	LazyGroundLit extAdd(Remapper& r, const LazyGroundLit& obj) {
+		return LazyGroundLit(obj.watchboth, map(obj.residual, r), obj.monitor);
 	}
 };
-template<typename Engine>
-class ExtAdd<LazyGroundImpl, Engine> {
+template<typename Remapper>
+class ExtAdd<LazyGroundImpl, Remapper> {
 public:
-	void extAdd(Engine& space, const LazyGroundImpl& obj) {
-		auto& r = *space.getRemapper();
-		space.add(
+	LazyGroundImpl extAdd(Remapper& r, const LazyGroundImpl& obj) {
+		return
 				LazyGroundImpl(obj.getID(),
 						Implication(obj.impl.getID(), map(obj.impl.head, r), obj.impl.type, map(obj.impl.body, r), obj.impl.conjunction),
-						obj.monitor,
-						obj.clauseID));
+						obj.monitor);
 	}
 };
-template<typename Engine>
-class ExtAdd<LazyAddition, Engine> {
+template<typename Remapper>
+class ExtAdd<LazyAddition, Remapper> {
 public:
-	void extAdd(Engine& space, const LazyAddition& obj) {
-		space.add(LazyAddition(map(obj.list, *space.getRemapper()), obj.ref));
+	LazyAddition extAdd(Remapper& r, const LazyAddition& obj) {
+		return LazyAddition(map(obj.list, r), obj.ref);
 	}
 };
-template<typename Engine>
-class ExtAdd<IntVarEnum, Engine> {
+template<typename Remapper>
+class ExtAdd<IntVarEnum, Remapper> {
 public:
-	void extAdd(Engine& space, const IntVarEnum& obj) {
-		space.add(IntVarEnum(obj.getID(), map(obj.varID, *space.getRemapper()), obj.values));
+	IntVarEnum extAdd(Remapper& r, const IntVarEnum& obj) {
+		return IntVarEnum(obj.getID(), map(obj.varID, r), obj.values);
 	}
 };
-template<typename Engine>
-class ExtAdd<IntVarRange, Engine> {
+template<typename Remapper>
+class ExtAdd<IntVarRange, Remapper> {
 public:
-	void extAdd(Engine& space, const IntVarRange& obj) {
-		space.add(IntVarRange(obj.getID(), map(obj.varID, *space.getRemapper()), obj.minvalue, obj.maxvalue));
+	IntVarRange extAdd(Remapper& r, const IntVarRange& obj) {
+		return IntVarRange(obj.getID(), map(obj.varID, r), obj.minvalue, obj.maxvalue);
 	}
 };
-template<typename Engine>
-class ExtAdd<CPBinaryRel, Engine> {
+template<typename Remapper>
+class ExtAdd<CPBinaryRel, Remapper> {
 public:
-	void extAdd(Engine& space, const CPBinaryRel& obj) {
-		auto& s = *space.getRemapper();
-		CPBinaryRel form(obj.getID(), map(obj.head, s), map(obj.varID, s), obj.rel, obj.bound);
-		space.add(form);
+	CPBinaryRel extAdd(Remapper& r, const CPBinaryRel& obj) {
+		return CPBinaryRel(obj.getID(), map(obj.head, r), map(obj.varID, r), obj.rel, obj.bound);
 	}
 };
-template<typename Engine>
-class ExtAdd<CPBinaryRelVar, Engine> {
+template<typename Remapper>
+class ExtAdd<CPBinaryRelVar, Remapper> {
 public:
-	void extAdd(Engine& space, const CPBinaryRelVar& obj) {
-		auto& s = *space.getRemapper();
-		CPBinaryRelVar form(obj.getID(), map(obj.head, s), map(obj.lhsvarID, s), obj.rel, map(obj.rhsvarID, s));
-		space.add(form);
+	CPBinaryRelVar extAdd(Remapper& r, const CPBinaryRelVar& obj) {
+		return CPBinaryRelVar(obj.getID(), map(obj.head, r), map(obj.lhsvarID, r), obj.rel, map(obj.rhsvarID, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<CPSumWeighted, Engine> {
+template<typename Remapper>
+class ExtAdd<CPSumWeighted, Remapper> {
 public:
-	void extAdd(Engine& space, const CPSumWeighted& obj) {
-		auto& s = *space.getRemapper();
-		CPSumWeighted form(obj.getID(), map(obj.head, s), map(obj.varIDs, s), obj.weights, obj.rel, obj.bound);
-		space.add(form);
+	CPSumWeighted extAdd(Remapper& r, const CPSumWeighted& obj) {
+		return CPSumWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.weights, obj.rel, obj.bound);
 	}
 };
-template<typename Engine>
-class ExtAdd<CPProdWeighted, Engine> {
+template<typename Remapper>
+class ExtAdd<CPProdWeighted, Remapper> {
 public:
-	void extAdd(Engine& space, const CPProdWeighted& obj) {
-		auto& s = *space.getRemapper();
+	CPProdWeighted extAdd(Remapper& r, const CPProdWeighted& obj) {
 		// FIXME change when it is a var
-		CPProdWeighted form(obj.getID(), map(obj.head, s), map(obj.varIDs, s), obj.prodWeight, obj.rel, obj.bound);
-		space.add(form);
+		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, obj.bound);
 	}
 };
-template<typename Engine>
-class ExtAdd<CPCount, Engine> {
+template<typename Remapper>
+class ExtAdd<CPCount, Remapper> {
 public:
-	void extAdd(Engine& space, const CPCount& obj) {
-		auto& s = *space.getRemapper();
-		space.add(CPCount(obj.getID(), map(obj.varIDs, s), obj.eqbound, obj.rel, map(obj.rhsvar, s)));
+	CPCount extAdd(Remapper& r, const CPCount& obj) {
+		return CPCount(obj.getID(), map(obj.varIDs, r), obj.eqbound, obj.rel, map(obj.rhsvar, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<CPElement, Engine> {
+template<typename Remapper>
+class ExtAdd<CPElement, Remapper> {
 public:
-	void extAdd(Engine& space, const CPElement& obj) {
-		auto& s = *space.getRemapper();
-		space.add(CPElement(obj.getID(), map(obj.varIDs, s), map(obj.index, s), map(obj.rhs, s)));
+	CPElement extAdd(Remapper& r, const CPElement& obj) {
+		return CPElement(obj.getID(), map(obj.varIDs, r), map(obj.index, r), map(obj.rhs, r));
 	}
 };
-template<typename Engine>
-class ExtAdd<CPAllDiff, Engine> {
+template<typename Remapper>
+class ExtAdd<CPAllDiff, Remapper> {
 public:
-	void extAdd(Engine& space, const CPAllDiff& obj) {
-		auto& s = *space.getRemapper();
-		space.add(CPAllDiff(obj.getID(), map(obj.varIDs, s)));
+	CPAllDiff extAdd(Remapper& r, const CPAllDiff& obj) {
+		return CPAllDiff(obj.getID(), map(obj.varIDs, r));
 	}
 };
 

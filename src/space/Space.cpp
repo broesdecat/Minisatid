@@ -11,14 +11,14 @@ using namespace MinisatID;
 Space::Space(const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
-				new SearchEngine(new PCSolver(getOptions(), monitor, varcreator, this, oneshot))),
+				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
 				oneshot(oneshot),
 				executed(false) {
 }
 Space::Space(Remapper* remapper, Translator* translator, const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(remapper, translator, options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
-				new SearchEngine(new PCSolver(getOptions(), monitor, varcreator, this, oneshot))),
+				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
 				oneshot(oneshot),
 				executed(false) {
 }
@@ -63,6 +63,7 @@ void Space::add(const Aggregate& o){
 	internalAdd(o, *getEngine());
 }
 void Space::add(const MinimizeOrderedList& o){
+	// TODO disable in other theories (also other optim)
 	internalAdd(o, *getEngine());
 }
 void Space::add(const MinimizeSubset& o){

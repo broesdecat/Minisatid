@@ -106,11 +106,26 @@ class Space;
 class OneShotFlatzinc;
 class OneShotUnsatCoreExtraction;
 
-// NOTE: optimization during compilation:
+// NOTE: possible optimization during compilation:
 // 	replace ID with a class without fields which always return {} for getID()
+
+struct TheoryID{
+	uint id;
+
+	TheoryID(uint id): id(id){}
+
+	bool operator==(TheoryID other) const{
+		return id==other.id;
+	}
+};
+#define DEFAULTTHEORYID 1
 
 class Constraint {
 public:
+	TheoryID theoryid;
+	Constraint(): theoryid(DEFAULTTHEORYID){
+
+	}
 	virtual ~Constraint(){}
 
 	virtual std::vector<Atom> getAtoms() const = 0;
@@ -514,10 +529,9 @@ class LazyGroundImpl: public ID {
 public:
 	Implication impl;
 	LazyGrounder* monitor;
-	uint clauseID;
 
-	LazyGroundImpl(uint id, const Implication& impl, LazyGrounder* monitor, uint clauseID)
-			: ID(id), impl(impl), monitor(monitor), clauseID(clauseID) {
+	LazyGroundImpl(uint id, const Implication& impl, LazyGrounder* monitor)
+			: ID(id), impl(impl), monitor(monitor) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -590,6 +604,20 @@ public:
 		return {var(residual)};
 	}
 };
+
+class SubTheory: public ID{
+public:
+	Lit head;
+	std::vector<Atom> rigidatoms;
+
+	SubTheory(uint id, Lit head, std::vector<Atom> atoms): ID(id), head(head), rigidatoms(atoms){}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return rigidatoms;
+	}
+ };
 
 typedef std::vector<Model*> modellist;
 typedef WLtuple WL;

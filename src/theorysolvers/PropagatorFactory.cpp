@@ -583,11 +583,12 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 		}
 		break;
 	}
-	MAssert(grounder2clause.find(object.clauseID)==grounder2clause.cend());
-	grounder2clause[object.clauseID] = new LazyTseitinClause(object.getID(), getEnginep(), object.impl, object.monitor, object.clauseID);
+	auto clauseid = grounder2clause.size();
+	grounder2clause.push_back(new LazyTseitinClause(object.getID(), getEnginep(), object.impl, object.monitor, clauseid));
 }
 
 void PropagatorFactory::add(const LazyAddition& object) {
 	notifyMonitorsOfAdding(object);
+	MAssert(grounder2clause.size()>object.ref);
 	grounder2clause[object.ref]->addGrounding(object.list);
 }
