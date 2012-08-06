@@ -72,12 +72,14 @@ bool ModSolver::search(const litlist& assumpts, bool search) {
 
 	 return result;*/
 
-	bool result;
 	child->setAssumptions(assumpts);
 	searching = true;
-	result = child->solve(true);
+	auto result = child->solve(true);
 	searching = false;
-	return result;
+	if(result==l_Undef){
+		throw idpexception("Invalid code path, aborting.");
+	}
+	return result==l_True;
 }
 
 /**
@@ -93,7 +95,7 @@ rClause ModSolver::notifypropagate() {
 	while (hasNextProp() && confl == nullPtrClause) {
 		const Lit& l = getNextProp();
 		if (verbosity() > 4) {
-			clog << ">>Propagated " << l << " from PC in mod " << getID() << ".\n";
+			clog << ">>Propagated " <<toString(l) << " from PC in mod " << getID() << ".\n";
 		}
 
 		trail.back().push_back(l);
@@ -126,7 +128,7 @@ rClause ModSolver::notifypropagate() {
  */
 rClause ModSolver::propagateDown(Lit l) {
 	if (verbosity() > 4) {
-		clog << l << " propagated down into modal solver " << getID() << ".\n";
+		clog << toString(l) << " propagated down into modal solver " << getID() << ".\n";
 	}
 
 	/**
@@ -158,9 +160,6 @@ rClause ModSolver::propagateDown(Lit l) {
  * Returns true if no conflict ensues
  */
 bool ModSolver::propagateDownAtEndOfQueue(litlist& confldisj) {
-	if (!init) {
-		return true;
-	}
 	if (verbosity() > 4) {
 		clog << "End of queue propagation down into modal solver" << getID() << "\n";
 	}
@@ -220,7 +219,7 @@ void ModSolver::notifyBacktrack(int untillevel, const Lit& decision) {
 void ModSolver::backtrackFromAbove(Lit l) {
 	if (verbosity() > 4) {
 		searching = false;
-		clog << "Backtracking " << l << " from above in mod " << getID() << "\n";
+		clog << "Backtracking " << toString(l) << " from above in mod " << getID() << "\n";
 	}
 
 	if (var(l) == getHead() && getHeadValue() != l_Undef) {
