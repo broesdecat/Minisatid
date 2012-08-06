@@ -13,6 +13,7 @@
 
 #include "utils/PrintMessage.hpp"
 #include "external/utils/ContainerUtils.hpp"
+#include "utils/NumericLimits.hpp"
 
 #include <iostream>
 #include <typeinfo>
@@ -84,14 +85,17 @@ void EventQueue::notifyNbOfVars(uint64_t nbvars) {
 }
 
 void EventQueue::acceptBounds(IntView* var, Propagator* propagator) {
-	if (intvarid2propagators.size() <= (uint) var->getVarID()) {
-		intvarid2propagators.resize((uint) var->getVarID() + 1, proplist());
+	auto id = var->getVarID().id;
+	if (intvarid2propagators.size() <= id) {
+		MAssert(id<getMaxElem<unsigned int>());
+		intvarid2propagators.resize(id + 1, proplist());
 	}
-	intvarid2propagators[(uint) var->getVarID()].push_back(propagator);
+	intvarid2propagators[id].push_back(propagator);
 }
 
 void EventQueue::notifyBoundsChanged(IntVar* var) {
-	for (auto i = intvarid2propagators[var->getVarID()].cbegin(); i < intvarid2propagators[var->getVarID()].cend(); ++i) {
+	auto id = var->getVarID().id;
+	for (auto i = intvarid2propagators[id].cbegin(); i < intvarid2propagators[id].cend(); ++i) {
 		if (!(*i)->isPresent()) {
 			continue;
 		}

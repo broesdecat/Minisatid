@@ -17,9 +17,9 @@ class LiteralPrinter {
 public:
 	virtual ~LiteralPrinter() {
 	}
-	virtual std::string toString(uint id) const{
+	virtual std::string toString(VarID id) const{
 		std::stringstream ss;
-		ss <<id;
+		ss <<id.id;
 		return ss.str();
 	}
 	virtual std::string toString(const Lit& lit) const{

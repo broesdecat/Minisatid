@@ -55,7 +55,7 @@ SATVAL SearchEngine::satState() const {
 bool SearchEngine::isUnsat() const {
 	return solver->isUnsat();
 }
-std::string SearchEngine::toString(uint id) const {
+std::string SearchEngine::toString(VarID id) const {
 	return solver->toString(id);
 }
 std::string SearchEngine::toString(const Lit& lit) const {

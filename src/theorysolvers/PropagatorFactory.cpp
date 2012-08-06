@@ -97,13 +97,17 @@ int PropagatorFactory::newSetID() {
 
 void PropagatorFactory::add(const Disjunction& clause) {
 	notifyMonitorsOfAdding(clause);
+	internalAdd(clause);
+}
+void PropagatorFactory::internalAdd(const Disjunction& clause){
 	SATStorage::getStorage()->addClause(clause.literals);
 }
 
 void PropagatorFactory::add(const Implication& formula) {
+	notifyMonitorsOfAdding(formula);
 	auto clauses = formula.getEquivalentClauses();
 	for (auto i = clauses.cbegin(); i < clauses.cend(); ++i) {
-		add(*i);
+		internalAdd(*i);
 	}
 }
 
@@ -205,9 +209,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 	guaranteeAtRootLevel();
 
 	auto head = getEngine().newVar();
-
-	Disjunction d(DEFAULTCONSTRID, { mkPosLit(head) });
-	add(d);
+	add(Disjunction(DEFAULTCONSTRID, { mkPosLit(head) }));
 
 	auto it = parsedsets.find(formula.setid);
 	if (it == parsedsets.cend()) {
@@ -241,7 +243,7 @@ void PropagatorFactory::add(const MinimizeVar& formula) {
 	auto it = intvars.find(formula.varID);
 	if (it == intvars.cend()) {
 		stringstream ss;
-		ss << "The CP var " << formula.varID << " has not been declared yet, but is used in an optimization statement.";
+		ss << "The CP var " << toString(formula.varID , getEngine()) << " has not been declared yet, but is used in an optimization statement.";
 		throw idpexception(ss.str());
 	}
 	OptimStatement optim(formula.priority, it->second);
@@ -267,7 +269,7 @@ void PropagatorFactory::addCP(const T& formula) {
 #endif
 }
 
-IntVar* PropagatorFactory::getIntVar(int varID) const {
+IntVar* PropagatorFactory::getIntVar(VarID varID) const {
 	if (intvars.find(varID) == intvars.cend()) {
 		throw idpexception("Integer variable was not declared before use.\n");
 	}
@@ -281,7 +283,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 	} else {
 		if (intvars.find(obj.varID) != intvars.cend()) {
 			stringstream ss;
-			ss << "Integer variable " << obj.varID << " was declared twice.\n";
+			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
 		IntVar* intvar = NULL;
@@ -290,7 +292,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 		} else {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
 		}
-		intvars.insert(pair<int, IntVar*>(obj.varID, intvar));
+		intvars.insert({obj.varID, intvar });
 	}
 }
 
@@ -301,10 +303,10 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 	} else {
 		if (intvars.find(obj.varID) != intvars.cend()) {
 			stringstream ss;
-			ss << "Integer variable " << obj.varID << " was declared twice.\n";
+			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
-		intvars.insert(pair<int, IntVar*>(obj.varID, new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values)));
+		intvars.insert({obj.varID, new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values)});
 	}
 }
 

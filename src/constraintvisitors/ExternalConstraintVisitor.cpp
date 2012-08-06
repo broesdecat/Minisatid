@@ -26,10 +26,10 @@ void ExternalConstraintVisitor::notifyFinishParsing() {
 	getTranslator()->finish();
 }
 
-std::string ExternalConstraintVisitor::toString(uint id) const {
+std::string ExternalConstraintVisitor::toString(VarID id) const {
 	std::stringstream ss;
-	if (getRemapper()->wasInput(id)) {
-		auto origid = getRemapper()->getOrigID(id);
+	if (getRemapper()->wasInput(id.id)) {
+		auto origid = getRemapper()->getOrigID(id.id);
 		ss <<origid;
 		return ss.str();
 		/*if (getTranslator()->hasTranslation(origid)) { TODO var to translated string
@@ -37,7 +37,7 @@ std::string ExternalConstraintVisitor::toString(uint id) const {
 			return ss.str();
 		}*/
 	}
-	ss << "internvar_" << id;
+	ss << "internvar_" << id.id;
 	return ss.str();
 }
 std::string ExternalConstraintVisitor::toString(const Lit& l) const {
@@ -49,7 +49,7 @@ std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 			return ss.str();
 		}
 	}
-	ss << (sign(l) ? "-" : "") << "internal_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+	ss << (sign(l) ? "-" : "") << "i_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	return ss.str();
 }
 std::string ExternalConstraintVisitor::toString(const litlist& literals) const {

@@ -38,6 +38,15 @@ public:
 		target().flush();
 	}
 
+	std::string toString(VarID id){
+		if(remap){
+			return getPrinter()->toString(id);
+		}else{
+			std::stringstream ss;
+			ss <<id.id;
+			return ss.str();
+		}
+	}
 	std::string toString(const Lit& lit) {
 		if (remap) {
 			return getPrinter()->toString(lit);
@@ -126,7 +135,7 @@ public:
 	}
 
 	void add(const MinimizeVar& mnm) {
-		target() << VARMNMSTR << " " << mnm.varID << " 0\n";
+		target() << VARMNMSTR << " " <<toString(mnm.varID) << " 0\n";
 	}
 
 	void add(const Symmetry& symm) {
@@ -152,11 +161,11 @@ public:
 	}
 
 	void add(const IntVarRange& range) {
-		target() << INTVARRANGESTR << " " << range.varID << " " << range.minvalue << " " << range.maxvalue << " 0\n";
+		target() << INTVARRANGESTR << " " <<toString(range.varID) << " " << range.minvalue << " " << range.maxvalue << " 0\n";
 	}
 
 	void add(const IntVarEnum& intvar) {
-		target() << INTVARRANGESTR << " " << intvar.varID << " ";
+		target() << INTVARRANGESTR << " " <<toString(intvar.varID) << " ";
 		for (auto i = intvar.values.cbegin(); i < intvar.values.cend(); ++i) {
 			target() << *i << " ";
 		}
@@ -165,34 +174,36 @@ public:
 
 	void add(const CPAllDiff& alldiff) {
 		target() << CPDISTINCTSTR << " ";
-		for (auto i = alldiff.varIDs.cbegin(); i < alldiff.varIDs.cend(); ++i) {
-			target() << *i << " ";
+		for (auto varid: alldiff.varIDs) {
+			target() << toString(varid) << " ";
 		}
 		target() << DELIMSTR << " 0\n";
 	}
 
 	void add(const CPBinaryRel& binconstr) {
-		target() << CPBININTSTR << " " << toString(mkPosLit(binconstr.head)) << " " << binconstr.varID << " " << binconstr.rel << " " << binconstr.bound
+		target() << CPBININTSTR << " " << toString(mkPosLit(binconstr.head)) << " " << toString(binconstr.varID)
+				<< " " << binconstr.rel << " " << binconstr.bound
 				<< " 0\n";
 	}
 
 	void add(const CPBinaryRelVar& binconstr) {
-		target() << CPBINVARSTR << " " << toString(mkPosLit(binconstr.head)) << " " << binconstr.lhsvarID << " " << binconstr.rel << " " << binconstr.rhsvarID
+		target() << CPBINVARSTR << " " << toString(mkPosLit(binconstr.head)) << " " << toString(binconstr.lhsvarID)
+				<< " " << binconstr.rel << " " << toString(binconstr.rhsvarID)
 				<< " 0\n";
 	}
 
 	void add(const CPCount& count) {
 		target() << CPCOUNTSTR << " ";
 		for (auto i = count.varIDs.cbegin(); i < count.varIDs.cend(); ++i) {
-			target() << *i << " ";
+			target() << toString(*i) << " ";
 		}
-		target() << DELIMSTR << count.eqbound << " " << count.rel << " " << count.rhsvar << " 0\n";
+		target() << DELIMSTR << count.eqbound << " " << count.rel << " " << toString(count.rhsvar) << " 0\n";
 	}
 
 	void add(const CPSumWeighted& sum) {
 		target() << CPSUMSTR << " " << toString(mkPosLit(sum.head)) << " ";
 		for (auto i = sum.varIDs.cbegin(); i < sum.varIDs.cend(); ++i) {
-			target() << *i << " ";
+			target() << toString(*i) << " ";
 		}
 		target() << DELIMSTR;
 		for (auto i = sum.weights.cbegin(); i < sum.weights.cend(); ++i) {
@@ -204,9 +215,9 @@ public:
 	void add(const CPElement& elem) {
 		target() << CPELEMENTSTR << " ";
 		for (auto i = elem.varIDs.cbegin(); i < elem.varIDs.cend(); ++i) {
-			target() << *i << " ";
+			target() << toString(*i) << " ";
 		}
-		target() << DELIMSTR << elem.index << " " << elem.rhs << " 0\n";
+		target() << DELIMSTR << toString(elem.index) << " " << toString(elem.rhs) << " 0\n";
 	}
 };
 

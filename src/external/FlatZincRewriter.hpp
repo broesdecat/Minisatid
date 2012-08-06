@@ -51,8 +51,8 @@ private:
 	uint 				maxatomnumber, maxcpnumber;
 	std::set<uint> 		atomsseen, negatomsseen;
 	std::set<uint> 		litatomsseen, litnegatomsseen;
-	std::set<uint> 		cpvarsseen;
-	std::map<uint, std::pair<Weight, Weight> > varbounds;
+	std::set<VarID>		cpvarsseen;
+	std::map<VarID, std::pair<Weight, Weight> > varbounds;
 
 	std::stringstream 	definitions, constraints;
 	std::map<int, WLSet>	sets; //index is setID
@@ -120,27 +120,27 @@ protected:
 	void check(const std::vector<std::vector<Lit> >& lits);
 
 	Atom createAtom();
-	uint createCpVar(const Weight& min, const Weight& max);
-	uint createCpVar(const std::vector<Weight>& values);
+	VarID createCpVar(const Weight& min, const Weight& max);
+	VarID createCpVar(const std::vector<Weight>& values);
 	void createIntVar(const Lit& lit, bool defined, int defID);
-	void addIntegerVar(uint varID, const std::string& domainexpr, const Weight& min, const Weight& max);
+	void addIntegerVar(VarID varID, const std::string& domainexpr, const Weight& min, const Weight& max);
 
-	const Weight& getMin(uint var);
-	const Weight& getMax(uint var);
+	const Weight& getMin(VarID var);
+	const Weight& getMax(VarID var);
 
 	void printRel(const std::string& left, const std::string& right, const Lit& head, const std::string& constr);
 	void addBinRel(const std::string& left, const std::string& right, const Lit& head, EqType rel);
 	void printSum(const weightlist& weights, const std::string& vars, Atom head, std::string constr, std::string bound);
-	void addSum(const weightlist& weights, const std::vector<uint>& vars, Atom head, EqType rel, const Weight& bound);
+	void addSum(const weightlist& weights, const std::vector<VarID>& vars, Atom head, EqType rel, const Weight& bound);
 	void addSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, const Weight& bound);
-	void addVarSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, uint rhsvar, const Weight& min, const Weight& max);
-	void addVarSum(const weightlist& weights, const std::vector<uint>& lits, Atom head, EqType rel, uint bound);
-	void addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, uint bound);
+	void addVarSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, VarID rhsvar, const Weight& min, const Weight& max);
+	void addVarSum(const weightlist& weights, const std::vector<VarID>& vars, Atom head, EqType rel, VarID bound);
+	void addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, VarID bound);
 	void addProduct(const Aggregate& agg, const WLSet& set);
 	void addSum(const Aggregate& agg, const WLSet& set);
 	void addEquiv(const Implication& impl, CloseConstraint close);
 
-	uint addOptimization();
+	VarID addOptimization();
 };
 
 }

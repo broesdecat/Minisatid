@@ -32,8 +32,8 @@ Atom map(const Atom& atom, Remapper& remapper) {
 	return remapper.getVar(atom);
 }
 
-uint map(uint var, Remapper& remapper){
-	return remapper.getID(var);
+VarID map(VarID var, Remapper& remapper){
+	return {remapper.getID(var.id)};
 }
 
 Lit map(const Lit& lit, Remapper& remapper) {

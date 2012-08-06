@@ -27,6 +27,20 @@ namespace MinisatID {
 
 typedef int Atom;
 
+struct VarID{
+	unsigned int id;
+
+	bool operator ==(VarID p) const {
+		return id == p.id;
+	}
+	bool operator !=(VarID p) const {
+		return id != p.id;
+	}
+	bool operator <(VarID p) const {
+		return id < p.id;
+	}
+};
+
 struct Lit {
 	int x;
 

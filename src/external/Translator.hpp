@@ -215,7 +215,7 @@ template<class OptimumPolicy>
 class TupleTranslator: public Translator, public OptimumPolicy {
 private:
 	std::map<Atom, std::string> lit2name;
-	std::map<uint, std::string> var2name;
+	std::map<VarID, std::string> var2name;
 
 public:
 	TupleTranslator()
@@ -232,7 +232,7 @@ public:
 		lit2name[atom] = name;
 	}
 
-	void addTuple(uint var, std::string name) {
+	void addTuple(VarID var, std::string name) {
 		var2name[var] = name;
 	}
 
@@ -249,7 +249,7 @@ public:
 		output.flush();
 	}
 
-	std::string toString(uint var) {
+	std::string toString(VarID var) {
 		std::stringstream ss;
 		auto it = var2name.find(var);
 		if (it != var2name.cend()) {

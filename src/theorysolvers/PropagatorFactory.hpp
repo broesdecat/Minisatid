@@ -128,7 +128,7 @@ private:
 
 	Definition* definitions;
 
-	std::map<int, IntVar*> intvars;
+	std::map<VarID, IntVar*> intvars;
 
 	// Parsing support
 	int minnewset; // Interal sets count downwards!
@@ -182,10 +182,12 @@ private:
 	template<class T>
 	void addCP			(const T& formula);
 
+	void internalAdd(const Disjunction& sentence);
+
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;
 
-	IntVar*		getIntVar(int varID) const;
+	IntVar*		getIntVar(VarID varID) const;
 
 	bool finishedparsing;
 	bool finishedParsing() const {

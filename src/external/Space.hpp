@@ -41,7 +41,7 @@ public:
 	VarCreation(Remapper* r)
 			: remapper(r) {
 	}
-	uint createID();
+	VarID createID();
 	Atom createVar();
 };
 

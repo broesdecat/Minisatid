@@ -85,20 +85,20 @@ public:
 
 	void writeIntVar(const MIntVar& var) {
 		if (var.range) {
-			extAdd(*store, IntVarRange(maxid++,var.var, var.begin, var.end));
+			extAdd(*store, IntVarRange(maxid++,{var.var}, var.begin, var.end));
 		} else {
-			extAdd(*store, IntVarEnum(maxid++,var.var, var.values));
+			extAdd(*store, IntVarEnum(maxid++,{var.var}, var.values));
 		}
 	}
 
 	template<class T>
 	void addBinI(const T& boolvar, int intvar, MinisatID::EqType eq, int domelem) {
-		extAdd(*store, CPBinaryRel(maxid++,get(boolvar).getAtom(), intvar, eq, domelem));
+		extAdd(*store, CPBinaryRel(maxid++,get(boolvar).getAtom(), {intvar}, eq, domelem));
 	}
 
 	template<class T>
 	void addBinT(const T& boolvar, int intvar, MinisatID::EqType eq, int intvar2) {
-		extAdd(*store, CPBinaryRel(maxid++,get(boolvar).getAtom(), intvar, eq, intvar2));
+		extAdd(*store, CPBinaryRel(maxid++,get(boolvar).getAtom(), {intvar}, eq, {intvar2}));
 	}
 
 	//nobounds implies that it has not been written to output
@@ -156,17 +156,17 @@ public:
 		return weights;
 	}
 
-	std::vector<uint> getUints(const std::vector<int>& ints){
-		std::vector<uint> uints;
+	std::vector<VarID> getVarIDs(const std::vector<int>& ints){
+		std::vector<VarID> uints;
 		for(auto w:ints){
 			MAssert(w>0);
-			uints.push_back((uint)w);
+			uints.push_back({w});
 		}
 		return uints;
 	}
 
 	void addLinear(int head, const std::vector<int> variables, const std::vector<int>& weights, MinisatID::EqType eq, int bound){
-		CPSumWeighted sum(maxid++,get(head).getAtom(), getUints(variables), getWeights(weights), eq, Weight(bound));
+		CPSumWeighted sum(maxid++,get(head).getAtom(), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
 		extAdd(*store, sum);
 	}
 
@@ -194,7 +194,7 @@ public:
 
 	void addMinim(const MIntVar& var) {
 		writeIntVar(var);
-		extAdd(*store, MinimizeVar(1, var.var));
+		extAdd(*store, MinimizeVar(1, {var.var}));
 	}
 };
 

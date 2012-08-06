@@ -48,11 +48,11 @@ public:
 	}
 
 	void add(const Disjunction& clause) {
-		for (uint i = 0; i < clause.literals.size(); ++i) {
-			if(maxvar<var(clause.literals[i])){
-				maxvar = var(clause.literals[i]);
+		for(auto lit:clause.literals){
+			if(maxvar<var(lit)){
+				maxvar = var(lit);
 			}
-			target() <<toString(clause.literals[i]) << " ";
+			target() <<toString(lit) << " ";
 		}
 		nbconstraints++;
 		target() << "0\n";

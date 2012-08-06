@@ -15,18 +15,12 @@
 using namespace MinisatID;
 using namespace std;
 
-IntVar::IntVar(uint id, PCSolver* solver, int varid)
-		: 	Propagator(id, solver, "intvar"),
-			varid_(varid),
-			currentmin(0),
-			currentmax(0),
-			minvalue(0),
-			maxvalue(0),
-			engine_(*solver) {
+IntVar::IntVar(uint id, PCSolver* solver, VarID varid)
+		: Propagator(id, solver, "intvar"), varid_(varid), engine_(*solver), minvalue(0), maxvalue(0), currentmin(0), currentmax(0) {
 }
 
-BasicIntVar::BasicIntVar(uint id, PCSolver* solver, int varid)
-		: 	IntVar(id, solver, varid) {
+BasicIntVar::BasicIntVar(uint id, PCSolver* solver, VarID varid)
+		: IntVar(id, solver, varid) {
 }
 
 void IntVar::notifyBacktrack(int, const Lit&) {
@@ -52,23 +46,23 @@ rClause IntVar::notifypropagate() {
 	return nullPtrClause;
 }
 
-Lit IntVar::getEQLit(int bound){
+Lit IntVar::getEQLit(int bound) {
 	auto head = mkPosLit(getPCSolver().newVar()); // TODO table
-	internalAdd(Implication(getID(), head, ImplicationType::EQUIVALENT, {getGEQLit(bound), getLEQLit(bound)}, true), engine());
+	internalAdd(Implication(getID(), head, ImplicationType::EQUIVALENT, { getGEQLit(bound), getLEQLit(bound) }, true), engine());
 	return head;
 }
 
 void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next) {
 	// leq[i] => leq[i+1]
-	if (next!=NULL) {
-		internalAdd(Disjunction(getID(),  { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
-	} else if(lv.value==origMaxValue()){
-		internalAdd(Disjunction(getID(),  { getLEQLit(lv.value) }), engine());
+	if (next != NULL) {
+		internalAdd(Disjunction(getID(), { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
+	} else if (lv.value == origMaxValue()) {
+		internalAdd(Disjunction(getID(), { getLEQLit(lv.value) }), engine());
 	}
 
 	//~leq[i] => ~leq[i-1]
-	if (prev!=NULL) {
-		internalAdd(Disjunction(getID(),  { getLEQLit(lv.value), ~getLEQLit(prev->value) }), engine());
+	if (prev != NULL) {
+		internalAdd(Disjunction(getID(), { getLEQLit(lv.value), ~getLEQLit(prev->value) }), engine());
 	}
 }
 
@@ -80,11 +74,11 @@ void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv
 void BasicIntVar::addConstraints() {
 	for (uint i = 0; i < leqlits.size(); ++i) {
 		IntVarValue* next = NULL;
-		if(i < leqlits.size() - 1){
+		if (i < leqlits.size() - 1) {
 			next = &leqlits[i + 1];
 		}
 		IntVarValue* prev = NULL;
-		if(i>0){
+		if (i > 0) {
 			prev = &leqlits[i - 1];
 		}
 		addConstraint(prev, leqlits[i], next);
@@ -123,9 +117,9 @@ void BasicIntVar::updateBounds() {
 //	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
-RangeIntVar::RangeIntVar(uint id, PCSolver* solver, int varid, int min, int max)
+RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
 		: BasicIntVar(id, solver, varid) {
-	if(min>max){
+	if (min > max) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
 		return;
@@ -165,13 +159,12 @@ Lit RangeIntVar::getLEQLit(int bound) {
 }
 
 Lit RangeIntVar::getGEQLit(int bound) {
-	return not getLEQLit(bound-1);
+	return not getLEQLit(bound - 1);
 }
 
-EnumIntVar::EnumIntVar(uint id, PCSolver* solver, int varid, const std::vector<int>& values)
-		: 	BasicIntVar(id, solver, varid),
-			_values(values) {
-	if(values.empty()){
+EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<int>& values)
+		: BasicIntVar(id, solver, varid), _values(values) {
+	if (values.empty()) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent();
 		return;

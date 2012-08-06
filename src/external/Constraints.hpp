@@ -14,7 +14,7 @@
 
 namespace MinisatID {
 
-uint map(uint var, Remapper& remapper);
+VarID map(VarID var, Remapper& remapper);
 Atom map(const Atom& atom, Remapper& remapper);
 Lit map(const Lit& lit, Remapper& remapper);
 

@@ -238,7 +238,7 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 	getEventQueue().accept(propagator, lit, priority);
 }
 
-uint PCSolver::newID(){
+VarID PCSolver::newID(){
 	return varcreator->createID();
 }
 Atom PCSolver::newVar() {
@@ -526,7 +526,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 	getEventQueue().accept(visitor);
 }
 
-std::string PCSolver::toString(uint id) const {
+std::string PCSolver::toString(VarID id) const {
 	return printer->toString(id);
 }
 std::string PCSolver::toString(const Lit& lit) const {

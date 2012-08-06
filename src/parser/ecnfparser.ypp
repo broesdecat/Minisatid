@@ -70,6 +70,7 @@
 	MinisatID::Lit cLiteral(string* c);
 	MinisatID::Weight cWeight(string* s);
 	int cID(string* c);
+	VarID cVarID(string* c);
 	
 	// Convert integer to string
 	std::string itos(int n) {
@@ -108,7 +109,7 @@
 	std::string* str;
     std::vector<int>* vints;
     std::vector<MinisatID::Weight>* vweights;
-    std::vector<uint>* vuints;
+    std::vector<MinisatID::VarID>* varids;
     std::vector<MinisatID::Lit>* vlits;
     std::vector<MinisatID::WLtuple>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
@@ -119,6 +120,7 @@
     MinisatID::AggSem sem;
     std::vector<std::vector<MinisatID::Lit> >* DCNSymmetry;
 	std::vector<std::string>*	vstr;
+	MinisatID::VarID varid;
 }
 
 %token DEFOP
@@ -139,7 +141,8 @@
 %type <integer> number
 %type <str> weight
 %type <vweights> weightbody
-%type <vuints> uibody
+%type <varid> varid
+%type <varids> varidbody
 %type <vlits> body
 %type <vlws> wbody
 %type <vlits> cycle
@@ -236,7 +239,7 @@ subsetmnmz: SUBSETMINDEFN body ZERO
 			}
 varmnmz :	VARMINDEFN NUMBER ZERO
 			{ 
-				CR(wrapper, MinimizeVar(1, cID($2)));
+				CR(wrapper, MinimizeVar(1, cVarID($2)));
 			}
 			
 aggmnmz :	AGGMINDEFN AGGDEFN NUMBER ZERO 	
@@ -370,13 +373,13 @@ cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete(
 		
 // ECNF CONSTRAINT SUPPORT
 
-intvar	:	INTVAR number weight weight ZERO 
+intvar	:	INTVAR varid weight weight ZERO 
 			{
 				IntVarRange var(id++, $2, cWeight($3), cWeight($4));
 				CR(wrapper, var);
 				delete $3; delete $4;
 			}
-		|	INTVARDOM number weightbody DELIM ZERO 
+		|	INTVARDOM varid weightbody DELIM ZERO 
 			{
 				IntVarEnum var(id++, $2,*$3);
 				CR(wrapper, var);
@@ -392,44 +395,44 @@ intvar	:	INTVAR number weight weight ZERO
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
 
 cpconstraint
-		:	BINTRI NUMBER number REL weight ZERO 
+		:	BINTRI NUMBER varid REL weight ZERO 
 			{ 	
 				CPBinaryRel binrel(id++, cAtom($2), $3, $4, cWeight($5));
 				CR(wrapper, binrel);
 				delete $2; delete $5;
 			}
-		|	BINTRT NUMBER number REL number ZERO 
+		|	BINTRT NUMBER varid REL varid ZERO 
 			{ 	
 				CPBinaryRelVar binrel(id++, cAtom($2), $3, $4, $5);
 				CR(wrapper, binrel);
 				delete $2;
 			}
-		|	CPSUM NUMBER uibody DELIM weightbody REL weight ZERO   
+		|	CPSUM NUMBER varidbody DELIM weightbody REL weight ZERO   
 			{ 	
 				CPSumWeighted sum(id++, cAtom($2), *$3, *$5, $6, cWeight($7));
 				CR(wrapper, sum);
 				delete $2; delete $3; delete $5; delete $7;
 			}
-		|	CPPROD NUMBER uibody DELIM weight REL weight ZERO   
+		|	CPPROD NUMBER varidbody DELIM weight REL weight ZERO   
 			{ 	
 				CPProdWeighted prod(id++, cAtom($2), *$3, cWeight($5), $6, cWeight($7));
 				CR(wrapper, prod);
 				delete $2; delete $3; delete $5; delete $7;
 			}
-		|	ELEMENT uibody DELIM number number ZERO 
+		|	ELEMENT varidbody DELIM varid varid ZERO 
 			{ 	
-				CR(wrapper, CPElement(id++, *$2, $4, $6));
+				CR(wrapper, CPElement(id++, *$2, $4, $5));
 				delete $2;
 			}
 			//only global card at the moment! 
-		|	COUNT uibody DELIM weight REL number ZERO   
+		|	COUNT varidbody DELIM weight REL varid ZERO   
 			{ 	
 				CPCount count(id++, *$2, cWeight($4), $5, $6);
 				CR(wrapper, count);
 				delete $2; delete $4;
 			}
 			//only global alldiff at the moment!
-		|	DISTINCT uibody DELIM ZERO //DELIM to remove shift-reduce conflict 
+		|	DISTINCT varidbody DELIM ZERO //DELIM to remove shift-reduce conflict 
 			{ 	
 				CPAllDiff alldiff(id++, *$2);
 				CR(wrapper, alldiff);
@@ -540,9 +543,11 @@ weightbody
 		| 	weight			{ $$ = new vector<Weight>(1, cWeight($1)); delete $1;	}
 		;
 		
-uibody 	: 	uibody number	{ $$ = $1; $$->push_back($2);	}
-		| 	number  		{ $$ = new vector<uint>(1, $1);	}
+varidbody 	: 	varidbody varid	{ $$ = $1; $$->push_back($2);	}
+		| 	varid  		{ $$ = new vector<VarID>(1, $1);	}
 		;
+		
+varid	:   number	{ $$ = {$1} ;}
 		
 number	:	NUMBER	{ $$ = atoi((*$1).c_str()); delete($1); }
 		|	ZERO	{ $$ = 0; }
@@ -581,6 +586,9 @@ int cID(string* c){
 		throw idpexception("IDs have to be non-negative nonzero integers.\n");
 	}
 	return i;
+}
+VarID cVarID(string* c){
+	return {cID(c)};
 }
 
 Lit cLiteral(string* c){
