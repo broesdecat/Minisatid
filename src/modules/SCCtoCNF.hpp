@@ -42,11 +42,12 @@ public:
 class Level2SAT{
 	// Represents the level of some atom in binary representation
 	// First bit is 2^0
+	Atom head;
 	varlist bits_;
 public:
 	template<class Solver>
-	Level2SAT(Atom head, Solver& solver, int maxlevel){
-		int maxbits = (log((double)maxlevel)/log(2))+0.5;
+	Level2SAT(Atom head, Solver& solver, int maxlevel): head(head){
+		int maxbits = ceil(log((double)maxlevel)/log(2));
 		if(solver.verbosity()>4){
 			std::clog <<"loopsize = " <<maxlevel <<", maxbits = " <<maxbits <<"\n";
 		}
@@ -62,31 +63,19 @@ public:
 	// The full list of bits
 	const varlist& bits() const { return bits_; }
 
-	// Represents level 0
-	litlist zero() const { return zero(bits_.size()-1); }
+	Atom getHead() const { return head; }
 
-	// Represents a level which has the first <toindex> bits set to 0
-	litlist zero(int toindex) const {
-		litlist list;
-		for(auto i=0; i<toindex+1; ++i){
-			list.push_back(mkNegLit(bits()[i]));
-		}
-		return list;
-	}
-
-	// Represents a level which has the first <toindex> bits set to 1
-	litlist one(int toindex) const {
-		litlist list;
-		for(auto i=0; i<toindex+1; ++i){
-			list.push_back(mkPosLit(bits()[i]));
-		}
-		return list;
+	template<class Solver>
+	std::string bit2String(int index, Solver& solver) const{
+		std::stringstream ss;
+		ss <<"l(" <<toString(mkPosLit(head), solver) <<")>=" <<pow(2, index);
+		return ss.str();
 	}
 };
 
 template<class Solver>
 class SCCtoCNF {
-	enum class SIGN { L1, G}; // L1 = LorEqual+1, G = Greater
+	enum class SIGN { L1, G}; // L1 = LowerOrEqual+1, G = Greater
 
 	// Represents a comparison "level op level"
 	struct Comp{
@@ -171,6 +160,9 @@ public:
 	}
 
 private:
+	std::string s(Lit lit){
+		return toString(lit, solver_);
+	}
 	// NOTE: STRONG encoding is always used!
 	/*
 	 * P <- Q1 | ... | Qn
@@ -192,17 +184,19 @@ private:
 			auto bodyvar = atom2level[var(*litit)];
 
 			if(solver_.value(*litit)!=l_False){
+				// head & body => l(head)=<l(body)+1
 				addClause(litlist{~head, ~(*litit), Comp2SAT(headvar, SIGN::L1, bodyvar)});
 				tseitins.push_back(and2SAT(litlist{*litit, Comp2SAT(headvar, SIGN::G, bodyvar)}));
-				// FIXME should check returned literals on their value!
+				// TODO should check returned literals on their value!
 			}
 		}
 
 		for(auto litit = rule.open().cbegin(); litit!=rule.open().cend(); ++litit) {
 			if(solver_.value(*litit)!=l_False){
+				// head & body => l(head)=0
 				addClause(litlist{~head, ~(*litit), zero2SAT(headvar)});
 				tseitins.push_back(and2SAT(litlist{*litit, zero2SAT(headvar)}));
-				// FIXME should check returned literals on their value!
+				// TODO should check returned literals on their value!
 			}
 		}
 
@@ -228,9 +222,11 @@ private:
 		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
 			auto bodyvar = atom2level[var(*litit)];
 
+			// head => l(head)>l(body)
 			addClause(litlist{~head, Comp2SAT(headvar, SIGN::G, bodyvar)});
+
 			tseitins.push_back(Comp2SAT(headvar, SIGN::L1, bodyvar));
-			// FIXME should check returned literals on their value!
+			// TODO should check returned literals on their value!
 		}
 		tseitins.push_back(zero2SAT(headvar));
 
@@ -239,17 +235,30 @@ private:
 		return solver_.satState();
 	}
 
-	// FIXME use current interpretation to simplify things in the code below
+	// TODO use current interpretation to simplify things in the code below
+
+	/**
+	 * What can be requested:
+	 *
+	 * var > var2
+	 * var =< var2+1
+	 * var = var2 at index
+	 * var = 0 from index
+	 * var = max from index
+	 */
 
 	Lit Comp2SAT(Level2SAT* left, SIGN sign, Level2SAT* right){
 		auto it = largermap.find(Comp(left, sign, right));
 		if(it==largermap.cend()){
 			Lit tseitin;
 			MAssert(left->bits().size()==right->bits().size());
-			if(sign==SIGN::G){
+			switch(sign){
+			case SIGN::G:
 				tseitin = G2SAT(left, right, left->bits().size()-1);
-			}else{
+				break;
+			case SIGN::L1:
 				tseitin = L12SAT(left, right, left->bits().size()-1);
+				break;
 			}
 			largermap[Comp(left, sign, right)] = tseitin;
 			return tseitin;
@@ -262,41 +271,27 @@ private:
 		MAssert((int)left->bits().size()>index && (int)right->bits().size()>index);
 		if(index==0){
 			return solver_.getTrueLit();
-		}else if(index==1){
-			return ~and2SAT(litlist{
-						mkPosLit(left->bits()[0]),
-						mkPosLit(left->bits()[0]),
-						mkNegLit(right->bits()[1]),
-						mkNegLit(right->bits()[0])
-					});
-		}else{
+		}else {
+			auto leftbit = left->bits()[index];
+			auto rightbit = right->bits()[index];
 			return or2SAT(litlist{
 					and2SAT(litlist{
-						EqBit2SAT(right->bits()[index], left->bits()[index]),
+						EqBit2SAT(leftbit, rightbit),
 						L12SAT(left, right, index-1)
 					}),
 					and2SAT(litlist{
-						GBit2SAT(right->bits()[index], left->bits()[index]),
-						restZero2SAT(right, index-1),
-						restOneSAT(left, index-1)
-					})
+						GBit2SAT(leftbit, rightbit),
+						restZero2SAT(left, index-1),
+						restOneSAT(right, index-1)
+					}),
+					GBit2SAT(rightbit, leftbit),
 				});
 		}
 	}
 
-	Lit restZero2SAT(Level2SAT* left, int index){
-		litlist list(left->zero(index));
-		return and2SAT(list);
-	}
-
-	Lit restOneSAT(Level2SAT* left, int index){
-		litlist list(left->one(index));
-		return and2SAT(list);
-	}
-
 	Lit G2SAT(Level2SAT* left, Level2SAT* right, int index){
 		MAssert((int)left->bits().size()>index && (int)right->bits().size()>index);
-		Lit gtseitin = GBit2SAT(left->bits()[0], right->bits()[0]);
+		Lit gtseitin = GBit2SAT(left->bits()[index], right->bits()[index]);
 		if(index==0){
 			return gtseitin;
 		}else{
@@ -308,14 +303,63 @@ private:
 		}
 	}
 
-	Lit GBit2SAT(Atom leftbit, Atom rightbit){
-		return and2SAT(litlist{mkPosLit(leftbit), mkNegLit(rightbit)});
+	// Represents a level which has the first <toindex> bits set to 0
+	std::map<std::pair<int, Level2SAT*>, Lit> index2min;
+	Lit zero2SAT(Level2SAT* var){
+		return restZero2SAT(var, var->bits().size()-1);
+	}
+	Lit restZero2SAT(Level2SAT* left, int index){
+		auto it = index2min.find({index, left});
+		if(it!=index2min.cend()){
+			return it->second;
+		}
+		litlist list;
+		for(auto i=0; i<index+1; ++i){
+			list.push_back(mkNegLit(left->bits()[i]));
+		}
+		auto lit = and2SAT(list);
+		index2min[std::pair<int, Level2SAT*>{index, left}] = lit;
+		return lit;
 	}
 
+	// Represents a level which has the first <toindex> bits set to 1
+	std::map<std::pair<int, Level2SAT*>, Lit> index2max;
+	Lit restOneSAT(Level2SAT* left, int index){
+		auto it = index2max.find({index, left});
+		if(it!=index2max.cend()){
+			return it->second;
+		}
+		litlist list;
+		for(auto i=0; i<index+1; ++i){
+			list.push_back(mkPosLit(left->bits()[i]));
+		}
+		auto lit = and2SAT(list);
+		index2max[std::pair<int, Level2SAT*>{index, left}] = lit;
+		return lit;
+	}
+
+	std::map<std::pair<Atom,Atom>,Lit> grbits2lit;
+	Lit GBit2SAT(Atom leftbit, Atom rightbit){
+		auto it = grbits2lit.find({leftbit, rightbit});
+		if(it!=grbits2lit.cend()){
+			return it->second;
+		}
+		auto lit = and2SAT(litlist{mkPosLit(leftbit), mkNegLit(rightbit)});
+		grbits2lit[std::pair<Atom,Atom>{leftbit, rightbit}] = lit;
+		return lit;
+	}
+
+	std::map<std::pair<Atom,Atom>,Lit> eqbits2lit;
 	Lit EqBit2SAT(Atom leftbit, Atom rightbit){
-		return or2SAT(litlist{
+		auto it = eqbits2lit.find({leftbit, rightbit});
+		if(it!=eqbits2lit.cend()){
+			return it->second;
+		}
+		auto lit = or2SAT(litlist{
 						and2SAT(litlist{mkPosLit(leftbit), mkPosLit(rightbit)}),
 						and2SAT(litlist{mkNegLit(leftbit), mkNegLit(rightbit)})});
+		eqbits2lit[std::pair<Atom,Atom>{leftbit, rightbit}] = lit;
+		return lit;
 	}
 
 	SATVAL addClause(const litlist& lits){
@@ -323,57 +367,63 @@ private:
 		return solver_.satState();
 	}
 
-	// Returns a literal which represents that the level of the var is 0
-	Lit zero2SAT(Level2SAT* left){
-		auto it = eq2zeromap.find(EqToZero(left));
-		if(it==eq2zeromap.cend()){
-			Lit tseitin = and2SAT(left->zero());
-			eq2zeromap[EqToZero(left)] = tseitin;
-			return tseitin;
-		}else{
-			return (*it).second;
-		}
-	}
-
+	std::map<litlist, Lit> andmap;
 	Lit and2SAT(const litlist& subs){
 		if(subs.size()==1){
 			return subs.back();
 		}
-		bool alltrue = true;
+		litlist remlits;
 		for(auto i=subs.cbegin(); i<subs.cend(); ++i){
 			auto val = solver_.rootValue(*i);
 			if(val==l_Undef){
-				alltrue = false;
+				remlits.push_back(*i);
 			}else if(val==l_False){
 				return solver_.getFalseLit();
 			}
 		}
-		if(alltrue){
+		if(remlits.size()==0){
 			return solver_.getTrueLit();
+		}else if(remlits.size()==1){
+			return remlits.front();
+		}
+
+		auto it = andmap.find(remlits);
+		if(it!=andmap.cend()){
+			return it->second;
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, true), solver_);
+		andmap[remlits] = tseitin;
 		return tseitin;
 	}
 
+	std::map<litlist, Lit> ormap;
 	Lit or2SAT(const litlist& subs){
 		if(subs.size()==1){
 			return subs.back();
 		}
-		bool allfalse = true;
+		litlist remlits;
 		for(auto i=subs.cbegin(); i<subs.cend(); ++i){
 			auto val = solver_.rootValue(*i);
 			if(val==l_Undef){
-				allfalse = false;
+				remlits.push_back(*i);
 			}else if(val==l_True){
 				return solver_.getTrueLit();
 			}
 		}
-		if(allfalse){
+		if(remlits.size()==0){
 			return solver_.getFalseLit();
+		}else if(remlits.size()==1){
+			return remlits.front();
+		}
+
+		auto it = ormap.find(remlits);
+		if(it!=ormap.cend()){
+			return it->second;
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, false), solver_);
+		ormap[remlits] = tseitin;
 		return tseitin;
 	}
 };
