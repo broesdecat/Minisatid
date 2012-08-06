@@ -25,13 +25,13 @@
 
 namespace MinisatID {
 
-typedef int Var;
+typedef int Atom;
 
 struct Lit {
 	int x;
 
 	// Use this as a constructor:
-	friend Lit mkLit(Var var, bool sign = false);
+	friend Lit mkLit(Atom var, bool sign = false);
 
 	bool operator ==(Lit p) const {
 		return x == p.x;
@@ -46,12 +46,12 @@ struct Lit {
 	bool hasSign() const {
 		return x & 1;
 	}
-	Var getAtom() const {
+	Atom getAtom() const {
 		return x >> 1;
 	}
 };
 
-inline Lit mkLit(Var var, bool sign) {
+inline Lit mkLit(Atom var, bool sign) {
 	Lit p;
 	p.x = var + var + (int) sign;
 	return p;
@@ -85,9 +85,9 @@ bool isPositive(const Lit& lit);
 bool isNegative(const Lit& lit);
 
 typedef std::vector<Lit> litlist;
-typedef std::vector<Var> varlist;
-inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
-inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
+typedef std::vector<Atom> varlist;
+inline Lit  mkPosLit	(Atom var) 	{ return mkLit(var, false); }
+inline Lit  mkNegLit	(Atom var) 	{ return mkLit(var, true); }
 
 }
 

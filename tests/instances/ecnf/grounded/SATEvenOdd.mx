@@ -1,0 +1,8 @@
+p ecnf def aggr
+
+translation
+type Num : 0 1 2 3 4 5
+show pred 1 Even : Num
+show pred 7 Odd : Num
+true : Even/1 1 3 5 Odd/1 8 10 12 
+arbitrary : 

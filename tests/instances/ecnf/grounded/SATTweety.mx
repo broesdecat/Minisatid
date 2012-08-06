@@ -1,0 +1,11 @@
+p ecnf def aggr
+C 1 -2 0
+2 -3 0
+
+translation
+type Bird : Tweety
+show pred 1 CanFly : Bird
+show pred 2 AbnormalFlier : Bird
+show pred 3 Penguin : Bird
+true : 
+arbitrary : 

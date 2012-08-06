@@ -61,7 +61,7 @@ protected:
 
 public:
 	FWAgg(TypedSet* set);
-	virtual ~FWAgg(){};
+	virtual ~FWAgg(){}
 
 	virtual void 	internalInitialize		(bool& unsat, bool& sat);
 	virtual rClause reInitialize			() { return propagateAtEndOfQueue(); }
@@ -78,7 +78,7 @@ public:
 class SPFWAgg: public  FWAgg {
 public:
 	SPFWAgg(TypedSet* agg);
-	virtual ~SPFWAgg(){};
+	virtual ~SPFWAgg(){}
 
 	void checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& propinfo, const Agg& agg, bool caseone, std::vector<PropagationInfo>& reasons);
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
@@ -92,7 +92,7 @@ protected:
 class SumFWAgg: public  SPFWAgg {
 public:
 	SumFWAgg(TypedSet* agg);
-	virtual ~SumFWAgg(){};
+	virtual ~SumFWAgg(){}
 
 	virtual void 	internalInitialize				(bool& unsat, bool& sat);
 };
@@ -100,7 +100,7 @@ public:
 class ProdFWAgg: public  SPFWAgg {
 public:
 	ProdFWAgg(TypedSet* agg);
-	virtual ~ProdFWAgg(){};
+	virtual ~ProdFWAgg(){}
 
 	virtual void 	internalInitialize				(bool& unsat, bool& sat);
 };
@@ -108,7 +108,7 @@ public:
 class MaxFWAgg: public  FWAgg {
 public:
 	MaxFWAgg(TypedSet* agg);
-	virtual ~MaxFWAgg(){};
+	virtual ~MaxFWAgg(){}
 
 	virtual void 	internalInitialize				(bool& unsat, bool& sat);
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);

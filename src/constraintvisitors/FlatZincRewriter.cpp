@@ -70,7 +70,7 @@ const WLSet& FlatZincRewriter<Stream>::getSet(uint i) const {
 }
 
 //INVARIANT: always have already done a "check" operation on the Var
-string getVarName(Var Var) {
+string getVarName(Atom Var) {
 	stringstream ss;
 	ss << "BOOL____" << Var;
 	return ss.str();
@@ -109,7 +109,7 @@ void addDefAnnotation(int defID, ostream& stream) {
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::check(const Var& Var) {
+void FlatZincRewriter<Stream>::check(const Atom& Var) {
 	check(mkPosLit(Var));
 }
 
@@ -261,21 +261,21 @@ void FlatZincRewriter<Stream>::addBinRel(const string& left, const string& right
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, Var head, string constr, string bound) {
+void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, Atom head, string constr, string bound) {
 	constraints << "constraint " << constr << "([";
 	addIntList(weights, constraints);
 	constraints << "],[" << vars << "], " << bound << ", " << getVarName(head) << ");\n";
 }
 
 template<typename Stream>
-Var FlatZincRewriter<Stream>::createAtom() {
-	Var lit = Var(maxatomnumber + 1);
+Atom FlatZincRewriter<Stream>::createAtom() {
+	Atom lit = Atom(maxatomnumber + 1);
 	check(lit);
 	return lit;
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, const Weight& bound) {
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<uint>& vars, Atom head, EqType rel, const Weight& bound) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
@@ -289,7 +289,7 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<ui
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, Var head, EqType rel, const Weight& bound) {
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, Atom head, EqType rel, const Weight& bound) {
 	string constr = "";
 	Weight newbound = bound;
 	switch (rel) {
@@ -304,13 +304,13 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& v
 		newbound = bound - 1;
 		break;
 	case EqType::G: {
-		Var newhead = createAtom();
+		Atom newhead = createAtom();
 		constr = "int_lin_le_reif";
 		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
 		break;
 	}
 	case EqType::GEQ: {
-		Var newhead = createAtom();
+		Atom newhead = createAtom();
 		constr = "int_lin_le_reif";
 		newbound = bound - 1;
 		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
@@ -328,7 +328,7 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& v
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, uint rhsvar) {
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<uint>& vars, Atom head, EqType rel, uint rhsvar) {
 	vector<uint> newvars = vars;
 	newvars.push_back(rhsvar);
 
@@ -339,7 +339,7 @@ void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, Var head, EqType rel, uint rhsvar) {
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, uint rhsvar) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
@@ -381,14 +381,14 @@ void FlatZincRewriter<Stream>::addSum(const Aggregate& agg, const WLSet& set) {
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::createCpVar(const Weight& min, const Weight& max) {
-	IntVarRange newvar(maxcpnumber + 1, min, max);
+	IntVarRange newvar(DEFAULTCONSTRID, maxcpnumber + 1, min, max);
 	add(newvar);
 	return newvar.varID;
 }
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
-	IntVarEnum newvar(maxcpnumber + 1, values);
+	IntVarEnum newvar(DEFAULTCONSTRID, maxcpnumber + 1, values);
 	add(newvar);
 	return newvar.varID;
 }
@@ -423,8 +423,7 @@ uint FlatZincRewriter<Stream>::addOptimization() {
 
 		auto head = createAtom();
 		addVarSum(getWeigths(set), getLiterals(set), head, EqType::EQ, optimvar);
-		Disjunction d;
-		d.literals.push_back(mkPosLit(head));
+		Disjunction d(1,{mkPosLit(head)});
 		add(d);
 	} else if (savedlistmnmz.size() > 0) {
 		auto mnm = savedlistmnmz[0];
@@ -569,15 +568,14 @@ void FlatZincRewriter<Stream>::addEquiv(const Implication& implication, CloseCon
 		break;
 	case ImplicationType::IMPLIES:
 		if (implication.conjunction) {
-			Disjunction d;
+			Disjunction d(DEFAULTCONSTRID, litlist());
 			d.literals.resize(2, not implication.head);
 			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
 				d.literals[1] = *i;
 				add(d);
 			}
 		} else {
-			Disjunction d;
-			d.literals.insert(d.literals.begin(), implication.body.cbegin(), implication.body.cend());
+			Disjunction d(DEFAULTCONSTRID, implication.body);
 			d.literals.push_back(not implication.head);
 			add(d);
 		}
@@ -627,11 +625,10 @@ void FlatZincRewriter<Stream>::add(const Rule& rule) {
 	if (not rule.conjunctive) {
 		if (rule.body.size() > 1) {
 			for (auto i = rule.body.cbegin(); i < rule.body.cend(); ++i) {
-				add(Rule(rule.head, { *i }, true, rule.definitionID));
+				add(Rule(DEFAULTCONSTRID, rule.head, { *i }, true, rule.definitionID));
 			}
 		} else if (rule.body.size() == 0) {
-			Disjunction clause;
-			clause.literals.push_back(mkPosLit(rule.head));
+			Disjunction clause(DEFAULTCONSTRID, {mkPosLit(rule.head)});
 			add(clause);
 		}
 	}
@@ -713,7 +710,7 @@ void FlatZincRewriter<Stream>::add(const Aggregate& origagg) {
 			lits.push_back(ub ? ~set.wl[i].getLit() : set.wl[i].getLit());
 		}
 
-		addEquiv(Implication(agg.head, ImplicationType::EQUIVALENT, lits, ub), OPEN);
+		addEquiv(Implication(DEFAULTCONSTRID, agg.head, ImplicationType::EQUIVALENT, lits, ub), OPEN);
 		if (agg.sem == AggSem::DEF) {
 			addDefAnnotation(agg.defID, constraints);
 		}

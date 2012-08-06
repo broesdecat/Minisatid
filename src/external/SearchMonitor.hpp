@@ -21,17 +21,17 @@ namespace MinisatID {
 class PropAndBackMonitor{
 private:
 	cb::Callback1<void, int> backtrackcb;
-	cb::Callback2<void, Literal, int> propagatedcb;
+	cb::Callback2<void, Lit, int> propagatedcb;
 
 public:
 	void setBacktrackCB(cb::Callback1<void, int> cb){
 		backtrackcb = cb;
 	}
-	void setPropagateCB(cb::Callback2<void, Literal, int> cb){
+	void setPropagateCB(cb::Callback2<void, Lit, int> cb){
 		propagatedcb = cb;
 	}
 
-	void notifyPropagated(const Literal& lit, int decisionlevel){
+	void notifyPropagated(const Lit& lit, int decisionlevel){
 		propagatedcb(lit, decisionlevel);
 	}
 

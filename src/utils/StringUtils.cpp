@@ -83,7 +83,7 @@ template<class ContainerT>
 void tokenize(const std::string& str, ContainerT& tokens, const std::string& delimiters = " ", const bool trimEmpty = false) {
 	typedef typename ContainerT::value_type  vt;
 	typedef typename ContainerT::value_type::size_type  st;
-	std::string::size_type pos, lastPos = 0;
+	std::string::size_type pos = 0, lastPos = 0;
 	if(delimiters.size()==0){
 		tokens.push_back(str);
 		return;
@@ -92,20 +92,23 @@ void tokenize(const std::string& str, ContainerT& tokens, const std::string& del
 		auto found = false;
 		auto searchpos = lastPos;
 		while(not found && pos!=std::string::npos){
-			pos = str.find_first_of(delimiters.front(), searchpos);
-			if(pos==std::string::npos || pos+delimiters.size()>str.size()){
+			auto possiblepos = str.find_first_of(delimiters.front(), searchpos);
+			if(possiblepos==std::string::npos || possiblepos+delimiters.size()>str.size()){
 				pos=std::string::npos;
 				break;
 			}
-			auto temppos = pos;
-			for(int i=0; i<delimiters.size(); ++i){
-				if(str[temppos]!=delimiters[i]){
-					searchpos = pos + 1;
-					continue;
+			auto temppos = possiblepos;
+			for(auto c:delimiters){
+				if(str[temppos]!=c){
+					searchpos = possiblepos + 1;
+					break;
 				}
 				temppos++;
 			}
-			found = true;
+			if(temppos==possiblepos+delimiters.size()){
+				found = true;
+				pos = possiblepos;
+			}
 		}
 
 		if (pos == std::string::npos) {

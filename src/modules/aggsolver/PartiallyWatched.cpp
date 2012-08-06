@@ -358,9 +358,9 @@ void GenPWAgg::addStagedWatchesToNetworkOnStable(rClause confl) {
  *  FIXME propagations is wrong name (instead means "keep watch"?)
  */
 rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg) {
-#ifdef DEBUG
-	checkWatches();
-#endif
+//#ifdef DEBUG
+//	checkWatches();
+//#endif
 	MAssert(backtracklist.size()==0 || backtracklist.back().second<=getPCSolver().getCurrentDecisionLevel());
 
 	auto confl = nullPtrClause;
@@ -415,9 +415,9 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg) {
 		}
 	}
 
-#ifdef DEBUG
-	checkWatches();
-#endif
+//#ifdef DEBUG
+//	checkWatches();
+//#endif
 
 	return confl;
 }

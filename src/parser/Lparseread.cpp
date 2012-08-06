@@ -74,7 +74,7 @@ Atom Read<T>::makeAtom(int n) {
 }
 
 template<class T>
-bool Read<T>::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
+bool Read<T>::readBody(istream &f, long size, bool pos, vector<Lit>& body) {
 	long n;
 	for (long i = 0; i < size; ++i) {
 		f >> n;
@@ -89,7 +89,7 @@ bool Read<T>::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 }
 
 template<class T>
-bool Read<T>::readFullBody(istream &f, vector<Literal>& body) {
+bool Read<T>::readFullBody(istream &f, vector<Lit>& body) {
 	long n;
 	f >> n; // total body size
 	if (!f.good() || n < 0) {
@@ -146,7 +146,7 @@ bool Read<T>::parseBasicRule(istream &f) {
 	}
 	Atom head = makeParsedAtom(n);
 
-	vector<Literal> body;
+	vector<Lit> body;
 	if (!readFullBody(f, body)) {
 		return false;
 	}
@@ -188,7 +188,7 @@ bool Read<T>::parseConstraintRule(istream &f) {
 	}
 	long atleast = n;
 
-	vector<Literal> body;
+	vector<Lit> body;
 	if (!readBody(f, negbodysize, false, body)) { // Negative body: negated literals
 		return false;
 	}
@@ -223,7 +223,7 @@ bool Read<T>::parseChoiceRule(istream &f) {
 		heads.push_back(makeParsedAtom(n));
 	}
 
-	vector<Literal> body;
+	vector<Lit> body;
 	if (!readFullBody(f, body)) {
 		return false;
 	}
@@ -249,7 +249,7 @@ bool Read<T>::parseWeightRule(istream &f) {
 		return false;
 	}
 
-	vector<Literal> body;
+	vector<Lit> body;
 	if (!readFullBody(f, body)) {
 		return false;
 	}
@@ -274,7 +274,7 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 		throw idpexception(s);
 	}
 
-	vector<Literal> body;
+	vector<Lit> body;
 	if (!readFullBody(f, body)) {
 		return false;
 	}
@@ -295,7 +295,7 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 template<class T>
 void Read<T>::addBasicRules() {
 	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
-		extAdd(getSolver(), Rule((*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID));
+		extAdd(getSolver(), Rule(maxid++,(*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID));
 	}
 }
 
@@ -303,7 +303,7 @@ template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
-		extAdd(getSolver(), Aggregate(mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
@@ -311,12 +311,12 @@ template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
-		extAdd(getSolver(), Aggregate(mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
 template<class T>
-void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head) {
+void Read<T>::addRuleToHead(std::map<Atom, std::vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head) {
 	if (headtorules.find(head) == headtorules.cend()) {
 		headtorules.insert(pair<Atom, vector<BasicRule*> >(head, std::vector<BasicRule*>()));
 	}
@@ -327,7 +327,7 @@ template<class T>
 void Read<T>::tseitinizeHeads() {
 	// Transform away all choicerules
 	for (auto i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
-		vector<Literal> tempbody;
+		vector<Lit> tempbody;
 		tempbody.push_back(mkPosLit(1)); //reserve space for the extra choice literal
 		tempbody.insert(tempbody.end(), (*i)->body.cbegin(), (*i)->body.cend());
 		for (auto j = (*i)->heads.cbegin(); j < (*i)->heads.cend(); ++j) {
@@ -336,13 +336,13 @@ void Read<T>::tseitinizeHeads() {
 			basicrules.push_back(new BasicRule(head, tempbody));
 
 			//To guarantee #model equivalence:
-			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, { mkPosLit(head) }, true);
+			Implication eq(maxid++,tempbody[0], ImplicationType::EQUIVALENT, { mkPosLit(head) }, true);
 			extAdd(getSolver(), eq);
 		}
 	}
 
 	//Check whether there are multiple occurrences and rewrite them using tseitin!
-	map<Atom, vector<BasicRule*> > headtorules;
+	std::map<Atom, std::vector<BasicRule*> > headtorules;
 	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
 	}
@@ -358,8 +358,7 @@ void Read<T>::tseitinizeHeads() {
 		MAssert((*i).second);
 		auto it = headtorules.find((*i).first);
 		if (it == headtorules.cend() || (*it).second.size() == 0) {
-			Disjunction clause;
-			clause.literals.push_back(mkNegLit((*i).first));
+			Disjunction clause(maxid++, {mkNegLit((*i).first)});
 			extAdd(getSolver(), clause);
 		}
 	}
@@ -368,7 +367,7 @@ void Read<T>::tseitinizeHeads() {
 template<class T>
 void Read<T>::addOptimStatement() {
 	if (optim) {
-		vector<Literal> optimheadclause;
+		vector<Lit> optimheadclause;
 		extAdd(getSolver(), createSet(optimsetcount, optimbody, optimweights));
 		extAdd(getSolver(), MinimizeAgg(1, optimsetcount, AggType::SUM));
 	}
@@ -471,8 +470,7 @@ bool Read<T>::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		Disjunction clause;
-		clause.literals.push_back(mkPosLit(makeParsedAtom(i)));
+		Disjunction clause(maxid++, {mkPosLit(makeParsedAtom(i))});
 		extAdd(getSolver(), clause);
 	}
 	f.getline(s, len); // Read rest of last line (get newline);
@@ -495,8 +493,7 @@ bool Read<T>::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		Disjunction clause;
-		clause.literals.push_back(mkNegLit(makeParsedAtom(i)));
+		Disjunction clause(maxid++, {mkNegLit(makeParsedAtom(i))});
 		extAdd(getSolver(), clause);
 	}
 

@@ -1,6 +1,5 @@
 #include "PbSolver.h"
 #include "Hardware.h"
-#include "Debug.h"
 #include "ADTs/Sort.h"
 #include "pbbase/h/SearchMetaData.h"
 #include "pbbase/h/GenralBaseFunctions.h"
@@ -63,48 +62,48 @@ static inline void coeffsToDescendingWeights(std::map<unsigned int,unsigned int>
 
 
 static
-void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& out_sorter)
+void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& out_sorter, PBOptions* options)
 {
     out_sorter.clear();
     for (int i = 0; i < ps.size(); i++)
         for (int j = 0; j < Cs[i]; j++)
             out_sorter.push(ps[i]);
-    if (opt_sorting_network_encoding==pairwiseSortEncoding)
+    if (options->opt_sorting_network_encoding==pairwiseSortEncoding)
     	pw_sort(out_sorter);
     else
     	oddEvenSort(out_sorter); // (overwrites inputs)
 }
 
 static
-void buildSorter(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& out_sorter)
+void buildSorter(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& out_sorter, PBOptions* options)
 {
     vec<int>    Cs_copy;
     for (int i = 0; i < Cs.size(); i++)
         Cs_copy.push(toint(Cs[i]));
-    buildSorter(ps, Cs_copy, out_sorter);
+    buildSorter(ps, Cs_copy, out_sorter, options);
 }
 
-static void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& carry , vec<Formula>& out_sorter) {
+static void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& carry , vec<Formula>& out_sorter, PBOptions* options) {
 	out_sorter.clear();
 	vec<Formula> Xs;
     for (int i = 0; i < ps.size(); i++)
         for (int j = 0; j < Cs[i]; j++)
             Xs.push(ps[i]);
-    unarySortAdd(Xs, carry, out_sorter,opt_use_shortCuts);
+    unarySortAdd(Xs, carry, out_sorter,options->opt_use_shortCuts);
 }
 
-static void buildSorter(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry , vec<Formula>& out_sorter) {
+static void buildSorter(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry , vec<Formula>& out_sorter, PBOptions* options) {
 	vec<int>    Cs_copy;
     for (int i = 0; i < Cs.size(); i++)
         Cs_copy.push(toint(Cs[i]));
-   buildSorter(ps,Cs_copy, carry , out_sorter);
+   buildSorter(ps,Cs_copy, carry , out_sorter, options);
 }
 
 
 class Exception_TooBig {};
 
 static
-void buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry, vec<int>& base, int digit_no, vec<vec<Formula> >& out_digits, int max_cost)
+void buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry, vec<int>& base, int digit_no, vec<vec<Formula> >& out_digits, int max_cost, PBOptions* options)
 {
     assert(ps.size() == Cs.size());
 
@@ -120,13 +119,13 @@ void buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry, vec<in
     	out_digits.push();
         // Final digit, build sorter for rest:
         // -- add carry bits:
-        if (opt_sorting_network_encoding == unarySortAddEncoding)
-        	 buildSorter(ps, Cs, carry, out_digits.last());
+        if (options->opt_sorting_network_encoding == unarySortAddEncoding)
+        	 buildSorter(ps, Cs, carry, out_digits.last(), options);
         else {
 	        for (int i = 0; i < carry.size(); i++)
 	            ps.push(carry[i]),
 	            Cs.push(1);
-	        buildSorter(ps, Cs, out_digits.last());
+	        buildSorter(ps, Cs, out_digits.last(), options);
         }
     }else{
         vec<Formula>    ps_rem;
@@ -149,8 +148,8 @@ void buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry, vec<in
             }
         }
         vec<Formula> result;
-		if (opt_sorting_network_encoding == unarySortAddEncoding)
-        	 buildSorter(ps_rem, Cs_rem, carry, result);
+		if (options->opt_sorting_network_encoding == unarySortAddEncoding)
+        	 buildSorter(ps_rem, Cs_rem, carry, result, options);
         else {
 	        // Add carry bits:
 	        for (int i = 0; i < carry.size(); i++)
@@ -158,7 +157,7 @@ void buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry, vec<in
 	            Cs_rem.push(1);
 	
 	        // Build sorting network:
-	        buildSorter(ps_rem, Cs_rem, result);
+	        buildSorter(ps_rem, Cs_rem, result, options);
         }
         
         // Get carry bits:
@@ -177,7 +176,7 @@ void buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry, vec<in
             out_digits.last().push(out);
         }
 
-        buildConstraint(ps_div, Cs_div, carry, base, digit_no+1, out_digits, max_cost); // <<== change to normal loop
+        buildConstraint(ps_div, Cs_div, carry, base, digit_no+1, out_digits, max_cost, options); // <<== change to normal loop
     }
 }
 
@@ -232,11 +231,11 @@ Formula lexComp(vec<int>& num, vec<vec<Formula> >& digits) {
 
 
 static
-Formula buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<int>& base, Int lo, Int hi, int max_cost)
+Formula buildConstraint(vec<Formula>& ps, vec<Int>& Cs, vec<int>& base, Int lo, Int hi, int max_cost, PBOptions* options)
 {
     vec<Formula> carry;
     vec<vec<Formula> > digits;
-    buildConstraint(ps, Cs, carry, base, 0, digits, max_cost);
+    buildConstraint(ps, Cs, carry, base, 0, digits, max_cost, options);
     if (FEnv::topSize() > max_cost) throw Exception_TooBig();
 
     vec<int> lo_digs;
@@ -288,11 +287,11 @@ a4
 */
 
 // yay prototype
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl);
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl, PBOptions* options);
 
 // Will return '_undef_' if 'cost_limit' is exceeded.
 //
-Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
+Formula buildConstraint(const Linear& c,PrimesLoader& pl, PBOptions* options, int max_cost)
 {
     vec<Formula>    ps;
     vec<Int>        Cs;
@@ -303,14 +302,14 @@ Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
 	
     vec<int> base;
   
-    SearchMetaData* data = searchForBase(Cs, base, pl);
+    SearchMetaData* data = searchForBase(Cs, base, pl, options);
     FEnv::push();
-    if (opt_dump) { // don't spend time on building unneeded formulae
+    if (options->opt_dump) { // don't spend time on building unneeded formulae
         return _undef_;
     }
     Int lo = c.lo;
     Int hi = c.hi;
-	if (opt_tare & (lo == hi | lo == Int_MIN | hi == Int_MAX)) { 
+	if (options->opt_tare & (lo == hi | lo == Int_MIN | hi == Int_MAX)) {
 		Int toNormlize;
 		Int toAdd;
 		if (lo == Int_MIN) toNormlize = hi;
@@ -341,7 +340,7 @@ Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
 	}
     Formula ret;
     try {
-    	if (opt_verbosity >= 1) {
+    	if (options->opt_verbosity >= 1) {
 	    	if (c.lo != Int_MIN) {
 	    		printf("orignal   lo:%5d     \n", (int)toint(c.lo));
 	    		printf("normlized lo:%5d     \n", (int)toint(lo));
@@ -351,7 +350,7 @@ Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
 	    		printf("normlized hi:%5d     \n", (int)toint(hi));
 	    	}
     	}
-        ret = buildConstraint(ps, Cs, base, lo, hi, max_cost);
+        ret = buildConstraint(ps, Cs, base, lo, hi, max_cost, options);
     }catch (Exception_TooBig){
         FEnv::pop();
         return _undef_;
@@ -359,7 +358,7 @@ Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
 	
 	if (data!=0) data->fEnvSize = FEnv::topSize();
 	
-    if (opt_verbosity >= 1){
+    if (options->opt_verbosity >= 1){
         printf("FEnv.topSize:%5d     ", FEnv::topSize());
         printf("Base:"); for (int i = 0; i < base.size(); i++) printf(" %d", base[i]); printf("\n");
     }
@@ -367,8 +366,8 @@ Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
     return ret;
 }
 
-static void dump(std::map<unsigned int,unsigned int>& multiSet) {
-  unsigned int timesSeenAlready = baseInputsDumped[multiSet];
+static void dump(std::map<unsigned int,unsigned int>& multiSet, PBOptions* options) {
+  unsigned int timesSeenAlready = options->baseInputsDumped[multiSet];
   if (timesSeenAlready == 0) {
     int lastIndex = multiSet.size() - 1;
     int curIndex = 0;
@@ -389,35 +388,31 @@ static void dump(std::map<unsigned int,unsigned int>& multiSet) {
       ++curIndex;
     }
   }
-  baseInputsDumped[multiSet]++;
+  options->baseInputsDumped[multiSet]++;
 }
 
 /**
  * Probably one of the more interesting functions.
  */
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl) {
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl, PBOptions* options) {
   std::map<unsigned int,unsigned int> multiSet;
   vecToMultiSet(inCoeffs,multiSet);
-  if (opt_dump) {
-    dump(multiSet);
-    return createDummyData(0.0);
-  }
   unsigned int weights[multiSet.size()][2];
   coeffsToDescendingWeights(multiSet, weights);
   SearchMetaData* data = 0;
-  unsigned int cutof = pl.loadPrimes(weights[0][0],opt_max_generator);
+  unsigned int cutof = pl.loadPrimes(weights[0][0],options->opt_max_generator);
   std::vector<unsigned int>& pri = pl.primeVector();
-  if      (opt_base == base_Forward) data = findBaseFWD(weights, multiSet.size(), pri,cutof);
-  else if (opt_base == base_SOD)     data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(),pri,cutof,false,true,true); 
-  else if (opt_base == base_Carry)   data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(), pri,cutof,opt_non_prime,opt_abstract); 
-  else if (opt_base == base_Comp)    data = bnb_Comp_Cost_search(weights, multiSet.size(), pri,cutof,opt_non_prime,opt_abstract);
-  else if (opt_base == base_oddEven)    data = bnb_oddEven_Cost_search(weights, multiSet.size(), pri,cutof,opt_non_prime,opt_abstract);  
-  else if (opt_base == base_Rel)     data = bnb_Relative_search(weights, multiSet.size() , pri,cutof,opt_non_prime,opt_abstract);
-  else if (opt_base == base_Bin) {
+  if      (options->opt_base == base_Forward) data = findBaseFWD(weights, multiSet.size(), pri,cutof);
+  else if (options->opt_base == base_SOD)     data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(),pri,cutof,false,true,true);
+  else if (options->opt_base == base_Carry)   data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(), pri,cutof,options->opt_non_prime,options->opt_abstract);
+  else if (options->opt_base == base_Comp)    data = bnb_Comp_Cost_search(weights, multiSet.size(), pri,cutof,options->opt_non_prime,options->opt_abstract);
+  else if (options->opt_base == base_oddEven)    data = bnb_oddEven_Cost_search(weights, multiSet.size(), pri,cutof,options->opt_non_prime,options->opt_abstract);
+  else if (options->opt_base == base_Rel)     data = bnb_Relative_search(weights, multiSet.size() , pri,cutof,options->opt_non_prime,options->opt_abstract);
+  else if (options->opt_base == base_Bin) {
   		data =  new SearchMetaData(lg2(weights[0][0]),cutof,weights[0][0],multiSet.size(),"BinaryBase");
   		data->finalize(0);
   }    
-  else if (opt_base == base_M) {
+  else if (options->opt_base == base_M) {
   	vec<Int> dummy;
     int      cost;
   	data = optimizeBase(inCoeffs, dummy, cost, outputBase,weights,multiSet.size(), cutof);
@@ -432,12 +427,12 @@ SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoa
   }
   carryVecEval(weights,data->base,multiSet.size(),data->carry);
   inputVecEval(weights,data->base,multiSet.size(),data->inputs);
-  if (opt_verbosity >= 1) {
+  if (options->opt_verbosity >= 1) {
     data->print();
   	printf("Run time is in micro seconds!!!\n");
   }
-  if (opt_base != base_M) metaDataToBase(data, outputBase);
-  baseMetaData.push_back(data);
+  if (options->opt_base != base_M) metaDataToBase(data, outputBase);
+  options->baseMetaData.push_back(data);
   return data;
 }
 

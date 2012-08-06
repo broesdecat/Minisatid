@@ -14,8 +14,8 @@ void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction) {
 	Disjunction extended(disjunction);
 	auto newvar = getRemapper()->getNewVar();
 	extended.literals.push_back(mkPosLit(newvar));
-	id2constr[disjunction.id] = new Disjunction(disjunction);
-	marker2ids[newvar].push_back(disjunction.id);
+	id2constr[disjunction.getID()] = new Disjunction(disjunction);
+	marker2ids[newvar].push_back(disjunction.getID());
 	markerAssumptions.push_back(mkNegLit(newvar));
 	space->add(extended);
 }
@@ -38,29 +38,32 @@ void OneShotUnsatCoreExtraction::add(const Aggregate& agg) {
 	auto falsemarker = getRemapper()->getNewVar();
 	auto tseitin = getRemapper()->getNewVar();
 	extended.head = mkPosLit(newhead);
-	switch(agg.sem){
-	case AggSem::DEF:{
-		Rule impl(tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, agg.defID);
-		Rule impl2(var(oldhead), { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID);
+	switch (agg.sem) {
+	case AggSem::DEF: {
+		Rule impl(agg.getID(), tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, agg.defID);
+		Rule impl2(agg.getID(), var(oldhead), { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID);
 		space->add(impl);
 		space->add(impl2);
-		break;}
-	case AggSem::COMP:{
-		Implication impl(mkPosLit(tseitin), ImplicationType::EQUIVALENT, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
-		Implication impl2(oldhead, ImplicationType::EQUIVALENT, { mkPosLit(tseitin), mkPosLit(truemarker) }, true);
+		break;
+	}
+	case AggSem::COMP: {
+		Implication impl(agg.getID(), mkPosLit(tseitin), ImplicationType::EQUIVALENT, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
+		Implication impl2(agg.getID(), oldhead, ImplicationType::EQUIVALENT, { mkPosLit(tseitin), mkPosLit(truemarker) }, true);
 		space->add(impl);
 		space->add(impl2);
-		break;}
-	case AggSem::OR:{
-		Implication impl2(~oldhead, ImplicationType::IMPLIES, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
+		break;
+	}
+	case AggSem::OR: {
+		Implication impl2(agg.getID(), ~oldhead, ImplicationType::IMPLIES, { mkPosLit(newhead), mkPosLit(falsemarker) }, false);
 		space->add(impl2);
-		break;}
+		break;
+	}
 	}
 	markerAssumptions.push_back(mkNegLit(falsemarker));
 	markerAssumptions.push_back(mkPosLit(truemarker));
-	id2constr[agg.id] = new Aggregate(agg);
-	marker2ids[truemarker].push_back(agg.id);
-	marker2ids[falsemarker].push_back(agg.id);
+	id2constr[agg.getID()] = new Aggregate(agg);
+	marker2ids[truemarker].push_back(agg.getID());
+	marker2ids[falsemarker].push_back(agg.getID());
 	space->add(extended);
 
 }
@@ -75,13 +78,13 @@ void OneShotUnsatCoreExtraction::add(const Rule& rule) {
 	auto falsemarker = getRemapper()->getNewVar();
 	auto tseitin = getRemapper()->getNewVar();
 	extended.head = newhead;
-	Rule impl(tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, rule.definitionID);
-	Rule impl2(oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, rule.definitionID);
+	Rule impl(rule.getID(), tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, rule.definitionID);
+	Rule impl2(rule.getID(), oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, rule.definitionID);
 	markerAssumptions.push_back(mkNegLit(falsemarker));
 	markerAssumptions.push_back(mkPosLit(truemarker));
-	id2constr[rule.id] = new Rule(rule);
-	marker2ids[truemarker].push_back(rule.id);
-	marker2ids[falsemarker].push_back(rule.id);
+	id2constr[rule.getID()] = new Rule(rule);
+	marker2ids[truemarker].push_back(rule.getID());
+	marker2ids[falsemarker].push_back(rule.getID());
 	space->add(extended);
 	space->add(impl);
 	space->add(impl2);
@@ -117,8 +120,8 @@ void OneShotUnsatCoreExtraction::innerExecute() {
 	// TODO translation into some useful format
 }
 
-OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options) :
-		Task(options), ExternalConstraintVisitor(options, "unsat-core-extractor"), space(new Space(getRemapper(), getTranslator(), options, true)) {
+OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options)
+		: Task(options), ExternalConstraintVisitor(options, "unsat-core-extractor"), space(new Space(getRemapper(), getTranslator(), options, true)) {
 }
 OneShotUnsatCoreExtraction::~OneShotUnsatCoreExtraction() {
 	// delete space?

@@ -28,52 +28,38 @@ using namespace MinisatID;
 
 namespace MinisatID {
 
-Var checkAtom(const Atom& atom, Remapper& remapper) {
+Atom map(const Atom& atom, Remapper& remapper) {
 	return remapper.getVar(atom);
 }
 
-Lit checkLit(const Literal& lit, Remapper& remapper) {
-	return mkLit(checkAtom(lit.getAtom(), remapper), lit.hasSign());
+uint map(uint var, Remapper& remapper){
+	return remapper.getID(var);
 }
 
-vector<Lit> checkLits(const vector<Literal>& lits, Remapper& remapper) {
-	vector<Lit> ll;
-	ll.reserve(lits.size());
-	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
-		ll.push_back(checkLit(*i, remapper));
-	}
-	return ll;
+Lit map(const Lit& lit, Remapper& remapper) {
+	return mkLit(map(lit.getAtom(), remapper), lit.hasSign());
 }
 
-vector<vector<Lit> > checkLits(const vector<vector<Literal> >& lits, Remapper& remapper) {
+vector<vector<Lit> > map(const vector<vector<Lit> >& lits, Remapper& remapper) {
 	vector<vector<Lit> > ll;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
-		ll.push_back(checkLits(*i, remapper));
+		ll.push_back(map(*i, remapper));
 	}
 	return ll;
 }
 
-map<Lit, Lit> checkLits(const map<Literal, Literal>& lits, Remapper& remapper) {
-	map<Lit, Lit> ll;
+std::map<Lit, Lit> map(const std::map<Lit, Lit>& lits, Remapper& remapper) {
+	std::map<Lit, Lit> ll;
 	for (auto i = lits.cbegin(); i != lits.cend(); ++i) {
-		ll[checkLit(i->first, remapper)] = checkLit(i->second, remapper);
+		ll[map(i->first, remapper)] = map(i->second, remapper);
 	}
 	return ll;
 }
 
-vector<Var> checkAtoms(const vector<Atom>& atoms, Remapper& remapper) {
-	vector<Var> ll;
-	ll.reserve(atoms.size());
-	for (auto i = atoms.cbegin(); i < atoms.cend(); ++i) {
-		ll.push_back(checkAtom(*i, remapper));
-	}
-	return ll;
-}
-
-std::map<Var, Var> checkAtoms(const std::map<Atom, Atom>& atoms, Remapper& remapper) {
-	std::map<Var, Var> ll;
+std::map<Atom, Atom> map(const std::map<Atom, Atom>& atoms, Remapper& remapper) {
+	std::map<Atom, Atom> ll;
 	for (auto i = atoms.cbegin(); i != atoms.cend(); ++i) {
-		ll.insert( { checkAtom((*i).first, remapper), checkAtom((*i).second, remapper) });
+		ll.insert( { map((*i).first, remapper), map((*i).second, remapper) });
 	}
 	return ll;
 }

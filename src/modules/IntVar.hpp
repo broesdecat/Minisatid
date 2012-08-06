@@ -12,16 +12,15 @@ class IntVar;
 
 struct IntVarValue{
 	IntVar* intvar;
-	Var atom;
+	Atom atom;
 	int value;
 
-	IntVarValue(IntVar* intvar, Var atom, int value): intvar(intvar), atom(atom), value(value){}
+	IntVarValue(IntVar* intvar, Atom atom, int value): intvar(intvar), atom(atom), value(value){}
 };
 
 class IntVar: public Propagator{
 private:
-	static int maxid_;
-	int id_, origid_;
+	int varid_;
 	PCSolver& engine_;
 	int minvalue, maxvalue;
 
@@ -42,7 +41,7 @@ protected:
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
 public:
-	IntVar(PCSolver* solver, int origid);
+	IntVar(uint id, PCSolver* solver, int varid);
 
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
@@ -51,8 +50,7 @@ public:
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
-	int id() const { return id_; }
-	int origid() const { return origid_; }
+	int getVarID() const { return varid_; }
 	PCSolver& engine() { return engine_; }
 
 	int origMinValue() const {
@@ -73,6 +71,7 @@ public:
 
 	virtual Lit getLEQLit(int bound) = 0;
 	virtual Lit getGEQLit(int bound) = 0;
+	Lit getEQLit(int bound);
 };
 
 class BasicIntVar: public IntVar{
@@ -82,14 +81,14 @@ protected:
 	void addConstraints();
 
 public:
-	BasicIntVar(PCSolver* solver, int origid);
+	BasicIntVar(uint id, PCSolver* solver, int varid);
 
 	virtual void updateBounds();
 };
 
 class RangeIntVar: public BasicIntVar{
 public:
-	RangeIntVar(PCSolver* solver, int origid, int min, int max);
+	RangeIntVar(uint id, PCSolver* solver, int varid, int min, int max);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -102,7 +101,7 @@ private:
 	std::vector<int> _values; // SORTED low to high!
 
 public:
-	EnumIntVar(PCSolver* solver, int origid, const std::vector<int>& values);
+	EnumIntVar(uint id, PCSolver* solver, int varid, const std::vector<int>& values);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -118,7 +117,7 @@ private:
 	bool checkAndAddVariable(int value);
 
 public:
-	LazyIntVar(PCSolver* solver, int origid, int min, int max);
+	LazyIntVar(uint id, PCSolver* solver, int varid, int min, int max);
 
 	virtual void updateBounds();
 
@@ -142,8 +141,7 @@ public:
 
 	IntVar* var() const { return var_; }
 
-	int id() const { return var()->id(); }
-	int origid() const { return var()->origid(); }
+	int getVarID() const { return var()->getVarID(); }
 
 	int origMinValue() const {
 		return var()->origMinValue()+constdiff();
@@ -169,9 +167,17 @@ public:
 		return var()->getGEQLit(bound-constdiff());
 	}
 
+	Lit getEQLit(int bound) const{
+		return var()->getEQLit(bound);
+	}
+
+	bool isKnown() const{
+		return minValue()==maxValue();
+	}
+
 	std::string toString() const {
 		std::stringstream ss;
-		ss <<"var" <<origid();
+		ss <<"var" <<var()->toString(getVarID());
 		if(constdiff_!=0){
 			if(constdiff_>0){
 				ss <<"+";

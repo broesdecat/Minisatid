@@ -19,7 +19,7 @@ using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
-		Propagator(solver, "aggregate"),
+		Propagator({}, solver, "aggregate"),
 		kb(knownbound),
 		type(w),
 		prop(NULL),
@@ -48,7 +48,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
-	for (agglist::const_iterator i = getAgg().cbegin(); i<getAgg().cend(); ++i) {
+	for (auto i = getAgg().cbegin(); i<getAgg().cend(); ++i) {
 		MAssert(this==(*i)->getSet());
 		MAssert(getAgg()[(*i)->getIndex()]==(*i));
 	}
@@ -181,8 +181,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 }
 
 void TypedSet::addExplanation(AggReason& ar) const {
-	Disjunction lits;
-	lits.literals.push_back(ar.getPropLit());
+	Disjunction lits(ar.getAgg().getID(), {ar.getPropLit()});
 	getProp()->getExplanation(lits.literals, ar);
 	ar.setClause(lits);
 
@@ -236,8 +235,8 @@ rClause TypedSet::notifyFullAssignmentFound() {
 void TypedSet::accept(ConstraintVisitor& visitor){
 	auto set = WLSet(getSetID(), getWL());
 	visitor.add(set);
-	for(auto i=getAgg().cbegin(); i<getAgg().cend(); ++i){
-		visitor.add(Aggregate((*i)->getHead(), getSetID(), (*i)->getBound(), (*i)->getType(), (*i)->getSign(), (*i)->getSem(), -1));
+	for(auto agg:getAgg()){
+		visitor.add(Aggregate(agg->getID(), agg->getHead(), getSetID(), agg->getBound(), agg->getType(), agg->getSign(), agg->getSem(), -1));
 	}
 }
 

@@ -32,7 +32,7 @@ static void lte(vec<Formula>& xs, vec<Formula>& ys, vec<Formula>& out)
 
 }
 
-void linearAddition(const Linear& l, vec<Formula>& out)
+void linearAddition(const Linear& l, vec<Formula>& out, int verbosity)
 {
     vec<Formula> sum;
     vec<Formula> inp;
@@ -51,7 +51,7 @@ void linearAddition(const Linear& l, vec<Formula>& out)
     int     nodes = FEnv::nodes.size();
 
     addPb(inp,cs,sum,bits);
-    if (opt_verbosity >= 1){
+    if (verbosity >= 1){
         char* tmp = toString(maxlim);
         reportf("Adder-cost: %d   maxlim: %s   bits: %d/%d\n", FEnv::nodes.size() - nodes, tmp, sum.size(), bits);
         xfree(tmp); }

@@ -23,15 +23,17 @@ namespace MinisatID {
 namespace toCNF{
 
 class Rule{
+	uint id_;
 	bool disjunctive_;
-	Var head_;
+	Atom head_;
 	litlist defbody_, openbody_;
 
 public:
-	Rule(bool disjunctive, Var head, const litlist& deflits, const litlist& openlits)
-			:disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){}
+	Rule(uint id, bool disjunctive, Atom head, const litlist& deflits, const litlist& openlits)
+			:id_(id), disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){}
 
-	Var 			getHead() 		const { return head_; }
+	uint			getID() 		const { return id_; }
+	Atom 			getHead() 		const { return head_; }
 	bool 			isDisjunctive() const { return disjunctive_; }
 	const litlist& 	def() 			const { return defbody_; }
 	const litlist& 	open() 			const { return openbody_; }
@@ -43,7 +45,7 @@ class Level2SAT{
 	varlist bits_;
 public:
 	template<class Solver>
-	Level2SAT(Var head, Solver& solver, int maxlevel){
+	Level2SAT(Atom head, Solver& solver, int maxlevel){
 		int maxbits = (log((double)maxlevel)/log(2))+0.5;
 		if(solver.verbosity()>4){
 			std::clog <<"loopsize = " <<maxlevel <<", maxbits = " <<maxbits <<"\n";
@@ -118,7 +120,7 @@ class SCCtoCNF {
 
 private:
 	Solver& solver_;
-	std::map<Var, Level2SAT*> atom2level;
+	std::map<Atom, Level2SAT*> atom2level;
 
 	// Ensures that only one literal is generated for some equality
 	std::map<EqToZero,Lit> eq2zeromap;
@@ -129,7 +131,7 @@ public:
 	SCCtoCNF(Solver& solver):solver_(solver){}
 
 	SATVAL transform(const std::vector<Rule*>& rules){
-		std::set<Var> defined;
+		std::set<Atom> defined;
 		if(solver_.verbosity()>4){
 			std::clog <<"SCC to transform to CNF: ";
 		}
@@ -306,18 +308,18 @@ private:
 		}
 	}
 
-	Lit GBit2SAT(Var leftbit, Var rightbit){
+	Lit GBit2SAT(Atom leftbit, Atom rightbit){
 		return and2SAT(litlist{mkPosLit(leftbit), mkNegLit(rightbit)});
 	}
 
-	Lit EqBit2SAT(Var leftbit, Var rightbit){
+	Lit EqBit2SAT(Atom leftbit, Atom rightbit){
 		return or2SAT(litlist{
 						and2SAT(litlist{mkPosLit(leftbit), mkPosLit(rightbit)}),
 						and2SAT(litlist{mkNegLit(leftbit), mkNegLit(rightbit)})});
 	}
 
 	SATVAL addClause(const litlist& lits){
-		internalAdd(Disjunction(lits), solver_);
+		internalAdd(Disjunction(DEFAULTCONSTRID, lits), solver_);
 		return solver_.satState();
 	}
 
@@ -350,7 +352,7 @@ private:
 			return solver_.getTrueLit();
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
 		return tseitin;
 	}
 
@@ -371,7 +373,7 @@ private:
 			return solver_.getFalseLit();
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
 		return tseitin;
 	}
 };

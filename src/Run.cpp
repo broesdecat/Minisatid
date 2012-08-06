@@ -22,7 +22,11 @@
 #include "parser/PBread.hpp"
 
 #include "parser/ECNFScanner.hpp"
+#undef yyFlexLexerOnce
+#undef PARSER_HEADER_H
+#include "parser/FZScanner.hpp"
 #include "parser/Parser.hpp"
+#include "parser/flatzincsupport/InsertWrapper.hpp"
 
 #include "external/Translator.hpp"
 #include "external/utils/ResourceManager.hpp"
@@ -213,26 +217,42 @@ void initializeAndParseOPB(const std::string& inputfile, pwls d) {
 	}
 }
 
-void initializeAndParseFODOT(const std::string& inputfile, pwls d) {
+typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, uint> ECNFParsing;
+typedef Parser<FZ::FZScanner, FZ::FZParser, FZ::InsertWrapper> FZParsing;
+
+template<class Monitor>
+void initializeAndParseFODOT(const std::string& inputfile, Monitor* d, const SolverOption& modes) {
 	auto input = getInput(inputfile);
 
 	istream is(input->getBuffer());
-	Parser parser(&is);
-
-	setSpace(d);
+	ECNFParsing parser(&is, d, 1);
 
 	try {
 		parser.parse();
 	} catch (const MinisatID::idpexception& e) {
 		if (d->isCertainlyUnsat()) {
-			printUnsatFoundDuringParsing(clog, d->getOptions().verbosity);
+			printUnsatFoundDuringParsing(clog, modes.verbosity);
 		} else {
 			throw idpexception(getParseError(e, parser.getLineNumber(), parser.getText()));
 		}
 	}
+}
 
-	if (d->getOptions().transformat == OutputFormat::PLAIN) {
-		d->setTranslator(new PlainTranslator()); // Empty translator
+template<class Monitor>
+void initializeAndParseFZ(const std::string& inputfile, Monitor* d, const SolverOption& modes) {
+	auto input = getInput(inputfile);
+
+	istream is(input->getBuffer());
+	FZParsing parser(&is, *d);
+
+	try {
+		parser.parse();
+	} catch (const MinisatID::idpexception& e) {
+		if (d->isCertainlyUnsat()) {
+			printUnsatFoundDuringParsing(clog, modes.verbosity);
+		} else {
+			throw idpexception(getParseError(e, parser.getLineNumber(), parser.getText()));
+		}
 	}
 }
 
@@ -247,7 +267,17 @@ void MinisatID::parseAndInitializeTheory(const std::string& inputfile, ExternalC
 		initializeAndParseOPB(inputfile, d);
 		break;
 	case InputFormat::FODOT: {
-		initializeAndParseFODOT(inputfile, d);
+		initializeAndParseFODOT(inputfile, d, d->getOptions());
+		if (d->getOptions().transformat == OutputFormat::PLAIN) {
+			d->setTranslator(new PlainTranslator()); // Empty translator
+		}
+		break;
+	}
+	case InputFormat::FLATZINC: {
+		initializeAndParseFZ(inputfile, new FZ::InsertWrapper(d), d->getOptions());
+		if (d->getOptions().transformat == OutputFormat::PLAIN) {
+			d->setTranslator(new PlainTranslator()); // Empty translator
+		}
 		break;
 	}
 	}

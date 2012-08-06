@@ -24,8 +24,7 @@ private:
 	using ConstraintPrinter::getPrinter;
 public:
 	RealECNFPrinter(LiteralPrinter* solver, Stream& stream, bool remap = true)
-			: 	ConstraintStreamPrinter<Stream>(solver, stream, "ecnfprinter"),
-				remap(remap) {
+			: ConstraintStreamPrinter<Stream>(solver, stream, "ecnfprinter"), remap(remap) {
 	}
 	virtual ~RealECNFPrinter() {
 	}
@@ -49,7 +48,6 @@ public:
 		}
 	}
 
-
 	void add(const Disjunction& clause) {
 		for (uint i = 0; i < clause.literals.size(); ++i) {
 			target() << toString(clause.literals[i]) << " ";
@@ -57,24 +55,21 @@ public:
 		target() << "0\n";
 	}
 
-
 	void add(const Rule& rule) {
-		target() << (rule.conjunctive ? "C" : "D") <<" " <<rule.definitionID <<" | " <<toString(mkPosLit(rule.head)) << " <- ";
+		target() << (rule.conjunctive ? "C" : "D") << " " << rule.definitionID << " | " << toString(mkPosLit(rule.head)) << " <- ";
 		for (uint i = 0; i < rule.body.size(); ++i) {
 			target() << toString(rule.body[i]) << " ";
 		}
 		target() << "0\n";
 	}
 
-
 	void add(const WLSet& set) {
-		target() << WSETSTR <<" " << set.setID << " ";
+		target() << WSETSTR << " " << set.setID << " ";
 		for (uint i = 0; i < set.wl.size(); ++i) {
 			target() << toString(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
 		}
 		target() << "0\n";
 	}
-
 
 	void add(const Aggregate& agg) {
 		target() << agg.type;
@@ -93,16 +88,25 @@ public:
 		target() << (agg.sign == AggSign::UB ? "G" : "L") << " " << toString(agg.head) << " " << agg.setID << " " << agg.bound << " 0\n";
 	}
 
-
 	void add(const Implication& impl) {
-		auto clauses = impl.getEquivalentClauses();
-		for (auto i = clauses.cbegin(); i < clauses.cend(); ++i) {
-			add(*i);
+		target() << IMPLICATIONSTR << " " << (impl.conjunction ? "C" : "D") << toString(impl.head);
+		switch (impl.type) {
+		case ImplicationType::EQUIVALENT:
+			target() << "<=>";
+			break;
+		case ImplicationType::IMPLIES:
+			target() << "=>";
+			break;
 		}
+		target() << " ";
+		for (auto l : impl.body) {
+			target() << toString(l) << " ";
+		}
+		target() << "0\n";
 	}
 
 	void add(const MinimizeOrderedList& mnm) {
-		target() << LISTMNMSTR <<" ";
+		target() << LISTMNMSTR << " ";
 		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {
 			target() << toString(*i) << " ";
 		}
@@ -110,7 +114,7 @@ public:
 	}
 
 	void add(const MinimizeSubset& mnm) {
-		target() << SUBMNMSTR <<" ";
+		target() << SUBMNMSTR << " ";
 		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {
 			target() << toString(*i) << " ";
 		}
@@ -118,11 +122,11 @@ public:
 	}
 
 	void add(const MinimizeAgg& mnm) {
-		target() << AGGMNMSTR <<" " << mnm.type << " " << mnm.setid << " 0\n";
+		target() << AGGMNMSTR << " " << mnm.type << " " << mnm.setid << " 0\n";
 	}
 
 	void add(const MinimizeVar& mnm) {
-		target() << VARMNMSTR <<" " << mnm.varID << " 0\n";
+		target() << VARMNMSTR << " " << mnm.varID << " 0\n";
 	}
 
 	void add(const Symmetry& symm) {
@@ -148,59 +152,61 @@ public:
 	}
 
 	void add(const IntVarRange& range) {
-		target() << INTVARRANGESTR <<" " << range.varID << " " << range.minvalue << " " << range.maxvalue << " 0\n";
+		target() << INTVARRANGESTR << " " << range.varID << " " << range.minvalue << " " << range.maxvalue << " 0\n";
 	}
 
 	void add(const IntVarEnum& intvar) {
-		target() << INTVARRANGESTR <<" " << intvar.varID << " ";
+		target() << INTVARRANGESTR << " " << intvar.varID << " ";
 		for (auto i = intvar.values.cbegin(); i < intvar.values.cend(); ++i) {
 			target() << *i << " ";
 		}
-		target() << DELIMSTR <<" 0\n";
+		target() << DELIMSTR << " 0\n";
 	}
 
 	void add(const CPAllDiff& alldiff) {
-		target() << CPDISTINCTSTR <<" ";
+		target() << CPDISTINCTSTR << " ";
 		for (auto i = alldiff.varIDs.cbegin(); i < alldiff.varIDs.cend(); ++i) {
 			target() << *i << " ";
 		}
-		target() << DELIMSTR <<" 0\n";
+		target() << DELIMSTR << " 0\n";
 	}
 
 	void add(const CPBinaryRel& binconstr) {
-		target() <<CPBININTSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.varID <<" " <<binconstr.rel <<" " <<binconstr.bound <<" 0\n";
+		target() << CPBININTSTR << " " << toString(mkPosLit(binconstr.head)) << " " << binconstr.varID << " " << binconstr.rel << " " << binconstr.bound
+				<< " 0\n";
 	}
 
 	void add(const CPBinaryRelVar& binconstr) {
-		target() <<CPBINVARSTR <<" " <<toString(mkPosLit(binconstr.head)) <<" " <<binconstr.lhsvarID <<" " <<binconstr.rel <<" " <<binconstr.rhsvarID <<" 0\n";
+		target() << CPBINVARSTR << " " << toString(mkPosLit(binconstr.head)) << " " << binconstr.lhsvarID << " " << binconstr.rel << " " << binconstr.rhsvarID
+				<< " 0\n";
 	}
 
 	void add(const CPCount& count) {
-		target() << CPCOUNTSTR <<" ";
+		target() << CPCOUNTSTR << " ";
 		for (auto i = count.varIDs.cbegin(); i < count.varIDs.cend(); ++i) {
 			target() << *i << " ";
 		}
-		target() <<DELIMSTR <<count.eqbound <<" " <<count.rel <<" " <<count.rhsvar <<" 0\n";
+		target() << DELIMSTR << count.eqbound << " " << count.rel << " " << count.rhsvar << " 0\n";
 	}
 
 	void add(const CPSumWeighted& sum) {
-		target() << CPSUMSTR <<" " <<toString(mkPosLit(sum.head)) <<" ";
+		target() << CPSUMSTR << " " << toString(mkPosLit(sum.head)) << " ";
 		for (auto i = sum.varIDs.cbegin(); i < sum.varIDs.cend(); ++i) {
 			target() << *i << " ";
 		}
-		target() <<DELIMSTR;
+		target() << DELIMSTR;
 		for (auto i = sum.weights.cbegin(); i < sum.weights.cend(); ++i) {
 			target() << *i << " ";
 		}
-		target() <<sum.rel <<" " <<sum.bound <<" 0\n";
+		target() << sum.rel << " " << sum.bound << " 0\n";
 	}
 
 	void add(const CPElement& elem) {
-		target() << CPELEMENTSTR <<" ";
+		target() << CPELEMENTSTR << " ";
 		for (auto i = elem.varIDs.cbegin(); i < elem.varIDs.cend(); ++i) {
 			target() << *i << " ";
 		}
-		target() <<DELIMSTR <<elem.index <<" " <<elem.rhs <<" 0\n";
+		target() << DELIMSTR << elem.index << " " << elem.rhs << " 0\n";
 	}
 };
 

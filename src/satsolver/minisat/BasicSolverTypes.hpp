@@ -30,9 +30,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 namespace Minisat {
 
 	using MinisatID::Lit;
-	using MinisatID::Var;
+	using MinisatID::Atom;
 
-	const Var var_Undef = { -1 };
+	const Atom var_Undef = { -1 };
 	const Lit lit_Undef = { -2 }; // }- Useful special constants.
 	const Lit lit_Error = { -1 }; // }
 

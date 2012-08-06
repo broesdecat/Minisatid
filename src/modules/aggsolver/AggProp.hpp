@@ -31,6 +31,7 @@ class AggPropagator;
 
 class TempAgg{
 private:
+	uint 		id;
 	AggBound	bound;
 	Lit			head;
 	AggSem		sem;
@@ -38,10 +39,12 @@ private:
 	AggType		type;
 
 public:
-	TempAgg(const Lit& head, AggBound b, AggSem sem, AggType type):
-			bound(b), head(head), sem(sem), index(-1), type(type){
+	TempAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type):
+			id(id), bound(b), head(head), sem(sem), index(-1), type(type){
 		MAssert(sem!=AggSem::DEF);
 	}
+
+	uint		getID		()					const 	{ return id; }
 
 	const Lit& 	getHead		() 					const 	{ return head; }
 	void	 	setHead		(const Lit& l)			 	{ head = l; }
@@ -214,7 +217,7 @@ private:
 	TypedSet* const set; //Non-owning
 public:
 	AggPropagator(TypedSet* set);
-	virtual ~AggPropagator(){};
+	virtual ~AggPropagator(){}
 
 	void 	initialize(bool& unsat, bool& sat);
 	virtual rClause		reInitialize() = 0;

@@ -1,0 +1,8 @@
+p ecnf def aggr
+
+translation
+type Rule : R S
+type Proposition : P P1 P2 P3 P4
+show pred 1 Holds : Proposition
+true : Holds/1 1 2 3 4 5 
+arbitrary : 

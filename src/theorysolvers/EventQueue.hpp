@@ -59,6 +59,7 @@ public:
 	virtual ~EventQueue();
 
 	// NOTE: EACH propagator has to register here for the general methods
+	// IMPORTANT: EACH PROPAGATOR SHOULD DO THIS ONLY ONCE!!!
 	void accept(Propagator* propagator);
 
 	void acceptForPropagation(Propagator* propagator){
@@ -88,8 +89,8 @@ public:
 
 	int		getNbOfFormulas			() const;
 
-	void 	acceptForDecidable(Var v, Propagator* prop);
-	void 	notifyBecameDecidable(Var v);
+	void 	acceptForDecidable(Atom v, Propagator* prop);
+	void 	notifyBecameDecidable(Atom v);
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();

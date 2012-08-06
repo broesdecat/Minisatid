@@ -18,7 +18,7 @@ include(cmake/rpathhandling.cmake)
 include(cmake/settargetproperties.cmake)
 
 macro(addToCXX ARGUMENT)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARGUMENT}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARGUMENT}")
 endmacro()
 
 OPTION(WITHGECODE		"Include gecode support for cp (need gecode to be installed)" OFF)
@@ -27,7 +27,7 @@ OPTION(BUILDTESTS  		"Run the gtest tests" ON)
 OPTION(GMP  			"Enable gmp support" OFF)
 
 if(GMP)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D GMP")
+	addToCXX("-D GMP")
 	find_package(GMP)
 	if(GMP_FOUND)
 		include_directories(${GMP_INCLUDE_DIRS})
@@ -37,7 +37,7 @@ if(GMP)
 		message(FATAL_ERROR "GMP library not found")
 	endif()
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D NO_GMP")
+	addToCXX("-D NO_GMP")
 endif()
 
 if(WITHGECODE)
@@ -48,13 +48,6 @@ if(WITHGECODE)
 	else()
 		message(FATAL_ERROR "Gecode not found (maybe specify a custom install directory via GECODE_DIR?)")
 	endif()
-endif()
-
-
-# Set default compile flags for GCC
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-if(CMAKE_COMPILER_IS_GNUCXX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -pedantic ")
 endif()
 
 set(WRONGBUILD ON)

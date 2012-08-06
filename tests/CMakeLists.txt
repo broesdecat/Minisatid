@@ -10,31 +10,21 @@ include_directories ("
 MESSAGE(STATUS "building minisatid tests ${BUILDTESTS}")
 
 if(${BUILDTESTS})
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D MINISATIDTESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests/ecnfinstances\\\" ")
+	addToCXX("-Wall -pedantic -std=c++0x")
+	if(CMAKE_COMPILER_IS_GNUCXX)
+		addToCXX("-Wextra")
+	endif()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D MINISATIDTESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests/instances\\\" ")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x") #necessary for gtest!
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D TESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests\\\" ")
 	addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
-	
-	find_package(BISON)
-	find_package(FLEX)
-	
-	BISON_TARGET(myparser ${PROJECT_SOURCE_DIR}/src/parser/ecnfparser.ypp ${CMAKE_CURRENT_BINARY_DIR}/parser.cc)
-	FLEX_TARGET(myscanner ${PROJECT_SOURCE_DIR}/src/parser/ecnftoken.lpp  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cc)
-	ADD_FLEX_BISON_DEPENDENCY(myscanner myparser)
-	
+		
 	add_executable(mtests 
 		TestUtils.cpp
 		TestSuite.cpp
 		Mxtests.cpp
 		Cptests.cpp
 		Janhunentest.cpp
-		${PROJECT_SOURCE_DIR}/src/Run.cpp
-		${PROJECT_SOURCE_DIR}/src/Run.hpp
-		${PROJECT_SOURCE_DIR}/src/parser/Parser.cpp
-		${PROJECT_SOURCE_DIR}/src/parser/Parser.hpp
-		${PROJECT_SOURCE_DIR}/src/parser/ECNFScanner.hpp
-		${PROJECT_SOURCE_DIR}/src/parser/ECNFScanner.cpp
-		${BISON_myparser_OUTPUTS} ${FLEX_myscanner_OUTPUTS}
 	)
 	
 	target_link_libraries(mtests minisatid gtest)

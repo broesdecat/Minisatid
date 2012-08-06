@@ -1,5 +1,4 @@
-#ifndef CONSTRAINTADDITIONINTERFACE_HPP_
-#define CONSTRAINTADDITIONINTERFACE_HPP_
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -112,6 +111,7 @@ public:
 private:
 	Translator *_translator, *_origtranslator;
 public:
+	virtual std::string toString(uint id) const;
 	virtual std::string toString(const Lit& lit) const;
 	std::string toString(const litlist& literals) const;
 
@@ -134,5 +134,3 @@ public:
 };
 
 }
-
-#endif /* CONSTRAINTADDITIONINTERFACE_HPP_ */

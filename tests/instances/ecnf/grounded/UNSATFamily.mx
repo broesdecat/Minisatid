@@ -1,0 +1,9 @@
+p ecnf def aggr
+1 0
+-1 0
+
+translation
+type Person : A B C D F G Gm I J K
+show pred 1 Brother : Person Person
+true : Brother/2 1 2 45 46 78 79 80 98 99 100 
+arbitrary : 

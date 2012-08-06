@@ -14,7 +14,8 @@ namespace MinisatID{
 class PCSolver;
 
 struct TempRule{
-	Var head;
+	uint id;
+	Atom head;
 	std::vector<Lit> body;
 	bool conjunctive;
 
@@ -22,8 +23,8 @@ struct TempRule{
 	Aggregate* inneragg;
 	WLSet* innerset;
 
-	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
-	TempRule(Aggregate* inneragg, WLSet* innerset): head(var(inneragg->head)), isagg(true), inneragg(inneragg), innerset(innerset){
+	TempRule(uint id, Atom head, bool conjunctive, std::vector<Lit> body): id(id), head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
+	TempRule(uint id, Aggregate* inneragg, WLSet* innerset): id(id), head(var(inneragg->head)), isagg(true), inneragg(inneragg), innerset(innerset){
 		MAssert(isPositive(inneragg->head));
 		MAssert(inneragg->sem==AggSem::DEF);
 	}
@@ -48,7 +49,7 @@ private:
 		return idsolvers.find(id) != idsolvers.cend();
 	}
 
-	IDSolver* getIDSolver(int id) {
+	IDSolver* getIDolver(int id) {
 		if (!hasIDSolver(id)) {
 			addIDSolver(id);
 		}
@@ -59,7 +60,7 @@ private:
 
 	PCSolver* solver;
 
-	std::map<int, std::map<Var, TempRule*> > rules;
+	std::map<int, std::map<Atom, TempRule*> > rules;
 
 public:
 	Definition(PCSolver* solver): solver(solver){
@@ -69,8 +70,8 @@ public:
 	// Call when grounding/parsing of all definitions is finished and they are in a consistent state
 	void addToPropagators();
 
-	void addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset);
-	void addRule(int defID, bool conj, Var head, const litlist& ps);
+	void addDefinedAggregate(uint id, const Aggregate& inneragg, const WLSet& innerset);
+	void addRule(uint id, int defID, bool conj, Atom head, const litlist& ps);
 
 private:
 	void addFinishedRule(TempRule* rule);

@@ -45,7 +45,7 @@ void SymmetryPropagator::accept(ConstraintVisitor& visitor) {
 }
 
 SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym) :
-		Propagator(solver, "symmetry propagator"), symmetry(sym) {
+		Propagator(DEFAULTCONSTRID, solver, "symmetry propagator"), symmetry(sym) {
 	amountNeededForActive = 0;
 	reasonOfPermInactive = lit_Undef;
 	nextToPropagate = 0;
@@ -93,7 +93,7 @@ void SymmetryPropagator::notifyEnqueued(const Lit& l) {
 	notifiedLits.push_back(l);
 
 #ifdef DEBUG
-	set<Var> unique;
+	set<Atom> unique;
 	for(auto i=notifiedLits.cbegin(); i<notifiedLits.cend(); ++i){
 		auto it = unique.find(var(*i));
 		MAssert(it==unique.cend());
@@ -131,7 +131,7 @@ Lit SymmetryPropagator::getNextToPropagate() {
 	}
 
 #ifdef DEBUG
-	set<Var> unique;
+	set<Atom> unique;
 	for(auto i=notifiedLits.cbegin(); i<notifiedLits.cend(); ++i){
 		auto it = unique.find(var(*i));
 		MAssert(it==unique.cend());
@@ -199,7 +199,7 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
 	MAssert(isActive());
 	MAssert(value(getSymmetrical(l))!=l_True);
 
-	Disjunction implic;
+	Disjunction implic(DEFAULTCONSTRID, {});
 	if (getPCSolver().getLevel(var(l)) == 0) {
 		implic.literals.push_back(getSymmetrical(l));
 		implic.literals.push_back(~l);

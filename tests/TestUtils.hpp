@@ -24,7 +24,11 @@ std::string getTestDirectory();
 namespace Tests {
 
 void runWithModelCheck(MinisatID::SolverOption options, const std::string& instancefile);
-int runNoModelCheck(MinisatID::SolverOption options, const std::string& instancefile);
+
+/**
+ * NOTE: when findatmost is not 0, only so many models will be searched
+ */
+int runNoModelCheck(MinisatID::SolverOption options, const std::string& instancefile, int findatmost = 0);
 }
 
 #endif /* MINISATID_TESTS_UTILS_HPP_ */

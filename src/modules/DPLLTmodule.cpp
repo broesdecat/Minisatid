@@ -26,7 +26,7 @@ const Lit& Propagator::getNextProp(){
 	return getPCSolver().getSATSolver()->getTrailElem(trailindex++);
 }
 
-void Propagator::addWatch(Var atom) {
+void Propagator::addWatch(Atom atom) {
 	getPCSolver().accept(this, mkPosLit(atom), FAST);
 	getPCSolver().accept(this, mkNegLit(atom), FAST);
 }
@@ -35,8 +35,11 @@ void Propagator::addWatch(const Lit& lit) {
 	getPCSolver().accept(this, lit, FAST);
 }
 
-std::string Propagator::toString(Var atom) const{
+std::string Propagator::toString(Atom atom) const{
 	return MinisatID::toString(mkPosLit(atom), value(mkPosLit(atom)), getPCSolver());
+}
+std::string Propagator::toString(uint id) const{
+	return MinisatID::toString(id, getPCSolver());
 }
 std::string Propagator::toString(const Lit& lit) const{
 	return MinisatID::toString(lit, value(lit), getPCSolver());

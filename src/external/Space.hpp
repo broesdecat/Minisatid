@@ -4,8 +4,7 @@
 	(c) K.U.Leuven
 ************************************/
 
-#ifndef SPACE_HPP_
-#define SPACE_HPP_
+#pragma once
 
 #include <vector>
 #include "Options.hpp"
@@ -42,7 +41,8 @@ public:
 	VarCreation(Remapper* r)
 			: remapper(r) {
 	}
-	Var createVar();
+	uint createID();
+	Atom createVar();
 };
 
 class Space: public ExternalConstraintVisitor{
@@ -100,5 +100,3 @@ public:
 };
 
 }
-
-#endif /* SPACE_HPP_ */

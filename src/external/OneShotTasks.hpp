@@ -21,7 +21,7 @@ template<class T> class FlatZincRewriter;
 class OneShotUnsatCoreExtraction: public Task, public ExternalConstraintVisitor{
 private:
 	std::map<int, ID*> id2constr;
-	std::map<Var, std::vector<int> > marker2ids;
+	std::map<Atom, std::vector<int> > marker2ids;
 	std::vector<Lit> markerAssumptions; // Note: internal literals
 	Space* space;
 	std::vector<int> unsatcore;

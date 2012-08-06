@@ -65,11 +65,6 @@ void EventQueue::resetState() {
 
 // NOTE: EACH propagator has to register here for the general methods
 void EventQueue::accept(Propagator* propagator) {
-#ifdef DEBUG
-	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i) {
-		MAssert(propagator!=*i);
-	}
-#endif
 	allpropagators.push_back(propagator);
 	if (savingstate) {
 		newpropagators.push_back(propagator);
@@ -89,14 +84,14 @@ void EventQueue::notifyNbOfVars(uint64_t nbvars) {
 }
 
 void EventQueue::acceptBounds(IntView* var, Propagator* propagator) {
-	if (intvarid2propagators.size() <= (uint) var->id()) {
-		intvarid2propagators.resize((uint) var->id() + 1, proplist());
+	if (intvarid2propagators.size() <= (uint) var->getVarID()) {
+		intvarid2propagators.resize((uint) var->getVarID() + 1, proplist());
 	}
-	intvarid2propagators[(uint) var->id()].push_back(propagator);
+	intvarid2propagators[(uint) var->getVarID()].push_back(propagator);
 }
 
 void EventQueue::notifyBoundsChanged(IntVar* var) {
-	for (auto i = intvarid2propagators[var->id()].cbegin(); i < intvarid2propagators[var->id()].cend(); ++i) {
+	for (auto i = intvarid2propagators[var->getVarID()].cbegin(); i < intvarid2propagators[var->getVarID()].cend(); ++i) {
 		if (!(*i)->isPresent()) {
 			continue;
 		}
@@ -263,7 +258,7 @@ uint EventQueue::size(EVENT event) const {
 	return event2propagator.at(event).size();
 }
 
-void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
+void EventQueue::acceptForDecidable(Atom v, Propagator* prop) {
 	MAssert((uint)v<var2decidable.size());
 	if (not getPCSolver().isDecisionVar(v)) {
 		var2decidable[v].push_back(prop);
@@ -272,7 +267,7 @@ void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
 	}
 }
 
-void EventQueue::notifyBecameDecidable(Var v) {
+void EventQueue::notifyBecameDecidable(Atom v) {
 	MAssert((uint)v<var2decidable.size());
 	for (auto i = var2decidable[v].cbegin(); i < var2decidable[v].cend(); ++i) {
 		fastqueue.push_back(*i);

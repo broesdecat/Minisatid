@@ -1,6 +1,6 @@
 #include "MiniSat.h"
 #include "Sort.h"
-#include "Debug.h"
+#include "PbSolver.h"
 #include <iostream>
 
 namespace MiniSatPP {
@@ -22,7 +22,7 @@ int PbSolver::getVar(cchar* name)
         n_occurs  .push(0);
         n_occurs  .push(0);
         //assigns   .push(toInt(l_Undef));
-        sat_solver.newVar();        // (reserve one SAT variable for each PB variable)
+        sat_solver->newVar();        // (reserve one SAT variable for each PB variable)
         ret = name2index.set(index2name.last(), x);
     }
     return ret;
@@ -38,9 +38,6 @@ void PbSolver::allocConstrs(int n_vars, int n_constrs)
 
 void PbSolver::addGoal(const vec<Lit>& ps, const vec<Int>& Cs)
 {
-    /**/debug_names = &index2name;
-    //**/reportf("MIN: "); dump(ps, Cs); reportf("\n");
-
     goal = new (xmalloc<char>(sizeof(Linear) + ps.size()*(sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, Int_MIN, Int_MAX);
 }
 
@@ -50,8 +47,8 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
    // debug_names = &index2name;
    // static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
 	for (int i=0;i<ps.size();i++){
-		while (var(ps[i]) >= sat_solver.nVars()) {
-			sat_solver.newVar();
+		while (var(ps[i]) >= sat_solver->nVars()) {
+			sat_solver->newVar();
 			n_occurs  .push(0);
         	n_occurs  .push(0);
 		}
@@ -248,7 +245,7 @@ void PbSolver::cleanPBC(){
 }
 
 bool PbSolver::validateResoult(){    
- 	 if (opt_verbosity >= 1) std::cout<<"starting validation number of cons="<<constrs.size()<<"\n";
+ 	 if (options->opt_verbosity >= 1) std::cout<<"starting validation number of cons="<<constrs.size()<<"\n";
  	for (int i = 0; i < constrs.size(); i++){
         if (constrs[i] == NULL) continue;
         Linear& c = *constrs[i];
@@ -259,7 +256,7 @@ bool PbSolver::validateResoult(){
 	        )
 	            sum += c(i);
 	    }
-	    if (opt_verbosity >= 1) {
+	    if (options->opt_verbosity >= 1) {
 		  	std::cout<<"sum="<<(int)toint(sum);
 		  	if (c.lo!=Int_MIN) {
 		  		std::cout<<" ,c.lo="<<(int)toint(c.lo);
@@ -272,7 +269,7 @@ bool PbSolver::validateResoult(){
 		  	std::cout<<"\n";
 	    }	
  	}
-	if (opt_verbosity >= 1) std::cout<<"end validation all is good!"<<"\n";
+	if (options->opt_verbosity >= 1) std::cout<<"end validation all is good!"<<"\n";
 	return true;
 }
 
@@ -284,7 +281,7 @@ bool PbSolver::validateResoult(){
 bool PbSolver::propagate(Linear& c)
 {
   // reportf("BEFORE propagate()\n");
- //  dump(c, sat_solver.assigns_ref()); reportf("\n");
+ //  dump(c, sat_solver->assigns_ref()); reportf("\n");
 
     // Remove assigned literals:
     Int     sum = 0, true_sum = 0;
@@ -323,7 +320,7 @@ bool PbSolver::propagate(Linear& c)
     if (c.hi > sum) c.hi = Int_MAX;
 
   //  reportf("AFTER propagate()\n");
-  //  dump(c, sat_solver.assigns_ref()); reportf("\n\n");
+  //  dump(c, sat_solver->assigns_ref()); reportf("\n\n");
     if (c.size == 0){
         if (c.lo > 0 || c.hi < 0){
         	ok = false;
@@ -339,7 +336,7 @@ void PbSolver::propagate()
     if (nVars() == 0) return;
     if (occur.size() == 0) setupOccurs();
 
-    if (opt_verbosity >= 1) reportf("  -- Unit propagations: ", constrs.size());
+    if (options->opt_verbosity >= 1) reportf("  -- Unit propagations: ", constrs.size());
     bool found = false;
 
     while (propQ_head < trail.size()){
@@ -352,13 +349,13 @@ void PbSolver::propagate()
                 int trail_sz = trail.size();
                 if (propagate(*constrs[cs[i]]))
                     constrs[cs[i]] = NULL;
-                if (opt_verbosity >= 1 && trail.size() > trail_sz) found = true, reportf("p");
+                if (options->opt_verbosity >= 1 && trail.size() > trail_sz) found = true, reportf("p");
                 if (!ok) return;
             }
         }
     }
 
-    if (opt_verbosity >= 1) {
+    if (options->opt_verbosity >= 1) {
         if (!found) reportf("(none)\n");
         else        reportf("\n");
     }
@@ -402,7 +399,7 @@ static bool lhsEqc(const Linear& c, const Linear& d) {
 
 void PbSolver::findIntervals()
 {
-    if (opt_verbosity >= 1)
+    if (options->opt_verbosity >= 1)
         reportf("  -- Detecting intervals from adjacent constraints: ");
 
     bool found = false;
@@ -420,7 +417,7 @@ void PbSolver::findIntervals()
                 if (d.lo < c.lo) d.lo = c.lo;
                 if (d.hi > c.hi) d.hi = c.hi;
                 constrs[i-1] = NULL;
-                if (opt_verbosity >= 1) reportf("=");
+                if (options->opt_verbosity >= 1) reportf("=");
                 found = true;
             }
             if (lhsEqc(c, d)){
@@ -432,14 +429,14 @@ void PbSolver::findIntervals()
                 if (d.lo < lo) d.lo = lo;
                 if (d.hi > hi) d.hi = hi;
                 constrs[i-1] = NULL;
-                if (opt_verbosity >= 1) reportf("#");
+                if (options->opt_verbosity >= 1) reportf("#");
                 found = true;
             }
 
             prev = &d;
         }
     }
-    if (opt_verbosity >= 1) {
+    if (options->opt_verbosity >= 1) {
         if (!found) reportf("(none)\n");
         else        reportf("\n");
     }
@@ -454,7 +451,7 @@ bool PbSolver::rewriteAlmostClauses()
     int         n_splits = 0;
     char        buf[20];
 
-    if (opt_verbosity >= 1)
+    if (options->opt_verbosity >= 1)
         reportf("  -- Clauses(.)/Splits(s): ");
     for (int i = 0; i < constrs.size(); i++){
         if (constrs[i] == NULL) continue;
@@ -468,58 +465,71 @@ bool PbSolver::rewriteAlmostClauses()
 
         if (n <= 1){
             // Pure clause:
-            if (opt_verbosity >= 1) reportf(".");
+            if (options->opt_verbosity >= 1) reportf(".");
             found = true;
             ps.clear();
             for (int j = n; j < c.size; j++)
                 ps.push(c[j]);
-            sat_solver.addClause(ps);
-
+            sat_solver->addClause(ps);
             constrs[i] = NULL;      // Remove this clause
-
-        }else if (c.size-n >= 3){
-            // Split clause part:
-            if (opt_verbosity >= 1) reportf("s");
-            found = true;
-            sprintf(buf, "@split%d", n_splits);
-            n_splits++;
-            Var x = getVar(buf); assert(x == sat_solver.nVars()-1);
-            ps.clear();
-            ps.push(Lit(x));
-            for (int j = n; j < c.size; j++)
-                ps.push(c[j]);
-            sat_solver.addClause(ps);
-			ps.clear();
-            ps.push(~Lit(x));
-            for (int j = n; j < c.size; j++) {
-                ps.push(~c[j]);
-            	sat_solver.addClause(ps);
-            	ps.pop();
-			}
-            if (!sat_solver.okay()){
-                reportf("\n");
-                return false; }
-
-            ps.clear();
-            Cs.clear();
-            ps.push(~Lit(x));
-            Cs.push(c.lo);
-            for (int j = 0; j < n; j++)
-                ps.push(c[j]),
-                Cs.push(c(j));
-            if (!addConstr(ps, Cs, c.lo, 1,false)){
-                reportf("\n");
-                return false; }
-
-            constrs[i] = NULL;      // Remove this clause
+            continue;
         }
+// TODO BUGGED!
+//        if (c.size-n >= 3){
+//        	//for(int z=0; z<c.size; z++){
+//        	//	std::cerr <<toString(c(z)) <<"*" <<(sign(c[z])?"-":"") <<var(c[z]) <<" ";
+//        	//}
+//        	//std::cerr <<"\n";
+//            // Split clause part:
+//            if (options->opt_verbosity >= 1){
+//            	reportf("s");
+//            }
+//            found = true;
+//            sprintf(buf, "@split%d", n_splits);
+//            n_splits++;
+//            Var x = getVar(buf); assert(x == sat_solver->nVars()-1);
+//
+//            ps.clear();
+//            ps.push(Lit(x));
+//            for (int j = n; j < c.size; j++){
+//            	ps.push(c[j]);
+//            }
+//            sat_solver->addClause(ps);
+//
+//            ps.clear();
+//            ps.push(~Lit(x));
+//            for (int j = n; j < c.size; j++) {
+//                ps.push(~c[j]);
+//            	sat_solver->addClause(ps);
+//            	ps.pop();
+//			}
+//
+//            if (!sat_solver->okay()){
+//                reportf("\n");
+//                return false;
+//            }
+//
+//            ps.clear();
+//            Cs.clear();
+//            ps.push(~Lit(x));
+//            Cs.push(c.lo);
+//            for (int j = 0; j < n; j++){
+//                ps.push(c[j]);
+//                Cs.push(c(j));
+//            }
+//            if (!addConstr(ps, Cs, c.lo, 1,false)){
+//                reportf("\n");
+//                return false;
+//            }
+//            constrs[i] = NULL;      // Remove this clause
+//        }
     }
 
-    if (opt_verbosity >= 1) {
+    if (options->opt_verbosity >= 1) {
         if (!found) reportf("(none)\n");
         else        reportf("\n");
     }
-    return sat_solver.okay();
+    return sat_solver->okay();
 }
 
 
@@ -546,8 +556,8 @@ bool PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf){
 	vec<Int> goal_Cs;
 	preSolve(goal_ps, goal_Cs);
     status = "export";
-    sat_solver.toCNF(cnf);
-	return ok && sat_solver.okay();
+    sat_solver->toCNF(cnf);
+	return ok && sat_solver->okay();
 
 } 
 
@@ -557,7 +567,7 @@ void PbSolver::preSolve(vec<Lit>& goal_ps, vec<Int>& goal_Cs){
     // Convert constraints:
     pb_n_vars = nVars();
     pb_n_constrs = constrs.size();
-    if (opt_verbosity >= 1) reportf("Converting %d PB-constraints to clauses...\n", constrs.size());
+    if (options->opt_verbosity >= 1) reportf("Converting %d PB-constraints to clauses...\n", constrs.size());
     propagate();
     status = "search"; 
     if (!convertPbs(true)){ assert(!ok); return; }
@@ -565,32 +575,32 @@ void PbSolver::preSolve(vec<Lit>& goal_ps, vec<Int>& goal_Cs){
     // Freeze goal function variables (for SatELite):
     if (goal != NULL){
         for (int i = 0; i < goal->size; i++)
-            sat_solver.freeze(var((*goal)[i]));
+            sat_solver->freeze(var((*goal)[i]));
     }
 
     // Solver (optimize):
-    sat_solver.setVerbosity(opt_verbosity);
+    sat_solver->setVerbosity(options->opt_verbosity);
 
     if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_ps.push((*goal)[i]); }
     if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_Cs.push((*goal)(i)); }
     assert(best_goalvalue == Int_MAX);
 
-    if (opt_polarity_sug != 0){
+    if (options->opt_polarity_sug != 0){
         for (int i = 0; i < goal_Cs.size(); i++)
-            sat_solver.suggestPolarity(var(goal_ps[i]), ((goal_Cs[i]*opt_polarity_sug > 0 && !sign(goal_ps[i])) || (goal_Cs[i]*opt_polarity_sug < 0 && sign(goal_ps[i]))) ? l_False : l_True);
+            sat_solver->suggestPolarity(var(goal_ps[i]), ((goal_Cs[i]*options->opt_polarity_sug > 0 && !sign(goal_ps[i])) || (goal_Cs[i]*options->opt_polarity_sug < 0 && sign(goal_ps[i]))) ? l_False : l_True);
     }
 
-    if (opt_convert_goal != ct_Undef){
-        opt_convert = opt_convert_goal;
+    if (options->opt_convert_goal != ct_Undef){
+    	options->opt_convert = options->opt_convert_goal;
     }
-    opt_sort_thres *= opt_goal_bias;
+    options->opt_sort_thres *= options->opt_goal_bias;
 
-    if (opt_goal != Int_MAX){
-        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
+    if (options->opt_goal != Int_MAX){
+        addConstr(goal_ps, goal_Cs, options->opt_goal, -1,false),
         convertPbs(false);
     }
 
-    numOfClouses = sat_solver.numOfClouses();
+    numOfClouses = sat_solver->numOfClouses();
 }
 
 void PbSolver::solve(solve_Command cmd,bool skipSolving)
@@ -602,14 +612,14 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
 		return;
 	}
 
-   if (opt_cnf != NULL)
-		reportf("Exporting CNF to: \b%s\b\n", opt_cnf),
-		sat_solver.exportCnf(opt_cnf),
+   if (options->opt_cnf != NULL)
+		reportf("Exporting CNF to: \b%s\b\n", options->opt_cnf),
+		sat_solver->exportCnf(options->opt_cnf),
 		exit(0);
 
 	// strange base stuff to find where base elements beyond 17 are used
-	if (opt_huge_base_file != NULL && max_number <= 17) {
-		printf("c Biggest number is %d! Exiting.\n", max_number);
+	if (options->opt_huge_base_file != NULL && options->max_number <= 17) {
+		printf("c Biggest number is %d! Exiting.\n", options->max_number);
 		fflush(stdout);
 		exit(-17);
 	}
@@ -619,33 +629,33 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
 	
     bool    sat = false;
     int     n_solutions = 0;    // (only for AllSolutions mode)
-    while (sat_solver.solve()){
+    while (sat_solver->solve()){
         sat = true;
         if (cmd == sc_AllSolutions){
             vec<Lit>    ban;
             n_solutions++;
             reportf("MODEL# %d:", n_solutions);
             for (Var x = 0; x < pb_n_vars; x++){
-                assert(sat_solver.model()[x] != l_Undef);
-                ban.push(Lit(x, sat_solver.model()[x] == l_True));
-                reportf(" %s%s", (sat_solver.model()[x] == l_False)?"-":"", index2name[x]);
+                assert(sat_solver->model()[x] != l_Undef);
+                ban.push(Lit(x, sat_solver->model()[x] == l_True));
+                reportf(" %s%s", (sat_solver->model()[x] == l_False)?"-":"", index2name[x]);
             }
             reportf("\n");
-            sat_solver.addClause(ban);
+            sat_solver->addClause(ban);
 
         }else{
             best_model.clear();
             for (Var x = 0; x < pb_n_vars; x++)
-                assert(sat_solver.model()[x] != l_Undef),
-                best_model.push(sat_solver.model()[x] == l_True);
+                assert(sat_solver->model()[x] != l_Undef),
+                best_model.push(sat_solver->model()[x] == l_True);
 
             if (goal == NULL)   // ((fix: moved here Oct 4, 2005))
                 break;
 
-            best_goalvalue = evalGoal(*goal, sat_solver.model());
+            best_goalvalue = evalGoal(*goal, sat_solver->model());
             if (cmd == sc_FirstSolution) break;
 
-            if (opt_verbosity >= 1){
+            if (options->opt_verbosity >= 1){
                 char* tmp = toString(best_goalvalue);
                 reportf("\bFound solution: %s\b\n", tmp);
                 xfree(tmp); }
@@ -656,7 +666,7 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
     }
     if (goal == NULL && sat)
         best_goalvalue = Int_MIN;       // (found model, but don't care about it)
-    if (opt_verbosity >= 1){
+    if (options->opt_verbosity >= 1){
         if      (!sat)
             reportf("\bUNSATISFIABLE\b\n");
         else if (goal == NULL)

@@ -1,0 +1,274 @@
+/*
+ * Copyright 2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
+// Parser for FlatZinc 1.1.
+// Authors: Nick Nethercote
+//          Julien Fischer
+//
+// NOTE: the parser produced by the following grammar does not ensure
+// that expressions are type correct.  Further type-checking after parsing
+// is required for this.
+//
+// This file is in the public domain, and can be used without copyright
+// restrictions.
+
+%require "2.4.1"
+%skeleton "lalr1.cc"
+%defines
+//%debug
+%error-verbose
+%name-prefix="fz"
+%define namespace "FZ"
+%define parser_class_name "FZParser"
+%parse-param { FZ::FZScanner &scanner }
+%parse-param { FZ::InsertWrapper& wrapper }
+%lex-param   { FZ::FZScanner &scanner }
+
+%code requires{
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <iostream>
+	#include <vector>
+		
+	#include "parser/flatzincsupport/FZDatastructs.hpp"
+	#include "parser/flatzincsupport/InsertWrapper.hpp"
+		
+	using namespace std;
+	using namespace FZ;
+	
+	// Forward-declare the Scanner class; the Parser needs to be assigned a 
+	// Scanner, but the Scanner can't be declared without the Parser
+	namespace FZ {
+		class FZScanner;
+	}
+}
+
+%code{
+	// Prototype for the yylex function
+	static int fzlex(FZ::FZParser::semantic_type * yylval, FZ::FZScanner &scanner);
+}
+
+ 
+// Possible values for attributed tokens.
+%union {
+	bool 		bool_val;
+    int			int_val;
+    double		float_val;
+    FZ::Var*	var;
+    FZ::IntVar*	intvar;
+    std::string* string_val;
+    FZ::Expression* expr;
+    std::vector<int>* intlist;
+    std::vector<FZ::Expression*>* exprlist;
+    FZ::ArrayLiteral* arrayliteral;
+    FZ::ArrayAccess* arrayaccess;
+    FZ::SetLiteral* setliteral;
+    FZ::Search*	solveoption;
+    FZ::Constraint* constraint;
+    FZ::Identifier* annid;
+    FZ::ArrayVar* array;
+};
+
+// Token kinds
+%token <int_val>    INT_LITERAL
+       <string_val> STRING_LITERAL IDENT
+       <float_val>  FLOAT_LITERAL 
+       ARRAY BOOL CONSTRAINT FALSE FLOAT INT MAXIMIZE MINIMIZE OF
+       PREDICATE SATISFY SET SOLVE TRUE VAR DOTDOT COLONCOLON 
+  
+%type <expr> expr
+%type <exprlist> annotations exprs
+%type <arrayliteral> array_literal
+%type <arrayaccess> array_access_expr
+%type <setliteral> set_literal
+%type <bool_val> bool_literal
+%type <intlist> int_literals
+%type <intvar> int_ti_expr_tail
+%type <var> var_decl_item non_array_ti_expr_tail scalar_ti_expr_tail set_ti_expr_tail bool_ti_expr_tail float_ti_expr_tail
+%type <solveoption> solve_kind solve_item
+%type <constraint> constraint_item constraint_elem
+%type <annid> ident_anns
+%type <array> array_decl_tail
+       
+%%
+
+//---------------------------------------------------------------------------
+// Model top-level
+//---------------------------------------------------------------------------
+
+// Nb: these rules are left-recursive, which is good for Yacc as they run in
+// constant stack space.  Earlier versions were right-recursive, and this
+// caused stack overflows on large models.  The error recovery isn't great,
+// but it's better than none.
+
+model			: 
+				{ wrapper.start(); }
+				pred_decl_items var_decl_items constraint_items model_end
+				{ wrapper.finish(); }
+
+pred_decl_items : pred_decl_items pred_decl_item ';'
+//				| pred_decl_items error ';' { error(yyloc, "fail"); } // TODO use of this rule?
+				| /* empty */
+
+var_decl_items	: var_decl_items var_decl_item ';'		{ wrapper.add($2); delete($2); }
+				| /* empty */
+ 
+constraint_items: constraint_items constraint_item ';' 	{ wrapper.add($2); delete($2); }
+				| /* empty */
+ 
+model_end		: solve_item ';'						{ wrapper.add($1); delete($1); }
+    
+    
+//---------------------------------------------------------------------------
+// Items
+//---------------------------------------------------------------------------
+
+pred_decl_item:
+    PREDICATE IDENT '(' pred_decl_args ')'  /* nothing special supported by idp solver */
+
+var_decl_item
+	: VAR    non_array_ti_expr_tail ':' ident_anns '=' expr { $$ = $2; $$->id = $4; $$->expr = $6; }
+    | VAR    non_array_ti_expr_tail ':' ident_anns 			{ $$ = $2; $$->id = $4; }
+    |        non_array_ti_expr_tail ':' ident_anns '=' expr { $$ = $1; $$->id = $3; $$->expr = $5; $$->var = false;}
+    | ARRAY '[' INT_LITERAL DOTDOT INT_LITERAL ']' OF array_decl_tail { $$ = $8; $8->begin = $3; $8->end = $5; }
+
+array_decl_tail
+	: VAR 	non_array_ti_expr_tail ':' ident_anns 					{ $$ = new ArrayVar($2); $$->id = $4; }
+	| VAR 	non_array_ti_expr_tail ':' ident_anns '=' array_literal { $$ = new ArrayVar($2, $6); $$->id = $4; }
+	| 		non_array_ti_expr_tail ':' ident_anns '=' array_literal { $$ = new ArrayVar($1, $5); $$->id = $3; $$->var = false;}
+  
+ident_anns:
+    IDENT annotations 		{ $$ = new Identifier($1, $2); }
+
+constraint_item:
+    CONSTRAINT constraint_elem annotations { $$ = $2; $$->annotations = $3;}
+
+constraint_elem:
+    IDENT '(' exprs ')'		{ $$ = new Constraint(new Identifier($1, $3)); }
+
+solve_item:
+    SOLVE annotations solve_kind { $$ = $3; $$->annotations = $2; }
+
+solve_kind:
+    SATISFY 				{  $$ = new Search(SOLVE_SATISFY, NULL); }
+  | MINIMIZE expr 			{  $$ = new Search(SOLVE_MINIMIZE, $2); }
+  | MAXIMIZE expr 			{  $$ = new Search(SOLVE_MAXIMIZE, $2); }
+
+//---------------------------------------------------------------------------
+// Type-Inst Expression Tails
+//---------------------------------------------------------------------------
+
+non_array_ti_expr_tail:
+    scalar_ti_expr_tail		{ $$ = $1; }
+  | set_ti_expr_tail		{ $$ = $1; }
+
+scalar_ti_expr_tail:
+    bool_ti_expr_tail		{ $$ = $1; }
+  | int_ti_expr_tail		{ $$ = $1; }
+  | float_ti_expr_tail		{ $$ = $1; }
+
+bool_ti_expr_tail:
+    BOOL					{ $$ = new Var(VAR_BOOL); }
+
+int_ti_expr_tail:
+    INT						{ $$ = new IntVar(); }
+  | INT_LITERAL DOTDOT INT_LITERAL	{ $$ = new IntVar($1, $3); }
+  | '{' int_literals '}'	{ $$ = new IntVar($2); }
+
+  //REVERSED!
+int_literals:
+    INT_LITERAL ',' int_literals { $$ = $3; $$->push_back($1);}
+  | INT_LITERAL				{ $$ = new vector<int>(); $$->push_back($1);}
+
+float_ti_expr_tail:
+    FLOAT					{ /* not implemented*/ }
+  | FLOAT_LITERAL DOTDOT FLOAT_LITERAL	{ /* not implemented*/ }
+
+set_ti_expr_tail:
+    SET OF int_ti_expr_tail { $$ = new SetVar($3); }
+
+//---------------------------------------------------------------------------
+// Expressions
+//---------------------------------------------------------------------------
+
+    //REVERSED!
+exprs:
+    expr ',' exprs			{ $$ = $3; $$->push_back($1); }
+  | expr					{ $$ = new vector<Expression*>(); $$->push_back($1); }
+
+expr:
+    bool_literal 			{ $$ = new Expression(); $$->type = EXPR_BOOL; $$->boollit = $1; }
+  | INT_LITERAL 			{ $$ = new Expression(); $$->type = EXPR_INT; $$->intlit = $1; }
+  | FLOAT_LITERAL 			{ $$ = new Expression(); $$->type = EXPR_FLOAT; $$->floatlit = $1; }
+  | STRING_LITERAL 			{ $$ = new Expression(); $$->type = EXPR_STRING; $$->stringlit = $1; }
+  | set_literal 			{ $$ = new Expression(); $$->type = EXPR_SET; $$->setlit = $1; }
+  | array_literal 			{ $$ = new Expression(); $$->type = EXPR_ARRAY; $$->arraylit = $1; }
+  | array_access_expr 		{ $$ = new Expression(); $$->type = EXPR_ARRAYACCESS; $$->arrayaccesslit = $1; }
+  | IDENT 					{ $$ = new Expression(); $$->type = EXPR_IDENT; $$->ident = new Identifier($1, new vector<Expression*>()); }
+  | IDENT '(' exprs ')'		{ $$ = new Expression(); $$->type = EXPR_IDENT; $$->ident = new Identifier($1, $3); }
+
+bool_literal
+	: FALSE 				{ $$ = false; } 
+	| TRUE 					{ $$ = true; }
+
+set_literal:
+    '{' int_literals '}'	{ $$ = new SetLiteral($2); }
+  | '{' '}'					{ $$ = new SetLiteral(new vector<int>());}
+  | INT_LITERAL DOTDOT INT_LITERAL { $$ = new SetLiteral($1, $1);}
+
+array_literal:
+    '[' exprs ']'			{ $$ = new ArrayLiteral(); $$->exprs = $2;}
+  | '[' ']'					{ $$ = new ArrayLiteral();}
+
+array_access_expr: IDENT '[' INT_LITERAL ']' { $$ = new ArrayAccess($1, $3); }
+
+//---------------------------------------------------------------------------
+// Annotations
+//---------------------------------------------------------------------------
+
+//Right recursive because usually rather short and then we dont have to care about any reversed order
+annotations:
+    COLONCOLON expr annotations { $$ = $3; $$->push_back($2); }
+  | /* empty */ 			{ $$ = new vector<Expression*>(); }
+  
+//---------------------------------------------------------------------------
+// Predicate parameters
+//---------------------------------------------------------------------------
+
+// WILL NOT BE USED
+
+pred_decl_args:
+  pred_decl_arg "," pred_decl_args
+| pred_decl_arg
+
+pred_decl_arg:
+   non_array_ti_expr_tail ':' IDENT
+ | VAR non_array_ti_expr_tail ':' IDENT
+ | ARRAY '[' pred_arg_array_index ']' OF  pred_arg_array_tail ':' IDENT
+
+pred_arg_array_index:
+  INT
+| INT_LITERAL DOTDOT INT_LITERAL
+
+pred_arg_array_tail:
+  non_array_ti_expr_tail
+| VAR non_array_ti_expr_tail
+
+%%
+
+// We have to implement the error function
+void FZ::FZParser::error(const FZ::FZParser::location_type&, const std::string &msg) {
+	std::cerr << "Error: " << msg << std::endl;
+}
+
+// Now that we have the Parser declared, we can declare the Scanner and implement
+// the yylex function
+#include "parser/FZScanner.hpp"
+static int fzlex(FZ::FZParser::semantic_type * yylval, FZ::FZScanner &scanner) {
+	return scanner.fzlex(yylval);
+}

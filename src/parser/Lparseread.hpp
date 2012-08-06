@@ -36,10 +36,10 @@ class WrappedLogicSolver;
 
 struct BasicRule{
 	Atom head;
-	std::vector<Literal> body;
+	std::vector<Lit> body;
 	bool conj;
 
-	BasicRule(const Atom& head, std::vector<Literal>& body, bool conj = true):head(head), body(body), conj(conj){	}
+	BasicRule(const Atom& head, std::vector<Lit>& body, bool conj = true):head(head), body(body), conj(conj){	}
 };
 
 struct CardRule: public BasicRule{
@@ -47,7 +47,7 @@ struct CardRule: public BasicRule{
 	Weight atleast;
 	//Card, UB, DEF
 
-	CardRule(int setcount, const Atom& head, std::vector<Literal>& body, const Weight& atleast):
+	CardRule(int setcount, const Atom& head, std::vector<Lit>& body, const Weight& atleast):
 			BasicRule(head, body), setcount(setcount), atleast(atleast){	}
 };
 
@@ -57,20 +57,21 @@ struct SumRule: public BasicRule{
 	Weight atleast;
 	//Sum, UB, DEF
 
-	SumRule(int setcount, const Atom& head, std::vector<Literal>& body, std::vector<Weight> weights, const Weight& atleast):
+	SumRule(int setcount, const Atom& head, std::vector<Lit>& body, std::vector<Weight> weights, const Weight& atleast):
 		BasicRule(head, body), setcount(setcount), weights(weights), atleast(atleast){	}
 };
 
 struct ChoiceRule{
 	std::vector<Atom> heads;
-	std::vector<Literal> body;
+	std::vector<Lit> body;
 
-	ChoiceRule(std::vector<Atom>& heads, std::vector<Literal>& body):heads(heads), body(body){	}
+	ChoiceRule(std::vector<Atom>& heads, std::vector<Lit>& body):heads(heads), body(body){	}
 };
 
 template<class T>
 class Read{
 private:
+	uint maxid;
 	bool endedparsing;
 	int maxatomnumber;
 	int setcount;
@@ -88,13 +89,14 @@ private:
 
 	bool optim;
 	int optimsetcount;
-	std::vector<Literal> optimbody;
+	std::vector<Lit> optimbody;
 	std::vector<Weight> optimweights;
 
 	MinisatID::LParseTranslator* translator;
 
 public:
 	Read(T& solver, LParseTranslator* trans):
+		maxid(1),
 		endedparsing(false),
 		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
 		solver(solver), optim(false),
@@ -104,8 +106,8 @@ public:
 	bool read (std::istream &f);
 
 private:
-	bool readBody			(std::istream &f, long size, bool pos, std::vector<Literal>& body);
-	bool readFullBody		(std::istream &f, std::vector<Literal>& body);
+	bool readBody			(std::istream &f, long size, bool pos, std::vector<Lit>& body);
+	bool readFullBody		(std::istream &f, std::vector<Lit>& body);
 	bool readWeights		(std::istream &f, std::vector<Weight>& body, int bodysize);
 	bool parseBasicRule		(std::istream &f);
 	bool parseConstraintRule(std::istream &f);

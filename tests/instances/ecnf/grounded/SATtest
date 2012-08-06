@@ -1,0 +1,15 @@
+p ecnf def aggr
+2 0
+12 0
+3 0
+13 0
+4 0
+14 0
+
+translation
+type A : 1 2 3 4 5 6 7 8 9 10
+type B : 1 2 3 4 5 6 7 8 9 10
+show pred 1 P : A
+show pred 11 Q : B
+true : 
+arbitrary : P/1: 1 5 6 7 8 9 10 Q/1: 11 15 16 17 18 19 20 

@@ -56,9 +56,9 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 	dummy1 = newVar();
 	dummy2 = newVar();
 	dummyfalse = newVar();
-	internalAdd(Disjunction( { mkPosLit(dummy1) }), *this);
-	internalAdd(Disjunction( { mkPosLit(dummy2) }), *this);
-	internalAdd(Disjunction( { mkNegLit(dummyfalse) }), *this);
+	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy1) }), *this);
+	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy2) }), *this);
+	internalAdd(Disjunction(DEFAULTCONSTRID, { mkNegLit(dummyfalse) }), *this);
 }
 
 Lit PCSolver::getTrueLit() const {
@@ -130,13 +130,13 @@ const std::vector<Lit>& PCSolver::getTrail() const {
 	return trail->getTrail();
 }
 
-bool PCSolver::isDecisionVar(Var var) {
+bool PCSolver::isDecisionVar(Atom var) {
 	if ((uint64_t) var >= nVars()) {
 		return false;
 	}
 	return getSATSolver()->isDecisionVar(var);
 }
-void PCSolver::notifyDecisionVar(Var var) {
+void PCSolver::notifyDecisionVar(Atom var) {
 	getSATSolver()->setDecidable(var, true);
 }
 
@@ -150,10 +150,10 @@ rClause PCSolver::createClause(const Disjunction& clause, bool learned) {
 	}
 }
 
-void PCSolver::acceptForDecidable(Var v, Propagator* prop) {
+void PCSolver::acceptForDecidable(Atom v, Propagator* prop) {
 	getEventQueue().acceptForDecidable(v, prop);
 }
-void PCSolver::notifyBecameDecidable(Var v) {
+void PCSolver::notifyBecameDecidable(Atom v) {
 	getEventQueue().notifyBecameDecidable(v);
 }
 
@@ -206,11 +206,11 @@ bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const {
 	return getSolver().isAlreadyUsedInAnalyze(lit);
 }
 
-void PCSolver::varBumpActivity(Var v) {
+void PCSolver::varBumpActivity(Atom v) {
 	getSolver().varBumpActivity(v);
 }
 
-void PCSolver::varReduceActivity(Var v) {
+void PCSolver::varReduceActivity(Atom v) {
 	getSolver().varReduceActivity(v);
 }
 
@@ -238,7 +238,10 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 	getEventQueue().accept(propagator, lit, priority);
 }
 
-Var PCSolver::newVar() {
+uint PCSolver::newID(){
+	return varcreator->createID();
+}
+Atom PCSolver::newVar() {
 	auto var = varcreator->createVar();
 	if ((uint64_t) var >= nVars()) {
 		getEventQueue().notifyNbOfVars(var); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
@@ -250,7 +253,7 @@ Var PCSolver::newVar() {
 /**
  * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
  */
-void PCSolver::createVar(Var v) {
+void PCSolver::createVar(Atom v) {
 	MAssert(v>-1);
 
 	if (((uint64_t) v) >= nVars()) {
@@ -313,7 +316,7 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	return explan;
 }
 
-lbool PCSolver::getModelValue(Var v) {
+lbool PCSolver::getModelValue(Atom v) {
 	return getSolver().modelValue(mkPosLit(v));
 }
 lbool PCSolver::getModelValue(const Lit & lit) {
@@ -335,7 +338,7 @@ litlist PCSolver::getEntailedLiterals() const {
 /* complexity O(#propagations on level)
  * Returns true if l was asserted before p
  */
-bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
+bool PCSolver::assertedBefore(const Atom& l, const Atom& p) const {
 	MAssert(value(mkPosLit(l))!=l_Undef || value(mkPosLit(p))!=l_Undef);
 	if (value(mkPosLit(l)) == l_Undef) {
 		return false;
@@ -354,7 +357,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return false;
 }
 
-int PCSolver::getTime(const Var& var) const {
+int PCSolver::getTime(const Atom& var) const {
 	return trail->getTime(mkPosLit(var));
 }
 
@@ -437,7 +440,7 @@ void PCSolver::notifyUnsat() {
 	return getSATSolver()->notifyUnsat();
 }
 
-bool PCSolver::isDecided(Var var) {
+bool PCSolver::isDecided(Atom var) {
 	return getSATSolver()->isDecided(var);
 }
 
@@ -515,7 +518,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::VAR:
-			visitor.add(MinimizeVar((*i).priority, (*i).var->id()));
+			visitor.add(MinimizeVar((*i).priority, (*i).var->getVarID()));
 			break;
 		}
 	}
@@ -523,6 +526,9 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 	getEventQueue().accept(visitor);
 }
 
+std::string PCSolver::toString(uint id) const {
+	return printer->toString(id);
+}
 std::string PCSolver::toString(const Lit& lit) const {
 	return printer->toString(lit);
 }

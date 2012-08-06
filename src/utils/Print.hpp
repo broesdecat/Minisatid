@@ -19,10 +19,10 @@ namespace MinisatID {
 
 class LiteralPrinter;
 
-Lit getPrintableVar(Var v);
+Lit getPrintableVar(Atom v);
 
 template<typename S>
-std::string toString(Var obj, const S& solver) {
+std::string toString(Atom obj, const S& solver) {
 	return toString(getPrintableVar(obj), solver);
 }
 

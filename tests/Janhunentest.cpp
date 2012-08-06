@@ -25,7 +25,7 @@ namespace Tests{
 		SolverMOC():start(3){}
 		std::vector<Disjunction*> disj;
 		std::vector<Implication*> eqs;
-		void createVar(Var v){
+		void createVar(Atom v){
 			start = v+1;
 		}
 		int newVar() { return start++; }
@@ -34,7 +34,7 @@ namespace Tests{
 		SATVAL isUnsat() const { return SATVAL::POS_SAT; }
 		SATVAL satState() const { return SATVAL::POS_SAT; }
 		lbool value(const Lit&) { return l_True; }
-		lbool value(Var) { return l_True; }
+		lbool value(Atom) { return l_True; }
 		lbool rootValue(const Lit&) const { return l_False; }
 		Lit getTrueLit() const { return mkPosLit(1); }
 		Lit getFalseLit() const { return mkPosLit(2); }
@@ -62,8 +62,8 @@ namespace Tests{
 		vector<toCNF::Rule*> rules;
 		auto varone = moc.newVar();
 		auto vartwo = moc.newVar();
-		rules.push_back(new toCNF::Rule(false, varone, {mkPosLit(vartwo)}, {}));
-		rules.push_back(new toCNF::Rule(false, vartwo, {mkPosLit(varone)}, {}));
+		rules.push_back(new toCNF::Rule(DEFAULTCONSTRID, false, varone, {mkPosLit(vartwo)}, {}));
+		rules.push_back(new toCNF::Rule(DEFAULTCONSTRID, false, vartwo, {mkPosLit(varone)}, {}));
 		auto notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
 		EXPECT_TRUE(notunsat);
 	}

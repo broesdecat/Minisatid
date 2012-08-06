@@ -63,8 +63,10 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 // Constructor/Destructor:
 
 Solver::Solver(PCSolver* s, bool oneshot)
-		: Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), needsimplify(true),
+		: Propagator(DEFAULTCONSTRID, s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
+			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false),
+			fullmodelcheck(false),
+			needsimplify(true),
 			backtracked(true),
 
 			clause_decay(opt_clause_decay),
@@ -94,7 +96,7 @@ Solver::~Solver() {
 
 // VARIABLE CREATION
 
-void Solver::setDecidable(Var v, bool decide) { // NOTE: no-op if already a decision var!
+void Solver::setDecidable(Atom v, bool decide) { // NOTE: no-op if already a decision var!
 	bool newdecidable = decide && not decision[v];
 	if (newdecidable) {
 		dec_vars++;
@@ -122,7 +124,7 @@ void Solver::setDecidable(Var v, bool decide) { // NOTE: no-op if already a deci
 
 // Creates a new SAT variable in the solver. If 'decision' is cleared, variable will not be
 // used as a decision variable (NOTE! This has effects on the meaning of a SATISFIABLE result).
-Var Solver::newVar(lbool upol, bool dvar) {
+Atom Solver::newVar(lbool upol, bool dvar) {
 	int v = nVars();
 	watches.init(mkLit(v, false));
 	watches.init(mkLit(v, true));
@@ -269,7 +271,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 				getPCSolver().backtrackTo(getLevel(var(ps[0])) - 1); // NOTE: Certainly not root level, would have found out otherwise
 			}
 			MAssert(value(ps[0])!=l_False);
-			auto clause = getPCSolver().createClause(Disjunction( { ps[0] }), false);
+			auto clause = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { ps[0] }), false);
 			addRootUnitLit(ReverseTrailElem(ps[0], 0, clause));
 			checkedEnqueue(ps[0], clause);
 		} else {
@@ -585,7 +587,7 @@ void Solver::uncheckedBacktrack(int level) {
 	}
 	Lit decision = trail[trail_lim[level]];
 	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
-		Var x = var(trail[c]);
+		Atom x = var(trail[c]);
 		assigns[x] = l_Undef;
 		if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) {
 			polarity[x] = sign(trail[c]);
@@ -610,7 +612,7 @@ void Solver::cancelUntil(int level) {
 // VARIABLE CHOICE
 
 Lit Solver::pickBranchLit() {
-	Var next = var_Undef;
+	Atom next = var_Undef;
 
 	// Random decision:
 	if (drand(random_seed) < random_var_freq && !order_heap.empty()) {
@@ -801,7 +803,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 
 	} else if (ccmin_mode == 1) {
 		for (i = j = 1; i < out_learnt.size(); i++) {
-			Var x = var(out_learnt[i]);
+			Atom x = var(out_learnt[i]);
 
 			if (reason(x) == CRef_Undef)
 				out_learnt[j++] = out_learnt[i];
@@ -894,7 +896,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 	seen[var(p)] = 1;
 
 	for (int i = trail.size() - 1; i >= trail_lim[0]; i--) {
-		Var x = var(trail[i]);
+		Atom x = var(trail[i]);
 		if (seen[x]) {
 			auto explan = getPCSolver().getExplanation(value(mkPosLit(x)) == l_True ? mkPosLit(x) : mkNegLit(x));
 			if (explan == CRef_Undef) {
@@ -943,7 +945,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 	}
 }
 
-bool Solver::isDecided(Var v) {
+bool Solver::isDecided(Atom v) {
 	if (value(mkPosLit(v)) == l_Undef) {
 		return false;
 	}
@@ -984,7 +986,7 @@ CRef Solver::notifypropagate() {
 	}
 	if (decisionLevel() == 0 && needsimplify) {
 		if (not simplify()) {
-			return getPCSolver().createClause( { }, true);
+			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 		}
 	}
 
@@ -1119,8 +1121,8 @@ void Solver::removeSatisfied(vec<CRef>& cs) {
 }
 
 void Solver::rebuildOrderHeap() {
-	vec<Var> vs;
-	for (Var v = 0; v < nVars(); v++) {
+	vec<Atom> vs;
+	for (Atom v = 0; v < nVars(); v++) {
 		if (decision[v] && value(mkPosLit(v)) == l_Undef)
 			vs.push(v);
 	}
@@ -1420,25 +1422,25 @@ lbool Solver::solve(bool nosearch) {
 		for (int i = 0; i < nVars(); i++) {
 			model[i] = value(mkPosLit(i));
 		}
-#ifndef NDEBUG
-		for (int i = 0; i < nbClauses(); ++i) {
-			auto c = getClause(i);
-			bool clausetrue = false, clauseHasNonFalseDecidable = false;
-			for (int j = 0; j < getClauseSize(c); ++j) {
-				if (not isFalse(getClauseLit(c, j)) && isDecisionVar(var(getClauseLit(c, j)))) {
-					clauseHasNonFalseDecidable = true;
+		if(fullmodelcheck){
+			for (int i = 0; i < nbClauses(); ++i) {
+				auto c = getClause(i);
+				bool clausetrue = false, clauseHasNonFalseDecidable = false;
+				for (int j = 0; j < getClauseSize(c); ++j) {
+					if (not isFalse(getClauseLit(c, j)) && isDecisionVar(var(getClauseLit(c, j)))) {
+						clauseHasNonFalseDecidable = true;
+					}
+					if (isTrue(getClauseLit(c, j))) {
+						clausetrue = true;
+					}
 				}
-				if (isTrue(getClauseLit(c, j))) {
-					clausetrue = true;
+				if (not clausetrue || not clauseHasNonFalseDecidable) {
+					clog << (clausetrue ? "True" : "False") << ", " << (clauseHasNonFalseDecidable ? "decidable" : "undecidable") << " clause ";
+					printClause(c);
 				}
+				MAssert(clausetrue && clauseHasNonFalseDecidable);
 			}
-			if (not clausetrue || not clauseHasNonFalseDecidable) {
-				clog << (clausetrue ? "True" : "False") << ", " << (clauseHasNonFalseDecidable ? "decidable" : "undecidable") << " clause ";
-				printClause(c);
-			}
-			MAssert(clausetrue && clauseHasNonFalseDecidable);
 		}
-#endif
 	} else if (status == l_False && conflict.size() == 0) {
 		ok = false;
 	}
@@ -1479,7 +1481,7 @@ void Solver::relocAll(ClauseAllocator& to) {
 	// All reasons:
 	//
 	for (int i = 0; i < trail.size(); i++) {
-		Var v = var(trail[i]);
+		Atom v = var(trail[i]);
 		if (reason(v) != CRef_Undef && (ca[reason(v)].reloced() || locked(ca[reason(v)]))) {
 			ca.reloc(vardata[v].reason, to);
 		}
@@ -1535,7 +1537,7 @@ void Solver::printStatistics() const {
 	std::clog << "> conflict literals     : " << tot_literals << "  (" << ((max_literals - tot_literals) * 100 / (double) max_literals) << " % deleted)\n";
 }
 
-int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
+int Solver::printECNF(std::ostream& stream, std::set<Atom>& printedvars) {
 	if (not okay()) {
 		stream << "0\n";
 		return 0;
@@ -1575,12 +1577,12 @@ int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
 
 void Solver::accept(ConstraintVisitor& visitor) {
 	if (isUnsat()) {
-		visitor.add(Disjunction( { mkPosLit(1) }));
-		visitor.add(Disjunction( { mkNegLit(1) }));
+		visitor.add(Disjunction(DEFAULTCONSTRID,{ mkPosLit(1) }));
+		visitor.add(Disjunction(DEFAULTCONSTRID, { mkNegLit(1) }));
 		return;
 	}
 	for (int i = 0; i < trail.size(); ++i) {
-		visitor.add(Disjunction( { trail[i] }));
+		visitor.add(Disjunction(DEFAULTCONSTRID, { trail[i] }));
 	}
 	acceptClauseList(visitor, clauses);
 	acceptClauseList(visitor, learnts);
@@ -1588,7 +1590,7 @@ void Solver::accept(ConstraintVisitor& visitor) {
 
 void Solver::acceptClauseList(ConstraintVisitor& visitor, const vec<CRef>& list) {
 	for (int i = 0; i < list.size(); ++i) {
-		Disjunction d;
+		Disjunction d(DEFAULTCONSTRID,{});
 		auto& c = ca[list[i]];
 		bool istrue = false;
 		for (auto j = 0; j < c.size() && not istrue; j++) {

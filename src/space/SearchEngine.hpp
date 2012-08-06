@@ -27,10 +27,10 @@ public:
 	SearchEngine(PCSolver* solver): solver(solver){}
 	~SearchEngine();
 	PropagatorFactory& getFactory();
-	void createVar(Var v);
+	void createVar(Atom v);
 	int verbosity() const;
 	const SolverOption& modes() const;
-	Var newVar();
+	Atom newVar();
 	int newSetID();
 	lbool rootValue(Lit p) const;
 	Lit getTrueLit() const;
@@ -39,6 +39,8 @@ public:
 	void notifyUnsat();
 	SATVAL satState() const;
 	bool isUnsat() const;
+
+	std::string toString(uint id) const;
 	std::string toString(const Lit& lit) const;
 
 	void invalidate(litlist& clause) const;
@@ -57,10 +59,8 @@ public:
 	void saveState();
 	void resetState();
 
-	void extractLitModel(std::shared_ptr<Model> fullmodel);
-	void extractVarModel(std::shared_ptr<Model> fullmodel);
 	std::shared_ptr<Model> getModel();
-	lbool getModelValue(Var v);
+	lbool getModelValue(Atom v);
 	lbool getModelValue(const Lit& lit);
 
 	void accept(ConstraintVisitor& visitor);

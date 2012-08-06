@@ -21,7 +21,7 @@ SearchEngine::~SearchEngine(){
 PropagatorFactory& SearchEngine::getFactory() {
 	return solver->getFactory();
 }
-void SearchEngine::createVar(Var v) {
+void SearchEngine::createVar(Atom v) {
 	solver->createVar(v);
 }
 int SearchEngine::verbosity() const {
@@ -30,7 +30,7 @@ int SearchEngine::verbosity() const {
 const SolverOption& SearchEngine::modes() const {
 	return solver->modes();
 }
-Var SearchEngine::newVar() {
+Atom SearchEngine::newVar() {
 	return solver->newVar();
 }
 int SearchEngine::newSetID() {
@@ -54,6 +54,9 @@ SATVAL SearchEngine::satState() const {
 }
 bool SearchEngine::isUnsat() const {
 	return solver->isUnsat();
+}
+std::string SearchEngine::toString(uint id) const {
+	return solver->toString(id);
 }
 std::string SearchEngine::toString(const Lit& lit) const {
 	return solver->toString(lit);
@@ -97,19 +100,13 @@ void SearchEngine::resetState() {
 	solver->resetState();
 }
 
-void SearchEngine::extractLitModel(std::shared_ptr<Model> fullmodel) {
-	solver->extractLitModel(fullmodel);
-}
-void SearchEngine::extractVarModel(std::shared_ptr<Model> fullmodel) {
-	solver->extractVarModel(fullmodel);
-}
 std::shared_ptr<Model> SearchEngine::getModel() {
 	return solver->getModel();
 }
 lbool SearchEngine::getModelValue(const Lit& v) {
 	return solver->getModelValue(v);
 }
-lbool SearchEngine::getModelValue(Var v) {
+lbool SearchEngine::getModelValue(Atom v) {
 	return solver->getModelValue(v);
 }
 

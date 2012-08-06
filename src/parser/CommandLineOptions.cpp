@@ -219,6 +219,10 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 	lazydesc.push_back(pair<string, string>("yes", "Use lazy grounding"));
 	lazydesc.push_back(pair<string, string>("no", "Don't use lazy grounding"));
 
+	vector<pair<string, string> > fmdesc;
+	fmdesc.push_back(pair<string, string>("yes", "Check"));
+	fmdesc.push_back(pair<string, string>("no", "Don't check"));
+
 	vector<pair<string, string> > gecodedesc;
 	gecodedesc.push_back(pair<string, string>("yes", "Use Gecode for CP constraints"));
 	gecodedesc.push_back(pair<string, string>("no", "Don't use Gecode for CP constraints"));
@@ -317,6 +321,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 #endif
 	options.push_back(new NoValsOption<int>		("","maxlearnt", 	"int",
 			modes.maxNbOfLearnedClauses, cmd, "The maximum number of learnt clauses to maintain at one time."));
+	options.push_back(new Option<bool, string>	("","fullmodelcheck", 	yesnovals, fmdesc,
+			modes.fullmodelcheck, cmd, "Choose whether to do a post-check on whether the model satisfies all constraints"));
 
 	try {
 		cmd.parse(argc, argv);

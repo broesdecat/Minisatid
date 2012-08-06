@@ -44,7 +44,7 @@ enum class Polarity {
 // SAT-solver polarity option
 
 enum class InputFormat {
-	FODOT, ASP, OPB
+	FODOT, ASP, OPB, FLATZINC
 };
 enum class OutputFormat {
 	FODOT, ASP, PLAIN, FZ, OPB, DEFAULT
@@ -82,6 +82,7 @@ public:
 	bool usegecode;
 	std::string outputfile;
 	int maxNbOfLearnedClauses;
+	bool fullmodelcheck; // Check whether the model satisfies all constraints
 
 	SolverOption();
 

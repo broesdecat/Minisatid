@@ -25,15 +25,19 @@ private:
 
 	const std::string name;
 
+	uint id;
+
 protected:
 	PCSolver* pcsolver;
 
 public:
-	Propagator(PCSolver* s, const std::string& name) :
-			present(true), trailindex(0), inqueue(false), name(name), pcsolver(s) {
+	Propagator(uint id, PCSolver* s, const std::string& name) :
+			present(true), trailindex(0), inqueue(false), name(name), id(id), pcsolver(s) {
 	}
 	virtual ~Propagator() {
 	}
+
+	const uint& getID() const{ return id; }
 
 	// queueing mech, only use for MAIN (propagation) queue
 	void notifyQueued() {
@@ -81,7 +85,8 @@ public:
 	int verbosity() const {
 		return getPCSolver().verbosity();
 	}
-	std::string toString(Var atom) const;
+	std::string toString(Atom atom) const;
+	std::string toString(uint id) const;
 	std::string toString(const Lit& lit) const;
 	std::string toString(const Lit& lit, lbool value) const;
 	bool isTrue(const Lit& l) const {
@@ -105,7 +110,7 @@ protected:
 		return getPCSolver().nVars();
 	}
 
-	void addWatch(Var atom);
+	void addWatch(Atom atom);
 	void addWatch(const Lit& lit);
 };
 

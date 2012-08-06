@@ -1,0 +1,27 @@
+p ecnf def aggr
+C 26 0
+C 31 14 28 0
+C 32 24 30 0
+C 33 9 27 0
+D 29 31 32 33 0
+C 27 2 0
+C 28 3 0
+C 30 10 27 0
+27 0
+28 0
+29 0
+30 0
+-16 0
+-14 -9 0
+-24 -9 0
+-9 -14 0
+-24 -14 0
+-9 -24 0
+-14 -24 0
+
+translation
+type Vertex : A B C D E
+show pred 1 SpTree : Vertex Vertex
+show pred 26 SpReached : Vertex
+true : 
+arbitrary : 

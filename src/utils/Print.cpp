@@ -22,7 +22,7 @@ using namespace MinisatID;
 
 namespace MinisatID{
 
-Lit getPrintableVar(Var v) { return mkPosLit(v); }
+Lit getPrintableVar(Atom v) { return mkPosLit(v); }
 
 std::string toString(const Lit& lit, LiteralPrinter const * const solver){
 	return toString(lit, *solver);
@@ -34,6 +34,10 @@ std::string toString(const Lit& lit, lbool value, LiteralPrinter const* const so
 
 std::string toString(const Lit& lit, const LiteralPrinter& solver){
 	return solver.toString(lit);
+}
+
+std::string toString(uint id, const LiteralPrinter& solver){
+	return solver.toString(id);
 }
 
 std::string toString(const Lit& lit, lbool value, const LiteralPrinter& solver){

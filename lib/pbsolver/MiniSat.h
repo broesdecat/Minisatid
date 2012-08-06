@@ -193,13 +193,21 @@ public:
     //
     Var     newVar (bool decision_var = true);
     int     nVars  (void)  { return assigns.size(); }
-    bool    addUnit(Lit p) { if (ok) ok = enqueue(p); return ok; }
-    bool    addClause(const vec<Lit>& ps) {
-    	/*std::clog <<"Adding clause ";
-    	for(int i=0; i<ps.size(); ++i){
-    		std::clog <<(sign(ps[i])?"-":"")<<var(ps[i]) <<" ";
+    bool    addUnit(Lit p) {
+    	if (ok){
+    		ok = enqueue(p);
+        	//std::clog <<"Adding clause ";
+			//std::clog <<(sign(p)?"-":"")<<var(p) <<" ";
+    		//std::clog <<"\n";
     	}
-    	std::clog <<"\n";*/
+    	return ok;
+    }
+    bool    addClause(const vec<Lit>& ps) {
+//    	std::clog <<"Adding clause ";
+//    	for(int i=0; i<ps.size(); ++i){
+//    		std::clog <<(sign(ps[i])?"-":"")<<var(ps[i]) <<" ";
+//    	}
+//    	std::clog <<"\n";
     	if (ok){ Clause* c; ok = newClause(ps, false, c); if (c != NULL) clauses.push(c); } return ok;
     }
     // -- debug:

@@ -19,20 +19,20 @@ using namespace std;
 using namespace MinisatID;
 
 IntView* FDAggConstraint::negation(IntView* bound) {
-	auto newvar = new RangeIntVar(&getPCSolver(), 42, -bound->maxValue(), -bound->minValue()); //FIXME FIXME 42 should be something like get new id...
+	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), -bound->maxValue(), -bound->minValue());
 	//internalAdd(newvar, getPCSolver()); //TODO NEEDED?
 	auto result = new IntView(newvar, 0);
 	auto head = getPCSolver().newVar();
 	auto headIsTrue = mkLit(head, true);
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
 	const int& zero = 0; //doing this here, to make the disambiguation.
-	auto equation = new FDAggConstraint(&getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::EQ, zero);
+	auto equation = new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::EQ, zero);
 	//internalAdd(equation, getPCSolver()); //TODO NEEDED?
 	return result;
 }
 
 IntView* FDAggConstraint::createBound(const Weight& bound) {
-	auto newvar = new RangeIntVar(&getPCSolver(), 42, bound, bound); //FIXME FIXME 42 should be something like get new id...
+	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), bound, bound);
 	//internalAdd(newvar, getPCSolver()); //TODO NEEDED?
 	return new IntView(newvar, 0);
 }
@@ -46,12 +46,13 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 		auto eq = (rel == EqType::EQ);
 		auto one = mkPosLit(getPCSolver().newVar());
 		auto two = mkPosLit(getPCSolver().newVar());
-		internalAdd(Implication(eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true), getPCSolver()); //Head equiv one and two
+		auto impl = new Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true);
+		//internalAdd(impl, getPCSolver()); //Head equiv one and two
 		_head = one;
 		if (type == AggType::PROD) {
-			new FDAggConstraint(engine, two, type, _vars, weights.front(), EqType::LEQ, bound);
+			new FDAggConstraint(getID(), engine, two, type, _vars, weights.front(), EqType::LEQ, bound);
 		} else {
-			new FDAggConstraint(engine, two, type, _vars, weights, EqType::LEQ, bound);
+			new FDAggConstraint(getID(), engine, two, type, _vars, weights, EqType::LEQ, bound);
 		}
 	}
 	if (rel == EqType::L || rel == EqType::G) {
@@ -88,17 +89,17 @@ bool additionOverflow(int x, int y) {
 	return false;
 }
 
-FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
+FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
 		EqType rel, const Weight& bound)
-		: 	Propagator(engine, "fdaggconstr"),
+		: 	Propagator(id, engine, "fdaggconstr"),
 			_type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
 	initializeSum(engine, head, set, weights, rel, createBound(bound));
 }
 
-FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
+FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
 		EqType rel, IntView* bound)
-		: 	Propagator(engine, "fdaggconstr"),
+		: 	Propagator(id, engine, "fdaggconstr"),
 			_type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
 	initializeSum(engine,head,set,weights,rel,bound);
@@ -111,7 +112,7 @@ void FDAggConstraint::initializeSum(PCSolver* engine, const Lit& head, const std
 	for (uint i = 0; i < set.size(); ++i) {
 		bool found = false;
 		for (uint j = 0; j < newset.size(); ++j) {
-			if (set[i]->id() == newset[j]->id()) {
+			if (set[i]->getVarID() == newset[j]->getVarID()) {
 				if (additionOverflow(newweights[j], weights[i])) {
 					throw idpexception("Overflow in weights of fd sum constraint");
 				}
@@ -141,24 +142,24 @@ void FDAggConstraint::initializeSum(PCSolver* engine, const Lit& head, const std
 	sharedInitialization(AggType::SUM, engine, head, newset, newweights, rel, bound);
 }
 
-FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
+FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		const Weight& bound)
-		: 	Propagator(engine, "fdaggconstr"),
+		: 	Propagator(id, engine, "fdaggconstr"),
 			_type(getType(type)) {
 	MAssert(type==AggType::PROD);
 	initializeProd(engine, head, set, weight, rel, createBound(bound));
 }
 
-FDAggConstraint::FDAggConstraint(PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
+FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		IntView* bound)
-		: 	Propagator(engine, "fdaggconstr"),
+		: 	Propagator(id, engine, "fdaggconstr"),
 			_type(getType(type)) {
 	MAssert(type==AggType::PROD);
 	initializeProd(engine, head, set, weight, rel, bound);
 }
 void FDAggConstraint::initializeProd(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound) {
 	if (weight == 0) {
-		new FDAggConstraint(engine, head, AggType::SUM, { bound }, { 1 }, invertEqType(rel), weight);
+		new FDAggConstraint(getID(), engine, head, AggType::SUM, { bound }, { 1 }, invertEqType(rel), weight);
 		notifyNotPresent();
 	}
 	sharedInitialization(AggType::PROD, engine, head, set, { weight }, rel, bound);
@@ -253,7 +254,7 @@ rClause FDAggConstraint::notifypropagateSum() {
 					minlits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
 				}
 			}
-			auto c = getPCSolver().createClause(Disjunction(minlits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), minlits), true);
 			getPCSolver().addLearnedClause(c);
 		} else if (max < bound) {
 			litlist maxlits;
@@ -265,7 +266,7 @@ rClause FDAggConstraint::notifypropagateSum() {
 					maxlits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
 				}
 			}
-			auto c = getPCSolver().createClause(Disjunction(maxlits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), maxlits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 		return nullPtrClause;
@@ -303,7 +304,7 @@ rClause FDAggConstraint::notifypropagateSum() {
 					}
 				}
 				lits.push_back(lit);
-				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 				if (value(lit) == l_False) { // Conflict
 					getPCSolver().addConflictClause(c);
 					return c;
@@ -352,7 +353,7 @@ rClause FDAggConstraint::notifypropagateSum() {
 					}
 				}
 				lits.push_back(lit);
-				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 				if (value(lit) == l_False) { // Conflict
 					getPCSolver().addConflictClause(c);
 					return c;
@@ -418,7 +419,7 @@ rClause FDAggConstraint::checkProduct(int val, int boundvalue) {
 		MAssert(value(extralit)==l_False);
 		lits.push_back(extralit);
 	}
-	auto c = getPCSolver().createClause(Disjunction(lits), true);
+	auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 	if (value(lits[0]) == l_False) { // Conflict
 		getPCSolver().addConflictClause(c);
 		return c;
@@ -464,8 +465,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			}
 		}
 		if (not lits.empty()) {
-			//Propagation has occured. This can NEVER be a conflict, since we can always choose the value of head appropriately.
-			auto c = getPCSolver().createClause(Disjunction(lits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 		return nullPtrClause;
@@ -504,7 +504,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
 			MAssert(value(boundlit)==l_Undef);
-			auto c = getPCSolver().createClause(Disjunction(lits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(),lits), true);
 			getPCSolver().addLearnedClause(c);
 
 		}
@@ -547,7 +547,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 					}
 				}
 				lits.push_back(lit);
-				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 				if (value(lit) == l_False) { // Conflict
 					getPCSolver().addConflictClause(c);
 					return c;
@@ -585,7 +585,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
 			MAssert(value(boundlit)==l_Undef);
-			auto c = getPCSolver().createClause(Disjunction(lits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 
@@ -632,7 +632,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 					}
 				}
 				lits.push_back(lit);
-				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 				if (value(lit) == l_False) { // Conflict
 					getPCSolver().addConflictClause(c);
 					return c;
@@ -678,7 +678,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 		if (lits.size() != 0) {
 			getLitsNotCurrentAbsValSituation(lits,_vars.size());
 			//Propagation has occured. This can NEVER be a conflict, since we can always choose the value of head appropriately.
-			auto c = getPCSolver().createClause(Disjunction(lits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 		return nullPtrClause;
@@ -698,7 +698,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
 			MAssert(value(boundlit)==l_Undef);
-			auto c = getPCSolver().createClause(Disjunction(lits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 	}
@@ -711,7 +711,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
 			MAssert(value(boundlit)==l_Undef);
-			auto c = getPCSolver().createClause(Disjunction(lits), true);
+			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 	}
@@ -784,7 +784,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 					lits.push_back(lit);
 				}
 
-				auto c = getPCSolver().createClause(Disjunction(lits), true);
+				auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 				if (conflict) {
 					getPCSolver().addConflictClause(c);
 					return c;

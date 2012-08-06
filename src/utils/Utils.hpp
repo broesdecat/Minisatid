@@ -33,10 +33,10 @@ public:
 		seen.resize(nbvars, 0);
 	}
 
-	bool hasElem(Var var) const { return var-offset>=0 && ((uint)var-offset)<seen.size(); }
+	bool hasElem(Atom var) const { return var-offset>=0 && ((uint)var-offset)<seen.size(); }
 
-	int& getElem(Var var) { return seen[var-offset]; }
-	const int& getElem(Var var) const { return seen[var-offset]; }
+	int& getElem(Atom var) { return seen[var-offset]; }
+	const int& getElem(Atom var) const { return seen[var-offset]; }
 };
 
 enum PRIORITY { FASTEST = 0, FAST = 1, SLOW = 2 };

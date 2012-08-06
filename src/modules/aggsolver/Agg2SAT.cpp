@@ -32,6 +32,11 @@ struct MinisatID::PBAgg {
 	MiniSatPP::vec<MiniSatPP::Int> weights;
 	Weight bound;
 	int sign;
+	uint id;
+
+	PBAgg(uint id):id(id){
+
+	}
 };
 
 AggToCNFTransformer::~AggToCNFTransformer() {
@@ -59,8 +64,8 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 			continue;
 		}
 
-		auto pbaggeq = new PBAgg();
-		auto pbaggineq = new PBAgg();
+		auto pbaggeq = new PBAgg(agg->getID());
+		auto pbaggineq = new PBAgg(agg->getID());
 		auto bound = agg->getBound();
 		pbaggeq->bound = bound;
 		pbaggineq->bound = bound;
@@ -130,20 +135,30 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 	aggs = remaining;
 }
 
+template<class ListTo, class ListFrom>
+void addAll(const ListFrom& from, ListTo& to){
+	to.insert(to.end(), from.cbegin(), from.cend());
+}
+
 SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	auto& pcsolver = transformer.pcsolver;
-	auto pbsolver = new MiniSatPP::PbSolver();
-	MiniSatPP::opt_verbosity = pcsolver.verbosity() - 1; //Gives a bit too much output on 1
-	MiniSatPP::opt_abstract = true; //Should be true
-	MiniSatPP::opt_tare = true; //Experimentally set to true
-	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
-	MiniSatPP::opt_convert_weak = false;
-	MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
+	MiniSatPP::PBOptions options;
+	options.opt_verbosity = pcsolver.verbosity() - 1; //Gives a bit too much output on 1
+	options.opt_abstract = true; //Should be true
+	options.opt_tare = true; //Experimentally set to true
+	options.opt_convert_weak = false;
+	options.opt_convert = MiniSatPP::ct_Adders;
+	auto pbsolver = new MiniSatPP::PbSolver(pcsolver.modes().getPrimesFile(), &options);
 	pbsolver->allocConstrs(transformer.maxvar, transformer.pbaggs.size());
 
 	bool unsat = false;
-	for (auto i = transformer.pbaggs.cbegin(); !unsat && i < transformer.pbaggs.cend(); ++i) {
-		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int(toInt((*i)->bound)), (*i)->sign, false);
+	std::vector<uint> aggids;
+	for(auto agg:transformer.pbaggs){
+		aggids.push_back(agg->id);
+		unsat = !pbsolver->addConstr(agg->literals, agg->weights, MiniSatPP::Int(toInt(agg->bound)), agg->sign, false);
+		if(unsat){
+			break;
+		}
 	}
 
 	if (unsat) {
@@ -153,7 +168,7 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 
 	//get CNF out of the pseudoboolean matrix
 	std::vector<std::vector<MiniSatPP::Lit> > pbencodings;
-	unsat = !pbsolver->toCNF(pbencodings);
+	unsat = not pbsolver->toCNF(pbencodings);
 	delete pbsolver;
 	if (unsat) {
 		return SATVAL::UNSAT;
@@ -162,7 +177,8 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	//add the CNF to the solver
 	int maxnumber = pcsolver.nVars();
 	for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
-		Disjunction clause;
+		// FIXME use aggids fro unsat core!
+		Disjunction clause(DEFAULTCONSTRID,{});
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
 			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, maxnumber));
 		}
