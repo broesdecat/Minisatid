@@ -420,10 +420,10 @@ struct CPProdWeighted: public ID {
 	std::vector<uint> varIDs;
 	Weight prodWeight;
 	EqType rel;
-	Weight bound;
+	uint boundID;
 
-	CPProdWeighted(uint id, Atom head, const std::vector<uint>& varIDs, Weight prodweight, EqType rel, Weight bound)
-			: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), bound(bound) {
+	CPProdWeighted(uint id, Atom head, const std::vector<uint>& varIDs, Weight prodweight, EqType rel, uint boundid)
+			: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), boundID(boundid) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT

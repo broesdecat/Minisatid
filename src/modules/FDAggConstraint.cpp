@@ -26,7 +26,10 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 	auto headIsTrue = mkLit(head, true);
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
 	const int& zero = 0; //doing this here, to make the disambiguation.
-	auto equation = new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::EQ, zero);
+	const int& one = 1; //doing this here, to make the disambiguation.
+	auto equation = new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::GEQ, zero);
+	auto equation2 = new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::L, one);
+	//We cannot use equality here, sice that would cause loops...
 	//internalAdd(equation, getPCSolver()); //TODO NEEDED?
 	return result;
 }
@@ -42,6 +45,7 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 		const std::vector<Weight>& weights, EqType rel, IntView* bound) {
 	_head = head;
 	_vars = set;
+	std::cerr << "SHARED"<<endl;
 	if (rel == EqType::EQ || rel == EqType::NEQ) {
 		auto eq = (rel == EqType::EQ);
 		auto one = mkPosLit(getPCSolver().newVar());
@@ -161,8 +165,9 @@ void FDAggConstraint::initializeProd(PCSolver* engine, const Lit& head, const st
 	if (weight == 0) {
 		new FDAggConstraint(getID(), engine, head, AggType::SUM, { bound }, { 1 }, invertEqType(rel), weight);
 		notifyNotPresent();
+	} else {
+		sharedInitialization(AggType::PROD, engine, head, set, { weight }, rel, bound);
 	}
-	sharedInitialization(AggType::PROD, engine, head, set, { weight }, rel, bound);
 }
 
 //NOTE: for products, this does not include the weight!!! and also... This is an estimate.

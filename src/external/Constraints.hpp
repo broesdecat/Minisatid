@@ -200,8 +200,7 @@ class ExtAdd<CPProdWeighted, Engine> {
 public:
 	void extAdd(Engine& space, const CPProdWeighted& obj) {
 		auto& s = *space.getRemapper();
-		// FIXME change when it is a var
-		CPProdWeighted form(obj.getID(), map(obj.head, s), map(obj.varIDs, s), obj.prodWeight, obj.rel, obj.bound);
+		CPProdWeighted form(obj.getID(), map(obj.head, s), map(obj.varIDs, s), obj.prodWeight, obj.rel, map(obj.boundID,s));
 		space.add(form);
 	}
 };

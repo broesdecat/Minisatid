@@ -178,12 +178,12 @@ public:
 		std::vector<int>::size_type count = 0;
 		auto litit = prod.varIDs.cbegin();
 		for (; litit < prod.varIDs.cend(); ++count, ++litit) {
-			target() << "var" << *litit;
+			target() << "var" << toString(*litit, getPrinter());
 			if (count < prod.varIDs.size() - 1) {
 				target() << ", ";
 			}
 		}
-		target() << " }) " << prod.rel << " " << prod.bound << "\n";
+		target() << " }) " << prod.rel << " " << "var"<<toString(prod.boundID, getPrinter()) << "\n";
 	}
 
 	void add(const CPElement& rel) {
