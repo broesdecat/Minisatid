@@ -48,9 +48,21 @@ MiniSatPP::Lit mapToPBLit(Lit lit){
 }
 
 //Any literal that is larger than maxvar was newly introduced by the transformation, so should be mapped to nVars()+lit
-Lit mapFromPBLit(MiniSatPP::Lit lit, int maxopbvar, int nvars){
-	auto v = MiniSatPP::var(lit) + (MiniSatPP::var(lit) > maxopbvar ? nvars - maxopbvar +1 : 0);
-	return mkLit(v, sign(lit));
+Lit mapFromPBLit(MiniSatPP::Lit lit, int maxopbvar, PCSolver& pcsolver, std::map<Atom, Atom>& opbinternal2pcsolver){
+	auto var = MiniSatPP::var(lit);
+	if(var <= maxopbvar){
+		return mkLit(var, sign(lit));
+	}else{
+		auto it = opbinternal2pcsolver.find(var);
+		if(it==opbinternal2pcsolver.cend()){
+			auto newv = pcsolver.newVar();
+			opbinternal2pcsolver[var] = newv;
+			var = newv;
+		}else{
+			var = it->second;
+		}
+		return mkLit(var, sign(lit));
+	}
 }
 
 void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
@@ -140,7 +152,7 @@ void addAll(const ListFrom& from, ListTo& to){
 	to.insert(to.end(), from.cbegin(), from.cend());
 }
 
-SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
+SATVAL MinisatID::execute(AggToCNFTransformer& transformer) {
 	auto& pcsolver = transformer.pcsolver;
 	MiniSatPP::PBOptions options;
 	options.opt_verbosity = pcsolver.verbosity() - 1; //Gives a bit too much output on 1
@@ -175,12 +187,11 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	}
 
 	//add the CNF to the solver
-	int maxnumber = pcsolver.nVars();
 	for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
-		// FIXME use aggids fro unsat core!
+		// FIXME use aggids for unsat core!
 		Disjunction clause(DEFAULTCONSTRID,{});
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
-			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, maxnumber));
+			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, pcsolver, transformer.opbinternal2pcsolver));
 		}
 		internalAdd(clause, pcsolver);
 	}

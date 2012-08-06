@@ -55,17 +55,15 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 
 	dummy1 = newVar();
 	dummy2 = newVar();
-	dummyfalse = newVar();
 	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy1) }), *this);
 	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy2) }), *this);
-	internalAdd(Disjunction(DEFAULTCONSTRID, { mkNegLit(dummyfalse) }), *this);
 }
 
 Lit PCSolver::getTrueLit() const {
 	return mkPosLit(dummy1);
 }
 Lit PCSolver::getFalseLit() const {
-	return mkPosLit(dummyfalse);
+	return mkNegLit(dummy1);
 }
 
 PCSolver::~PCSolver() {

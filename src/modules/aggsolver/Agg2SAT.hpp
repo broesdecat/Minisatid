@@ -23,21 +23,22 @@ namespace MinisatID{
 //Temporary structure to create pseudo booleans
 class PBAgg;
 
+class AggToCNFTransformer;
+SATVAL execute(AggToCNFTransformer& transformer);
+
 class AggToCNFTransformer{
 private:
 	PCSolver& pcsolver;
 	std::vector<PBAgg*> pbaggs;
 	int maxvar;
+	std::map<Atom, Atom> opbinternal2pcsolver;
 public:
 	AggToCNFTransformer(PCSolver* pcsolver):pcsolver(*pcsolver), maxvar(1){}
 	~AggToCNFTransformer();
 	void add(WLSet* set, std::vector<TempAgg*>& aggs);
 
-	friend SATVAL execute(const AggToCNFTransformer& transformer);
+	friend SATVAL execute(AggToCNFTransformer& transformer);
 };
-
-// FIXME currently, at most one call to execute is allowed because of state maintenance issues in the pbsolver (this is checked @ runtime).
-SATVAL execute(const AggToCNFTransformer& transformer);
 
 }
 

@@ -164,7 +164,7 @@ public:
 	// State
 private:
 	// Explanation dummies: used to fix up learned clauses which are too small
-	Atom dummy1, dummy2, dummyfalse;
+	Atom dummy1, dummy2;
 public:
 	Lit getTrueLit() const;
 	Lit getFalseLit() const;
