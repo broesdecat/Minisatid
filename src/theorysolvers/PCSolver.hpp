@@ -56,7 +56,7 @@ public:
 private:
 	VarCreation* varcreator;
 public:
-	uint newID();
+	VarID newID();
 	Atom newVar();
 	void createVar(Atom v);
 public:
@@ -234,7 +234,7 @@ public:
 private:
 	LiteralPrinter* printer;
 public:
-	virtual std::string toString(uint id) const;
+	virtual std::string toString(VarID id) const;
 	virtual std::string toString(const Lit& lit) const;
 	void printEnqueued(const Lit& p) const;
 	void printChoiceMade(int level, const Lit& l) const;

@@ -90,7 +90,7 @@ bool compareWLByAbsWeights(const Tuple& one, const Tuple& two) {
 }
 
 struct VariableEqValue {
-	uint variable;
+	VarID variable;
 	int value;
 };
 
@@ -304,9 +304,9 @@ public:
 class MinimizeVar: public Constraint {
 public:
 	uint priority;
-	uint varID;
+	VarID varID;
 
-	MinimizeVar(uint priority, uint varID)
+	MinimizeVar(uint priority, VarID varID)
 			: priority(priority), varID(varID) {
 	}
 
@@ -335,12 +335,12 @@ public:
 };
 
 struct IntVarRange: public ID {
-	uint varID;
+	VarID varID;
 	Weight minvalue, maxvalue;
 
 	DATASTRUCTURE_DECLAREACCEPT
 
-	IntVarRange(uint id, uint varID, const Weight& minvalue, const Weight& maxvalue)
+	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
 			: ID(id), varID(varID), minvalue(minvalue), maxvalue(maxvalue) {
 	}
 
@@ -350,10 +350,10 @@ struct IntVarRange: public ID {
 };
 
 struct IntVarEnum: public ID {
-	uint varID;
+	VarID varID;
 	std::vector<Weight> values;
 
-	IntVarEnum(uint id, uint varID, const std::vector<Weight>& values)
+	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values)
 			: ID(id), varID(varID), values(values) {
 	}
 
@@ -366,11 +366,11 @@ struct IntVarEnum: public ID {
 
 struct CPBinaryRel: public ID {
 	Atom head;
-	uint varID;
+	VarID varID;
 	EqType rel;
 	Weight bound;
 
-	CPBinaryRel(uint id, Atom head, uint varID, EqType rel, const Weight& bound)
+	CPBinaryRel(uint id, Atom head, VarID varID, EqType rel, const Weight& bound)
 			: ID(id), head(head), varID(varID), rel(rel), bound(bound) {
 	}
 
@@ -383,10 +383,10 @@ struct CPBinaryRel: public ID {
 
 struct CPBinaryRelVar: public ID {
 	Atom head;
-	uint lhsvarID, rhsvarID;
+	VarID lhsvarID, rhsvarID;
 	EqType rel;
 
-	CPBinaryRelVar(uint id, Atom head, uint lhsvarID, EqType rel, uint rhsvarID)
+	CPBinaryRelVar(uint id, Atom head, VarID lhsvarID, EqType rel, VarID rhsvarID)
 			: ID(id), head(head), lhsvarID(lhsvarID), rhsvarID(rhsvarID), rel(rel) {
 	}
 
@@ -399,12 +399,12 @@ struct CPBinaryRelVar: public ID {
 
 struct CPSumWeighted: public ID {
 	Atom head;
-	std::vector<uint> varIDs;
+	std::vector<VarID> varIDs;
 	std::vector<Weight> weights;
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(uint id, Atom head, const std::vector<uint>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
+	CPSumWeighted(uint id, Atom head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
 			: ID(id), head(head), varIDs(varIDs), weights(weights), rel(rel), bound(bound) {
 	}
 
@@ -417,12 +417,12 @@ struct CPSumWeighted: public ID {
 
 struct CPProdWeighted: public ID {
 	Atom head;
-	std::vector<uint> varIDs;
+	std::vector<VarID> varIDs;
 	Weight prodWeight;
 	EqType rel;
-	uint boundID;
+	VarID boundID;
 
-	CPProdWeighted(uint id, Atom head, const std::vector<uint>& varIDs, Weight prodweight, EqType rel, uint boundid)
+		CPProdWeighted(uint id, Atom head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
 			: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), boundID(boundid) {
 	}
 
@@ -435,12 +435,12 @@ struct CPProdWeighted: public ID {
 
 // Encodes: (number of varIDS equal to eqbound) rel rhsvar
 struct CPCount: public ID {
-	std::vector<uint> varIDs;
+	std::vector<VarID> varIDs;
 	Weight eqbound;
 	EqType rel;
-	uint rhsvar;
+	VarID rhsvar;
 
-	CPCount(uint id, const std::vector<uint>& varIDs, const Weight& eqbound, EqType rel, uint rhsvar)
+	CPCount(uint id, const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
 			: ID(id), varIDs(varIDs), eqbound(eqbound), rel(rel), rhsvar(rhsvar) {
 	}
 
@@ -452,9 +452,9 @@ struct CPCount: public ID {
 };
 
 struct CPAllDiff: public ID {
-	std::vector<uint> varIDs;
+	std::vector<VarID> varIDs;
 
-	CPAllDiff(uint id, const std::vector<uint>& varIDs)
+	CPAllDiff(uint id, const std::vector<VarID>& varIDs)
 			: ID(id), varIDs(varIDs) {
 	}
 
@@ -466,11 +466,11 @@ struct CPAllDiff: public ID {
 };
 
 struct CPElement: public ID {
-	std::vector<uint> varIDs;
-	uint index;
-	uint rhs;
+	std::vector<VarID> varIDs;
+	VarID index;
+	VarID rhs;
 
-	CPElement(uint id, const std::vector<uint>& varids, uint index, uint rhs)
+	CPElement(uint id, const std::vector<VarID>& varids, VarID index, VarID rhs)
 			: ID(id), varIDs(varids), index(index), rhs(rhs) {
 	}
 

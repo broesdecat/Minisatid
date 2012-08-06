@@ -23,7 +23,7 @@ TEST(CPTest, UnSatCPSum) {
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkNegLit(2), mkPosLit(3)}));
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkNegLit(3)}));
-	uint groundone=1, groundtwo=2;
+	VarID groundone={1}, groundtwo={2};
 	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundone, -3, 7));
 	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundtwo, 7, 10));
 	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,1, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
@@ -43,11 +43,11 @@ TEST(CPTest, DISABLED_MagicSeq) {
 
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
-	vector<uint> elemx;
+	vector<VarID> elemx;
 	int n = 100;
 	for(int i=0; i<n; ++i){
 		mult.push_back(Weight(i-1));
-		int x = i;
+		VarID x = {i};
 		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, 0, n));
 		elemx.push_back(x);
 	}
@@ -84,11 +84,12 @@ TEST(CPTest, Unsat2) {
 	options.verbosity = 0;
 	auto space = new Space(options);
 
-	vector<uint> elemx;
+	vector<VarID> elemx;
 	uint n = 4;
 	for(uint i=1; i<n; ++i){
-		extAdd(*space, IntVarRange(DEFAULTCONSTRID,i, 1, 3));
-		elemx.push_back(i);
+		VarID x = {i};
+		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, 1, 3));
+		elemx.push_back(x);
 	}
 
 	int c = 1;

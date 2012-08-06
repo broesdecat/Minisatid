@@ -20,7 +20,7 @@ struct IntVarValue{
 
 class IntVar: public Propagator{
 private:
-	int varid_;
+	VarID varid_;
 	PCSolver& engine_;
 	int minvalue, maxvalue;
 
@@ -41,7 +41,7 @@ protected:
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
 public:
-	IntVar(uint id, PCSolver* solver, int varid);
+	IntVar(uint id, PCSolver* solver, VarID varid);
 
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
@@ -50,7 +50,7 @@ public:
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
-	int getVarID() const { return varid_; }
+	VarID getVarID() const { return varid_; }
 	PCSolver& engine() { return engine_; }
 
 	int origMinValue() const {
@@ -81,14 +81,14 @@ protected:
 	void addConstraints();
 
 public:
-	BasicIntVar(uint id, PCSolver* solver, int varid);
+	BasicIntVar(uint id, PCSolver* solver, VarID varid);
 
 	virtual void updateBounds();
 };
 
 class RangeIntVar: public BasicIntVar{
 public:
-	RangeIntVar(uint id, PCSolver* solver, int varid, int min, int max);
+	RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -101,7 +101,7 @@ private:
 	std::vector<int> _values; // SORTED low to high!
 
 public:
-	EnumIntVar(uint id, PCSolver* solver, int varid, const std::vector<int>& values);
+	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<int>& values);
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -117,7 +117,7 @@ private:
 	bool checkAndAddVariable(int value);
 
 public:
-	LazyIntVar(uint id, PCSolver* solver, int varid, int min, int max);
+	LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
 
 	virtual void updateBounds();
 
@@ -141,7 +141,7 @@ public:
 
 	IntVar* var() const { return var_; }
 
-	int getVarID() const { return var()->getVarID(); }
+	VarID getVarID() const { return var()->getVarID(); }
 
 	int origMinValue() const {
 		return var()->origMinValue()+constdiff();

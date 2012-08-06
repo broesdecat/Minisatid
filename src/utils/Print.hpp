@@ -27,9 +27,10 @@ std::string toString(Atom obj, const S& solver) {
 }
 
 std::string toString(const Lit& obj, LiteralPrinter const * const solver);
-std::string toString(const Lit& obj, lbool value, LiteralPrinter const * const solver);
 std::string toString(const Lit& obj, const LiteralPrinter& solver);
 std::string toString(const Lit& obj, lbool value, const LiteralPrinter& solver);
+
+std::string toString(VarID id, const LiteralPrinter& solver);
 
 }
 

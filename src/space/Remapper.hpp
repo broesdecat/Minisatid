@@ -71,6 +71,10 @@ public:
 		return wasInput((uint)v);
 	}
 
+	bool wasInput(VarID id) const {
+		return wasInput(id.id);
+	}
+
 	bool wasInput(uint id) const {
 		return contiguoustoorigatommapper.find(id)!=contiguoustoorigatommapper.cend();
 	}
@@ -81,6 +85,9 @@ public:
 		MAssert(v>=1);
 		auto origatom = (int)getOrigID((uint)v);
 		return mkLit(origatom, sign(lit));
+	}
+	VarID getOrigID(VarID id) const{
+		return {getOrigID(id.id)};
 	}
 	uint getOrigID(uint id) const{
 		auto origidit = contiguoustoorigatommapper.find(id);

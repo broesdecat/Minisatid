@@ -38,7 +38,7 @@ void Propagator::addWatch(const Lit& lit) {
 std::string Propagator::toString(Atom atom) const{
 	return MinisatID::toString(mkPosLit(atom), value(mkPosLit(atom)), getPCSolver());
 }
-std::string Propagator::toString(uint id) const{
+std::string Propagator::toString(VarID id) const{
 	return MinisatID::toString(id, getPCSolver());
 }
 std::string Propagator::toString(const Lit& lit) const{

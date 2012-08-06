@@ -40,7 +40,7 @@ public:
 	SATVAL satState() const;
 	bool isUnsat() const;
 
-	std::string toString(uint id) const;
+	std::string toString(VarID id) const;
 	std::string toString(const Lit& lit) const;
 
 	void invalidate(litlist& clause) const;

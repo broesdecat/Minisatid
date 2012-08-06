@@ -28,15 +28,11 @@ std::string toString(const Lit& lit, LiteralPrinter const * const solver){
 	return toString(lit, *solver);
 }
 
-std::string toString(const Lit& lit, lbool value, LiteralPrinter const* const solver){
-	return toString(lit, value, *solver);
-}
-
 std::string toString(const Lit& lit, const LiteralPrinter& solver){
 	return solver.toString(lit);
 }
 
-std::string toString(uint id, const LiteralPrinter& solver){
+std::string toString(VarID id, const LiteralPrinter& solver){
 	return solver.toString(id);
 }
 

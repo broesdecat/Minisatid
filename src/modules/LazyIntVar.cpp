@@ -18,7 +18,7 @@ using namespace std;
 // NOTE: currently always grounds at least log(max-min) elements.
 // TODO Could be changed to be able to only ground at least 2 elements.
 
-LazyIntVar::LazyIntVar(uint id, PCSolver* solver, int varid, int min, int max)
+LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
 		: IntVar(id, solver, varid){
 	setOrigMax(max);
 	setOrigMin(min);

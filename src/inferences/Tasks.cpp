@@ -33,8 +33,8 @@
 using namespace std;
 using namespace MinisatID;
 
-uint VarCreation::createID(){
-	return remapper->getNewID();
+VarID VarCreation::createID(){
+	return {remapper->getNewID()};
 }
 
 Atom VarCreation::createVar() {

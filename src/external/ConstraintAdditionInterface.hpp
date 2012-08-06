@@ -111,7 +111,7 @@ public:
 private:
 	Translator *_translator, *_origtranslator;
 public:
-	virtual std::string toString(uint id) const;
+	virtual std::string toString(VarID id) const;
 	virtual std::string toString(const Lit& lit) const;
 	std::string toString(const litlist& literals) const;
 
