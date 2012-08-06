@@ -1,0 +1,9 @@
+p ecnf def aggr
+D 1 9 8 0
+C 74 45 0
+C 78 47 0
+D 45 78 0
+D 47 74 85 0
+-1 0
+Set 1 8 9 0
+Card C L 10 1 1 0
