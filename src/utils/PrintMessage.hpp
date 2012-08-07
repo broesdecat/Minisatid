@@ -69,7 +69,7 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
+	void printSatisfiable(T& stream, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){
 			if(outputformat==OutputFormat::OPB){
 				stream<<"s SATISFIABLE\n";
@@ -84,7 +84,7 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printUnSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
+	void printUnSatisfiable(T& stream, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){
 			if(outputformat==OutputFormat::OPB){
 				stream<<"s UNSATISFIABLE\n";
