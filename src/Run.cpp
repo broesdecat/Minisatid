@@ -218,7 +218,7 @@ void initializeAndParseOPB(const std::string& inputfile, pwls d) {
 }
 
 typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, uint, TheoryID> ECNFParsing;
-typedef Parser<FZ::FZScanner, FZ::FZParser, FZ::InsertWrapper> FZParsing;
+typedef Parser<FZ::FZScanner, FZ::FZParser, FZ::InsertWrapper&> FZParsing;
 
 template<class Monitor>
 void initializeAndParseFODOT(const std::string& inputfile, Monitor* d, const SolverOption& modes) {
@@ -251,6 +251,7 @@ void initializeAndParseFZ(const std::string& inputfile, Monitor* d, const Solver
 		if (d->isCertainlyUnsat()) {
 			printUnsatFoundDuringParsing(clog, modes.verbosity);
 		} else {
+			printUnknown(std::cout, modes.transformat);
 			throw idpexception(getParseError(e, parser.getLineNumber(), parser.getText()));
 		}
 	}

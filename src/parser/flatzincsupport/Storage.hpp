@@ -94,6 +94,15 @@ public:
 		return (*it).second->vars[index - 1];
 	}
 
+	//IMPORTANT: index starts at ONE, so map to 0 based!
+	std::vector<MBoolVar*> getArrayBoolVars(const std::string& name) {
+		auto it = name2boolarray.find(name);
+		if (it == name2boolarray.end()) {
+			throw fzexception("Array was not declared.\n");
+		}
+		return it->second->vars;
+	}
+
 	MIntVar* getIntVar(const std::string& name, int index) {
 		auto it = name2intarray.find(name);
 		if (it == name2intarray.end() || (*it).second->vars.size() < (uint)index) {
@@ -118,14 +127,8 @@ public:
 		}
 	}
 
-
-
-
 	bool isCertainlyUnsat() const {
 		return store->isCertainlyUnsat();
-	}
-
-	void print(std::ostream&) {
 	}
 
 	int getTrue() {
@@ -149,7 +152,7 @@ public:
 	}
 
 	MinisatID::Lit get(int lit){
-		return lit>0?mkPosLit(lit):mkNegLit(lit);
+		return lit>0?mkPosLit(abs(lit)):mkNegLit(abs(lit));
 	}
 
 	std::vector<MinisatID::Lit> get(const std::vector<int>& lits){

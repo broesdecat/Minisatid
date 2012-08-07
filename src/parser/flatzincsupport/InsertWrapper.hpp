@@ -82,9 +82,6 @@ public:
 
 	bool isCertainlyUnsat() const;
 
-	void start();
-	void finish();
-
 	void add(Var* var);
 	void add(Constraint* var);
 	void add(Search* var);

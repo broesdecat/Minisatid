@@ -50,8 +50,8 @@ namespace MinisatID{
 
 	template<class T>
 	void printUnknown(T& stream, OutputFormat outputformat){
-		if(outputformat==OutputFormat::OPB){
-			stream <<"UNKNOWN\n";
+		if(outputformat==OutputFormat::FZ){
+			stream <<"=====UNKNOWN=====\n";
 		}else{
 			stream <<"UNKNOWN\n";
 		}
@@ -71,10 +71,12 @@ namespace MinisatID{
 	template<class T>
 	void printSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(inputformat==InputFormat::OPB && outputformat!=OutputFormat::PLAIN){
+			if(outputformat==OutputFormat::OPB){
 				stream<<"s SATISFIABLE\n";
 			}else if(outputformat==OutputFormat::ASP){
 				stream <<"ANSWER SET FOUND\n";
+			}else if(outputformat==OutputFormat::FZ){
+				// No output
 			}else{
 				stream<<"SATISFIABLE\n";
 			}
@@ -84,10 +86,12 @@ namespace MinisatID{
 	template<class T>
 	void printUnSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(inputformat==InputFormat::OPB && outputformat!=OutputFormat::PLAIN){
+			if(outputformat==OutputFormat::OPB){
 				stream<<"s UNSATISFIABLE\n";
 			}else if(outputformat==OutputFormat::ASP){
 				stream <<"INCONSISTENT\n";
+			}else if(outputformat==OutputFormat::FZ){
+				stream <<"=====UNSATISFIABLE=====\n";
 			}else{
 				stream<<"UNSATISFIABLE\n";
 			}
@@ -99,9 +103,18 @@ namespace MinisatID{
 		if(verbosity>=1){
 			if(outputformat==OutputFormat::OPB){
 				stream<<"s OPTIMUM FOUND\n";
+			}else if(outputformat==OutputFormat::FZ){
+				// Print nothing
 			}else{
 				stream<<"OPTIMUM FOUND\n";
 			}
+		}
+	}
+
+	template<class T>
+	void printNoMoreModels(T& stream, OutputFormat outputformat){
+		if(outputformat==OutputFormat::FZ){
+			stream <<"==========\n";
 		}
 	}
 

@@ -37,6 +37,7 @@
 		
 	#include "parser/flatzincsupport/FZDatastructs.hpp"
 	#include "parser/flatzincsupport/InsertWrapper.hpp"
+	#include "external/Idpexception.hpp"
 		
 	using namespace std;
 	using namespace FZ;
@@ -79,7 +80,7 @@
        <string_val> STRING_LITERAL IDENT
        <float_val>  FLOAT_LITERAL 
        ARRAY BOOL CONSTRAINT FALSE FLOAT INT MAXIMIZE MINIMIZE OF
-       PREDICATE SATISFY SET SOLVE TRUE VAR DOTDOT COLONCOLON 
+       PREDICATE SATISFY SET SOLVE TRUE VAR DOTDOT COLONCOLON UNDERSCORE_IDENT
   
 %type <expr> expr
 %type <exprlist> annotations exprs
@@ -106,13 +107,10 @@
 // caused stack overflows on large models.  The error recovery isn't great,
 // but it's better than none.
 
-model			: 
-				{ wrapper.start(); }
-				pred_decl_items var_decl_items constraint_items model_end
-				{ wrapper.finish(); }
+model			: pred_decl_items var_decl_items constraint_items model_end
 
 pred_decl_items : pred_decl_items pred_decl_item ';'
-//				| pred_decl_items error ';' { error(yyloc, "fail"); } // TODO use of this rule?
+				| pred_decl_items error ';' { error(yyloc, "Not implemented"); }
 				| /* empty */
 
 var_decl_items	: var_decl_items var_decl_item ';'		{ wrapper.add($2); delete($2); }
@@ -144,6 +142,7 @@ array_decl_tail
   
 ident_anns:
     IDENT annotations 		{ $$ = new Identifier($1, $2); }
+    | UNDERSCORE_IDENT annotations { error(yyloc, "Not implemented"); }
 
 constraint_item:
     CONSTRAINT constraint_elem annotations { $$ = $2; $$->annotations = $3;}
@@ -210,6 +209,7 @@ expr:
   | array_literal 			{ $$ = new Expression(); $$->type = EXPR_ARRAY; $$->arraylit = $1; }
   | array_access_expr 		{ $$ = new Expression(); $$->type = EXPR_ARRAYACCESS; $$->arrayaccesslit = $1; }
   | IDENT 					{ $$ = new Expression(); $$->type = EXPR_IDENT; $$->ident = new Identifier($1, new vector<Expression*>()); }
+  | UNDERSCORE_IDENT		{ error(yyloc, "Not implemented"); }
   | IDENT '(' exprs ')'		{ $$ = new Expression(); $$->type = EXPR_IDENT; $$->ident = new Identifier($1, $3); }
 
 bool_literal
@@ -217,8 +217,8 @@ bool_literal
 	| TRUE 					{ $$ = true; }
 
 set_literal:
-    '{' int_literals '}'	{ $$ = new SetLiteral($2); }
-  | '{' '}'					{ $$ = new SetLiteral(new vector<int>());}
+    '{' exprs '}'			{ $$ = new SetLiteral($2); }
+  | '{' '}'					{ $$ = new SetLiteral(new vector<Expression*>());}
   | INT_LITERAL DOTDOT INT_LITERAL { $$ = new SetLiteral($1, $1);}
 
 array_literal:
@@ -226,6 +226,7 @@ array_literal:
   | '[' ']'					{ $$ = new ArrayLiteral();}
 
 array_access_expr: IDENT '[' INT_LITERAL ']' { $$ = new ArrayAccess($1, $3); }
+  | UNDERSCORE_IDENT '[' INT_LITERAL ']' { error(yyloc, "Not implemented"); }
 
 //---------------------------------------------------------------------------
 // Annotations
@@ -263,7 +264,9 @@ pred_arg_array_tail:
 
 // We have to implement the error function
 void FZ::FZParser::error(const FZ::FZParser::location_type&, const std::string &msg) {
-	std::cerr << "Error: " << msg << std::endl;
+	std::stringstream ss;
+	ss << "Error: " << msg << std::endl;
+	throw MinisatID::idpexception(ss.str());
 }
 
 // Now that we have the Parser declared, we can declare the Scanner and implement

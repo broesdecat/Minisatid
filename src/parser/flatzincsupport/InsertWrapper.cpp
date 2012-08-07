@@ -69,15 +69,6 @@ bool InsertWrapper::isCertainlyUnsat() const {
 	return storage->isCertainlyUnsat();
 }
 
-void InsertWrapper::start() {
-	cout << "c Automated transformation from a flatzinc model into ECNF.\n";
-	cout << "p ecnf\n";
-}
-
-void InsertWrapper::finish() {
-	storage->print(cout);
-}
-
 void InsertWrapper::add(Var* var) {
 	var->add(*storage);
 }

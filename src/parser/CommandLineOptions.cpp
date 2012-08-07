@@ -131,6 +131,7 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 
 	vector<InputFormat> formatvals;
 	vector<pair<string, string> > formatdesc;
+	formatvals.push_back(InputFormat::FLATZINC); formatdesc.push_back(pair<string, string>("fz", "Flatzinc"));
 	formatvals.push_back(InputFormat::FODOT); formatdesc.push_back(pair<string, string>("fodot", "propositional FO(.)"));
 	formatvals.push_back(InputFormat::ASP); formatdesc.push_back(pair<string, string>("asp", "propositional LParse ASP"));
 	formatvals.push_back(InputFormat::OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
@@ -354,6 +355,9 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 				break;
 			case InputFormat::FODOT:
 				modes.transformat = OutputFormat::FODOT;
+				break;
+			case InputFormat::FLATZINC:
+				modes.transformat = OutputFormat::FZ;
 				break;
 		}
 	}

@@ -84,7 +84,7 @@ struct ArrayLiteral {
 	std::vector<Expression*>* exprs;
 
 	ArrayLiteral()
-			: exprs(NULL) {
+			: exprs(new std::vector<Expression*>()) {
 	}
 	~ArrayLiteral() {
 		if (exprs != NULL) {
@@ -95,10 +95,10 @@ struct ArrayLiteral {
 
 struct SetLiteral {
 	bool range;
-	std::vector<int>* values;
+	std::vector<Expression*>* values;
 	int begin, end;
 
-	SetLiteral(std::vector<int>* values)
+	SetLiteral(std::vector<Expression*>* values)
 			: range(false), values(values), begin(0), end(0) {
 	}
 	SetLiteral(int begin, int end)
@@ -248,7 +248,7 @@ public:
 
 class ArrayVar: public Var {
 public:
-	int begin, end; // NOTE are set LATER then constructor
+	int begin, end; // NOTE are set LATER than constructor
 
 	// Important: if rangevar is NULL, the type indicates the basetype of the array and it HAS to have an arraylist instantiating it
 	Var* rangevar; //the type the array maps to

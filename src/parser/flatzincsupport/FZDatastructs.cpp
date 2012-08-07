@@ -9,6 +9,7 @@
 #include "FZDatastructs.hpp"
 
 #include <cassert>
+#include <iostream>
 
 #include "Storage.hpp"
 #include "fzexception.hpp"
@@ -162,19 +163,28 @@ int FZ::parseParInt(Storage& storage, const Expression& expr) {
 }
 
 std::vector<int> FZ::parseArray(Storage& storage, VAR_TYPE type, Expression& expr) {
-	if (expr.type != EXPR_ARRAY) {
+	if(expr.type == EXPR_ARRAY){
+		MAssert(expr.arraylit!=NULL);
+		MAssert(expr.arraylit->exprs!=NULL);
+		std::vector<int> elems;
+		for (auto i = expr.arraylit->exprs->begin(); i < expr.arraylit->exprs->end(); ++i) {
+			MAssert((*i)!=NULL);
+			if (type == VAR_BOOL) {
+				elems.push_back(parseBool(storage, **i));
+			} else {
+				elems.push_back(parseInt(storage, **i));
+			}
+		}
+		return elems;
+	}else if(expr.type == EXPR_IDENT){
+		std::vector<int> elems;
+		for(auto var:storage.getArrayBoolVars(*expr.ident->name)){
+			elems.push_back(var->var);
+		}
+		return elems;
+	}else {
 		throw fzexception("Unexpected type.\n");
 	}
-
-	std::vector<int> elems;
-	for (auto i = expr.arraylit->exprs->begin(); i < expr.arraylit->exprs->end(); ++i) {
-		if (type == VAR_BOOL) {
-			elems.push_back(parseBool(storage, **i));
-		} else {
-			elems.push_back(parseInt(storage, **i));
-		}
-	}
-	return elems;
 }
 
 std::vector<int> FZ::parseParIntArray(Storage& storage, Expression& expr) {
