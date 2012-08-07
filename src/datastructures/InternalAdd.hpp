@@ -27,6 +27,16 @@ void internalAdd(const Constraint& obj, ConstraintDB& engine){
 	addVars(obj.getAtoms(), obj.theoryid, engine);
 	engine.getFactory(obj.theoryid).add(obj);
 }
+
+template<typename ConstraintDB>
+void internalAdd(const SubTheory& obj, ConstraintDB& engine){
+	addVars(obj.getAtoms(), obj.theoryid, engine);
+	addVars(obj.getAtoms(), obj.childid, engine);
+	std::vector<Atom> atoms = {obj.head};
+	addVars(atoms, obj.theoryid, engine);
+	engine.add(obj);
+}
+
 }
 
 #endif /* INTERNALADD_HPP_ */

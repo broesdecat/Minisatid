@@ -96,6 +96,8 @@ WHITESPACE	[\t\r ]*
 <theory>^"COUNT"		{return ET::COUNT;}
 <theory>^"ELEMENT"		{return ET::ELEMENT;}
 
+<theory>^"SubTheory"		{return ET::SUBTHEORY;}
+
 <theory>"="		{ecnflval->rel = EqType::EQ; return ET::REL;}
 <theory>">"		{ecnflval->rel = EqType::G; return ET::REL;}
 <theory>"<"		{ecnflval->rel = EqType::L; return ET::REL;}

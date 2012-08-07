@@ -243,6 +243,10 @@ public:
 		printConcatWithFunctor(lg.list, " ", target(), Print<Lit>(getPrinter()));
 		target() << " to lazy implication " << lg.ref << "\n";
 	}
+	virtual void add(const SubTheory& subtheory) {
+		target() <<"Created subtheory " <<subtheory.childid.id <<"\n";
+		// FIXME implement rest and add printing of theoryids to other add methods
+	}
 };
 
 }

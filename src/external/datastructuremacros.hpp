@@ -22,5 +22,6 @@
 #define CPSUMSTR "CPSUM"
 #define CPCOUNTSTR "COUNT"
 #define CPELEMENTSTR "ELEMENT"
+#define SUBTHEORYSTR "SubTheory"
 
 #endif /* DATASTRUCTUREMACROS_HPP_ */

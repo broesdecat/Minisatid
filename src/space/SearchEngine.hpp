@@ -21,11 +21,11 @@ struct OptimStatement;
 
 class SearchEngine: public LiteralPrinter {
 private:
-	std::vector<PCSolver*> solvers; // Earlier in list is higher in hierarchy
+	std::map<TheoryID, PCSolver*> solvers; // Earlier in list is higher in hierarchy
 public:
 	// NOTE: ownership is passed in
 	SearchEngine(PCSolver* solver) {
-		solvers.push_back(solver);
+		solvers[TheoryID(1)]=solver;
 	}
 	~SearchEngine();
 
@@ -80,10 +80,11 @@ public:
 
 	// MODAL SUPPORT
 	//Get information on hierarchy
-	void checkHasSolver(uint level) const;
-	bool hasSolver(uint level) const;
+	void checkHasSolver(TheoryID level) const;
+	bool hasSolver(TheoryID level) const;
 	PCSolver* getSolver() const;
 	PCSolver* getSolver(TheoryID level) const;
+	void add(const SubTheory& subtheory);
 
 	void verifyHierarchy();
 	void add(uint level, int constraints);

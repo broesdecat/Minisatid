@@ -119,6 +119,9 @@ struct TheoryID{
 	bool operator==(TheoryID other) const{
 		return id==other.id;
 	}
+	bool operator<(TheoryID other) const{
+		return id<other.id;
+	}
 };
 #define DEFAULTTHEORYID 1
 
@@ -609,10 +612,11 @@ public:
 
 class SubTheory: public ID{
 public:
-	Lit head;
+	Atom head;
+	TheoryID childid;
 	std::vector<Atom> rigidatoms;
 
-	SubTheory(uint id, Lit head, std::vector<Atom> atoms): ID(id), head(head), rigidatoms(atoms){}
+	SubTheory(uint id, Atom head, TheoryID childid, std::vector<Atom> atoms): ID(id), head(head), childid(childid), rigidatoms(atoms){}
 
 	DATASTRUCTURE_DECLAREACCEPT
 

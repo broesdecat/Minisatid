@@ -212,6 +212,13 @@ public:
 		return CPAllDiff(obj.getID(), map(obj.varIDs, r));
 	}
 };
+template<typename Remapper>
+class ExtAdd<SubTheory, Remapper> {
+public:
+	SubTheory extAdd(Remapper& r, const SubTheory& obj) {
+		return SubTheory(obj.getID(), map(obj.head, r),obj.childid, map(obj.rigidatoms, r));
+	}
+};
 
 template<typename Engine>
 Value extGetValue(Engine& space, const Lit& obj) {
