@@ -20,38 +20,43 @@ using namespace MinisatID;
 
 IntView* FDAggConstraint::negation(IntView* bound) {
 	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), -bound->maxValue(), -bound->minValue());
-	//internalAdd(newvar, getPCSolver()); //TODO NEEDED?
 	auto result = new IntView(newvar, 0);
 	auto head = getPCSolver().newVar();
-	auto headIsTrue = mkLit(head, true);
+	auto headIsTrue = mkPosLit(head);
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
 	const int& zero = 0; //doing this here, to make the disambiguation.
-	const int& one = 1; //doing this here, to make the disambiguation.
-	auto equation = new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::GEQ, zero);
-	auto equation2 = new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, -1 }, EqType::L, one);
-	//We cannot use equality here, sice that would cause loops...
-	//internalAdd(equation, getPCSolver()); //TODO NEEDED?
+	new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { 1, 1 }, EqType::GEQ, zero);
+	new FDAggConstraint(getID(), &getPCSolver(), headIsTrue, AggType::SUM, { bound, result }, { -1, -1 }, EqType::GEQ, zero);
+	if (verbosity() > 5) {
+		clog << toString(head) << " <=> var" << toString(result->getVarID()) << " + var" << toString(bound->getVarID())<<" = 0"<< endl;
+	}
+	//We cannot use equality here, since that would cause loops...
 	return result;
 }
 
 IntView* FDAggConstraint::createBound(const Weight& bound) {
 	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), bound, bound);
-	//internalAdd(newvar, getPCSolver()); //TODO NEEDED?
+	if (verbosity() > 5) {
+		clog << toString(newvar->getVarID()) << " = " << bound << endl;
+	}
 	return new IntView(newvar, 0);
 }
 
 
 void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set,
 		const std::vector<Weight>& weights, EqType rel, IntView* bound) {
+	//FIXME .. PASS THE ID
 	_head = head;
 	_vars = set;
-	std::cerr << "SHARED"<<endl;
 	if (rel == EqType::EQ || rel == EqType::NEQ) {
 		auto eq = (rel == EqType::EQ);
 		auto one = mkPosLit(getPCSolver().newVar());
 		auto two = mkPosLit(getPCSolver().newVar());
-		auto impl = new Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true);
-		//internalAdd(impl, getPCSolver()); //Head equiv one and two
+		internalAdd(Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true),getPCSolver());
+		if (verbosity() > 5) {
+			clog << "split FDAggConstraint with head "<<toString(head)<< " into GEQ with head "<<toString(one) << " and LEQ with head "<<toString(two)<<endl;
+			clog << toString(eq ? head : not head) << " <=> " << toString(one) << " && " << toString(two) << endl;
+		}
 		_head = one;
 		if (type == AggType::PROD) {
 			new FDAggConstraint(getID(), engine, two, type, _vars, weights.front(), EqType::LEQ, bound);
@@ -68,7 +73,7 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 			_weights.push_back(-*i);
 		}
 		_bound = negation(bound);
-	} else { // GEQ, EQ, NEQ, L
+	} else { // GEQ, EQ, NEQ, L, now all transformed to GEQ
 		_weights = weights;
 		_bound = bound;
 	}
@@ -80,7 +85,7 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 	}
 	getPCSolver().acceptBounds(_bound, this);
 	getPCSolver().acceptForPropagation(this);
-	// TODO remove trivially true aggregates NOTE: done for products.
+	// TODO remove trivially true aggregates
 }
 
 bool additionOverflow(int x, int y) {
@@ -524,17 +529,25 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 				MAssert(realmax == 0);
 				auto minmaxnovar = getMinAndMaxPossibleAggValsWithout(i);
 				maxWithoutThisVar = max(minmaxnovar.first * _weights[0], minmaxnovar.second * _weights[0]);
-				if (maxWithoutThisVar == 0) {
-					//no propagation, this var cannot change anything.
-					continue;
-				}
 			} else {
 				maxWithoutThisVar = realmax / (double) varusedval;
 			}
-			MAssert(maxWithoutThisVar != 0);
-			//Should be guaranteed by calculation.
-			int factorMissing = ceil(minbound / maxWithoutThisVar);
-			auto lit = var->getGEQLit(factorMissing);
+			if (maxWithoutThisVar == 0) {
+				//no propagation, this var cannot change anything.
+				continue;
+			}
+			int factormissing;
+			if (not reverted) {
+				factormissing = ceil(minbound / maxWithoutThisVar);
+			} else {
+				factormissing = floor(minbound / maxWithoutThisVar);
+			}
+			Lit lit;
+			if (not reverted) {
+				lit = var->getGEQLit(factormissing);
+			} else {
+				lit = var->getLEQLit(factormissing);
+			}
 
 			if (value(lit) != l_True) {
 				litlist lits;
@@ -601,25 +614,36 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			auto varusedval = reverted ? var->maxValue() : var->minValue(); //The value that has been used for var to calculate realmmin
 			double minWithoutThisVar;
 			if (varusedval == 0) {
-				MAssert(realmax == 0);
+				MAssert(realmin == 0);
 				auto minmaxnovar = getMinAndMaxPossibleAggValsWithout(i);
 				minWithoutThisVar = min(minmaxnovar.first * _weights[0], minmaxnovar.second * _weights[0]);
-				if (minWithoutThisVar == 0) {
-					//no propagation, this var cannot change anything.
-					continue;
-				}
 			} else {
 				minWithoutThisVar = realmin / (double) varusedval;
 			}
-			MAssert(minWithoutThisVar != 0);
-			//Should be guaranteed by calculation.
-			double maxFactorThisVar = maxbound / minWithoutThisVar;
-			if (maxFactorThisVar == floor(maxFactorThisVar)) {
-				maxFactorThisVar--; //Because we can only get LEQlit
-			} else {
-				maxFactorThisVar = floor(maxFactorThisVar);
+			if (minWithoutThisVar == 0) {
+				//no propagation, this var cannot change anything.
+				continue;
 			}
-			auto lit = var->getLEQLit(maxFactorThisVar);
+			double maxFactorThisVar = maxbound / minWithoutThisVar;
+			if (not reverted) {
+				if (maxFactorThisVar == floor(maxFactorThisVar)) {
+					maxFactorThisVar--; //Because we can only get LEQlit
+				} else {
+					maxFactorThisVar = floor(maxFactorThisVar);
+				}
+			} else {
+				if (maxFactorThisVar == ceil(maxFactorThisVar)) {
+					maxFactorThisVar++; //Because we can only get GEQlit
+				} else {
+					maxFactorThisVar = ceil(maxFactorThisVar);
+				}
+			}
+			Lit lit;
+			if(reverted){
+				lit = var->getGEQLit(maxFactorThisVar);
+			}else{
+				lit = var->getLEQLit(maxFactorThisVar);
+			}
 
 			if (value(lit) != l_True) {
 				litlist lits;
@@ -708,6 +732,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 		}
 	}
 	else if(headval==l_False){
+		//PROD < bound
 		if (realmin > minbound) {
 			litlist lits;
 			lits.push_back(_head);
