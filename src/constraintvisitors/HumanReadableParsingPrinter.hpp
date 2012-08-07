@@ -217,8 +217,7 @@ public:
 			begin = false;
 			target() << "var" << print(*litit);
 		}
-		target() << " }) " << prod.rel << " " << prod.bound << "\n";
-	}
+		target() << " }) " << prod.rel << " " << "var"<<print(prod.boundID) << "\n";	}
 
 	void add(const CPElement& rel) {
 		target() << "Added element constraint {";

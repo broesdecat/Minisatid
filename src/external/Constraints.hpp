@@ -188,8 +188,7 @@ template<typename Remapper>
 class ExtAdd<CPProdWeighted, Remapper> {
 public:
 	CPProdWeighted extAdd(Remapper& r, const CPProdWeighted& obj) {
-		// FIXME change when it is a var
-		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, obj.bound);
+		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, map(obj.boundID,r));
 	}
 };
 template<typename Remapper>

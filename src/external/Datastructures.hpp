@@ -28,6 +28,8 @@ enum class EqType {
 	EQ, NEQ, L, G, GEQ, LEQ
 };
 
+EqType invertEqType(EqType type);
+
 // Aggregate specification operators
 enum class AggType {
 	SUM, PROD, MIN, MAX, CARD
@@ -433,10 +435,10 @@ struct CPProdWeighted: public ID {
 	std::vector<VarID> varIDs;
 	Weight prodWeight;
 	EqType rel;
-	Weight bound;
+	VarID boundID;
 
-	CPProdWeighted(uint id, Atom head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, Weight bound)
-			: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), bound(bound) {
+	CPProdWeighted(uint id, Atom head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
+		: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), boundID(boundid) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
