@@ -180,14 +180,6 @@ struct MIntArrayVar {
 	int nbelem;
 };
 
-int createOneShotVar();
-MBoolVar* getBoolVar(const std::string& name);
-MIntVar* getIntVar(const std::string& name);
-MBoolVar* getBoolVar(const std::string& name, int index);
-MIntVar* getIntVar(const std::string& name, int index);
-int getVar(const std::string& name, bool expectbool);
-int getVar(const std::string& name, int index, bool expectbool);
-
 enum VAR_TYPE {
 	VAR_BOOL, VAR_INT, VAR_SET, VAR_FLOAT, VAR_ARRAY
 };
