@@ -505,7 +505,7 @@ translation	: /* empty */
 				
 			| 	TRANSHEADER2 
 				{	
-					simpletrans = new LParseTranslator();				
+					simpletrans = new LParseTranslator();
 					wrapper->setTranslator(simpletrans);
 				}
 				tuplelist
@@ -738,6 +738,15 @@ void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>
 		}
 		level = TheoryID(level.id+1);		
 		return;
+	}
+	if(level.id==2){
+		auto trans = new QBFTranslator();
+		wrapper->setTranslator(trans);
+		for(auto lit:rigidlits){
+			stringstream ss;
+			ss <<lit.getAtom();
+			trans->addTuple(lit.getAtom(), ss.str());
+		}
 	}
 	
 	auto lastlevel = TheoryID(level.id-1);

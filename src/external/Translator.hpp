@@ -9,6 +9,7 @@
 #ifndef TRANSLATOR_HPP_
 #define TRANSLATOR_HPP_
 
+#include "Idpexception.hpp"
 #include "LiteralPrinter.hpp"
 #include "ExternalUtils.hpp"
 #include "utils/ContainerUtils.hpp"
@@ -203,6 +204,9 @@ private:
 
 class OPBPolicy {
 public:
+	void printLit(std::ostream&, const Lit&, const std::string&){
+		throw idpexception("Invalid code path.");
+	}
 	void printVar(std::ostream& output, const std::string& var, int value){
 		output << var << "=(" << value << ") ";
 	}
@@ -212,8 +216,29 @@ public:
 	}
 };
 
+class QBFPolicy {
+public:
+	void printLit(std::ostream& output, const Lit&, const std::string& text){
+		output <<text <<" ";
+	}
+	void printVar(std::ostream&, const std::string&, int){
+		throw idpexception("Invalid code path.");
+	}
+	void printCurrentOptimum(std::ostream&, const Weight&){
+		throw idpexception("Invalid code path.");
+	}
+	void printModelEnd(std::ostream& output){
+		output << "0\n";
+	}
+};
+
 class LParsePolicy {
 public:
+	void printLit(std::ostream& output, const Lit& lit, const std::string& text){
+		if (not lit.hasSign()) { //Do not print false literals
+			output << text << " ";
+		}
+	}
 	void printVar(std::ostream& output, const std::string& var, int value){
 		output << var << "=(" << value << ") ";
 	}
@@ -225,6 +250,9 @@ public:
 
 class FZPolicy {
 public:
+	void printLit(std::ostream&, const Lit&, const std::string&){
+		throw idpexception("Invalid code path.");
+	}
 	void printVar(std::ostream& output, const std::string& var, int value){
 		output << var << "= " << value << ";\n";
 	}
@@ -261,9 +289,7 @@ public:
 
 	void printModel(std::ostream& output, const Model& model) {
 		for (auto lit : model.literalinterpretations) {
-			if (not lit.hasSign()) { //Do not print false literals
-				output << toString(lit) << " ";
-			}
+			OptimumPolicy::printLit(output, lit, toString(lit));
 		}
 		for (auto vareq : model.variableassignments) {
 			OptimumPolicy::printVar(output, toString(vareq.variable), vareq.value);
@@ -284,7 +310,7 @@ public:
 		std::stringstream ss;
 		auto it = lit2name.find(lit.getAtom());
 		if (it != lit2name.cend()) {
-			ss << (lit.hasSign() ? "~" : "") << (*it).second;
+			ss << (lit.hasSign() ? "-" : "") << (*it).second;
 		}
 		return ss.str();
 	}
@@ -296,6 +322,7 @@ public:
 
 typedef TupleTranslator<OPBPolicy> OPBTranslator;
 typedef TupleTranslator<LParsePolicy> LParseTranslator;
+typedef TupleTranslator<QBFPolicy> QBFTranslator;
 typedef TupleTranslator<FZPolicy> FZTranslator;
 
 }
