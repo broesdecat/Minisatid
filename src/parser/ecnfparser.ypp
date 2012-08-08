@@ -719,25 +719,19 @@ template<class Wrapper>
 void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level){
 	bool writeexists;
 	if(existential && negatemod){
-		cerr <<"1\n";
 		negatemod = false;
 		writeexists = false;
 	}else if(existential && !negatemod){
-		cerr <<"2\n";
 		negatemod = false;
 		writeexists = true;
 	}else if(!existential && negatemod){
-		cerr <<"3\n";
 		negatemod = true;
 		writeexists = true;
 	}else{
-		cerr <<"4\n";
 		negatemod = true;
 		writeexists = false;
 	}
-	
-	cerr <<"Reading level " <<level.id <<"\n";
-	
+		
 	if(level.id==1){
 		level = TheoryID(level.id+1);		
 		return;
