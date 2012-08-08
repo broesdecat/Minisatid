@@ -58,7 +58,12 @@
 	// TODO External state (to be removed in future)
 	FODOTTranslator*	fodottrans = NULL;
 	LParseTranslator*	simpletrans = NULL;
-	int atoms, clauses;
+	bool negatemod = false;
+	int maxatom;
+	std::vector<Lit> rigidlits;
+	
+	template<class Wrapper>
+	void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level);
 	
 	/**
 	 * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -138,6 +143,7 @@
 %token INTVAR INTVARDOM CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT IMPLICATION LEVEL
 %token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM SUBTHEORY
 
+%token <boolean> QUANTe
 %type <integer> number
 %type <str> weight
 %type <vweights> weightbody
@@ -179,9 +185,13 @@
 /*
  * Decides whether to use CNF or ECNF
  */
-init	:	CNF	number number 
-				{ atoms = $2; clauses = $3; } 
-			cnftheory
+init	:	CNF	number number cnftheory
+		|   CNF number number { maxatom = $2; } modalcnf {
+				theoryid = TheoryID(theoryid.id-1);
+				if(negatemod){
+					readCNFModalHierLevel(wrapper, true, rigidlits, theoryid);
+				}
+			}	cnftheory
 		|	ECNF header ecnftheory translation
 		;
 
@@ -204,6 +214,17 @@ cnfclause: 	body ZERO
 					CR(wrapper, clause, theoryid);
 					delete $1;
 				}
+		;
+		
+
+// TODO assumption that always starts with "e"
+modalcnf	
+		:	QUANTe   
+				{ 	readCNFModalHierLevel(wrapper, $1, rigidlits, theoryid); }
+			body { rigidlits.insert(rigidlits.end(), (*$3).cbegin(), (*$3).cend()); delete($3); } ZERO // NOTE: FIRST has to add new level with PREVIOUS rigid atoms before adding to them
+		|	modalcnf QUANTe   
+				{ 	readCNFModalHierLevel(wrapper, $2, rigidlits, theoryid); }
+			body { rigidlits.insert(rigidlits.end(), (*$4).cbegin(), (*$4).cend()); delete($4); } ZERO // NOTE: FIRST has to add new level with PREVIOUS rigid atoms before adding to them
 		;
 			
 //---------------------------------------------		
@@ -692,6 +713,58 @@ void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool 
 	if(fodottrans!=NULL){
 		fodottrans->addPred(*name, startingnumber, *argtypes, isfunction);
 	}
+}
+
+template<class Wrapper>
+void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level){
+	bool writeexists;
+	if(existential && negatemod){
+		cerr <<"1\n";
+		negatemod = false;
+		writeexists = false;
+	}else if(existential && !negatemod){
+		cerr <<"2\n";
+		negatemod = false;
+		writeexists = true;
+	}else if(!existential && negatemod){
+		cerr <<"3\n";
+		negatemod = true;
+		writeexists = true;
+	}else{
+		cerr <<"4\n";
+		negatemod = true;
+		writeexists = false;
+	}
+	
+	cerr <<"Reading level " <<level.id <<"\n";
+	
+	if(level.id==1){
+		level = TheoryID(level.id+1);		
+		return;
+	}
+	
+	auto lastlevel = TheoryID(level.id-1);
+	
+	if(rigidlits.size()==0){
+		throw idpexception("List of rigid atoms is empty.\n");
+	}	
+	
+	auto head = ++maxatom;
+	if(writeexists){
+		Disjunction disj(1, {mkPosLit(head)});
+		CR(wrapper, disj, lastlevel);
+		head = ~head;
+	}else{
+		Disjunction disj(1, {mkNegLit(head)});
+		CR(wrapper, disj, lastlevel);
+	}
+	std::vector<Atom> atoms;
+	for(auto lit:rigidlits){
+		atoms.push_back(lit.getAtom());
+	}
+	SubTheory sub(1, head, level, atoms);
+	CR(wrapper, sub, lastlevel);
+	level = TheoryID(level.id+1);
 }
 
 // We have to implement the error function

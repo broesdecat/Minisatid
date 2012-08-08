@@ -108,6 +108,9 @@ WHITESPACE	[\t\r ]*
 <theory>"=>"	{ecnflval->impl = ImplicationType::IMPLIES; return ET::IMPL;}
 <theory>"<=>"	{ecnflval->impl = ImplicationType::EQUIVALENT; return ET::IMPL;}
 
+<theory>^"e"	{ecnflval->boolean = true; return ET::QUANTe;} //existential quantifier
+<theory>^"a"	{ecnflval->boolean = false; return ET::QUANTe;} //universal quantifier
+
  /* Longest match is returned -> if e.g. "20", NUMBER is returned. 
     If "0", then ZERO is returned since it's the first matching rule.
   */

@@ -161,10 +161,15 @@ void SearchEngine::add(const SubTheory& subtheory){
 		ss << ">> A modal operator on level " << subtheory.childid.id << " was already declared.";
 		throw idpexception(ss.str());
 	}
-	cerr <<"Creating model operator on level " <<subtheory.childid.id <<"\n";
-	SolverOption options;
-	// TODO options
-	solvers[subtheory.childid] = new PCSolver(subtheory.childid, options, NULL, getSolver()->getVarCreator(), this, false);
+	if(modes().verbosity>3){
+		clog <<"Creating model operator on level " <<subtheory.childid.id <<" with head " <<getSolver()->toString(mkPosLit(subtheory.head));
+		clog <<" containing rigid atoms ";
+		for(auto atom:subtheory.rigidatoms){
+			clog <<getSolver()->toString(mkPosLit(atom)) <<" ";
+		}
+		clog <<"\n";
+	}
+	solvers[subtheory.childid] = new PCSolver(subtheory.childid, modes(), NULL, getSolver()->getVarCreator(), this, false);
 	MAssert(solvers[subtheory.childid]->getTheoryID()==subtheory.childid);
 	new ModSolver(subtheory.head, getSolver(subtheory.theoryid), getSolver(subtheory.childid), subtheory.rigidatoms);
 }

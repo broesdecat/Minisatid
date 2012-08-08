@@ -49,10 +49,11 @@ SolverOption createMXOptions(InputFormat format) {
 	return options;
 }
 
+// NOTE: add / at end!
 vector<string> generateListOfMXFiles() {
 	vector<string> testdirs { "ecnf/simple/", "ecnf/agg/basic/", "ecnf/agg/amn/", "ecnf/agg/card/", "ecnf/agg/eq/", "ecnf/agg/max/",
 		"ecnf/agg/min/", "ecnf/agg/prod/", "ecnf/agg/sum/", "ecnf/id/", "ecnf/cp/", "ecnf/cnf/",
-		"ecnf/grounded/"};
+		"ecnf/grounded/", "ecnf/qbf/"};
 	return getAllFilesInDirs(getTestDirectory(), testdirs);
 }
 vector<string> generateListOfECNFErrorFiles() {
