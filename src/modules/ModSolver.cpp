@@ -31,6 +31,8 @@ ModSolver::ModSolver(Atom head, PCSolver* parent, PCSolver* subsolver, const std
 		: Propagator(DEFAULTCONSTRID, parent, "modal solver"), searching(false), head(head), child(subsolver) {
 	trail.push_back(vector<Lit>());
 
+	getParent().accept(this, mkLit(head, true), SLOW);
+	getParent().accept(this, mkLit(head, false), SLOW);
 	for (auto atom : rigidatoms) {
 		atoms.push_back(atom);
 		getParent().accept(this, mkLit(atom, true), SLOW);
@@ -113,9 +115,9 @@ rClause ModSolver::notifypropagate() {
 	assert(confldisj.literals.size()==0);
 	noconflict = propagateDownAtEndOfQueue(confldisj.literals);
 
-	if (!noconflict) {
+	if (not noconflict) {
 		confl = getParent().createClause(confldisj, true);
-		getParent().addLearnedClause(confl);
+		getParent().addConflictClause(confl);
 	}
 	return confl;
 }
