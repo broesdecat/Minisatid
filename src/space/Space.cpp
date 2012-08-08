@@ -114,6 +114,9 @@ void Space::add(const LazyGroundImpl& o){
 void Space::add(const LazyAddition& o){
 	internalAdd(o, *getEngine());
 }
+void Space::add(const SubTheory& o){
+	internalAdd(o, *getEngine());
+}
 
 Value Space::getTruthValue(const Lit& lit) const {
 	auto val = getEngine()->getModelValue(lit);

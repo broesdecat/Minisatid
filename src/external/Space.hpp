@@ -95,6 +95,7 @@ public:
 	virtual void add(const LazyGroundLit&);
 	virtual void add(const LazyGroundImpl&);
 	virtual void add(const LazyAddition&);
+	virtual void add(const SubTheory&);
 
 	Value getTruthValue(const Lit& lit) const;
 };

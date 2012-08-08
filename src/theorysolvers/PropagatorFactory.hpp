@@ -182,14 +182,14 @@ public:
 
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 
+	template<typename T>
+	void 		notifyMonitorsOfAdding(const T& obj) const;
+
 private:
 	template<class T>
 	void addCP			(const T& formula);
 
 	void internalAdd(const Disjunction& sentence);
-
-	template<typename T>
-	void 		notifyMonitorsOfAdding(const T& obj) const;
 
 	IntVar*		getIntVar(VarID varID) const;
 

@@ -9,6 +9,7 @@
 #include "FZDatastructs.hpp"
 
 #include <cassert>
+#include <iostream>
 
 #include "Storage.hpp"
 #include "fzexception.hpp"
@@ -16,103 +17,12 @@
 using namespace std;
 using namespace FZ;
 
-int nextint = 1;
-std::map<std::string, MBoolVar*> name2bool;
-std::map<std::string, MIntVar*> name2int;
-std::map<std::string, MBoolArrayVar*> name2boolarray;
-std::map<std::string, MIntArrayVar*> name2intarray;
-
-MBoolVar* createBoolVar(const string& name) {
-	auto var = new MBoolVar();
-	var->var = nextint++;
-	var->hasmap = false;
-	var->hasvalue = false;
-	name2bool.insert({name, var});
-	return var;
-}
-
-int FZ::createOneShotVar() {
-	return nextint++;
-}
-
-MIntVar* createIntVar(const string& name) {
-	auto var = new MIntVar();
-	var->var = nextint++;
-	var->hasmap = false;
-	var->hasvalue = false;
-	name2int.insert({name, var});
-	return var;
-}
-
-MBoolArrayVar* createBoolArrayVar(const string& name, int nbelem) {
-	auto var = new MBoolArrayVar();
-	var->nbelem = nbelem;
-	name2boolarray.insert({name, var});
-	return var;
-}
-
-MIntArrayVar* createIntArrayVar(const string& name, int nbelem) {
-	auto var = new MIntArrayVar();
-	var->nbelem = nbelem;
-	name2intarray.insert({name, var});
-	return var;
-}
-
-MBoolVar* FZ::getBoolVar(const string& name) {
-	auto it = name2bool.find(name);
-	if (it == name2bool.end()) {
-		throw fzexception("Variable was not declared.\n");
-	}
-	return (*it).second;
-}
-
-MIntVar* FZ::getIntVar(const string& name) {
-	auto it = name2int.find(name);
-	if (it == name2int.end()) {
-		throw fzexception("Variable was not declared.\n");
-	}
-	return (*it).second;
-}
-
-//IMPORTANT: index starts at ONE, so map to 0 based!
-MBoolVar* FZ::getBoolVar(const string& name, int index) {
-	auto it = name2boolarray.find(name);
-	if (it == name2boolarray.end() || (*it).second->vars.size() < (uint)index) {
-		throw fzexception("Array was not declared or not initialized.\n");
-	}
-	return (*it).second->vars[index - 1];
-}
-
-MIntVar* FZ::getIntVar(const string& name, int index) {
-	auto it = name2intarray.find(name);
-	if (it == name2intarray.end() || (*it).second->vars.size() < (uint)index) {
-		throw fzexception("Array was not declared or not initialized.\n");
-	}
-	return (*it).second->vars[index - 1];
-}
-
-int FZ::getVar(const string& name, bool expectbool) {
-	if (expectbool) {
-		return getBoolVar(name)->var;
-	} else {
-		return getIntVar(name)->var;
-	}
-}
-
-int FZ::getVar(const string& name, int index, bool expectbool) {
-	if (expectbool) {
-		return getBoolVar(name, index)->var;
-	} else {
-		return getIntVar(name, index)->var;
-	}
-}
-
 void FZ::Var::add(Storage& storage) {
 	if (type != VAR_BOOL) {
 		throw fzexception("Incorrect type.\n");
 	}
 
-	MBoolVar* var = createBoolVar(getName());
+	MBoolVar* var = storage.createBoolVar(getName());
 	if (expr != NULL) {
 		storage.addBoolExpr(*var, *expr);
 	}
@@ -123,7 +33,7 @@ void IntVar::add(Storage& storage) {
 		throw fzexception("Incorrect type.\n");
 	}
 
-	auto var = createIntVar(getName());
+	auto var = storage.createIntVar(getName());
 
 	//values
 	bool nobounds = true;
@@ -161,10 +71,10 @@ void ArrayVar::add(Storage& storage) {
 	}
 
 	if (mappedtype == VAR_BOOL) {
-		auto var = createBoolArrayVar(getName(), end);
+		auto var = storage.createBoolArrayVar(getName(), end);
 		for (int i = 1; i <= end; i++) {
 			auto boolvar = new MBoolVar();
-			boolvar->var = nextint++;
+			boolvar->var = storage.createOneShotVar();
 			boolvar->hasmap = false;
 			boolvar->hasvalue = false;
 			var->vars.push_back(boolvar);
@@ -177,10 +87,10 @@ void ArrayVar::add(Storage& storage) {
 			}
 		}
 	} else {
-		auto var = createIntArrayVar(getName(), end);
+		auto var = storage.createIntArrayVar(getName(), end);
 
 		auto intvar = new MIntVar();
-		intvar->var = nextint++;
+		intvar->var = storage.createOneShotVar();
 		intvar->hasmap = false;
 		intvar->hasvalue = false;
 		bool nobounds = true;
@@ -198,7 +108,7 @@ void ArrayVar::add(Storage& storage) {
 
 		for (int i = 1; i <= end; i++) {
 			auto tempvar = new MIntVar(*intvar);
-			intvar->var = nextint++;
+			intvar->var = storage.createOneShotVar();
 			var->vars.push_back(tempvar);
 		}
 
@@ -220,9 +130,9 @@ int FZ::parseBool(Storage& storage, const Expression& expr) {
 	if (expr.type == EXPR_BOOL) {
 		return (expr.boollit ? storage.getTrue() : storage.getFalse());
 	} else if (expr.type == EXPR_ARRAYACCESS) {
-		return getVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index, true);
+		return storage.getVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index, true);
 	} else if (expr.type == EXPR_IDENT) {
-		return getVar(*expr.ident->name, true);
+		return storage.getVar(*expr.ident->name, true);
 	} else {
 		throw fzexception("Unexpected type.\n");
 	}
@@ -232,40 +142,49 @@ int FZ::parseInt(Storage& storage, const Expression& expr) {
 	if (expr.type == EXPR_INT) {
 		return storage.addCPVar(expr.intlit, expr.intlit);
 	} else if (expr.type == EXPR_ARRAYACCESS) {
-		return getVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index, false);
+		return storage.getVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index, false);
 	} else if (expr.type == EXPR_IDENT) {
-		return getVar(*expr.ident->name, false);
+		return storage.getVar(*expr.ident->name, false);
 	} else {
 		throw fzexception("Unexpected type.\n");
 	}
 }
 
-int FZ::parseParInt(Storage&, const Expression& expr) {
+int FZ::parseParInt(Storage& storage, const Expression& expr) {
 	if (expr.type == EXPR_INT) {
 		return expr.intlit;
 	} else if (expr.type == EXPR_ARRAYACCESS) {
-		return getVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index, false);
+		return storage.getVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index, false);
 	} else if (expr.type == EXPR_IDENT) {
-		return getVar(*expr.ident->name, false);
+		return storage.getVar(*expr.ident->name, false);
 	} else {
 		throw fzexception("Unexpected type.\n");
 	}
 }
 
 std::vector<int> FZ::parseArray(Storage& storage, VAR_TYPE type, Expression& expr) {
-	if (expr.type != EXPR_ARRAY) {
+	if(expr.type == EXPR_ARRAY){
+		MAssert(expr.arraylit!=NULL);
+		MAssert(expr.arraylit->exprs!=NULL);
+		std::vector<int> elems;
+		for (auto i = expr.arraylit->exprs->begin(); i < expr.arraylit->exprs->end(); ++i) {
+			MAssert((*i)!=NULL);
+			if (type == VAR_BOOL) {
+				elems.push_back(parseBool(storage, **i));
+			} else {
+				elems.push_back(parseInt(storage, **i));
+			}
+		}
+		return elems;
+	}else if(expr.type == EXPR_IDENT){
+		std::vector<int> elems;
+		for(auto var:storage.getArrayBoolVars(*expr.ident->name)){
+			elems.push_back(var->var);
+		}
+		return elems;
+	}else {
 		throw fzexception("Unexpected type.\n");
 	}
-
-	std::vector<int> elems;
-	for (auto i = expr.arraylit->exprs->begin(); i < expr.arraylit->exprs->end(); ++i) {
-		if (type == VAR_BOOL) {
-			elems.push_back(parseBool(storage, **i));
-		} else {
-			elems.push_back(parseInt(storage, **i));
-		}
-	}
-	return elems;
 }
 
 std::vector<int> FZ::parseParIntArray(Storage& storage, Expression& expr) {

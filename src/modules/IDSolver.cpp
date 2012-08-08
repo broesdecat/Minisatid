@@ -16,6 +16,8 @@
 #include "modules/SCCtoCNF.hpp"
 #include "external/ConstraintAdditionInterface.hpp"
 
+#include "utils/NumericLimits.hpp"
+
 #include <cmath>
 
 // TODO in fact, having a propagator per scc might seem more logical?
@@ -1506,10 +1508,11 @@ void IDSolver::addExternalDisjuncts(const std::set<Atom>& ufs, litlist& loopf) {
  * Returns a non-owning pointer
  */
 rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
+	auto placeholderlit = mkNegLit(getMaxElem<int>());
 	MAssert(!ufs.empty());
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
-	Disjunction loopf(DEFAULTCONSTRID, { mkLit(-1) });
+	Disjunction loopf(DEFAULTCONSTRID, { placeholderlit });
 	addExternalDisjuncts(ufs, loopf.literals);
 
 	// Check if any of the literals in the set are already true, which leads to a conflict.
@@ -1551,7 +1554,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 
 			// \forall d \in \extdisj{L}: not d \vee v
 			// UNSAT core extraction correct because of rule rewriting earlier on.
-			Disjunction binaryclause(DEFAULTCONSTRID, { mkLit(-1), mkPosLit(v) });
+			Disjunction binaryclause(DEFAULTCONSTRID, { placeholderlit, mkPosLit(v) });
 			for (uint i = 1; i < loopf.literals.size(); ++i) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
@@ -2053,7 +2056,7 @@ void IDSolver::visitWF(Atom v, varlist &root, vector<bool> &incomp, stack<Atom> 
 		// for DefType::DISJ, the justification is already known TODO INCORRECT when no pos loops possible over head!
 		// for a DefType::CONJ, randomly choose one of the false body literals. If there is no loop through it, then it is a good choice.
 		//			If there is, it will be found later if another false literal exists without a mixed loop.
-		Lit l = mkLit(-1);
+		Lit l = mkLit(getMaxElem<int>());
 		if (isConjunctive(v)) {
 			for (uint i = 0; i < definition(v)->size(); ++i) {
 				Lit l2 = definition(v)->operator [](i);

@@ -203,12 +203,35 @@ private:
 
 class OPBPolicy {
 public:
+	void printVar(std::ostream& output, const std::string& var, int value){
+		output << var << "=(" << value << ") ";
+	}
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
+	void printModelEnd(std::ostream& output){
+		output << "\n";
+	}
 };
 
 class LParsePolicy {
 public:
+	void printVar(std::ostream& output, const std::string& var, int value){
+		output << var << "=(" << value << ") ";
+	}
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
+	void printModelEnd(std::ostream& output){
+		output << "\n";
+	}
+};
+
+class FZPolicy {
+public:
+	void printVar(std::ostream& output, const std::string& var, int value){
+		output << var << "= " << value << ";\n";
+	}
+	void printCurrentOptimum(std::ostream& output, const Weight& value);
+	void printModelEnd(std::ostream& output){
+		output << "----------\n";
+	}
 };
 
 template<class OptimumPolicy>
@@ -243,9 +266,9 @@ public:
 			}
 		}
 		for (auto vareq : model.variableassignments) {
-			output << toString(vareq.variable) << "=(" << vareq.value << ") ";
+			OptimumPolicy::printVar(output, toString(vareq.variable), vareq.value);
 		}
-		output << "\n";
+		OptimumPolicy::printModelEnd(output);
 		output.flush();
 	}
 
@@ -273,6 +296,7 @@ public:
 
 typedef TupleTranslator<OPBPolicy> OPBTranslator;
 typedef TupleTranslator<LParsePolicy> LParseTranslator;
+typedef TupleTranslator<FZPolicy> FZTranslator;
 
 }
 

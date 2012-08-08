@@ -18,10 +18,10 @@
  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **************************************************************************************************/
 
-#ifndef Basic_Minisat_SolverTypes_h
-#define Basic_Minisat_SolverTypes_h
+#pragma once
 
 #include <vector>
+#include "MAssert.hpp"
 
 namespace MinisatID {
 
@@ -66,6 +66,7 @@ struct Lit {
 };
 
 inline Lit mkLit(Atom var, bool sign) {
+	MAssert(var>=0);
 	Lit p;
 	p.x = var + var + (int) sign;
 	return p;
@@ -104,5 +105,3 @@ inline Lit  mkPosLit	(Atom var) 	{ return mkLit(var, false); }
 inline Lit  mkNegLit	(Atom var) 	{ return mkLit(var, true); }
 
 }
-
-#endif

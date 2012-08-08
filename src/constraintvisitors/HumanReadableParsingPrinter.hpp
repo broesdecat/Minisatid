@@ -217,8 +217,7 @@ public:
 			begin = false;
 			target() << "var" << print(*litit);
 		}
-		target() << " }) " << prod.rel << " " << prod.bound << "\n";
-	}
+		target() << " }) " << prod.rel << " " << "var"<<print(prod.boundID) << "\n";	}
 
 	void add(const CPElement& rel) {
 		target() << "Added element constraint {";
@@ -243,6 +242,10 @@ public:
 		target() << "Added literals ";
 		printConcatWithFunctor(lg.list, " ", target(), Print<Lit>(getPrinter()));
 		target() << " to lazy implication " << lg.ref << "\n";
+	}
+	virtual void add(const SubTheory& subtheory) {
+		target() <<"Created subtheory " <<subtheory.childid.id <<"\n";
+		// FIXME implement rest and add printing of theoryids to other add methods
 	}
 };
 

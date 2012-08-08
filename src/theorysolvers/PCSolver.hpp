@@ -64,6 +64,10 @@ public:
 	VarID newID();
 	Atom newVar();
 	void createVar(Atom v, TheoryID theoryID);
+
+	// NOTE: do not pass around indiscriminately! Does not pass on ownership
+	VarCreation* getVarCreator() const { return varcreator; }
+
 public:
 	void varBumpActivity(Atom v);
 	void varReduceActivity(Atom v);

@@ -113,7 +113,6 @@
     std::vector<MinisatID::VarID>* varids;
     std::vector<MinisatID::Lit>* vlits;
     std::vector<MinisatID::WLtuple>* vlws;
-    std::vector<MinisatID::Atom>* vatoms;
     MinisatID::EqType rel;
     MinisatID::ImplicationType impl;
     MinisatID::AggType aggr;
@@ -137,7 +136,7 @@
 %token CNF ECNF DEFPRESENT AGGPRESENT MINIMPRESENT
 %token ORSEM
 %token INTVAR INTVARDOM CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT IMPLICATION LEVEL
-%token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM
+%token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM SUBTHEORY
 
 %type <integer> number
 %type <str> weight
@@ -213,7 +212,6 @@ cnfclause: 	body ZERO
 
 ecnftheory	:	/* empty */
 			|	ecnftheory clause
-			|	ecnftheory level
 			|	ecnftheory rule
 			|	ecnftheory implication
 			| 	ecnftheory agg
@@ -227,12 +225,23 @@ ecnftheory	:	/* empty */
 			|	ecnftheory intvar
 			|	ecnftheory cpconstraint
 			| 	ecnftheory symmetryblock
+			|	ecnftheory level
+			| 	ecnftheory subtheory
 			;
 			
 level		: LEVEL number ZERO {
 					MAssert($2>0); 
 					theoryid = TheoryID((uint)$2); 
 				}
+				
+				// childid head rigidatoms
+subtheory :	SUBTHEORY number NUMBER numlist ZERO 
+			{
+				SubTheory sub(1, cAtom($3), TheoryID((uint)$2), *$4);
+				CR(wrapper, sub, theoryid);
+				delete $4;
+			}
+		;
 			
 mnmz	:	MNMZDEFN body ZERO
 			{
@@ -431,11 +440,11 @@ cpconstraint
 				CR(wrapper, sum, theoryid);
 				delete $2; delete $3; delete $5; delete $7;
 			}
-		|	CPPROD NUMBER varidbody DELIM weight REL weight ZERO   
+		|	CPPROD NUMBER varidbody DELIM weight REL varid ZERO   
 			{ 	
-				CPProdWeighted prod(id++, cAtom($2), *$3, cWeight($5), $6, cWeight($7));
+				CPProdWeighted prod(id++, cAtom($2), *$3, cWeight($5), $6, $7);
 				CR(wrapper, prod, theoryid);
-				delete $2; delete $3; delete $5; delete $7;
+				delete $2; delete $3; delete $5; 
 			}
 		|	ELEMENT varidbody DELIM varid varid ZERO 
 			{ 	

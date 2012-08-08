@@ -93,6 +93,7 @@ public:
 	virtual ~ModSolver();
 
 	//Propagator methods
+	void accept(MinisatID::ConstraintVisitor& visitor){ } // TODO
 	rClause notifypropagate();
 	void notifyNewDecisionLevel();
 	void notifyBacktrack(int untillevel, const Lit& decision);

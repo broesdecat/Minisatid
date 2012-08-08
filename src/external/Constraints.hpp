@@ -188,8 +188,7 @@ template<typename Remapper>
 class ExtAdd<CPProdWeighted, Remapper> {
 public:
 	CPProdWeighted extAdd(Remapper& r, const CPProdWeighted& obj) {
-		// FIXME change when it is a var
-		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, obj.bound);
+		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, map(obj.boundID,r));
 	}
 };
 template<typename Remapper>
@@ -211,6 +210,13 @@ class ExtAdd<CPAllDiff, Remapper> {
 public:
 	CPAllDiff extAdd(Remapper& r, const CPAllDiff& obj) {
 		return CPAllDiff(obj.getID(), map(obj.varIDs, r));
+	}
+};
+template<typename Remapper>
+class ExtAdd<SubTheory, Remapper> {
+public:
+	SubTheory extAdd(Remapper& r, const SubTheory& obj) {
+		return SubTheory(obj.getID(), map(obj.head, r),obj.childid, map(obj.rigidatoms, r));
 	}
 };
 

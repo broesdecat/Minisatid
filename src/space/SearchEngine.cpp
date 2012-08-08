@@ -10,13 +10,14 @@
 #include "space/SearchEngine.hpp"
 
 #include "theorysolvers/PCSolver.hpp"
+#include "modules/ModSolver.hpp"
 
 using namespace MinisatID;
 using namespace std;
 
 SearchEngine::~SearchEngine(){
 	for(auto solver: solvers){
-		delete(solver);
+		delete(solver.second);
 	}
 }
 
@@ -135,22 +136,35 @@ bool SearchEngine::moreModelsPossible() const {
 }
 
 //Get information on hierarchy
-void SearchEngine::checkHasSolver(uint level) const {
+void SearchEngine::checkHasSolver(TheoryID level) const {
 	if (not hasSolver(level)) {
 		std::stringstream ss;
-		ss << ">> No modal operator with id " << level << "was declared! ";
+		ss << ">> No modal operator with id " << level.id << "was declared.";
 		throw idpexception(ss.str());
 	}
 }
-bool SearchEngine::hasSolver(uint level) const {
-	return level-1 < solvers.size() && solvers[level-1] != NULL;
+bool SearchEngine::hasSolver(TheoryID level) const {
+	return solvers.find(level)!=solvers.cend();
 }
 PCSolver* SearchEngine::getSolver() const{
-	return solvers.front();
+	return solvers.at({1});
 }
 PCSolver* SearchEngine::getSolver(TheoryID level) const {
-	checkHasSolver(level.id);
-	return solvers[level.id-1];
+	checkHasSolver(level);
+	return solvers.at(level);
+}
+// FIXME also include these when printing the full theory
+void SearchEngine::add(const SubTheory& subtheory){
+	// FIXME getSolver()->getFactory().notifyMonitorsOfAdding(subtheory);
+	if(hasSolver(subtheory.childid.id)){
+		std::stringstream ss;
+		ss << ">> A modal operator on level " << subtheory.childid.id << "was already declared.";
+		throw idpexception(ss.str());
+	}
+	SolverOption options;
+	// TODO options
+	solvers[subtheory.childid] = new PCSolver(subtheory.childid, options, NULL, getSolver()->getVarCreator(), this, false);
+	new ModSolver(subtheory.head, getSolver(subtheory.theoryid), getSolver(subtheory.childid), subtheory.rigidatoms);
 }
 
 

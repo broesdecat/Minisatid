@@ -85,8 +85,8 @@ void Printer::addModel(Model * const model) {
 	if (getPrintOption() == Models::ALL || (not optimizing && getPrintOption() == Models::BEST)) {
 		if (modelmanager->getNbModelsFound() == 1) {
 			if (not optimizing && modes.transformat != OutputFormat::ASP) {
-				printSatisfiable(output, modes.format, modes.transformat);
-				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
+				printSatisfiable(output, modes.transformat);
+				printSatisfiable(clog, modes.transformat,	modes.verbosity);
 			}
 			getTranslator()->printHeader(output);
 		}
@@ -109,8 +109,8 @@ void Printer::solvingFinished(){
 	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
 	if(solvingstate!=SolvingState::ABORTED && modelmanager->isUnsat() && getPrintOption()!=Models::NONE){
-		printUnSatisfiable(output, modes.format, modes.transformat);
-		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
+		printUnSatisfiable(output, modes.transformat);
+		printUnSatisfiable(clog, modes.transformat, modes.verbosity);
 	}else if(modelmanager->getNbModelsFound()==0 && getPrintOption()!=Models::NONE){
 		printUnknown(output, modes.transformat);
 	}else{ // not unsat and at least one model
@@ -119,16 +119,16 @@ void Printer::solvingFinished(){
 				printOptimalModelFound(output, modes.transformat);
 			}
 			if(modes.format==InputFormat::OPB){
-				printSatisfiable(output, modes.format, modes.transformat);
-				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
+				printSatisfiable(output, modes.transformat);
+				printSatisfiable(clog, modes.transformat, modes.verbosity);
 			}
 			auto list = modelmanager->getBestModelsFound();
 			for(auto i=list.cbegin(); i<list.cend(); ++i){
 				getTranslator()->printModel(output, **i);
 			}
 		}else if(not optimizing && modes.transformat == OutputFormat::ASP){ // NOTE: Otherwise, SAT is printed BEFORE the first model is printed, so in addModel
-			printSatisfiable(output, modes.format, modes.transformat);
-			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
+			printSatisfiable(output, modes.transformat);
+			printSatisfiable(clog, modes.transformat, modes.verbosity);
 		}
 	}
 	output.flush();

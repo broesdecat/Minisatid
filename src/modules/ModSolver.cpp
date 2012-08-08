@@ -77,7 +77,7 @@ bool ModSolver::search(const litlist& assumpts, bool search) {
 	auto result = child->solve(true);
 	searching = false;
 	if(result==l_Undef){
-		throw idpexception("Invalid code path, aborting.");
+		throw idpexception("Subtheory search did not reach a conclusion.");
 	}
 	return result==l_True;
 }
@@ -95,7 +95,7 @@ rClause ModSolver::notifypropagate() {
 	while (hasNextProp() && confl == nullPtrClause) {
 		const Lit& l = getNextProp();
 		if (verbosity() > 4) {
-			clog << ">>Propagated " <<toString(l) << " from PC in mod " << getID() << ".\n";
+			clog << ">>Propagated " << toString(l) << " from PC in mod " << getID() << ".\n";
 		}
 
 		trail.back().push_back(l);
@@ -138,7 +138,7 @@ rClause ModSolver::propagateDown(Lit l) {
 
 	//Adapt head value
 	if (getHead() == var(l)) {
-		assert(getHeadValue()==l_Undef);
+		MAssert(getHeadValue()==l_Undef);
 		head.value = !sign(l) ? l_True : l_False;
 	}
 

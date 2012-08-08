@@ -22,6 +22,8 @@
 #include "modules/aggsolver/AggSet.hpp"
 #include "external/ConstraintVisitor.hpp"
 
+#include "utils/NumericLimits.hpp"
+
 #include "utils/Print.hpp"
 
 using namespace std;
@@ -324,7 +326,7 @@ lbool PCSolver::getModelValue(const Lit & lit) {
 
 litlist PCSolver::getEntailedLiterals() const {
 	litlist list;
-	auto firstdecision = getDecisions().size()>0?getDecisions()[0]:mkLit(-1);
+	auto firstdecision = getDecisions().size()>0?getDecisions()[0]:mkLit(getMaxElem<int>());
 	for (auto i = getTrail().cbegin(); i < getTrail().cend(); ++i) {
 		if (*i == firstdecision) {
 			break;

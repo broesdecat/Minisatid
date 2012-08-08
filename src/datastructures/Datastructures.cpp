@@ -98,4 +98,5 @@ void x::accept(Space* visitor){\
 	DATASTRUCTURE_ACCEPT(LazyGroundLit)
 	DATASTRUCTURE_ACCEPT(LazyGroundImpl)
 	DATASTRUCTURE_ACCEPT(LazyAddition)
+	DATASTRUCTURE_ACCEPT(SubTheory)
 }

@@ -11,6 +11,7 @@
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "utils/NumericLimits.hpp"
 #include "external/utils/ContainerUtils.hpp"
 
 #include <cstdint>
@@ -387,7 +388,7 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg) {
 		// if head is still unknown, one ws suffices
 	} else if (largestunkn == NULL || isSatisfied(worstagg, bounds.pess)) {
 		// certainly satisfied
-		notifyFirstPropagation(mkPosLit(-1));
+		notifyFirstPropagation(mkPosLit(getMaxElem<int>()));
 		propagations = true;
 	} else {
 		uint storednwsindex = nwsindex, storedstagedindex = getStagedWatches().size();
@@ -467,7 +468,7 @@ void GenPWAgg::notifyFirstPropagation(const Lit& firstprop) {
 	if (backtracklist.size() == 0) {
 		backtracklist.push_back( { var(firstprop), currentlevel });
 	} else if (backtracklist.back().second < currentlevel) {
-		if (backtracklist.back().first != var(firstprop) || firstprop==mkPosLit(-1)) {
+		if (backtracklist.back().first != var(firstprop) || firstprop==mkPosLit(getMaxElem<int>())) {
 			backtracklist.push_back( { var(firstprop), currentlevel });
 		}
 	} else {
