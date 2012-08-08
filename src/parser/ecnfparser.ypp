@@ -187,10 +187,10 @@
  */
 init	:	CNF	number number cnftheory
 		|   CNF number number { maxatom = $2; } modalcnf {
-				theoryid = TheoryID(theoryid.id-1);
 				if(negatemod){
 					readCNFModalHierLevel(wrapper, true, rigidlits, theoryid);
 				}
+				theoryid = TheoryID(theoryid.id-1);
 			}	cnftheory
 		|	ECNF header ecnftheory translation
 		;
@@ -733,6 +733,9 @@ void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>
 	}
 		
 	if(level.id==1){
+		if(not existential){
+			throw idpexception("First QBF level cannot be universal.\n");
+		}
 		level = TheoryID(level.id+1);		
 		return;
 	}
