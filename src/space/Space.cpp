@@ -48,74 +48,74 @@ bool Space::isAlwaysAtOptimum() const {
 }
 
 void Space::add(const Disjunction& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const Implication& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const Rule& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const WLSet& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const Aggregate& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeOrderedList& o){
 	// TODO disable in other theories (also other optim)
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeSubset& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeVar& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeAgg& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const Symmetry& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const IntVarEnum& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const IntVarRange& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPAllDiff& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPBinaryRel& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPCount& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPBinaryRelVar& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPSumWeighted& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPProdWeighted& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPElement& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const LazyGroundLit& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const LazyGroundImpl& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const LazyAddition& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const SubTheory& o){
-	internalAdd(o, *getEngine());
+	internalAdd(o, o.theoryid, *getEngine());
 }
 
 Value Space::getTruthValue(const Lit& lit) const {

@@ -39,12 +39,13 @@ class Monitor;
 class PCSolver: public LiteralPrinter{
 private:
 	TheoryID theoryID;
-	TheoryID getTheoryID() const{
-		return theoryID;
-	}
 public:
 	PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot);
 	virtual ~PCSolver();
+
+	TheoryID getTheoryID() const{
+		return theoryID;
+	}
 
 	// Options
 private:

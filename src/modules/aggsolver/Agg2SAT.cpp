@@ -193,7 +193,7 @@ SATVAL MinisatID::execute(AggToCNFTransformer& transformer) {
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
 			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, pcsolver, transformer.opbinternal2pcsolver));
 		}
-		internalAdd(clause, pcsolver);
+		internalAdd(clause, pcsolver.getTheoryID(), pcsolver);
 	}
 
 	return pcsolver.satState();

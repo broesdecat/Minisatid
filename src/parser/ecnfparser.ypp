@@ -235,9 +235,13 @@ level		: LEVEL number ZERO {
 				}
 				
 				// childid head rigidatoms
-subtheory :	SUBTHEORY number NUMBER numlist ZERO 
-			{
-				SubTheory sub(1, cAtom($3), TheoryID((uint)$2), *$4);
+subtheory :	SUBTHEORY number NUMBER body ZERO 
+			{	
+				std::vector<Atom> atoms;
+				for(auto lit:*$4){
+					atoms.push_back(lit.getAtom());
+				}
+				SubTheory sub(1, cAtom($3), TheoryID((uint)$2), atoms);
 				CR(wrapper, sub, theoryid);
 				delete $4;
 			}
@@ -692,7 +696,9 @@ void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool 
 
 // We have to implement the error function
 void MinisatID::ECNFParser::error(const MinisatID::ECNFParser::location_type&, const std::string &msg) {
-	std::cerr << "Error: " << msg << std::endl;
+	std::stringstream ss;
+	ss << "Error: " << msg << std::endl;
+	throw idpexception(ss.str());
 }
 
 // Now that we have the Parser declared, we can declare the Scanner and implement

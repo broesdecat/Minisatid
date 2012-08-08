@@ -83,10 +83,13 @@ void Definition::addFinishedRule(TempRule* rule) {
 
 	if (rule->body.empty()) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
-		internalAdd(Disjunction(rule->id, {h}), *solver);
+		Disjunction disj(rule->id, {h});
+		disj.theoryid = solver->getTheoryID();
+		internalAdd(disj, solver->getTheoryID(), *solver);
 	} else {
 		conj = conj || rule->body.size() == 1; //rules with only one body atom are treated as conjunctive
 		Implication eq(rule->id, mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
-		internalAdd(eq, *solver);
+		eq.theoryid = solver->getTheoryID();
+		internalAdd(eq, solver->getTheoryID(), *solver);
 	}
 }

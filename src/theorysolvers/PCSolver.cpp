@@ -57,8 +57,12 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 
 	dummy1 = newVar();
 	dummy2 = newVar();
-	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy1) }), *this);
-	internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(dummy2) }), *this);
+	Disjunction disj(DEFAULTCONSTRID, { mkPosLit(dummy1) });
+	disj.theoryid = getTheoryID();
+	Disjunction disj2(DEFAULTCONSTRID, { mkPosLit(dummy2) });
+	disj2.theoryid = getTheoryID();
+	internalAdd(disj, getTheoryID(), *this);
+	internalAdd(disj2, getTheoryID(), *this);
 }
 
 Lit PCSolver::getTrueLit() const {

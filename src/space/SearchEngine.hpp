@@ -29,6 +29,10 @@ public:
 	}
 	~SearchEngine();
 
+	TheoryID getBaseTheoryID(){
+		return TheoryID(1);
+	}
+
 	void createVar(Atom v, TheoryID theoryID);
 	PropagatorFactory& getFactory(TheoryID theoryID);
 

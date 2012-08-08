@@ -88,13 +88,13 @@ LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implicatio
 
 	if (implone.conjunction) {
 		for (auto i = implone.body.cbegin(); i < implone.body.cend(); ++i) {
-			internalAdd(Disjunction(getID(),  { not implone.head, *i }), *engine);
+			add(Disjunction(getID(),  { not implone.head, *i }));
 		}
 		implone.body.clear();
 	}
 	if (waseq && impltwo.conjunction) {
 		for (auto i = impltwo.body.cbegin(); i < impltwo.body.cend(); ++i) {
-			internalAdd(Disjunction(getID(), { not impltwo.head, *i }), *engine);
+			add(Disjunction(getID(), { not impltwo.head, *i }));
 		}
 		impltwo.body.clear();
 	}
@@ -191,14 +191,14 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			bool stilldelayed = true;
 			monitor->requestGrounding(clauseID, true, stilldelayed); // get all grounding
 			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-				internalAdd(Disjunction(getID(),  { not tocheck.head, signswapped ? not *i : *i }), getPCSolver());
+				add(Disjunction(getID(),  { not tocheck.head, signswapped ? not *i : *i }));
 				if (waseq) {
 					complement.body.push_back(signswapped ? *i : not *i);
 				}
 			}
 			auto lits = complement.body;
 			lits.push_back(not complement.head);
-			internalAdd(Disjunction(getID(), lits), getPCSolver());
+			add(Disjunction(getID(), lits));
 		} else { // Can only happen once, at initialization (if the head has not yet become true at any point). If it becomes true, it is grounded and removed
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
 		}
@@ -227,7 +227,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 				}
 				if (waseq) {
 					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-						internalAdd(Disjunction(getID(),  { not complement.head, signswapped ? *i : not *i }), getPCSolver());
+						add(Disjunction(getID(),  { not complement.head, signswapped ? *i : not *i }));
 					}
 				}
 			}
@@ -249,7 +249,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 		if (groundedall) {
 			auto lits = tocheck.body;
 			lits.push_back(not tocheck.head);
-			internalAdd(Disjunction(getID(), lits), getPCSolver());
+			add(Disjunction(getID(), lits));
 		}
 	}
 	return groundedall;

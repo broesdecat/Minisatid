@@ -48,21 +48,21 @@ rClause IntVar::notifypropagate() {
 
 Lit IntVar::getEQLit(int bound) {
 	auto head = mkPosLit(getPCSolver().newVar()); // TODO table
-	internalAdd(Implication(getID(), head, ImplicationType::EQUIVALENT, { getGEQLit(bound), getLEQLit(bound) }, true), engine());
+	add(Implication(getID(), head, ImplicationType::EQUIVALENT, { getGEQLit(bound), getLEQLit(bound) }, true));
 	return head;
 }
 
 void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next) {
 	// leq[i] => leq[i+1]
 	if (next != NULL) {
-		internalAdd(Disjunction(getID(), { ~getLEQLit(lv.value), getLEQLit(next->value) }), engine());
+		add(Disjunction(getID(), { ~getLEQLit(lv.value), getLEQLit(next->value) }));
 	} else if (lv.value == origMaxValue()) {
-		internalAdd(Disjunction(getID(), { getLEQLit(lv.value) }), engine());
+		add(Disjunction(getID(), { getLEQLit(lv.value) }));
 	}
 
 	//~leq[i] => ~leq[i-1]
 	if (prev != NULL) {
-		internalAdd(Disjunction(getID(), { getLEQLit(lv.value), ~getLEQLit(prev->value) }), engine());
+		add(Disjunction(getID(), { getLEQLit(lv.value), ~getLEQLit(prev->value) }));
 	}
 }
 

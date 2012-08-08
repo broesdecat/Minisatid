@@ -363,7 +363,7 @@ private:
 	}
 
 	SATVAL addClause(const litlist& lits){
-		internalAdd(Disjunction(DEFAULTCONSTRID, lits), solver_);
+		internalAdd(Disjunction(DEFAULTCONSTRID, lits), solver_.getTheoryID(), solver_);
 		return solver_.satState();
 	}
 
@@ -392,7 +392,7 @@ private:
 			return it->second;
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, true), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, true), solver_.getTheoryID(), solver_);
 		andmap[remlits] = tseitin;
 		return tseitin;
 	}
@@ -422,7 +422,7 @@ private:
 			return it->second;
 		}
 		auto tseitin = mkPosLit(solver_.newVar());
-		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, false), solver_);
+		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, false), solver_.getTheoryID(), solver_);
 		ormap[remlits] = tseitin;
 		return tseitin;
 	}

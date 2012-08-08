@@ -213,7 +213,7 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l) {
 
 	auto clause = nullPtrClause;
 	if (value(symlit) == l_Undef) {
-		internalAdd(implic, getPCSolver());
+		add(implic);
 		if (getPCSolver().isUnsat()) { // FIXME add methods should return the conflict clause if applicable
 			clause = getPCSolver().createClause(implic, true);
 			getPCSolver().addConflictClause(clause);

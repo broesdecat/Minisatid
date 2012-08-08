@@ -139,7 +139,7 @@ bool SearchEngine::moreModelsPossible() const {
 void SearchEngine::checkHasSolver(TheoryID level) const {
 	if (not hasSolver(level)) {
 		std::stringstream ss;
-		ss << ">> No modal operator with id " << level.id << "was declared.";
+		ss << ">> No modal operator with id " << level.id << " was declared.";
 		throw idpexception(ss.str());
 	}
 }
@@ -158,12 +158,14 @@ void SearchEngine::add(const SubTheory& subtheory){
 	// FIXME getSolver()->getFactory().notifyMonitorsOfAdding(subtheory);
 	if(hasSolver(subtheory.childid.id)){
 		std::stringstream ss;
-		ss << ">> A modal operator on level " << subtheory.childid.id << "was already declared.";
+		ss << ">> A modal operator on level " << subtheory.childid.id << " was already declared.";
 		throw idpexception(ss.str());
 	}
+	cerr <<"Creating model operator on level " <<subtheory.childid.id <<"\n";
 	SolverOption options;
 	// TODO options
 	solvers[subtheory.childid] = new PCSolver(subtheory.childid, options, NULL, getSolver()->getVarCreator(), this, false);
+	MAssert(solvers[subtheory.childid]->getTheoryID()==subtheory.childid);
 	new ModSolver(subtheory.head, getSolver(subtheory.theoryid), getSolver(subtheory.childid), subtheory.rigidatoms);
 }
 

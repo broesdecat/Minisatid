@@ -102,6 +102,12 @@ public:
 		return getPCSolver().value(p);
 	}
 
+	// Add a constraint to the current Theory
+	template<class Object>
+	void add(Object&& constraint){
+		internalAdd(constraint, getPCSolver().getTheoryID(), getPCSolver());
+	}
+
 protected:
 	bool hasNextProp();
 	const Lit& getNextProp();

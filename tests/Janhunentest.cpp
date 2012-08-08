@@ -40,6 +40,10 @@ namespace Tests{
 		Lit getFalseLit() const { return mkPosLit(2); }
 		int verbosity() const { return 1; }
 		SolverMOC& getFactory(TheoryID) { return *const_cast<SolverMOC*>(this); }
+
+		TheoryID getTheoryID(){
+			return TheoryID(1);
+		}
 	};
 
 	void add(const Disjunction& d, SolverMOC& moc){

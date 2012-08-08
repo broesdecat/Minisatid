@@ -284,7 +284,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 		clog << getSpace()->toString(d.literals);
 		clog << "]\n";
 	}
-	internalAdd(d, getSolver());
+	internalAdd(d, getSolver().getBaseTheoryID(), getSolver());
 	return getSolver().satState();
 }
 
@@ -459,7 +459,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		// TODO In fact from here the state no longer has to be saved
 
 		// Prevent to find the first model again
-		internalAdd(Disjunction(DEFAULTCONSTRID, savedinvalidation), getSolver());
+		internalAdd(Disjunction(DEFAULTCONSTRID, savedinvalidation), getSolver().getBaseTheoryID(), getSolver());
 
 		// If resetting state, also fix the optimization constraints to their optimal condition
 		switch (optim.optim) {
@@ -468,19 +468,19 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 				if (*i == latestlistoptimum) {
 					break;
 				}
-				internalAdd(Disjunction(DEFAULTCONSTRID, { ~*i }), getSolver());
+				internalAdd(Disjunction(DEFAULTCONSTRID, { ~*i }), getSolver().getBaseTheoryID(), getSolver());
 			}
-			internalAdd(Disjunction(DEFAULTCONSTRID, { latestlistoptimum }), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { latestlistoptimum }), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		case Optim::SUBSET: {
 			WLSet set(getSolver().newSetID());
 			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
 				set.wl.push_back( { *i, 1 });
 			}
-			internalAdd(set, getSolver());
+			internalAdd(set, getSolver().getBaseTheoryID(), getSolver());
 			auto var = getSolver().newVar();
-			internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(var) }), getSolver());
-			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(var) }), getSolver().getBaseTheoryID(), getSolver());
+			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		}
 		case Optim::AGG: {
@@ -490,7 +490,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		}
 		case Optim::VAR: {
-			internalAdd(Disjunction(DEFAULTCONSTRID, { optim.var->getEQLit(latestvarvalue) }), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { optim.var->getEQLit(latestvarvalue) }), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		}
 		}

@@ -74,7 +74,7 @@ Lit LazyIntVar::addVariable(int value){
 		clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << value << "\n";
 	}
 	if(value==origMaxValue()){
-		internalAdd(Disjunction(getID(), { mkPosLit(var) }), engine());
+		add(Disjunction(getID(), { mkPosLit(var) }));
 	}
 	IntVarValue* next = NULL;
 	if((i+1)<leqlits.size()){

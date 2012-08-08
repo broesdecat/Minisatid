@@ -20,8 +20,8 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	case EqType::EQ: {
 		auto lefthead = getPCSolver().newVar();
 		auto righthead = getPCSolver().newVar();
-		internalAdd(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, true), getPCSolver());
-		internalAdd(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()), getPCSolver());
+		add(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, true));
+		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()));
 		head_ = mkPosLit(lefthead);
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, 0);
@@ -30,8 +30,8 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	case EqType::NEQ: {
 		auto lefthead = getPCSolver().newVar();
 		auto righthead = getPCSolver().newVar();
-		internalAdd(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, false), getPCSolver());
-		internalAdd(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()), getPCSolver());
+		add(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, false));
+		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
 		head_ = mkPosLit(lefthead);
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, -1);

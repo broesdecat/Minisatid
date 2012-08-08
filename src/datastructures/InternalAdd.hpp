@@ -23,18 +23,18 @@ void addVars(const VarList& vars, TheoryID theoryid, ConstraintDB& engine) {
 }
 
 template<typename Constraint, typename ConstraintDB>
-void internalAdd(const Constraint& obj, ConstraintDB& engine){
-	addVars(obj.getAtoms(), obj.theoryid, engine);
-	engine.getFactory(obj.theoryid).add(obj);
+void internalAdd(const Constraint& obj, TheoryID id, ConstraintDB& engine){
+	addVars(obj.getAtoms(), id, engine);
+	engine.getFactory(id).add(obj);
 }
 
 template<typename ConstraintDB>
-void internalAdd(const SubTheory& obj, ConstraintDB& engine){
-	addVars(obj.getAtoms(), obj.theoryid, engine);
-	addVars(obj.getAtoms(), obj.childid, engine);
+void internalAdd(const SubTheory& obj, TheoryID id, ConstraintDB& engine){
+	addVars(obj.getAtoms(), id, engine);
 	std::vector<Atom> atoms = {obj.head};
-	addVars(atoms, obj.theoryid, engine);
+	addVars(atoms, id, engine);
 	engine.add(obj);
+	addVars(obj.getAtoms(), obj.childid, engine);
 }
 
 }

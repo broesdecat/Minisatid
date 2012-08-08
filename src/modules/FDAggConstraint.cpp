@@ -51,7 +51,7 @@ void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const
 		auto eq = (rel == EqType::EQ);
 		auto one = mkPosLit(getPCSolver().newVar());
 		auto two = mkPosLit(getPCSolver().newVar());
-		internalAdd(Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true), getPCSolver());
+		add(Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true));
 		if (verbosity() > 5) {
 			clog << "split FDAggConstraint with head " << toString(head) << " into GEQ with head " << toString(one) << " and LEQ with head " << toString(two)
 					<< endl;
