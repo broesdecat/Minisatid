@@ -65,6 +65,10 @@ protected:
 		}
 	}
 
+	void clearStorage(){ // NOTE DANGEROUS!
+		storage_ = NULL;
+	}
+
 	void addStorage(PCSolver* engine){
 		MAssert(not hasStorage());
 		storage_ = new PropStorage(engine);

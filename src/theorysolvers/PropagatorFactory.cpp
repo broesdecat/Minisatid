@@ -464,8 +464,10 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 		}
 		AggStorage::getStorage()->add(set, aggs);
 		if (finishedparsing) { // TODO bit ugly to have to add it here!
-			auto satval = execute(*AggStorage::getStorage());
-			AggStorage::resetStorage();
+			auto storage = AggStorage::getStorage();
+			AggStorage::clearStorage();
+			auto satval = execute(*storage);
+			delete(storage);
 			if (satval == SATVAL::UNSAT) {
 				return satval;
 			}
@@ -525,8 +527,10 @@ SATVAL PropagatorFactory::finishParsing() {
 	}
 
 	if (AggStorage::hasStorage()) {
-		satval &= execute(*AggStorage::getStorage());
-		AggStorage::resetStorage();
+		auto storage = AggStorage::getStorage();
+		AggStorage::clearStorage();
+		satval &= execute(*storage);
+		delete(storage);
 	}
 
 	definitions->addToPropagators();
