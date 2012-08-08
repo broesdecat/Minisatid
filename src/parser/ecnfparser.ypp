@@ -18,6 +18,9 @@
 %parse-param { MinisatID::ExternalConstraintVisitor* wrapper }
 %parse-param { uint id }
 %parse-param { TheoryID theoryid }
+%parse-param { bool negatemod }
+%parse-param { int maxatom }
+%parse-param { std::vector<Lit> rigidlits }
 %lex-param   { MinisatID::ECNFScanner &scanner }
 
 %code requires{
@@ -58,12 +61,9 @@
 	// TODO External state (to be removed in future)
 	FODOTTranslator*	fodottrans = NULL;
 	LParseTranslator*	simpletrans = NULL;
-	bool negatemod = false;
-	int maxatom;
-	std::vector<Lit> rigidlits;
 	
 	template<class Wrapper>
-	void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level);
+	void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level, bool& negatemod, int& maxatom);
 	
 	/**
 	 * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -188,7 +188,7 @@
 init	:	CNF	number number cnftheory
 		|   CNF number number { maxatom = $2; } modalcnf {
 				if(negatemod){
-					readCNFModalHierLevel(wrapper, true, rigidlits, theoryid);
+					readCNFModalHierLevel(wrapper, true, rigidlits, theoryid, negatemod, maxatom);
 				}
 				theoryid = TheoryID(theoryid.id-1);
 			}	cnftheory
@@ -220,10 +220,10 @@ cnfclause: 	body ZERO
 // TODO assumption that always starts with "e"
 modalcnf	
 		:	QUANTe   
-				{ 	readCNFModalHierLevel(wrapper, $1, rigidlits, theoryid); }
+				{ 	readCNFModalHierLevel(wrapper, $1, rigidlits, theoryid, negatemod, maxatom); }
 			body { rigidlits.insert(rigidlits.end(), (*$3).cbegin(), (*$3).cend()); delete($3); } ZERO // NOTE: FIRST has to add new level with PREVIOUS rigid atoms before adding to them
 		|	modalcnf QUANTe   
-				{ 	readCNFModalHierLevel(wrapper, $2, rigidlits, theoryid); }
+				{ 	readCNFModalHierLevel(wrapper, $2, rigidlits, theoryid, negatemod, maxatom); }
 			body { rigidlits.insert(rigidlits.end(), (*$4).cbegin(), (*$4).cend()); delete($4); } ZERO // NOTE: FIRST has to add new level with PREVIOUS rigid atoms before adding to them
 		;
 			
@@ -716,7 +716,7 @@ void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool 
 }
 
 template<class Wrapper>
-void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level){
+void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>& rigidlits, TheoryID& level, bool& negatemod, int& maxatom){
 	bool writeexists;
 	if(existential && negatemod){
 		negatemod = false;
