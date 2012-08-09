@@ -22,7 +22,7 @@ void FZ::Var::add(Storage& storage) {
 		throw fzexception("Incorrect type.\n");
 	}
 
-	MBoolVar* var = storage.createBoolVar(getName());
+	MBoolVar* var = storage.createBoolVar(getName(), isOutput());
 	if (expr != NULL) {
 		storage.addBoolExpr(*var, *expr);
 	}
@@ -33,7 +33,7 @@ void IntVar::add(Storage& storage) {
 		throw fzexception("Incorrect type.\n");
 	}
 
-	auto var = storage.createIntVar(getName());
+	auto var = storage.createIntVar(getName(), isOutput());
 
 	//values
 	bool nobounds = true;
@@ -71,7 +71,7 @@ void ArrayVar::add(Storage& storage) {
 	}
 
 	if (mappedtype == VAR_BOOL) {
-		auto var = storage.createBoolArrayVar(getName(), end);
+		auto var = storage.createBoolArrayVar(getName(), end, isOutput());
 		for (int i = 1; i <= end; i++) {
 			auto boolvar = new MBoolVar();
 			boolvar->var = storage.createOneShotVar();
@@ -87,7 +87,7 @@ void ArrayVar::add(Storage& storage) {
 			}
 		}
 	} else {
-		auto var = storage.createIntArrayVar(getName(), end);
+		auto var = storage.createIntArrayVar(getName(), end, isOutput());
 
 		auto intvar = new MIntVar();
 		intvar->var = storage.createOneShotVar();

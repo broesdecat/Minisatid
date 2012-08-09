@@ -146,6 +146,27 @@ struct Expression {
 			delete (stringlit);
 		}
 	}
+
+	std::string toString() const{
+		switch(type){
+		case EXPR_TYPE::EXPR_ARRAY:
+			return "expr_array";
+		case EXPR_TYPE::EXPR_ARRAYACCESS:
+			return "expr_arrayaccess";
+		case EXPR_TYPE::EXPR_BOOL:
+			return "expr_bool";
+		case EXPR_TYPE::EXPR_FLOAT:
+			return "expr_float";
+		case EXPR_TYPE::EXPR_IDENT:
+			return "expr_ident";
+		case EXPR_TYPE::EXPR_INT:
+			return "expr_int";
+		case EXPR_TYPE::EXPR_SET:
+			return "expr_set";
+		case EXPR_TYPE::EXPR_STRING:
+			return "expr_string";
+		}
+	}
 };
 
 struct MBoolVar {
@@ -186,12 +207,13 @@ enum VAR_TYPE {
 
 class Var {
 public:
+	bool output;
 	bool var;
 	VAR_TYPE type;
 	Identifier* id;
 	Expression* expr;
 	Var(VAR_TYPE type)
-			: var(true), type(type), id(NULL), expr(NULL) {
+			: output(false), var(true), type(type), id(NULL), expr(NULL) {
 	}
 	virtual ~Var() {
 		if (id != NULL) {
@@ -200,6 +222,13 @@ public:
 		if (expr != NULL) {
 			delete (expr);
 		}
+	}
+
+	bool isOutput() const{
+		return output;
+	}
+	void setOutput(){
+		output = true;
 	}
 
 	const std::string& getName() const {

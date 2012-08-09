@@ -218,8 +218,8 @@ public:
 
 class QBFPolicy {
 public:
-	void printLit(std::ostream& output, const Lit&, const std::string& text){
-		output <<text <<" ";
+	void printLit(std::ostream& output, const Lit& lit, const std::string& text){
+		output <<(lit.hasSign()?"-":"") <<text <<" ";
 	}
 	void printVar(std::ostream&, const std::string&, int){
 		throw idpexception("Invalid code path.");
@@ -250,8 +250,8 @@ public:
 
 class FZPolicy {
 public:
-	void printLit(std::ostream&, const Lit&, const std::string&){
-		throw idpexception("Invalid code path.");
+	void printLit(std::ostream& output, const Lit& lit, const std::string& text){
+		output <<text <<" = " <<(sign(lit)?"false":"true") <<"\n";
 	}
 	void printVar(std::ostream& output, const std::string& var, int value){
 		output << var << "= " << value << ";\n";
@@ -289,10 +289,16 @@ public:
 
 	void printModel(std::ostream& output, const Model& model) {
 		for (auto lit : model.literalinterpretations) {
-			OptimumPolicy::printLit(output, lit, toString(lit));
+			auto it = lit2name.find(lit.getAtom());
+			if(it != lit2name.cend()){
+				OptimumPolicy::printLit(output, lit, it->second);
+			}
 		}
 		for (auto vareq : model.variableassignments) {
-			OptimumPolicy::printVar(output, toString(vareq.variable), vareq.value);
+			auto it = var2name.find(vareq.variable);
+			if(it != var2name.cend()){
+				OptimumPolicy::printVar(output, it->second, vareq.value);
+			}
 		}
 		OptimumPolicy::printModelEnd(output);
 		output.flush();

@@ -70,6 +70,15 @@ bool InsertWrapper::isCertainlyUnsat() const {
 }
 
 void InsertWrapper::add(Var* var) {
+	for(auto expr: *var->id->arguments){
+		if(expr->type==EXPR_TYPE::EXPR_IDENT){
+			if((*expr->ident->name)=="output_var"){
+				var->setOutput();
+			}else if(expr->ident->name->size()>12 && expr->ident->name->substr(0, 12)=="output_array"){
+				var->setOutput();
+			}
+		}
+	}
 	var->add(*storage);
 }
 

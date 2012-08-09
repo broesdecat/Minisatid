@@ -11,6 +11,7 @@
 #include "fzexception.hpp"
 #include "external/ConstraintAdditionInterface.hpp"
 #include "external/Constraints.hpp"
+#include "external/Translator.hpp"
 
 using namespace MinisatID;
 
@@ -21,6 +22,7 @@ private:
 	uint maxid;
 	int truelit;
 	ExternalConstraintVisitor* store;
+	FZTranslator* translator;
 
 	int nextint;
 	std::map<std::string, MBoolVar*> name2bool;
@@ -30,15 +32,19 @@ private:
 
 public:
 	Storage(ExternalConstraintVisitor* store)
-			: maxid(1), truelit(-1), store(store), nextint(1) {
+			: maxid(1), truelit(-1), store(store), translator(new FZTranslator()), nextint(1) {
+		store->setTranslator(translator);
 	}
 
-	MBoolVar* createBoolVar(const std::string& name) {
+	MBoolVar* createBoolVar(const std::string& name, bool output) {
 		auto var = new MBoolVar();
 		var->var = nextint++;
 		var->hasmap = false;
 		var->hasvalue = false;
 		name2bool.insert({name, var});
+		if(output){
+			translator->addTuple(var->var, name);
+		}
 		return var;
 	}
 
@@ -46,26 +52,31 @@ public:
 		return nextint++;
 	}
 
-	MIntVar* createIntVar(const std::string& name) {
+	MIntVar* createIntVar(const std::string& name, bool output) {
 		auto var = new MIntVar();
 		var->var = nextint++;
 		var->hasmap = false;
 		var->hasvalue = false;
 		name2int.insert({name, var});
+		if(output){
+			translator->addTuple({var->var}, name);
+		}
 		return var;
 	}
 
-	MBoolArrayVar* createBoolArrayVar(const std::string& name, int nbelem) {
+	MBoolArrayVar* createBoolArrayVar(const std::string& name, int nbelem, bool output) {
 		auto var = new MBoolArrayVar();
 		var->nbelem = nbelem;
 		name2boolarray.insert({name, var});
+		// FIXME add to translator
 		return var;
 	}
 
-	MIntArrayVar* createIntArrayVar(const std::string& name, int nbelem) {
+	MIntArrayVar* createIntArrayVar(const std::string& name, int nbelem, bool output) {
 		auto var = new MIntArrayVar();
 		var->nbelem = nbelem;
 		name2intarray.insert({name, var});
+		// FIXME add to translator
 		return var;
 	}
 
