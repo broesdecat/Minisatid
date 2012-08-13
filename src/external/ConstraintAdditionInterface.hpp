@@ -92,6 +92,9 @@ public:
 	virtual void add(const LazyAddition&) {
 		UNHANDLED("lazy implication additions", getName())
 	}
+	virtual void add(const TwoValuedRequirement&) {
+		UNHANDLED("Twovalued requirement", getName())
+	}
 	virtual void add(const SubTheory&) {
 		UNHANDLED("Subtheory", getName())
 	}

@@ -150,6 +150,13 @@ public:
 	}
 };
 template<typename Remapper>
+class ExtAdd<TwoValuedRequirement, Remapper> {
+public:
+	TwoValuedRequirement extAdd(Remapper& r, const TwoValuedRequirement& obj) {
+		return TwoValuedRequirement(map(obj.atoms, r));
+	}
+};
+template<typename Remapper>
 class ExtAdd<IntVarEnum, Remapper> {
 public:
 	IntVarEnum extAdd(Remapper& r, const IntVarEnum& obj) {

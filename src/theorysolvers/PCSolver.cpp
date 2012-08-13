@@ -158,6 +158,9 @@ void PCSolver::acceptForDecidable(Atom v, Propagator* prop) {
 	getEventQueue().acceptForDecidable(v, prop);
 }
 void PCSolver::notifyBecameDecidable(Atom v) {
+	if (verbosity() > 5) {
+		clog << ">>> Making " << toString(mkPosLit(v)) << " decidable.\n";
+	}
 	getEventQueue().notifyBecameDecidable(v);
 }
 

@@ -610,6 +610,20 @@ public:
 	}
 };
 
+struct TwoValuedRequirement: public Constraint {
+	std::vector<Atom> atoms;
+
+	TwoValuedRequirement(const std::vector<Atom>& atoms)
+			: atoms(atoms) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return atoms;
+	}
+};
+
 class SubTheory: public ID{
 public:
 	Atom head;

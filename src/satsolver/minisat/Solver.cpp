@@ -106,14 +106,6 @@ void Solver::setDecidable(Atom v, bool decide) { // NOTE: no-op if already a dec
 		return;
 	}
 
-	if (verbosity > 10) {
-		if (decide) {
-			clog << ">>> Making " << toString(v) << " decidable.\n";
-		} else if (not decide && decision[v]) {
-			clog << ">>> Making decidable " << toString(v) << " undecidable.\n";
-		}
-	}
-
 	decision[v] = decide;
 	insertVarOrder(v);
 

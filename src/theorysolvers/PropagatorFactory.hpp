@@ -175,6 +175,7 @@ public:
 	void add(const LazyGroundLit& object);
 	void add(const LazyGroundImpl& object);
 	void add(const LazyAddition& object);
+	void add(const TwoValuedRequirement& object);
 
 	int newSetID();
 

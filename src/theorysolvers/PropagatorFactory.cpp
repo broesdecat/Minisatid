@@ -596,3 +596,9 @@ void PropagatorFactory::add(const LazyAddition& object) {
 	MAssert(grounder2clause.size()>object.ref);
 	grounder2clause[object.ref]->addGrounding(object.list);
 }
+
+void PropagatorFactory::add(const TwoValuedRequirement& object){
+	for(auto atom: object.atoms){
+		getEngine().getSATSolver()->setDecidable(atom, true);
+	}
+}

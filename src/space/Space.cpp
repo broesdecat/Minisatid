@@ -114,6 +114,9 @@ void Space::add(const LazyGroundImpl& o){
 void Space::add(const LazyAddition& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
+void Space::add(const TwoValuedRequirement& o){
+	internalAdd(o, o.theoryid, *getEngine());
+}
 void Space::add(const SubTheory& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
