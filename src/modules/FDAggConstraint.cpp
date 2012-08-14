@@ -20,8 +20,7 @@ using namespace std;
 using namespace MinisatID;
 
 IntView* FDAggConstraint::negation(IntView* bound) {
-	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), -bound->maxValue(), -bound->minValue());
-	auto result = new IntView(newvar, 0);
+	auto result = createBound(-bound->maxValue(), -bound->minValue());
 	auto head = getPCSolver().newVar();
 	auto headIsTrue = mkPosLit(head);
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
@@ -35,11 +34,9 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 	return result;
 }
 
-IntView* FDAggConstraint::createBound(const Weight& bound) {
-	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), bound, bound);
-	if (verbosity() > 5) {
-		clog << toString(newvar->getVarID()) << " = " << bound << endl;
-	}
+IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
+	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), min, max);
+	newvar->finish();
 	return new IntView(newvar, 0);
 }
 
@@ -103,7 +100,7 @@ FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, Agg
 		EqType rel, const Weight& bound)
 		: Propagator(id, engine, "fdaggconstr"), _type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
-	initializeSum(engine, head, set, weights, rel, createBound(bound));
+	initializeSum(engine, head, set, weights, rel, createBound(bound, bound));
 }
 
 FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
@@ -166,7 +163,7 @@ FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, Agg
 		const Weight& bound)
 		: Propagator(id, engine, "fdaggconstr"), _type(getType(type)) {
 	MAssert(type==AggType::PROD);
-	initializeProd(engine, head, set, weight, rel, createBound(bound));
+	initializeProd(engine, head, set, weight, rel, createBound(bound, bound));
 }
 
 FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,

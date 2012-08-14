@@ -50,6 +50,9 @@ public:
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
 	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
+	// NOTE: required because intvars are both data and propagator, and the data is required earlier then propagation is allowed (when lazy grounding)
+	virtual void finish() = 0;
+
 	VarID getVarID() const { return varid_; }
 	PCSolver& engine() { return engine_; }
 
@@ -92,7 +95,10 @@ public:
 
 class RangeIntVar: public BasicIntVar{
 public:
+	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
 	RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
+
+	virtual void finish();
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -105,7 +111,10 @@ private:
 	std::vector<int> _values; // SORTED low to high!
 
 public:
+	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
 	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<int>& values);
+
+	virtual void finish();
 
 	virtual int getNbOfFormulas() const { return 1; }
 
@@ -122,6 +131,8 @@ private:
 
 public:
 	LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
+
+	virtual void finish();
 
 	virtual void updateBounds();
 

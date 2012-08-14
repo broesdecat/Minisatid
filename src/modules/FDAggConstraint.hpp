@@ -20,16 +20,15 @@ private:
 	void sharedInitialization(AggType type, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
 			IntView* bound);
 
-	void initializeSum(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
-				IntView* bound);
-	void initializeProd(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
-					IntView* bound);
+	void initializeSum(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
+	void initializeProd(PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
 
 	// Sum constraint: one weight for each var, where bound is an intview.
 	FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
 			IntView* bound);
 	// Product constraint: one weight for the whole expression, bound is an integer! TODO MOVE TO PUBLIC AGAIN OR DELETE
-		FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
+	FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
+			const Weight& bound);
 
 public:
 	// Sum constraint: one weight for each var, where bound is an int.
@@ -37,8 +36,8 @@ public:
 			const int& bound);
 
 	// Product constraint: one weight for the whole expression, bound is a variable!
-	FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
-
+	FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
+			IntView* bound);
 
 	// Propagator methods
 	virtual int getNbOfFormulas() const {
@@ -135,7 +134,7 @@ private:
 	/**
 	 * Creates an intview which can only take the value of bound.
 	 */
-	IntView* createBound(const Weight& bound);
+	IntView* createBound(const Weight& min, const Weight& max);
 
 	/**
 	 * For every variable (different from the "excludedvar"),
@@ -149,8 +148,6 @@ private:
 	 */
 	void getLitsNotCurrentAbsValSituation(litlist& lits, uint excludedvarloc);
 };
-
-
 
 }
 

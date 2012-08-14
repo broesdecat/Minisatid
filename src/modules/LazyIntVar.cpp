@@ -22,14 +22,15 @@ LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
 		: IntVar(id, solver, varid){
 	setOrigMax(max);
 	setOrigMin(min);
+}
 
+void LazyIntVar::finish(){
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_STATEFUL);
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 
-	checkAndAddVariable((min+max)/2);
-
+	checkAndAddVariable((origMinValue()+origMaxValue())/2);
 	engine().notifyBoundsChanged(this);
 }
 

@@ -293,6 +293,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
 		}
 		intvars.insert({obj.varID, intvar });
+		intvar->finish();
 	}
 }
 
@@ -306,7 +307,9 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
-		intvars.insert({obj.varID, new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values)});
+		auto intvar = new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values);
+		intvars.insert({obj.varID, intvar});
+		intvar->finish();
 	}
 }
 

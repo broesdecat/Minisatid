@@ -132,7 +132,9 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int ma
 	}
 	setOrigMax(max);
 	setOrigMin(min);
+}
 
+void RangeIntVar::finish(){
 	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
 		auto var = engine().newVar();
 		leqlits.push_back(IntVarValue(this, var, i));
@@ -148,7 +150,6 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int ma
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 
 	addConstraints();
-
 	engine().notifyBoundsChanged(this);
 }
 
@@ -178,8 +179,10 @@ EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector
 	sort(_values.begin(), _values.end());
 	setOrigMin(values.front());
 	setOrigMax(values.back());
+}
 
-	for (auto i = values.cbegin(); i < values.cend(); ++i) {
+void EnumIntVar::finish(){
+	for (auto i = _values.cbegin(); i < _values.cend(); ++i) {
 		auto var = engine().newVar();
 		leqlits.push_back(IntVarValue(this, var, *i));
 		engine().accept(this, mkPosLit(var), FASTEST);
@@ -194,7 +197,6 @@ EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 
 	addConstraints();
-
 	engine().notifyBoundsChanged(this);
 }
 
