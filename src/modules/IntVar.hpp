@@ -71,6 +71,10 @@ public:
 
 	virtual Lit getLEQLit(int bound) = 0;
 	virtual Lit getGEQLit(int bound) = 0;
+
+private:
+	std::map<int, Lit> eqlits;
+public:
 	Lit getEQLit(int bound);
 };
 

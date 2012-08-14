@@ -47,7 +47,12 @@ rClause IntVar::notifypropagate() {
 }
 
 Lit IntVar::getEQLit(int bound) {
-	auto head = mkPosLit(getPCSolver().newVar()); // TODO table
+	auto it = eqlits.find(bound);
+	if(it!=eqlits.cend()){
+		return it->second;
+	}
+	auto head = mkPosLit(getPCSolver().newVar());
+	eqlits[bound] = head;
 	add(Implication(getID(), head, ImplicationType::EQUIVALENT, { getGEQLit(bound), getLEQLit(bound) }, true));
 	return head;
 }
