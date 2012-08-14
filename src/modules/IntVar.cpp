@@ -109,6 +109,9 @@ void BasicIntVar::updateBounds() {
 	bool found = false;
 	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
 		if (not isTrue(mkPosLit(i->atom))) { // First non true => previous is highest remaining value (LEQ!)
+			if(i==leqlits.crbegin()){
+				return; // Conflict, will be resolved by unit propagation anyway
+			}
 			currentmax = (--i)->value;
 			found = true;
 			break;
@@ -117,8 +120,6 @@ void BasicIntVar::updateBounds() {
 	if (not found) {
 		currentmax = leqlits.front().value;
 	}
-	MAssert(isTrue(getGEQLit(minValue())));
-	MAssert(isTrue(getLEQLit(maxValue())));
 //	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
