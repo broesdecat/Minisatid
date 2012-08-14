@@ -14,6 +14,7 @@
 #include <cmath>
 #include "utils/NumericLimits.hpp"
 #include "IntVar.hpp"
+#include "utils/SafeInt.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -146,6 +147,18 @@ void FDAggConstraint::initializeSum(PCSolver* engine, const Lit& head, const std
 			++wi;
 		}
 	}
+
+	SafeInt<Weight> absmax(0); //note that s == 0 unless set
+	try {
+		for(uint i=0; i<newset.size(); ++i){
+			SafeInt<Weight> sumterm(newweights[i]);
+			sumterm *= max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
+			absmax += sumterm;
+		}
+	} catch (const SafeIntException& err) {
+		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
+	}
+
 	sharedInitialization(AggType::SUM, engine, head, newset, newweights, rel, bound);
 }
 
@@ -166,9 +179,19 @@ void FDAggConstraint::initializeProd(PCSolver* engine, const Lit& head, const st
 	if (weight == 0) {
 		new FDAggConstraint(getID(), engine, head, AggType::SUM, { bound }, { 1 }, invertEqType(rel), weight);
 		notifyNotPresent();
-	} else {
-		sharedInitialization(AggType::PROD, engine, head, set, { weight }, rel, bound);
+		return;
 	}
+
+	SafeInt<Weight> absmax(abs(weight)); //note that s == 0 unless set
+	try {
+		for (auto var : set) {
+			absmax *= max(abs(var->maxValue()), abs(var->minValue()));
+		}
+	} catch (const SafeIntException& err) {
+		throw idpexception("Overflow possible for a product of a set of variables in limited integer precision.");
+	}
+
+	sharedInitialization(AggType::PROD, engine, head, set, { weight }, rel, bound);
 }
 
 //NOTE: for products, this does not include the weight!!! and also... This is an estimate.
@@ -177,17 +200,18 @@ std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
 	if (_type == getType(AggType::SUM)) {
 		int min = 0, max = 0;
 		for (uint i = 0; i < _vars.size(); ++i) {
-			if (i != excludedVar) {
-				auto weight = _weights[i];
-				auto minval = _vars[i]->minValue();
-				auto maxval = _vars[i]->maxValue();
-				if (weight < 0) {
-					min += maxval * weight;
-					max += minval * weight;
-				} else {
-					min += minval * weight;
-					max += maxval * weight;
-				}
+			if (i == excludedVar) {
+				continue;
+			}
+			auto weight = _weights[i];
+			auto minval = _vars[i]->minValue();
+			auto maxval = _vars[i]->maxValue();
+			if (weight < 0) {
+				min += maxval * weight;
+				max += minval * weight;
+			} else {
+				min += minval * weight;
+				max += maxval * weight;
 			}
 		}
 		return {min,max};
@@ -198,18 +222,17 @@ std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
 			int decidedval = 1;
 			bool decided = true;
 			for (uint i = 0; i < _vars.size(); ++i) {
-				if (i != excludedVar) {
-					auto minval = _vars[i]->minValue();
-					auto maxval = _vars[i]->maxValue();
-					if (decided && minval == maxval) {
-						decidedval *= maxval;
-					} else {
-						decided = false;
-					}
-					auto absminval = abs(minval);
-					auto absmaxval = abs(maxval);
-					absmax *= max(absmaxval, absminval);
+				if (i == excludedVar) {
+					continue;
 				}
+				auto minval = _vars[i]->minValue();
+				auto maxval = _vars[i]->maxValue();
+				if (decided && minval == maxval) {
+					decidedval *= maxval;
+				} else {
+					decided = false;
+				}
+				absmax *= max(abs(maxval), abs(minval));
 			}
 			if (decided) {
 				return {decidedval,decidedval};
@@ -511,10 +534,10 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			if(value(boundlit)==l_False){
+			if (value(boundlit) == l_False) {
 				getPCSolver().addConflictClause(c);
 				return c;
-			}else{
+			} else {
 				getPCSolver().addLearnedClause(c);
 				return nullPtrClause;
 			}
