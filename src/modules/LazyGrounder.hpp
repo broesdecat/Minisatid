@@ -31,30 +31,14 @@ class Watch;
 
 class LazyResidual;
 
-class LazyResidualWatch: public GenWatch{
-private:
-	PCSolver* engine;
-	LazyGroundingCommand* monitor;
-	Lit residual;
-
-public:
-	LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor);
-
-	virtual void propagate();
-	virtual const Lit& getPropLit() const;
-	virtual bool dynamic() const { return true; }
-
-	friend class LazyResidual;
-};
-
 class LazyResidual: public Propagator{
 private:
 	LazyGroundingCommand* monitor;
-	Lit residual;
+	Atom residual;
+	Value watchedvalue;
 
 public:
-	LazyResidual(PCSolver* engine, Atom var, LazyGroundingCommand* monitor);
-	LazyResidual(LazyResidualWatch* const watch);
+	LazyResidual(PCSolver* engine, Atom var, Value watchedvalue, LazyGroundingCommand* monitor);
 
 	virtual rClause notifypropagate();
 	virtual void accept(ConstraintVisitor& visitor);

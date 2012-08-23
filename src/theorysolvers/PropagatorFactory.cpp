@@ -558,18 +558,11 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 
 void PropagatorFactory::add(const LazyGroundLit& object) {
 	MAssert(getEngine().modes().lazy);
-	MAssert(not getEngine().isDecisionVar(var(object.residual)));
-	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	if (getEngine().verbosity() > 4) {
-		clog << toString(object.residual, getEngine()) << " is delayed " << (object.watchboth ? "on unknown" : "on true") << "\n";
+		clog << toString(object.residual, getEngine()) << " is delayed on " << object.watchedvalue << "\n";
 	}
-	if (object.watchboth) {
-		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
-	} else {
-		getEngine().getSATSolver()->setInitialPolarity(var(object.residual), not sign(object.residual));
-		new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
-		//std::clog <<"First choosing " <<mkPosLit(var(object.residual)) <<" " <<(not sign(object.residual)?"true":"false") <<"\n";
-	}
+	getEngine().getSATSolver()->setInitialPolarity(object.residual, object.watchedvalue!=Value::True);
+	new LazyResidual(getEnginep(), object.residual, object.watchedvalue, object.monitor);
 }
 
 void PropagatorFactory::add(const LazyGroundImpl& object) {
@@ -597,11 +590,18 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 void PropagatorFactory::add(const LazyAddition& object) {
 	notifyMonitorsOfAdding(object);
 	MAssert(grounder2clause.size()>object.ref);
+	for(auto lit: object.list){
+		getEngine().getSATSolver()->setInitialPolarity(var(lit), not sign(lit));
+	}
 	grounder2clause[object.ref]->addGrounding(object.list);
 }
 
 void PropagatorFactory::add(const TwoValuedRequirement& object){
+//	cerr <<"Adding output vars ";
 	for(auto atom: object.atoms){
 		getEngine().getSATSolver()->setDecidable(atom, true);
+//		cerr <<toString(atom) <<", ";
 	}
+//	cerr <<"\n";
+	getEngine().addOutputVars(object.atoms);
 }

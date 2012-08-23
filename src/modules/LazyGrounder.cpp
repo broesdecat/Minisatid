@@ -14,34 +14,25 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor)
-		: engine(engine), monitor(monitor), residual(lit) {
-	engine->accept(this);
-}
-
-void LazyResidualWatch::propagate() {
-	new LazyResidual(this);
-}
-
-const Lit& LazyResidualWatch::getPropLit() const {
-	return residual;
-}
-
 // Watch BOTH: so watching when it becomes decidable
-LazyResidual::LazyResidual(PCSolver* engine, Atom var, LazyGroundingCommand* monitor)
-		: Propagator(DEFAULTCONSTRID, engine, "lazy residual notifier"), monitor(monitor), residual(mkPosLit(var)) {
+LazyResidual::LazyResidual(PCSolver* engine, Atom var, Value watchedvalue, LazyGroundingCommand* monitor)
+		: Propagator(DEFAULTCONSTRID, engine, "lazy residual notifier"), monitor(monitor), residual(var), watchedvalue(watchedvalue) {
 	getPCSolver().accept(this);
-	getPCSolver().acceptForDecidable(var, this);
-}
-
-LazyResidual::LazyResidual(LazyResidualWatch* const watch)
-		: Propagator(DEFAULTCONSTRID, watch->engine, "lazy residual notifier"), monitor(watch->monitor), residual(watch->residual) {
-	getPCSolver().accept(this);
-	getPCSolver().acceptForPropagation(this);
+	switch(watchedvalue){
+	case Value::True:
+		getPCSolver().accept(this, mkPosLit(var), PRIORITY::FAST);
+		break;
+	case Value::False:
+		getPCSolver().accept(this, mkNegLit(var), PRIORITY::FAST);
+		break;
+	case Value::Unknown:
+		getPCSolver().acceptForDecidable(var, this);
+		break;
+	}
 }
 
 void LazyResidual::accept(ConstraintVisitor& visitor) {
-	visitor.add(LazyGroundLit(false, residual, monitor));
+	visitor.add(LazyGroundLit(residual, watchedvalue, monitor));
 }
 
 rClause LazyResidual::notifypropagate() {
@@ -50,25 +41,36 @@ rClause LazyResidual::notifypropagate() {
 
 	// NOTE: have to make sure that constraints are never added at a level where they will no have full effect!
 
-	auto val = getPCSolver().value(residual);
-	auto truthvalue = Value::Unknown;
-	if (val == l_True) {
-		truthvalue = Value::True;
-	} else if (val == l_False) {
-		truthvalue = Value::False;
+	auto confl = nullPtrClause;
+	switch(watchedvalue){
+	case Value::Unknown:
+		if(not getPCSolver().isDecisionVar(residual)){
+			return confl;
+		}
+		break;
+	case Value::False:
+		if(getPCSolver().value(mkPosLit(residual))!=l_False){
+			return confl;
+		}
+		break;
+	case Value::True:
+		if(getPCSolver().value(mkPosLit(residual))!=l_True){
+			return confl;
+		}
+		break;
 	}
-	monitor->requestGrounding(truthvalue);
+	//cerr <<"Firing " <<toString(residual) <<" for watched value " <<watchedvalue <<" with value " <<truthvalue <<"\n";
+	monitor->requestGrounding(watchedvalue);
 
 	if (not getPCSolver().isUnsat()) { // NOTE: otherwise, it will be called later and would be incorrect here!
-		getPCSolver().finishParsing();
+		getPCSolver().finishParsing(); // FIXME each time?
 	}
 	notifyNotPresent();
 
 	if (getPCSolver().isUnsat()) {
-		return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
-	} else {
-		return nullPtrClause;
+		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 	}
+	return confl;
 }
 
 LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID)

@@ -33,7 +33,7 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot)
-		: theoryID(theoryID), _modes(modes), varcreator(varcreator), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
+		: theoryID(theoryID), _modes(modes), varcreator(varcreator), _outputvarsset(false), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
 			searchengine(NULL),
 #ifdef CPSUPPORT
 			cpsolver(NULL),
@@ -103,11 +103,17 @@ SATVAL PCSolver::findNextCPModel() {
 }
 
 void PCSolver::invalidate(litlist& clause) const {
-	// Add negation of model as clause for next iteration.
-	// By default: by adding all choice literals
-	auto v = getSolver().getDecisions();
-	for (auto i = v.cbegin(); i < v.cend(); ++i) {
-		clause.push_back(~(*i));
+	if(_outputvarsset){
+		for(auto var: _outputvars){
+			clause.push_back(value(mkPosLit(var))==l_True?mkNegLit(var):mkPosLit(var));
+		}
+	}else{
+		// Add negation of model as clause for next iteration.
+		// By default: by adding all choice literals
+		auto v = getSolver().getDecisions();
+		for (auto i = v.cbegin(); i < v.cend(); ++i) {
+			clause.push_back(~(*i));
+		}
 	}
 }
 bool PCSolver::moreModelsPossible() const {
@@ -132,6 +138,13 @@ bool PCSolver::terminateRequested() const {
 
 const std::vector<Lit>& PCSolver::getTrail() const {
 	return trail->getTrail();
+}
+
+void PCSolver::addOutputVars(const std::vector<Atom>& outputvars){
+	_outputvarsset = true;
+	for(auto var: outputvars){
+		_outputvars.insert(var);
+	}
 }
 
 bool PCSolver::isDecisionVar(Atom var) {

@@ -226,7 +226,7 @@ public:
 	}
 
 	void add(const LazyGroundLit& lg) {
-		target() << "Added lazy residual " << print(lg.residual) << ", acting as " << (lg.watchboth ? "known" : "true") << " delay trigger.\n";
+		target() << "Added lazy residual " << print(lg.residual) << ", acting as " << lg.watchedvalue << " delay trigger.\n";
 	}
 
 	virtual void add(const LazyGroundImpl& lg) {

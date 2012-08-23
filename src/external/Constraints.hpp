@@ -129,7 +129,7 @@ template<typename Remapper>
 class ExtAdd<LazyGroundLit, Remapper> {
 public:
 	LazyGroundLit extAdd(Remapper& r, const LazyGroundLit& obj) {
-		return LazyGroundLit(obj.watchboth, map(obj.residual, r), obj.monitor);
+		return LazyGroundLit(map(obj.residual, r), obj.watchedvalue, obj.monitor);
 	}
 };
 template<typename Remapper>

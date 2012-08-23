@@ -577,6 +577,8 @@ enum class Value {
 	True, False, Unknown
 };
 
+std::ostream& operator<<(std::ostream&, Value);
+
 class LazyGroundingCommand {
 private:
 	bool allreadyground;
@@ -598,18 +600,18 @@ public:
 };
 class LazyGroundLit: public Constraint {
 public:
-	bool watchboth;
-	Lit residual;
+	Value watchedvalue;
+	Atom residual;
 	LazyGroundingCommand* monitor;
 
-	LazyGroundLit(bool watchboth, const Lit& residual, LazyGroundingCommand* monitor)
-			: watchboth(watchboth), residual(residual), monitor(monitor) {
+	LazyGroundLit(Atom residual, Value watchedvalue, LazyGroundingCommand* monitor)
+			: watchedvalue(watchedvalue), residual(residual), monitor(monitor) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {var(residual)};
+		return {residual};
 	}
 };
 

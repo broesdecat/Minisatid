@@ -78,7 +78,11 @@ public:
 	int newSetID();
 
 	// Decision information
+private:
+	bool _outputvarsset;
+	std::set<Atom> _outputvars;
 public:
+	void addOutputVars(const std::vector<Atom>& outputvars);
 	bool isDecisionVar(Atom var);
 	void notifyDecisionVar(Atom var);
 	bool isDecided(Atom var);
@@ -145,13 +149,17 @@ public:
 
 	// CP-support
 private:
+#ifdef CPSUPPORT
 	CPSolver* cpsolver;
+#endif
 public:
 	bool hasCPSolver() const;
 	SATVAL findNextCPModel();
+#ifdef CPSUPPORT
 	CPSolver* getCPSolver() const {
 		return cpsolver;
 	}
+#endif
 
 	// Propagatorfactory
 private:

@@ -64,10 +64,8 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 
 Solver::Solver(PCSolver* s, bool oneshot)
 		: Propagator(DEFAULTCONSTRID, s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false),
-			fullmodelcheck(false),
-			needsimplify(true),
-			backtracked(true),
+			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
+			needsimplify(true), backtracked(true),
 
 			clause_decay(opt_clause_decay),
 			luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_init_act(opt_rnd_init_act),
@@ -85,8 +83,7 @@ Solver::Solver(PCSolver* s, bool oneshot)
 					,
 			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(0),
 			tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
-			order_heap(VarOrderLt(activity)), remove_satisfied(true),
-			max_learnts(0){
+			order_heap(VarOrderLt(activity)), remove_satisfied(true), max_learnts(0) {
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
@@ -312,7 +309,7 @@ void Solver::addLearnedClause(CRef rc, bool conflict) {
 	attachClause(rc, conflict);
 	claBumpActivity(c);
 	if (verbosity >= 3) {
-		clog <<(conflict?"Conflict":"Learned") << " clause added: ";
+		clog << (conflict ? "Conflict" : "Learned") << " clause added: ";
 		printClause(rc);
 	}
 }
@@ -326,6 +323,11 @@ void swap(Clause& c, int from, int to) {
 	auto temp = c[from];
 	c[from] = c[to];
 	c[to] = temp;
+}
+
+void Solver::setInitialPolarity(Atom var, bool pol) {
+//	cerr << "Setting initial polarity of " << toString(mkPosLit(var)) << " to " << (pol ? "true" : "false") << "\n";
+	polarity[var] = not pol;
 }
 
 void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
@@ -488,7 +490,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 // NOTE: never call directly from within!
 void Solver::saveState() {
-	if(verbosity>3){
+	if (verbosity > 3) {
 		clog << ">>> Saving the state.\n";
 	}
 	// Reset stored info
@@ -522,7 +524,7 @@ void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
 // Reset always backtracks to 0 if there are new entailed literals
 // NOTE: never call directly from within!
 void Solver::resetState() {
-	if(verbosity>3){
+	if (verbosity > 3) {
 		clog << ">>> Resetting the state.\n";
 	}
 	ok = savedok;
@@ -537,7 +539,7 @@ void Solver::resetState() {
 	removeUndefs(newclauses, clauses);
 	removeUndefs(newlearnts, learnts);
 
-	for(auto i=newvars.cbegin(); i<newvars.cend(); ++i){ // To guarantee number of model equivalence with previous one (in fact should remove the var)
+	for (auto i = newvars.cbegin(); i < newvars.cend(); ++i) { // To guarantee number of model equivalence with previous one (in fact should remove the var)
 		setDecidable(*i, false);
 	}
 
@@ -1176,10 +1178,10 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 
 	auto confl = nullPtrClause;
 	for (;;) {
-/*		cerr <<"IN DATABASE:\n";
-		for(int i=0; i<clauses.size(); ++i){
-			cerr <<"\t"; printClause(clauses[i]);
-		}*/
+		/*		cerr <<"IN DATABASE:\n";
+		 for(int i=0; i<clauses.size(); ++i){
+		 cerr <<"\t"; printClause(clauses[i]);
+		 }*/
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
 		}
@@ -1414,7 +1416,7 @@ lbool Solver::solve(bool nosearch) {
 		for (int i = 0; i < nVars(); i++) {
 			model[i] = value(mkPosLit(i));
 		}
-		if(fullmodelcheck){
+		if (fullmodelcheck) {
 			for (int i = 0; i < nbClauses(); ++i) {
 				auto c = getClause(i);
 				bool clausetrue = false, clauseHasNonFalseDecidable = false;
@@ -1503,7 +1505,7 @@ void Solver::relocAll(ClauseAllocator& to) {
 		}
 	}
 
-	for (auto i=rootunitlits.begin(); i!=rootunitlits.end(); i++) {
+	for (auto i = rootunitlits.begin(); i != rootunitlits.end(); i++) {
 		ca.reloc(i->explan, to);
 	}
 }
@@ -1569,7 +1571,7 @@ int Solver::printECNF(std::ostream& stream, std::set<Atom>& printedvars) {
 
 void Solver::accept(ConstraintVisitor& visitor) {
 	if (isUnsat()) {
-		visitor.add(Disjunction(DEFAULTCONSTRID,{ mkPosLit(1) }));
+		visitor.add(Disjunction(DEFAULTCONSTRID, { mkPosLit(1) }));
 		visitor.add(Disjunction(DEFAULTCONSTRID, { mkNegLit(1) }));
 		return;
 	}
@@ -1582,7 +1584,7 @@ void Solver::accept(ConstraintVisitor& visitor) {
 
 void Solver::acceptClauseList(ConstraintVisitor& visitor, const vec<CRef>& list) {
 	for (int i = 0; i < list.size(); ++i) {
-		Disjunction d(DEFAULTCONSTRID,{});
+		Disjunction d(DEFAULTCONSTRID, { });
 		auto& c = ca[list[i]];
 		bool istrue = false;
 		for (auto j = 0; j < c.size() && not istrue; j++) {
