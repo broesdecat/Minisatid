@@ -460,7 +460,7 @@ rClause FDAggConstraint::checkProduct(int val, int boundvalue) {
 litlist FDAggConstraint::notAllVarsArePositive(){
 	litlist lits;
 	for (uint i = 0; i < _vars.size(); ++i) {
-		lits.push_back(_vars[i]->getLEQLit(0));
+		lits.push_back(_vars[i]->getLEQLit(-1));
 	}
 	return lits;
 }
