@@ -757,15 +757,23 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 	//PROPAGATION 2: HEAD AND AGG -> BOUND
 	if (headval == l_True) {
 		if (realmax < maxbound) {
+			MAssert(_bound->maxValue() == maxbound);
 			litlist lits;
 			lits.push_back(not _head);
 			//List all vars that have had a contribution to realmax
 			getLitsNotCurrentAbsValSituation(lits, _vars.size());
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
-			MAssert(value(boundlit)==l_Undef);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			getPCSolver().addLearnedClause(c);
+			if(value(boundlit ) ==l_False){
+				getPCSolver().addConflictClause(c);
+				return c;
+			}
+			else{
+				MAssert(value(boundlit)==l_Undef);
+				getPCSolver().addLearnedClause(c);
+				return nullPtrClause;
+			}
 		}
 	} else if (headval == l_False) {
 		//PROD < bound
@@ -776,10 +784,16 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 			getLitsNotCurrentAbsValSituation(lits, _vars.size());
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
-			MAssert(value(boundlit)==l_Undef);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			getPCSolver().addLearnedClause(c);
-			return nullPtrClause;
+			if(value(boundlit ) ==l_False){
+				getPCSolver().addConflictClause(c);
+				return c;
+			}
+			else{
+				MAssert(value(boundlit)==l_Undef);
+				getPCSolver().addLearnedClause(c);
+				return nullPtrClause;
+			}
 		}
 	}
 
