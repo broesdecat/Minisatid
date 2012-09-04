@@ -637,10 +637,15 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			}
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
-			MAssert(value(boundlit)==l_Undef);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			getPCSolver().addLearnedClause(c);
-			return nullPtrClause;
+			if(value(boundlit == l_False)){
+				getPCSolver().addConflictClause(c);
+				return c;
+			}else{
+				MAssert(value(boundlit)==l_Undef);
+				getPCSolver().addLearnedClause(c);
+				return nullPtrClause;
+			}
 		}
 
 		//PROPAGATION 2b: head and bound to agg
