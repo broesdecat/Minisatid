@@ -638,7 +638,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			if(value(boundlit == l_False)){
+			if(value(boundlit) == l_False){
 				getPCSolver().addConflictClause(c);
 				return c;
 			}else{
