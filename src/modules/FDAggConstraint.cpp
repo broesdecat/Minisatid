@@ -455,6 +455,16 @@ rClause FDAggConstraint::checkProduct(int val, int boundvalue) {
 	}
 	return nullPtrClause;
 }
+
+
+litlist FDAggConstraint::notAllVarsArePositive(){
+	litlist lits;
+	for (uint i = 0; i < _vars.size(); ++i) {
+		lits.push_back(_vars[i]->getLEQLit(0));
+	}
+	return lits;
+}
+
 rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int minbound, int maxbound) {
 	auto headval = value(_head);
 
@@ -467,8 +477,10 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 
 	//First propagation: Aggregate and bound -> head
 	if (headval == l_Undef) {
-		litlist lits;
+		litlist lits = notAllVarsArePositive();
+		bool propagate = false;
 		if (realmin >= maxbound) {
+			propagate = true;
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
 			//List all vars that have had a contribution to realmin
@@ -480,6 +492,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 				}
 			}
 		} else if (realmax < minbound) {
+			propagate = true;
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
 			//List all vars that have had a contribution to realmax
@@ -491,7 +504,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 				}
 			}
 		}
-		if (not lits.empty()) {
+		if (propagate) {
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
@@ -518,7 +531,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 		//[realmin,realmax] >= [minbound,maxbound]
 		//Thus, we can eliminate all bounds greater than realmax
 		if (realmax < maxbound) {
-			litlist lits;
+			litlist lits = notAllVarsArePositive();
 			lits.push_back(not _head);
 			//List all vars that have had a contribution to realmax
 			for (uint i = 0; i < _vars.size(); ++i) {
@@ -571,7 +584,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			}
 
 			if (value(lit) != l_True) {
-				litlist lits;
+				litlist lits = notAllVarsArePositive();
 				lits.push_back(not _head);
 				lits.push_back(not _bound->getGEQLit(minbound));
 				//List all vars that have had a contribution to realmax
@@ -612,7 +625,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 		//[realmin,realmax] < [minbound,maxbound]
 		//Thus, we can eliminate all bounds smaller than realmin
 		if (realmin > minbound) {
-			litlist lits;
+			litlist lits = notAllVarsArePositive();
 			lits.push_back(_head);
 			//List all vars that have had a contribution to realmin
 			for (uint i = 0; i < _vars.size(); ++i) {
@@ -669,7 +682,7 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			}
 
 			if (value(lit) != l_True) {
-				litlist lits;
+				litlist lits = notAllVarsArePositive();
 				lits.push_back(_head);
 				lits.push_back(not _bound->getLEQLit(maxbound));
 				//List all vars that have had a contribution to realmin

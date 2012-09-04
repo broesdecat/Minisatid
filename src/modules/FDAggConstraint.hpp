@@ -147,6 +147,13 @@ private:
 	 * In that case, it means we don't want to exclude a variable
 	 */
 	void getLitsNotCurrentAbsValSituation(litlist& lits, uint excludedvarloc);
+
+	/**
+	 * Returns a vector of literals that represents
+	 *   (v_1 \leq 0) \vee (v_2 \leq 0) \vee \cdots
+	 * Where v_i are alle the vars in the aggregate
+	 */
+	litlist notAllVarsArePositive();
 };
 
 }
