@@ -64,6 +64,10 @@ vector<string> generateListOfASPFiles() {
 	vector<string> testdirs { "lparse/" };
 	return getAllFilesInDirs(getTestDirectory(), testdirs);
 }
+vector<string> generateListOfFZFiles() {
+	vector<string> testdirs { "flatzinc/" };
+	return getAllFilesInDirs(getTestDirectory(), testdirs);
+}
 vector<string> generateListOfOPBFiles() {
 	vector<string> testdirs { "opb/" };
 	return getAllFilesInDirs(getTestDirectory(), testdirs);
@@ -72,6 +76,8 @@ vector<string> generateListOfOPBFiles() {
 class MXFileTests: public ::testing::TestWithParam<string> {
 };
 class ASPFileTests: public ::testing::TestWithParam<string> {
+};
+class FZFileTests: public ::testing::TestWithParam<string> {
 };
 class OPBFileTests: public ::testing::TestWithParam<string> {
 };
@@ -107,6 +113,11 @@ TEST_P(ASPFileTests, ASP) {
 	runWithModelCheck(options, GetParam());
 }
 
+TEST_P(FZFileTests, Flatzinc) {
+	auto options = createMXOptions(InputFormat::FLATZINC);
+	runWithModelCheck(options, GetParam());
+}
+
 TEST_P(OPBFileTests, OPB) {
 	auto options = createMXOptions(InputFormat::OPB);
 	//options.watchesratio = 0.76;
@@ -119,6 +130,7 @@ TEST_P(ECNFErrorFileTests, ECNF) {
 
 INSTANTIATE_TEST_CASE_P(ModelExpansion, MXFileTests, ::testing::ValuesIn(generateListOfMXFiles()));
 INSTANTIATE_TEST_CASE_P(ModelExpansion, ASPFileTests, ::testing::ValuesIn(generateListOfASPFiles()));
+INSTANTIATE_TEST_CASE_P(ModelExpansion, FZFileTests, ::testing::ValuesIn(generateListOfFZFiles()));
 INSTANTIATE_TEST_CASE_P(ModelExpansion, OPBFileTests, ::testing::ValuesIn(generateListOfOPBFiles()));
 INSTANTIATE_TEST_CASE_P(ModelExpansion, ECNFErrorFileTests, ::testing::ValuesIn(generateListOfECNFErrorFiles()));
 }

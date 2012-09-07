@@ -26,7 +26,7 @@ TEST(CPTest, UnSatCPSum) {
 	VarID groundone={1}, groundtwo={2};
 	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundone, -3, 7));
 	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundtwo, 7, 10));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,1, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
+	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(1), {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, {});
@@ -59,16 +59,16 @@ TEST(CPTest, DISABLED_MagicSeq) {
 		extAdd(*space, CPCount(DEFAULTCONSTRID,elemx, i, EqType::EQ, elemx[i]));
 	}
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(4)}));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,4, elemx, weights, EqType::EQ, n));
+	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(4), elemx, weights, EqType::EQ, n));
 
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(5)}));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,5, elemx, mult, EqType::EQ, 0));
+	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(5), elemx, mult, EqType::EQ, 0));
 
 	int literalcount = 6;
 	for(int i=0; i<n; ++i){
 		for(int j=0; j<n; ++j){
-			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,literalcount++, elemx[i], EqType::EQ, Weight(j)));
-			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,literalcount++, elemx[i], EqType::GEQ, Weight(j)));
+			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::EQ, Weight(j)));
+			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::GEQ, Weight(j)));
 		}
 	}
 
@@ -95,7 +95,7 @@ TEST(CPTest, Unsat2) {
 	int c = 1;
 	for(uint i=0; i<elemx.size(); ++i){
 		for(uint j=0; j<elemx.size(); ++j, ++c){
-			extAdd(*space, CPBinaryRelVar(DEFAULTCONSTRID,c, elemx[i], EqType::NEQ, elemx[j]));
+			extAdd(*space, CPBinaryRelVar(DEFAULTCONSTRID,mkPosLit(c), elemx[i], EqType::NEQ, elemx[j]));
 			extAdd(*space, Disjunction(DEFAULTCONSTRID, {mkPosLit(c)}));
 		}
 	}
