@@ -278,7 +278,9 @@ void IDSolver::initialize() {
 	}
 
 	if (!posloops && !negloops) {
-		notifyNotPresent();
+		if(not modes().lazy){
+			notifyNotPresent();
+		}
 		return;
 	}
 
