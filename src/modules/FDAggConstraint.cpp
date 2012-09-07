@@ -804,7 +804,7 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 
 	//PROPAGATION 3: HEAD AND BOUND -> AGG
 	bool attemptPropagation3 = false;
-	Weight propagationbound;
+	Weight propagationbound = 0;
 	Lit propagationlit;
 	if (headval == l_True) {
 		// ABS(PROD { x_1.. x_n }) >= [minbound,maxbound], hence we can only propagate
