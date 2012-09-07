@@ -159,12 +159,15 @@ private:
 	const PropagatorFactory& getFactory() const {
 		return *factory;
 	}
+public:
 	PropagatorFactory& getFactory() {
 		return *factory;
 	}
 public:
 	PropagatorFactory& getFactory(TheoryID id) {
-		MAssert(id==getTheoryID());
+		if(id!=getTheoryID()){
+			throw idpexception("Invalid code path");
+		}
 		return *factory;
 	}
 
