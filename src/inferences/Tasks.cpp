@@ -157,7 +157,7 @@ void ModelExpand::innerExecute() {
 			if (getNbModelsFound() == 0) {
 				printNoModels(clog, getOptions().verbosity);
 			} else {
-				printNoMoreModels(cout, getOptions().transformat);
+				printer->notifyNoMoreModels();
 				printNoMoreModels(clog, getOptions().verbosity);
 			}
 		}

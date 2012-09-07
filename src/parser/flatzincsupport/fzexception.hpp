@@ -9,20 +9,13 @@
 #ifndef FZEXCEPTION_HPP_
 #define FZEXCEPTION_HPP_
 
-#include <exception>
+#include "external/Idpexception.hpp"
 #include <string>
 
-class fzexception: public std::exception{
-private:
-	std::string mess;
-
+class fzexception: public MinisatID::idpexception{
 public:
-	fzexception(const std::string& mess): mess(mess){}
+	fzexception(const std::string& mess): idpexception(mess){}
 	~fzexception() throw(){}
-
-	const char* what() const throw(){
-		return mess.c_str();
-	}
 };
 
 #endif /* FZEXCEPTION_HPP_ */

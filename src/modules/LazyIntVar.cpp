@@ -11,6 +11,7 @@
 #include <iostream>
 #include "utils/Print.hpp"
 #include "external/ConstraintVisitor.hpp"
+#include "satsolver/SATSolver.hpp"
 
 using namespace MinisatID;
 using namespace std;
@@ -19,7 +20,7 @@ using namespace std;
 // TODO Could be changed to be able to only ground at least 2 elements.
 
 LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
-		: IntVar(id, solver, varid){
+		: IntVar(id, solver, varid), halve(true){
 	setOrigMax(max);
 	setOrigMin(min);
 }
@@ -116,6 +117,7 @@ void LazyIntVar::updateBounds() {
 		if (not isFalse(mkPosLit(i->atom))) { // First non-false: then previous one +1 is lowest remaining value
 			break;
 		}
+		MAssert(i->value!=getMaxElem<int>());
 		prev = i->value+1;
 	}
 	currentmin = prev;
@@ -135,7 +137,12 @@ void LazyIntVar::updateBounds() {
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
 	if(not checkAndAddVariable(currentmin)){
 		if(not checkAndAddVariable(currentmax)){
-			checkAndAddVariable((currentmin+currentmax)/2);
+			if(halve){
+				checkAndAddVariable((currentmin+currentmax)/2, true);
+			}else{
+				checkAndAddVariable(currentmax-1, false);
+			}
+			halve = not halve;
 		}
 	}
 //	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
@@ -157,7 +164,7 @@ typename List::const_iterator findVariable(int value, const List& list){
 	}
 }
 
-bool LazyIntVar::checkAndAddVariable(int value){ // Returns true if it was newly created
+bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns true if it was newly created
 //	cerr <<"Checking for value " <<value <<" for var " <<origid() <<"\n";
 	auto i = findVariable(value, leqlits);
 #ifdef DEBUG
@@ -171,13 +178,16 @@ bool LazyIntVar::checkAndAddVariable(int value){ // Returns true if it was newly
 	if(i!=leqlits.end()){
 		return false;
 	}else{
-		addVariable(value);
+		auto lit = addVariable(value);
+		if(defaulttruepol){
+			getPCSolver().getSATSolver()->setInitialPolarity(var(lit), true);
+		}
 		return true;
 	}
 }
 
 Lit LazyIntVar::getLEQLit(int bound) {
-//	cerr <<"Requesting var" <<origid() <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
+	//cerr <<"Requesting var" <<getVarID().id <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
 	if (origMaxValue() < bound) {
 		return getPCSolver().getTrueLit();
 	} else if (bound < origMinValue()) {
@@ -193,5 +203,8 @@ Lit LazyIntVar::getLEQLit(int bound) {
 }
 
 Lit LazyIntVar::getGEQLit(int bound) {
+	if(bound==getMinElem<int>()){
+		return getPCSolver().getTrueLit();
+	}
 	return not getLEQLit(bound-1);
 }

@@ -56,6 +56,9 @@ public:
 	virtual void add(const Symmetry&) {
 		UNHANDLED("symmetries", getName())
 	}
+	virtual void add(const BoolVar&) {
+		UNHANDLED("boolvar", getName())
+	}
 	virtual void add(const IntVarEnum&) {
 		UNHANDLED("intvar enums", getName())
 	}
@@ -114,6 +117,8 @@ public:
 		return remapper;
 	}
 
+	virtual void notifyUnsat(){}
+
 private:
 	Translator *_translator, *_origtranslator;
 public:
@@ -121,7 +126,6 @@ public:
 	virtual std::string toString(const Lit& lit) const;
 	std::string toString(const litlist& literals) const;
 
-	// FIXME settranslation should be passed to lower spaces (so should be virtual)
 	void setTranslator(Translator* translator) {
 		_translator = translator;
 	}

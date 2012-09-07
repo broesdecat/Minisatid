@@ -176,7 +176,11 @@ bool_ti_expr_tail:
 
 int_ti_expr_tail:
     INT						{ $$ = new IntVar(); }
-  | INT_LITERAL DOTDOT INT_LITERAL	{ $$ = new IntVar($1, $3); }
+  | INT_LITERAL DOTDOT INT_LITERAL	{
+  							if($3<$1){
+								throw MinisatID::idpexception("Invalid range specification");
+							} 
+  							$$ = new IntVar($1, $3); }
   | '{' int_literals '}'	{ $$ = new IntVar($2); }
 
   //REVERSED!
@@ -185,8 +189,8 @@ int_literals:
   | INT_LITERAL				{ $$ = new vector<int>(); $$->push_back($1);}
 
 float_ti_expr_tail:
-    FLOAT					{ /* not implemented*/ }
-  | FLOAT_LITERAL DOTDOT FLOAT_LITERAL	{ /* not implemented*/ }
+    FLOAT					{ throw MinisatID::idpexception("Not yet implemented: support for floats."); }
+  | FLOAT_LITERAL DOTDOT FLOAT_LITERAL	{ throw MinisatID::idpexception("Not yet implemented: support for floats."); }
 
 set_ti_expr_tail:
     SET OF int_ti_expr_tail { $$ = new SetVar($3); }
@@ -219,7 +223,7 @@ bool_literal
 set_literal:
     '{' exprs '}'			{ $$ = new SetLiteral($2); }
   | '{' '}'					{ $$ = new SetLiteral(new vector<Expression*>());}
-  | INT_LITERAL DOTDOT INT_LITERAL { $$ = new SetLiteral($1, $1);}
+  | INT_LITERAL DOTDOT INT_LITERAL { $$ = new SetLiteral($1, $3);}
 
 array_literal:
     '[' exprs ']'			{ $$ = new ArrayLiteral(); $$->exprs = $2;}

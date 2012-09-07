@@ -157,6 +157,13 @@ public:
 	}
 };
 template<typename Remapper>
+class ExtAdd<BoolVar, Remapper> {
+public:
+	BoolVar extAdd(Remapper& r, const BoolVar& obj) {
+		return BoolVar(obj.getID(), map(obj.atom, r));
+	}
+};
+template<typename Remapper>
 class ExtAdd<IntVarEnum, Remapper> {
 public:
 	IntVarEnum extAdd(Remapper& r, const IntVarEnum& obj) {

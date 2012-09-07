@@ -449,25 +449,25 @@ intvar	:	INTVAR varid weight weight ZERO
 cpconstraint
 		:	BINTRI NUMBER varid REL weight ZERO 
 			{ 	
-				CPBinaryRel binrel(id++, cAtom($2), $3, $4, cWeight($5));
+				CPBinaryRel binrel(id++, mkPosLit(cAtom($2)), $3, $4, cWeight($5));
 				CR(wrapper, binrel, theoryid);
 				delete $2; delete $5;
 			}
 		|	BINTRT NUMBER varid REL varid ZERO 
 			{ 	
-				CPBinaryRelVar binrel(id++, cAtom($2), $3, $4, $5);
+				CPBinaryRelVar binrel(id++, mkPosLit(cAtom($2)), $3, $4, $5);
 				CR(wrapper, binrel, theoryid);
 				delete $2;
 			}
 		|	CPSUM NUMBER varidbody DELIM weightbody REL weight ZERO   
 			{ 	
-				CPSumWeighted sum(id++, cAtom($2), *$3, *$5, $6, cWeight($7));
+				CPSumWeighted sum(id++, mkPosLit(cAtom($2)), *$3, *$5, $6, cWeight($7));
 				CR(wrapper, sum, theoryid);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	CPPROD NUMBER varidbody DELIM weight REL varid ZERO   
 			{ 	
-				CPProdWeighted prod(id++, cAtom($2), *$3, cWeight($5), $6, $7);
+				CPProdWeighted prod(id++, mkPosLit(cAtom($2)), *$3, cWeight($5), $6, $7);
 				CR(wrapper, prod, theoryid);
 				delete $2; delete $3; delete $5; 
 			}

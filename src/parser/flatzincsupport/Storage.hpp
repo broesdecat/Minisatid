@@ -12,6 +12,7 @@
 #include "external/ConstraintAdditionInterface.hpp"
 #include "external/Constraints.hpp"
 #include "external/Translator.hpp"
+#include "utils/NumericLimits.hpp"
 
 using namespace MinisatID;
 
@@ -24,11 +25,15 @@ private:
 	ExternalConstraintVisitor* store;
 	FZTranslator* translator;
 
-	int nextint;
+	uint nextint;
+	std::set<std::string> usednames;
 	std::map<std::string, MBoolVar*> name2bool;
 	std::map<std::string, MIntVar*> name2int;
 	std::map<std::string, MBoolArrayVar*> name2boolarray;
 	std::map<std::string, MIntArrayVar*> name2intarray;
+	std::map<std::string, MSetVar*> name2setvar;
+
+	// TODO garbage collect stuff here
 
 public:
 	Storage(ExternalConstraintVisitor* store)
@@ -36,54 +41,137 @@ public:
 		store->setTranslator(translator);
 	}
 
+	void notifyUnsat() {
+		store->notifyUnsat();
+	}
+
 	MBoolVar* createBoolVar(const std::string& name, bool output) {
+		if (usednames.find(name) != usednames.cend()) {
+			throw fzexception("Variable already declared");
+		}
+		usednames.insert(name);
 		auto var = new MBoolVar();
 		var->var = nextint++;
-		var->hasmap = false;
-		var->hasvalue = false;
-		name2bool.insert({name, var});
-		if(output){
+		name2bool.insert( { name, var });
+		extAdd(*store, BoolVar(maxid++, var->var));
+		if (output) {
 			translator->addTuple(var->var, name);
 		}
 		return var;
 	}
 
-	int createOneShotVar() {
+	void notifySetVar(const std::string& name, SetVar* var) {
+		if (usednames.find(name) != usednames.cend()) {
+			throw fzexception("Variable already declared");
+		}
+		usednames.insert(name);
+		auto sv = new MSetVar();
+		sv->isrange = var->isrange;
+		if(sv->isrange){
+			sv->start = var->start;
+			sv->end = var->end;
+		}else{
+			sv->values = var->getValues();
+		}
+		name2setvar.insert( { name, sv });
+	}
+
+	uint createOneShotVar() {
+		return nextint++;
+	}
+
+	int createOneShotLit() {
+		MAssert(nextint<(uint)getMaxElem<int>());
 		return nextint++;
 	}
 
 	MIntVar* createIntVar(const std::string& name, bool output) {
+		if (usednames.find(name) != usednames.cend()) {
+			throw fzexception("Variable already declared");
+		}
+		usednames.insert(name);
 		auto var = new MIntVar();
 		var->var = nextint++;
 		var->hasmap = false;
 		var->hasvalue = false;
-		name2int.insert({name, var});
-		if(output){
-			translator->addTuple({var->var}, name);
+		name2int.insert( { name, var });
+		if (output) {
+			translator->addTuple(VarID { var->var }, name);
 		}
 		return var;
 	}
 
-	MBoolArrayVar* createBoolArrayVar(const std::string& name, int nbelem, bool output) {
+	MBoolArrayVar* createBoolArrayVar(const std::string& name, const std::string& outputname, int nbelem, bool output) {
+		if (usednames.find(name) != usednames.cend()) {
+			throw fzexception("Variable already declared");
+		}
+		usednames.insert(name);
 		auto var = new MBoolArrayVar();
-		var->nbelem = nbelem;
-		name2boolarray.insert({name, var});
-		// FIXME add to translator
+		name2boolarray.insert( { name, var });
+		for (int i = 1; i <= nbelem; i++) {
+			auto boolvar = new MBoolVar();
+			boolvar->var = createOneShotVar();
+			var->vars.push_back(boolvar);
+		}
+		if (output) {
+			std::vector<Atom> elems;
+			for (auto v : var->vars) {
+				elems.push_back(v->var);
+			}
+			translator->addArray(elems, outputname);
+		}
 		return var;
 	}
 
-	MIntArrayVar* createIntArrayVar(const std::string& name, int nbelem, bool output) {
+	MIntArrayVar* createIntArrayVar(const std::string& name, const std::string& outputname, int nbelem, Var const* const rangevar, bool& nobounds,
+			bool output) {
+		if (usednames.find(name) != usednames.cend()) {
+			throw fzexception("Variable already declared");
+		}
+		usednames.insert(name);
 		auto var = new MIntArrayVar();
-		var->nbelem = nbelem;
-		name2intarray.insert({name, var});
-		// FIXME add to translator
+		name2intarray.insert( { name, var });
+
+		auto intvar = new MIntVar();
+		intvar->var = createOneShotVar();
+		intvar->hasmap = false;
+		intvar->hasvalue = false;
+		nobounds = true;
+		if (rangevar != NULL) {
+			auto rangedvar = dynamic_cast<IntVar const* const >(rangevar);
+			if (rangedvar->enumvalues) {
+				nobounds = false;
+				intvar->range = false;
+				intvar->values = *rangedvar->values;
+			} else if (rangedvar->range) {
+				nobounds = false;
+				intvar->set(true, rangedvar->begin, rangedvar->end);
+			}
+		}
+		for (int i = 1; i <= nbelem; i++) {
+			auto tempvar = new MIntVar(*intvar);
+			intvar->var = createOneShotVar();
+			var->vars.push_back(tempvar);
+		}
+
+		if (output) {
+			std::vector<VarID> elems;
+			for (auto v : var->vars) {
+				VarID id;
+				id.id = v->var;
+				elems.push_back(id);
+			}
+			translator->addArray(elems, outputname);
+		}
 		return var;
 	}
 
 	MBoolVar* getBoolVar(const std::string& name) {
 		auto it = name2bool.find(name);
 		if (it == name2bool.end()) {
-			throw fzexception("Variable was not declared.\n");
+			std::stringstream ss;
+			ss << "Variable " << name << " was not declared.\n";
+			throw fzexception(ss.str());
 		}
 		return (*it).second;
 	}
@@ -91,7 +179,19 @@ public:
 	MIntVar* getIntVar(const std::string& name) {
 		auto it = name2int.find(name);
 		if (it == name2int.end()) {
-			throw fzexception("Variable was not declared.\n");
+			std::stringstream ss;
+			ss << "Variable " << name << " was not declared.\n";
+			throw fzexception(ss.str());
+		}
+		return (*it).second;
+	}
+
+	MSetVar* getSetVar(const std::string& name) {
+		auto it = name2setvar.find(name);
+		if (it == name2setvar.end()) {
+			std::stringstream ss;
+			ss << "Set " << name << " was not declared or not initialized.\n";
+			throw fzexception(ss.str());
 		}
 		return (*it).second;
 	}
@@ -99,43 +199,81 @@ public:
 	//IMPORTANT: index starts at ONE, so map to 0 based!
 	MBoolVar* getBoolVar(const std::string& name, int index) {
 		auto it = name2boolarray.find(name);
-		if (it == name2boolarray.end() || (*it).second->vars.size() < (uint)index) {
+		if (it == name2boolarray.end() || (*it).second->vars.size() < (uint) index) {
 			throw fzexception("Array was not declared or not initialized.\n");
 		}
 		return (*it).second->vars[index - 1];
 	}
 
-	//IMPORTANT: index starts at ONE, so map to 0 based!
-	std::vector<MBoolVar*> getArrayBoolVars(const std::string& name) {
+	std::vector<int> getBoolArrayVars(const std::string& name) {
+		auto it = name2boolarray.find(name);
+		if (it != name2boolarray.end()) {
+			std::vector<int> elems;
+			for (auto elem : it->second->vars) {
+				elems.push_back(elem->var);
+			}
+			return elems;
+		} else {
+			std::stringstream ss;
+			ss << "Array " << name << " was not declared.\n";
+			throw fzexception(ss.str());
+		}
+	}
+
+	std::vector<bool> getParBoolArrayValues(const std::string& name) {
 		auto it = name2boolarray.find(name);
 		if (it == name2boolarray.end()) {
-			throw fzexception("Array was not declared.\n");
+			std::stringstream ss;
+			ss << "Array " << name << " was not declared.\n";
+			throw fzexception(ss.str());
 		}
-		return it->second->vars;
+		std::vector<bool> elems;
+		for (auto elem : it->second->vars) {
+			if (not elem->hasValue()) {
+				throw fzexception("Expecting PAR int");
+			}
+			elems.push_back(elem->getValue());
+		}
+		return elems;
+	}
+
+	std::vector<uint> getIntArrayVars(const std::string& name) {
+		auto it = name2intarray.find(name);
+		if (it == name2intarray.end()) {
+			std::stringstream ss;
+			ss << "Array " << name << " was not declared.\n";
+			throw fzexception(ss.str());
+		}
+		std::vector<uint> elems;
+		for (auto elem : it->second->vars) {
+			elems.push_back(elem->var);
+		}
+		return elems;
+	}
+
+	std::vector<int> getParIntArrayValues(const std::string& name) {
+		auto it = name2intarray.find(name);
+		if (it == name2intarray.end()) {
+			std::stringstream ss;
+			ss << "Array " << name << " was not declared.\n";
+			throw fzexception(ss.str());
+		}
+		std::vector<int> elems;
+		for (auto elem : it->second->vars) {
+			if (not elem->hasValue()) {
+				throw fzexception("Expecting PAR int");
+			}
+			elems.push_back(elem->getValue());
+		}
+		return elems;
 	}
 
 	MIntVar* getIntVar(const std::string& name, int index) {
 		auto it = name2intarray.find(name);
-		if (it == name2intarray.end() || (*it).second->vars.size() < (uint)index) {
+		if (it == name2intarray.end() || (*it).second->vars.size() < (uint) index) {
 			throw fzexception("Array was not declared or not initialized.\n");
 		}
 		return (*it).second->vars[index - 1];
-	}
-
-	int getVar(const std::string& name, bool expectbool) {
-		if (expectbool) {
-			return getBoolVar(name)->var;
-		} else {
-			return getIntVar(name)->var;
-		}
-	}
-
-	int getVar(const std::string& name, int index, bool expectbool) {
-		if (expectbool) {
-			return getBoolVar(name, index)->var;
-		} else {
-			return getIntVar(name, index)->var;
-		}
 	}
 
 	bool isCertainlyUnsat() const {
@@ -154,21 +292,21 @@ public:
 		return -getTrue();
 	}
 
-	int addCPVar(int begin, int end) {
-		int varnb = createOneShotVar();
-		MIntVar var;
-		var.set(varnb, begin, end);
-		writeIntVar(var);
-		return varnb;
+	uint addCPVar(int begin, int end) {
+		MIntVar* var = new MIntVar();
+		var->var = createOneShotVar();
+		var->set(true, begin, end);
+		writeIntVar(*var);
+		return var->var;
 	}
 
-	MinisatID::Lit get(int lit){
-		return lit>0?mkPosLit(abs(lit)):mkNegLit(abs(lit));
+	MinisatID::Lit get(int lit) {
+		return lit > 0 ? mkPosLit(abs(lit)) : mkNegLit(abs(lit));
 	}
 
-	std::vector<MinisatID::Lit> get(const std::vector<int>& lits){
+	std::vector<MinisatID::Lit> get(const std::vector<int>& lits) {
 		std::vector<MinisatID::Lit> literals;
-		for(auto lit: lits){
+		for (auto lit : lits) {
 			literals.push_back(get(lit));
 		}
 		return literals;
@@ -177,57 +315,61 @@ public:
 	void addBoolExpr(MBoolVar& var, const Expression& expr) {
 		if (expr.type == EXPR_BOOL) {
 			var.hasvalue = true;
-			var.mappedvalue = expr.boollit;
-			extAdd(*store, Disjunction(maxid++, { expr.boollit ? get(var.var) : get(var.var) }));
+			var.value = expr.boollit;
+			extAdd(*store, Disjunction(maxid++, { expr.boollit ? get(var.var) : ~get(var.var) }));
 		} else if (expr.type == EXPR_ARRAYACCESS) {
 			var.hasmap = true;
-			var.mappedvar = getBoolVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index)->var;
-			extAdd(*store, Implication(maxid++,get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar) }, true));
+			var.mappedvar = getBoolVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index);
+			extAdd(*store, Implication(maxid++, get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
 		} else if (expr.type == EXPR_IDENT) {
 			var.hasmap = true;
-			var.mappedvar = getBoolVar(*expr.ident->name)->var;
-			extAdd(*store, Implication(maxid++,get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar) }, true));
+			var.mappedvar = getBoolVar(*expr.ident->name);
+			extAdd(*store, Implication(maxid++, get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
 		} else {
 			throw fzexception("Unexpected type.\n");
 		}
 	}
 
-	std::map<int, MIntVar> varid2var;
-	const MIntVar& getCPVar(int id) const{
+	std::map<int, const MIntVar&> varid2var;
+	const MIntVar& getCPVar(uint id) const {
 		return varid2var.at(id);
 	}
 
 	void writeIntVar(const MIntVar& var) {
+		varid2var.insert( { var.var, var });
 		if (var.range) {
-			extAdd(*store, IntVarRange(maxid++,{var.var}, var.begin, var.end));
+			extAdd(*store, IntVarRange(maxid++, VarID { var.var }, var.begin, var.end));
 		} else {
-			extAdd(*store, IntVarEnum(maxid++,{var.var}, var.values));
+			extAdd(*store, IntVarEnum(maxid++, VarID { var.var }, var.values));
 		}
 	}
 
 	template<class T>
-	void addBinI(const T& boolvar, int intvar, MinisatID::EqType eq, int domelem) {
-		extAdd(*store, CPBinaryRel(maxid++,get(boolvar).getAtom(), {intvar}, eq, domelem));
+	void addBinI(const T& boolvar, uint intvar, MinisatID::EqType eq, int domelem) {
+		extAdd(*store, CPBinaryRel(maxid++, get(boolvar), VarID { intvar }, eq, domelem));
 	}
 
 	template<class T>
-	void addBinT(const T& boolvar, int intvar, MinisatID::EqType eq, int intvar2) {
-		extAdd(*store, CPBinaryRel(maxid++,get(boolvar).getAtom(), {intvar}, eq, {intvar2}));
+	void addBinT(const T& boolvar, uint intvar, MinisatID::EqType eq, int intvar2) {
+		extAdd(*store, CPBinaryRelVar(maxid++, get(boolvar), VarID { intvar }, eq, { intvar2 }));
 	}
 
 	//nobounds implies that it has not been written to output
 	void addIntExpr(MIntVar& var, bool nobounds, const Expression& expr) {
+		MAssert(not var.hasvalue);
+		MAssert(not var.hasmap);
 		if (expr.type == EXPR_INT) {
 			var.hasvalue = true;
-			var.mappedvalue = expr.intlit;
+			var.value = expr.intlit;
 			if (nobounds) {
-				var.set(true, var.mappedvalue, var.mappedvalue);
+				var.set(true, var.value, var.value);
 			}
 		} else if (expr.type == EXPR_ARRAYACCESS) {
+			MAssert(not var.hasvalue);
 			assert(nobounds);
 			var.hasmap = true;
 			auto map = getIntVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index);
-			var.mappedvar = map->var;
+			var.mappedvar = map;
 			if (nobounds) {
 				var.set(map->range, map->begin, map->end);
 				var.values = map->values;
@@ -235,26 +377,23 @@ public:
 		} else if (expr.type == EXPR_IDENT) {
 			var.hasmap = true;
 			auto map = getIntVar(*expr.ident->name);
-			var.mappedvar = map->var;
+			var.mappedvar = map;
 			if (nobounds) {
 				var.set(map->range, map->begin, map->end);
 				var.values = map->values;
 			}
+			MAssert(not var.hasvalue);
 		} else {
 			throw fzexception("Unexpected type.\n");
 		}
-		if (var.hasvalue) {
-			addBinI(getTrue(), var.var, EqType::EQ, var.mappedvalue);
-		} else {
-			addBinT(getTrue(), var.var, EqType::EQ, var.mappedvar);
-		}
+		MAssert(var.hasvalue || var.hasmap);
 	}
 
 	void writeRule(int head, const std::vector<int>& rhs, bool conj, int definitionID) {
-		extAdd(*store, MinisatID::Rule(maxid++,head, get(rhs), conj, definitionID));
+		extAdd(*store, MinisatID::Rule(maxid++, head, get(rhs), conj, definitionID));
 	}
 	void writeEquiv(int head, const std::vector<int>& rhs, bool conj) {
-		extAdd(*store, Implication(maxid++,get(head), ImplicationType::EQUIVALENT, get(rhs), conj));
+		extAdd(*store, Implication(maxid++, get(head), ImplicationType::EQUIVALENT, get(rhs), conj));
 	}
 
 	template<class T>
@@ -262,30 +401,30 @@ public:
 		return list[list.size() - index - 1];
 	}
 
-	std::vector<Weight> getWeights(const std::vector<int>& ints){
+	std::vector<Weight> getWeights(const std::vector<int>& ints) {
 		std::vector<Weight> weights;
-		for(auto w:ints){
+		for (auto w : ints) {
 			weights.push_back(w);
 		}
 		return weights;
 	}
 
-	std::vector<VarID> getVarIDs(const std::vector<int>& ints){
+	std::vector<VarID> getVarIDs(const std::vector<uint>& ints) {
 		std::vector<VarID> uints;
-		for(auto w:ints){
+		for (auto w : ints) {
 			MAssert(w>0);
-			uints.push_back({w});
+			uints.push_back(VarID { w });
 		}
 		return uints;
 	}
 
-	void addLinear(int head, const std::vector<int> variables, const std::vector<int>& weights, MinisatID::EqType eq, int bound){
-		CPSumWeighted sum(maxid++,get(head).getAtom(), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
+	void addLinear(int head, const std::vector<uint> variables, const std::vector<int>& weights, MinisatID::EqType eq, int bound) {
+		CPSumWeighted sum(maxid++, get(head), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
 		extAdd(*store, sum);
 	}
 
-	void addProduct(int head, const std::vector<int> variables, int weight, MinisatID::EqType eq, int varbound){
-		CPProdWeighted sum(maxid++,get(head).getAtom(), getVarIDs(variables), Weight(weight), eq, {varbound});
+	void addProduct(int head, const std::vector<uint> variables, int weight, MinisatID::EqType eq, int varbound) {
+		CPProdWeighted sum(maxid++, get(head), getVarIDs(variables), Weight(weight), eq, VarID { varbound });
 		extAdd(*store, sum);
 	}
 
@@ -294,17 +433,17 @@ public:
 			throw fzexception("Incorrect number of arguments.\n");
 		}
 		auto weights = parseParIntArray(*this, *getRevArg(arguments, 0));
-		auto variables = parseArray(*this, VAR_INT, *getRevArg(arguments, 1));
+		auto variables = parseIntArray(*this, *getRevArg(arguments, 1));
 		auto bound = parseParInt(*this, *getRevArg(arguments, 2));
 		auto head = getTrue();
-		if(reif){
+		if (reif) {
 			head = parseBool(*this, *getRevArg(arguments, 3));
 		}
 		addLinear(head, variables, weights, eq, bound);
 	}
 
 	void addClause(const std::vector<int>& poslits, const std::vector<int>& neglits) {
-		Disjunction d(maxid++,get(poslits));
+		Disjunction d(maxid++, get(poslits));
 		for (auto i : neglits) {
 			d.literals.push_back(get(-i));
 		}
@@ -312,8 +451,7 @@ public:
 	}
 
 	void addMinim(const MIntVar& var) {
-		writeIntVar(var);
-		extAdd(*store, MinimizeVar(1, {var.var}));
+		extAdd(*store, MinimizeVar(1, VarID { var.var }));
 	}
 };
 

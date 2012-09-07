@@ -78,6 +78,9 @@ void Space::add(const MinimizeAgg& o){
 void Space::add(const Symmetry& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
+void Space::add(const BoolVar& o){
+	internalAdd(o, o.theoryid, *getEngine());
+}
 void Space::add(const IntVarEnum& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }

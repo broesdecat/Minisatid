@@ -115,6 +115,8 @@ enum EXPR_TYPE {
 	EXPR_BOOL, EXPR_INT, EXPR_SET, EXPR_ARRAY, EXPR_FLOAT, EXPR_STRING, EXPR_ARRAYACCESS, EXPR_IDENT
 };
 
+std::ostream& operator<<(std::ostream&, EXPR_TYPE type);
+
 struct Expression {
 	EXPR_TYPE type;
 	bool boollit;
@@ -147,8 +149,8 @@ struct Expression {
 		}
 	}
 
-	std::string toString() const{
-		switch(type){
+	std::string toString() const {
+		switch (type) {
 		case EXPR_TYPE::EXPR_ARRAY:
 			return "expr_array";
 		case EXPR_TYPE::EXPR_ARRAYACCESS:
@@ -170,15 +172,24 @@ struct Expression {
 };
 
 struct MBoolVar {
-	int var, mappedvar;
-	bool hasmap, hasvalue, mappedvalue;
+	int var;
+
+	bool hasvalue, value;
+	bool hasmap;
+	MBoolVar* mappedvar;
+
+	bool hasValue() const {
+		return hasvalue || (hasmap && mappedvar->hasValue());
+	}
+	bool getValue() const;
 };
 
 struct MIntVar {
-	int var;
+	uint var;
 
 	bool hasmap, hasvalue; //Not both of them true
-	int mappedvar, mappedvalue;
+	int value;
+	MIntVar* mappedvar;
 
 	bool range; //Not range implies enumerated values
 	int begin, end;
@@ -189,6 +200,17 @@ struct MIntVar {
 		begin = b;
 		end = e;
 	}
+
+	bool hasValue() const {
+		return hasvalue || (hasmap && mappedvar->hasValue());
+	}
+	int getValue() const;
+};
+
+struct MSetVar{
+	bool isrange;
+	int start, end;
+	std::vector<int> values;
 };
 
 struct MBoolArrayVar {
@@ -208,6 +230,7 @@ enum VAR_TYPE {
 class Var {
 public:
 	bool output;
+	std::string outputname;
 	bool var;
 	VAR_TYPE type;
 	Identifier* id;
@@ -224,11 +247,17 @@ public:
 		}
 	}
 
-	bool isOutput() const{
+	bool isOutput() const {
 		return output;
 	}
-	void setOutput(){
+	void setOutput() {
 		output = true;
+	}
+	const std::string& getOutputName() const {
+		return isOutput() ? outputname : getName();
+	}
+	void setOutputName(const std::string& name) {
+		outputname = name;
 	}
 
 	const std::string& getName() const {
@@ -264,8 +293,12 @@ public:
 };
 
 class SetVar: public Var {
+private:
+	std::vector<int> values;
 public:
 	IntVar* var;
+	bool isrange;
+	int start, end;
 
 	SetVar(IntVar* var)
 			: Var(VAR_SET), var(var) {
@@ -273,6 +306,11 @@ public:
 	virtual ~SetVar() {
 		delete (var);
 	}
+
+	void add(Storage& storage);
+
+	const std::vector<int> getValues() const { return values; }
+	void setValues(const std::vector<int>& v) { values = v;}
 };
 
 class ArrayVar: public Var {
@@ -347,14 +385,19 @@ struct Constraint {
 };
 
 int parseBool(Storage& storage, const Expression& expr);
-
 int parseInt(Storage& storage, const Expression& expr);
-
+MSetVar* parseSet(Storage& storage, const Identifier& ident);
 int parseParInt(Storage& storage, const Expression& expr);
-
-std::vector<int> parseArray(Storage& storage, VAR_TYPE type, Expression& expr);
-
+bool parseParBool(Storage& storage, const Expression& expr);
 std::vector<int> parseParIntArray(Storage& storage, Expression& expr);
+std::vector<bool> parseParBoolArray(Storage& storage, Expression& expr);
+
+bool isRangeSet(const Expression& expr);
+std::pair<int, int> parseParRangeSet(const Expression& expr);
+std::vector<int> parseParValueSet(Storage& storage, const Expression& expr);
+
+std::vector<int> parseBoolArray(Storage& storage, Expression& expr);
+std::vector<uint> parseIntArray(Storage& storage, Expression& expr);
 
 }
 

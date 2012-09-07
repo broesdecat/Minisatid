@@ -14,46 +14,46 @@
 using namespace MinisatID;
 using namespace std;
 
-BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, Atom h)
+BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, const Lit& h)
 		: Propagator(id, engine, "binary constraint") {
 	switch (comp) {
 	case EqType::EQ: {
-		auto lefthead = getPCSolver().newVar();
-		auto righthead = getPCSolver().newVar();
-		add(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, true));
+		auto lefthead = mkPosLit(getPCSolver().newVar());
+		auto righthead = mkPosLit(getPCSolver().newVar());
+		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()));
-		head_ = mkPosLit(lefthead);
+		head_ = lefthead;
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, 0);
 		break;
 	}
 	case EqType::NEQ: {
-		auto lefthead = getPCSolver().newVar();
-		auto righthead = getPCSolver().newVar();
-		add(Implication(getID(), mkPosLit(h), ImplicationType::EQUIVALENT, { mkPosLit(lefthead), mkPosLit(righthead) }, false));
+		auto lefthead = mkPosLit(getPCSolver().newVar());
+		auto righthead = mkPosLit(getPCSolver().newVar());
+		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
-		head_ = mkPosLit(lefthead);
+		head_ = lefthead;
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, -1);
 		break;
 	}
 	case EqType::LEQ:
-		head_ = mkPosLit(h);
+		head_ = h;
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, 0);
 		break;
 	case EqType::L:
-		head_ = mkPosLit(h);
+		head_ = h;
 		left_ = new IntView(_left, 0);
 		right_ = new IntView(_right, -1);
 		break;
 	case EqType::GEQ:
-		head_ = mkPosLit(h);
+		head_ = h;
 		left_ = new IntView(_right, 0);
 		right_ = new IntView(_left, 0);
 		break;
 	case EqType::G:
-		head_ = mkPosLit(h);
+		head_ = h;
 		left_ = new IntView(_right, 0);
 		right_ = new IntView(_left, -1);
 		break;

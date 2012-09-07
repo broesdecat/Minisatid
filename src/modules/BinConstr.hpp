@@ -34,7 +34,7 @@ private:
 	std::map<Lit, BinReason> reasons; // Maps a literal to the propagated intvar (NULL if head) and to the one value necessary for explaining it.
 
 public:
-	BinaryConstraint(uint id, PCSolver* engine, IntVar* left, EqType comp, IntVar* right, Atom h);
+	BinaryConstraint(uint id, PCSolver* engine, IntVar* left, EqType comp, IntVar* right, const Lit& h);
 
 	const Lit& head() const {
 		return head_;

@@ -38,6 +38,8 @@ private:
 	bool		optimizing;
 	SolvingState solvingstate;
 
+	bool nomoremodels;
+
 	double 	startfinish, endfinish, startsimpl, endsimpl, startsolve, endsolve;
 
 public:
@@ -51,6 +53,8 @@ public:
 	void 	notifySolvingAborted	();
 
 	void	notifyOptimizing		() 			{ optimizing = true; }
+
+	void 	notifyNoMoreModels		();
 
 	void notifyStartDataInit		();
 	void notifyEndDataInit			();

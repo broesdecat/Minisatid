@@ -18,7 +18,7 @@ void Definition::addToPropagators() {
 	for (auto ruleset = temprules .begin(); ruleset != temprules .end(); ++ruleset) {
 		std::vector<TempRule*> r;
 		for (auto i = ruleset->second.cbegin(); i != ruleset->second.cend(); ++i) {
-			if (not i->second->isagg) {
+			if (not i->second->isagg) { // Add rule completion (NOTE has already been added earlier for aggregates)
 				addFinishedRule(i->second);
 			}
 			r.push_back(i->second);
@@ -82,7 +82,7 @@ void Definition::addFinishedRule(TempRule* rule) {
 	auto head = rule->head;
 
 	if (rule->body.empty()) {
-		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
+		Lit h = conj ? mkPosLit(head) : mkNegLit(head); //empty set conj = true, empty set disj = false
 		Disjunction disj(rule->id, {h});
 		disj.theoryid = solver->getTheoryID();
 		internalAdd(disj, solver->getTheoryID(), *solver);

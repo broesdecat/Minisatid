@@ -83,6 +83,7 @@ public:
 	virtual void add(const MinimizeVar&);
 	virtual void add(const MinimizeAgg&);
 	virtual void add(const Symmetry&);
+	virtual void add(const BoolVar&);
 	virtual void add(const IntVarEnum&);
 	virtual void add(const IntVarRange&);
 	virtual void add(const CPAllDiff&);

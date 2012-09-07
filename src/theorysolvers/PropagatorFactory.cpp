@@ -287,7 +287,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			throw idpexception(ss.str());
 		}
 		IntVar* intvar = NULL;
-		if (obj.maxvalue - obj.minvalue < 1000) { // TODO verify whether this is a good choice
+		if ((double)obj.maxvalue - obj.minvalue < 1000) { // TODO verify whether this is a good choice
 			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue));
 		} else {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
@@ -295,6 +295,9 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 		intvars.insert({obj.varID, intvar });
 		intvar->finish();
 	}
+}
+
+void PropagatorFactory::add(const BoolVar& object){
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
@@ -318,7 +321,7 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		Implication eq(obj.getID(), mkPosLit(obj.head), ImplicationType::EQUIVALENT, { }, true);
+		Implication eq(obj.getID(), obj.head, ImplicationType::EQUIVALENT, { }, true);
 		auto left = getIntVar(obj.varID);
 		auto intbound = toInt(obj.bound);
 		switch (obj.rel) {
@@ -366,7 +369,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDAggConstraint(obj.getID(), getEnginep(), mkPosLit(obj.head), AggType::SUM, vars, obj.weights, obj.rel, obj.bound);
+		new FDAggConstraint(obj.getID(), getEnginep(), obj.head, AggType::SUM, vars, obj.weights, obj.rel, obj.bound);
 	}
 }
 
@@ -379,7 +382,7 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDAggConstraint(obj.getID(), getEnginep(), mkPosLit(obj.head), AggType::PROD, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
+		new FDAggConstraint(obj.getID(), getEnginep(), obj.head, AggType::PROD, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
 	}
 }
 

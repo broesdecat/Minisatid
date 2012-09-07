@@ -355,6 +355,20 @@ public:
 	}
 };
 
+struct BoolVar: public ID {
+	Atom atom;
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	BoolVar(uint id, Atom atom)
+			: ID(id), atom(atom) {
+	}
+
+	virtual std::vector<Atom> getAtoms() const {
+		return {atom};
+	}
+};
+
 struct IntVarRange: public ID {
 	VarID varID;
 	Weight minvalue, maxvalue;
@@ -386,71 +400,71 @@ struct IntVarEnum: public ID {
 };
 
 struct CPBinaryRel: public ID {
-	Atom head;
+	Lit head;
 	VarID varID;
 	EqType rel;
 	Weight bound;
 
-	CPBinaryRel(uint id, Atom head, VarID varID, EqType rel, const Weight& bound)
+	CPBinaryRel(uint id, const Lit& head, VarID varID, EqType rel, const Weight& bound)
 			: ID(id), head(head), varID(varID), rel(rel), bound(bound) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {head};
+		return {var(head)};
 	}
 };
 
 struct CPBinaryRelVar: public ID {
-	Atom head;
+	Lit head;
 	VarID lhsvarID, rhsvarID;
 	EqType rel;
 
-	CPBinaryRelVar(uint id, Atom head, VarID lhsvarID, EqType rel, VarID rhsvarID)
+	CPBinaryRelVar(uint id, const Lit& head, VarID lhsvarID, EqType rel, VarID rhsvarID)
 			: ID(id), head(head), lhsvarID(lhsvarID), rhsvarID(rhsvarID), rel(rel) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {head};
+		return {var(head)};
 	}
 };
 
 struct CPSumWeighted: public ID {
-	Atom head;
+	Lit head;
 	std::vector<VarID> varIDs;
 	std::vector<Weight> weights;
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(uint id, Atom head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
+	CPSumWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
 			: ID(id), head(head), varIDs(varIDs), weights(weights), rel(rel), bound(bound) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {head};
+		return {var(head)};
 	}
 };
 
 struct CPProdWeighted: public ID {
-	Atom head;
+	Lit head;
 	std::vector<VarID> varIDs;
 	Weight prodWeight;
 	EqType rel;
 	VarID boundID;
 
-	CPProdWeighted(uint id, Atom head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
+	CPProdWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
 		: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), boundID(boundid) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {head};
+		return {var(head)};
 	}
 };
 

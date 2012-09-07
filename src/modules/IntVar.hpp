@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "modules/DPLLTmodule.hpp"
+#include "utils/NumericLimits.hpp"
 
 namespace MinisatID{
 
@@ -124,10 +125,11 @@ public:
 
 class LazyIntVar: public IntVar{
 private:
+	bool halve; // Heuristic optimization to choose to halve the domain or not
 	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
 
 	Lit addVariable(int value);
-	bool checkAndAddVariable(int value);
+	bool checkAndAddVariable(int value, bool defaulttruepol = false);
 
 public:
 	LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
@@ -159,28 +161,22 @@ public:
 	VarID getVarID() const { return var()->getVarID(); }
 
 	int origMinValue() const {
+		MAssert(getMaxElem<int>()-constdiff()>var()->origMinValue());
 		return var()->origMinValue()+constdiff();
 	}
 
 	int origMaxValue() const {
+		MAssert(getMaxElem<int>()-constdiff()>var()->origMaxValue());
 		return var()->origMaxValue()+constdiff();
 	}
 
-	int minValue() const {
-		return var()->minValue()+constdiff();
-	}
+	int minValue() const;
 
-	int maxValue() const {
-		return var()->maxValue()+constdiff();
-	}
+	int maxValue() const;
 
-	Lit getLEQLit(int bound) const {
-		return var()->getLEQLit(bound-constdiff());
-	}
+	Lit getLEQLit(int bound) const;
 
-	Lit getGEQLit(int bound) const {
-		return var()->getGEQLit(bound-constdiff());
-	}
+	Lit getGEQLit(int bound) const;
 
 	Lit getEQLit(int bound) const{
 		return var()->getEQLit(bound);

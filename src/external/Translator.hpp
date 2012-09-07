@@ -204,69 +204,114 @@ private:
 
 class OPBPolicy {
 public:
-	void printLit(std::ostream&, const Lit&, const std::string&){
+	void printLit(std::ostream&, const Lit&, const std::string&) {
 		throw idpexception("Invalid code path.");
 	}
-	void printVar(std::ostream& output, const std::string& var, int value){
+	void printVar(std::ostream& output, const std::string& var, int value) {
 		output << var << "=(" << value << ") ";
 	}
+	void printArray(std::ostream&, const std::string&, const std::vector<bool>&) {
+		throw idpexception("Invalid code path.");
+	}
+	void printArray(std::ostream&, const std::string&, const std::vector<int>&) {
+		throw idpexception("Invalid code path.");
+	}
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
-	void printModelEnd(std::ostream& output){
+	void printModelEnd(std::ostream& output) {
 		output << "\n";
 	}
 };
 
 class QBFPolicy {
 public:
-	void printLit(std::ostream& output, const Lit& lit, const std::string& text){
-		output <<(lit.hasSign()?"-":"") <<text <<" ";
+	void printLit(std::ostream& output, const Lit& lit, const std::string& text) {
+		output << (lit.hasSign() ? "-" : "") << text << " ";
 	}
-	void printVar(std::ostream&, const std::string&, int){
+	void printVar(std::ostream&, const std::string&, int) {
 		throw idpexception("Invalid code path.");
 	}
-	void printCurrentOptimum(std::ostream&, const Weight&){
+	void printArray(std::ostream&, const std::string&, const std::vector<bool>&) {
 		throw idpexception("Invalid code path.");
 	}
-	void printModelEnd(std::ostream& output){
+	void printArray(std::ostream&, const std::string&, const std::vector<int>&) {
+		throw idpexception("Invalid code path.");
+	}
+	void printCurrentOptimum(std::ostream&, const Weight&) {
+		throw idpexception("Invalid code path.");
+	}
+	void printModelEnd(std::ostream& output) {
 		output << "0\n";
 	}
 };
 
 class LParsePolicy {
 public:
-	void printLit(std::ostream& output, const Lit& lit, const std::string& text){
+	void printLit(std::ostream& output, const Lit& lit, const std::string& text) {
 		if (not lit.hasSign()) { //Do not print false literals
 			output << text << " ";
 		}
 	}
-	void printVar(std::ostream& output, const std::string& var, int value){
+	void printVar(std::ostream& output, const std::string& var, int value) {
 		output << var << "=(" << value << ") ";
 	}
+	void printArray(std::ostream&, const std::string&, const std::vector<bool>&) {
+		throw idpexception("Invalid code path.");
+	}
+	void printArray(std::ostream&, const std::string&, const std::vector<int>&) {
+		throw idpexception("Invalid code path.");
+	}
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
-	void printModelEnd(std::ostream& output){
+	void printModelEnd(std::ostream& output) {
 		output << "\n";
 	}
 };
 
 class FZPolicy {
 public:
-	void printLit(std::ostream& output, const Lit& lit, const std::string& text){
-		output <<text <<" = " <<(sign(lit)?"false":"true") <<"\n";
+	void printLit(std::ostream& output, const Lit& lit, const std::string& text) {
+		output << text << " = " << (sign(lit) ? "false" : "true") << ";\n";
 	}
-	void printVar(std::ostream& output, const std::string& var, int value){
-		output << var << "= " << value << ";\n";
+	void printVar(std::ostream& output, const std::string& var, int value) {
+		output << var << " = " << value << ";\n";
+	}
+	void printArray(std::ostream& output, const std::string& textbefore, const std::vector<bool>& values) {
+		output << textbefore << ",[";
+		bool begin = true;
+		for (auto val : values) {
+			if (not begin) {
+				output << ",";
+			}
+			begin = false;
+			output << (val ? "true" : "false");
+		}
+		output << "]);\n";
+	}
+	void printArray(std::ostream& output, const std::string& textbefore, const std::vector<int>& values) {
+		output << textbefore << ",[";
+		bool begin = true;
+		for (auto val : values) {
+			if (not begin) {
+				output << ",";
+			}
+			begin = false;
+			output << val;
+		}
+		output << "]);\n";
 	}
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
-	void printModelEnd(std::ostream& output){
+	void printModelEnd(std::ostream& output) {
 		output << "----------\n";
 	}
 };
 
-template<class OptimumPolicy>
-class TupleTranslator: public Translator, public OptimumPolicy {
+template<class PrintPolicy>
+class TupleTranslator: public Translator, public PrintPolicy {
 private:
 	std::map<Atom, std::string> lit2name;
 	std::map<VarID, std::string> var2name;
+
+	std::vector<std::pair<std::string, std::vector<Atom> > > atomarrays;
+	std::vector<std::pair<std::string, std::vector<VarID>> > vararrays;
 
 public:
 	TupleTranslator()
@@ -279,28 +324,65 @@ public:
 		return lit2name.find(lit.getAtom()) != lit2name.cend();
 	}
 
-	void addTuple(Atom atom, std::string name) {
+	void addArray(const std::vector<Atom>& atoms, std::string name) {
+		atomarrays.push_back( { name, atoms });
+	}
+	void addArray(const std::vector<VarID>& vars, std::string name) {
+		vararrays.push_back( { name, vars });
+	}
+
+	void addTuple(Atom atom, const std::string& name) {
 		lit2name[atom] = name;
 	}
 
-	void addTuple(VarID var, std::string name) {
+	void addTuple(VarID var, const std::string& name) {
 		var2name[var] = name;
 	}
 
 	void printModel(std::ostream& output, const Model& model) {
+		uint count = 0;
 		for (auto lit : model.literalinterpretations) {
 			auto it = lit2name.find(lit.getAtom());
-			if(it != lit2name.cend()){
-				OptimumPolicy::printLit(output, lit, it->second);
+			if (it != lit2name.cend()) {
+				count++;
+				PrintPolicy::printLit(output, lit, it->second);
 			}
 		}
+		MAssert(count==lit2name.size());
+		count = 0;
 		for (auto vareq : model.variableassignments) {
 			auto it = var2name.find(vareq.variable);
-			if(it != var2name.cend()){
-				OptimumPolicy::printVar(output, it->second, vareq.value);
+			if (it != var2name.cend()) {
+				count++;
+				PrintPolicy::printVar(output, it->second, vareq.value);
 			}
 		}
-		OptimumPolicy::printModelEnd(output);
+		MAssert(count==var2name.size());
+		for (auto array : atomarrays) {
+			std::vector<bool> values;
+			for (auto atom : array.second) {
+				for (auto modellit : model.literalinterpretations) {
+					if (var(modellit) == atom) {
+						values.push_back(modellit == mkPosLit(atom));
+						break;
+					}
+				}
+			}
+			PrintPolicy::printArray(output, array.first, values);
+		}
+		for (auto array : vararrays) {
+			std::vector<int> values;
+			for (auto var : array.second) {
+				for (auto vareq : model.variableassignments) {
+					if (vareq.variable == var) {
+						values.push_back(vareq.value);
+						break;
+					}
+				}
+			}
+			PrintPolicy::printArray(output, array.first, values);
+		}
+		PrintPolicy::printModelEnd(output);
 		output.flush();
 	}
 
@@ -322,7 +404,7 @@ public:
 	}
 
 	virtual void printCurrentOptimum(std::ostream& output, const Weight& value) {
-		OptimumPolicy::printCurrentOptimum(output, value);
+		PrintPolicy::printCurrentOptimum(output, value);
 	}
 };
 

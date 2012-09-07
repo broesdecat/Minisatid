@@ -177,8 +177,8 @@ EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector
 		return;
 	}
 	sort(_values.begin(), _values.end());
-	setOrigMin(values.front());
-	setOrigMax(values.back());
+	setOrigMin(_values.front());
+	setOrigMax(_values.back());
 }
 
 void EnumIntVar::finish(){
@@ -201,7 +201,7 @@ void EnumIntVar::finish(){
 }
 
 Lit EnumIntVar::getLEQLit(int bound) {
-//	cerr <<"Requesting var" <<origid() <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
+//	cerr <<"Requesting var" <<toString(getVarID()) <<"{" <<origMinValue() <<",...," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
 	if (origMaxValue() < bound) {
 		return getPCSolver().getTrueLit();
 	} else if (bound < origMinValue()) {
@@ -232,4 +232,44 @@ Lit EnumIntVar::getGEQLit(int bound) {
 		}
 		throw idpexception("Invalid code path");
 	}
+}
+
+int IntView::minValue() const {
+	if(constdiff()>0 && var()->minValue()+constdiff()<var()->minValue()){
+		return getMinElem<int>();
+	}
+	if(constdiff()<0 && var()->minValue()-constdiff()<var()->minValue()){
+		return getMaxElem<int>();
+	}
+	return var()->minValue()+constdiff();
+}
+
+int IntView::maxValue() const {
+	if(constdiff()>0 && var()->maxValue()+constdiff()<var()->maxValue()){
+		return getMaxElem<int>();
+	}
+	if(constdiff()<0 && var()->maxValue()-constdiff()<var()->maxValue()){
+		return getMinElem<int>();
+	}
+	return var()->maxValue()+constdiff();
+}
+
+Lit IntView::getLEQLit(int bound) const {
+	if(constdiff()>0 && bound-constdiff()>bound){
+		return var()->getPCSolver().getFalseLit();
+	}
+	if(constdiff()<0 && bound-constdiff()<bound){
+		return var()->getPCSolver().getTrueLit();
+	}
+	return var()->getLEQLit(bound-constdiff());
+}
+
+Lit IntView::getGEQLit(int bound) const {
+	if(constdiff()>0 && bound-constdiff()>bound){
+		return var()->getPCSolver().getTrueLit();
+	}
+	if(constdiff()<0 && bound-constdiff()<bound){
+		return var()->getPCSolver().getFalseLit();
+	}
+	return var()->getGEQLit(bound-constdiff());
 }

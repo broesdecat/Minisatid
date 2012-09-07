@@ -181,13 +181,13 @@ public:
 	}
 
 	void add(const CPBinaryRel& binconstr) {
-		target() << CPBININTSTR << " " << toString(mkPosLit(binconstr.head)) << " " << toString(binconstr.varID)
+		target() << CPBININTSTR << " " << toString(binconstr.head) << " " << toString(binconstr.varID)
 				<< " " << binconstr.rel << " " << binconstr.bound
 				<< " 0\n";
 	}
 
 	void add(const CPBinaryRelVar& binconstr) {
-		target() << CPBINVARSTR << " " << toString(mkPosLit(binconstr.head)) << " " << toString(binconstr.lhsvarID)
+		target() << CPBINVARSTR << " " << toString(binconstr.head) << " " << toString(binconstr.lhsvarID)
 				<< " " << binconstr.rel << " " << toString(binconstr.rhsvarID)
 				<< " 0\n";
 	}
@@ -201,7 +201,7 @@ public:
 	}
 
 	void add(const CPSumWeighted& sum) {
-		target() << CPSUMSTR << " " << toString(mkPosLit(sum.head)) << " ";
+		target() << CPSUMSTR << " " << toString(sum.head) << " ";
 		for (auto i = sum.varIDs.cbegin(); i < sum.varIDs.cend(); ++i) {
 			target() << toString(*i) << " ";
 		}

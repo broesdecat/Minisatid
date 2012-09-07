@@ -163,6 +163,7 @@ public:
 	void add(const MinimizeVar& sentence);
 	void add(const MinimizeAgg& sentence);
 	void add(const Symmetry& sentence);
+	void add(const BoolVar& object);
 	void add(const IntVarEnum& object);
 	void add(const IntVarRange& object);
 	void add(const CPBinaryRel& object);

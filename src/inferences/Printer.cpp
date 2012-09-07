@@ -32,6 +32,7 @@ Printer::Printer(ModelManager* modelmanager, Space* space, Models printoption, c
 		space(space),
 		modes(modes),
 		optimizing(false), solvingstate(SolvingState::STARTED),
+		nomoremodels(false),
 		startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 	if(modes.outputfile==""){
 		resman = std::shared_ptr<ResMan>(new StdMan(false));
@@ -130,6 +131,9 @@ void Printer::solvingFinished(){
 			printSatisfiable(output, modes.transformat);
 			printSatisfiable(clog, modes.transformat, modes.verbosity);
 		}
+		if(nomoremodels){
+			printNoMoreModels(output, modes.transformat);
+		}
 	}
 	output.flush();
 
@@ -141,6 +145,10 @@ void Printer::closeOutput() {
 		resman->close();
 		resman.reset();
 	}
+}
+
+void Printer::notifyNoMoreModels(){
+	nomoremodels = true;
 }
 
 void Printer::notifySolvingFinished() {

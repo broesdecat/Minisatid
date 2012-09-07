@@ -35,11 +35,9 @@ enum OptimFZ { MNMZ_NONE, MNMZ_VAR, MNMZ_LIST, MNMZ_SUBSET, MNMZ_AGG };
 enum CloseConstraint {CLOSE, OPEN};
 
 struct BinRel{
-	Atom head;
+	Lit head;
 	std::string left, right;
 	EqType rel;
-
-	BinRel():head(Atom(0)){}
 };
 
 template<typename Stream>
@@ -130,12 +128,12 @@ protected:
 
 	void printRel(const std::string& left, const std::string& right, const Lit& head, const std::string& constr);
 	void addBinRel(const std::string& left, const std::string& right, const Lit& head, EqType rel);
-	void printSum(const weightlist& weights, const std::string& vars, Atom head, std::string constr, std::string bound);
-	void addSum(const weightlist& weights, const std::vector<VarID>& vars, Atom head, EqType rel, const Weight& bound);
-	void addSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, const Weight& bound);
-	void addVarSum(const weightlist& weights, const std::string& vars, Atom head, EqType rel, VarID rhsvar, const Weight& min, const Weight& max);
-	void addVarSum(const weightlist& weights, const std::vector<VarID>& vars, Atom head, EqType rel, VarID bound);
-	void addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, VarID bound);
+	void printSum(const weightlist& weights, const std::string& vars, const Lit& head, std::string constr, std::string bound);
+	void addSum(const weightlist& weights, const std::vector<VarID>& vars, const Lit& head, EqType rel, const Weight& bound);
+	void addSum(const weightlist& weights, const std::string& vars, const Lit& head, EqType rel, const Weight& bound);
+	void addVarSum(const weightlist& weights, const std::string& vars, const Lit& head, EqType rel, VarID rhsvar, const Weight& min, const Weight& max);
+	void addVarSum(const weightlist& weights, const std::vector<VarID>& vars, const Lit& head, EqType rel, VarID bound);
+	void addVarSum(const weightlist& weights, const litlist& lits, const Lit& head, EqType rel, VarID bound);
 	void addProduct(const Aggregate& agg, const WLSet& set);
 	void addSum(const Aggregate& agg, const WLSet& set);
 	void addEquiv(const Implication& impl, CloseConstraint close);

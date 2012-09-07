@@ -191,75 +191,13 @@ void FDAggConstraint::initializeProd(PCSolver* engine, const Lit& head, const st
 	sharedInitialization(AggType::PROD, engine, head, set, { weight }, rel, bound);
 }
 
-//NOTE: for products, this does not include the weight!!! and also... This is an estimate.
-// varloc might not exist!
-std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const {
+rClause FDAggConstraint::notifypropagate() {
 	if (_type == getType(AggType::SUM)) {
-		int min = 0, max = 0;
-		for (uint i = 0; i < _vars.size(); ++i) {
-			if (i == excludedVar) {
-				continue;
-			}
-			auto weight = _weights[i];
-			auto minval = _vars[i]->minValue();
-			auto maxval = _vars[i]->maxValue();
-			if (weight < 0) {
-				min += maxval * weight;
-				max += minval * weight;
-			} else {
-				min += minval * weight;
-				max += maxval * weight;
-			}
-		}
-		return {min,max};
+		return notifypropagateSum();
 	} else {
 		MAssert(_type == getType(AggType::PROD));
-		if (canContainNegatives()) {
-			int absmax = 1;
-			int decidedval = 1;
-			bool decided = true;
-			for (uint i = 0; i < _vars.size(); ++i) {
-				if (i == excludedVar) {
-					continue;
-				}
-				auto minval = _vars[i]->minValue();
-				auto maxval = _vars[i]->maxValue();
-				if (decided && minval == maxval) {
-					decidedval *= maxval;
-				} else {
-					decided = false;
-				}
-				absmax *= max(abs(maxval), abs(minval));
-			}
-			if (decided) {
-				return {decidedval,decidedval};
-			}
-			return {-absmax,absmax};
-		} else {
-			int min = 1, max = 1;
-			for (uint i = 0; i < _vars.size(); ++i) {
-				if (i != excludedVar) {
-					auto minval = _vars[i]->minValue();
-					auto maxval = _vars[i]->maxValue();
-					min *= minval;
-					max *= maxval;
-				}
-			}
-			return {min,max};
-		}
+		return notifypropagateProd();
 	}
-}
-std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggVals() const {
-	return getMinAndMaxPossibleAggValsWithout(_vars.size());
-}
-
-bool FDAggConstraint::canContainNegatives() const {
-	for (auto i = _vars.cbegin(); i < _vars.cend(); ++i) {
-		if ((*i)->minValue() < 0) {
-			return true;
-		}
-	}
-	return false;
 }
 
 rClause FDAggConstraint::notifypropagateSum() {
@@ -405,8 +343,11 @@ rClause FDAggConstraint::notifypropagateProd() {
 		return checkProduct(min, minbound);
 	}
 
+	return nullPtrClause;
+
 	if (canContainNegatives()) {
-		return notifypropagateProdWithNeg(min, max, minbound, maxbound);
+		return nullPtrClause;
+		//return notifypropagateProdWithNeg(min, max, minbound, maxbound);
 	}
 	return notifypropagateProdWithoutNeg(min, max, minbound, maxbound);
 }
@@ -882,11 +823,73 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 	return nullPtrClause;
 }
 
-rClause FDAggConstraint::notifypropagate() {
+//NOTE: for products, this does not include the weight!!! and also... This is an estimate.
+// varloc might not exist!
+std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const {
 	if (_type == getType(AggType::SUM)) {
-		return notifypropagateSum();
+		int min = 0, max = 0;
+		for (uint i = 0; i < _vars.size(); ++i) {
+			if (i == excludedVar) {
+				continue;
+			}
+			auto weight = _weights[i];
+			auto minval = _vars[i]->minValue();
+			auto maxval = _vars[i]->maxValue();
+			if (weight < 0) {
+				min += maxval * weight;
+				max += minval * weight;
+			} else {
+				min += minval * weight;
+				max += maxval * weight;
+			}
+		}
+		return {min,max};
 	} else {
 		MAssert(_type == getType(AggType::PROD));
-		return notifypropagateProd();
+		if (canContainNegatives()) {
+			int absmax = 1;
+			int decidedval = 1;
+			bool decided = true;
+			for (uint i = 0; i < _vars.size(); ++i) {
+				if (i == excludedVar) {
+					continue;
+				}
+				auto minval = _vars[i]->minValue();
+				auto maxval = _vars[i]->maxValue();
+				if (decided && minval == maxval) {
+					decidedval *= maxval;
+				} else {
+					decided = false;
+				}
+				absmax *= max(abs(maxval), abs(minval));
+			}
+			if (decided) {
+				return {decidedval,decidedval};
+			}
+			return {-absmax,absmax};
+		} else {
+			int min = 1, max = 1;
+			for (uint i = 0; i < _vars.size(); ++i) {
+				if (i != excludedVar) {
+					auto minval = _vars[i]->minValue();
+					auto maxval = _vars[i]->maxValue();
+					min *= minval;
+					max *= maxval;
+				}
+			}
+			return {min,max};
+		}
 	}
+}
+std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggVals() const {
+	return getMinAndMaxPossibleAggValsWithout(_vars.size());
+}
+
+bool FDAggConstraint::canContainNegatives() const {
+	for (auto i = _vars.cbegin(); i < _vars.cend(); ++i) {
+		if ((*i)->minValue() < 0) {
+			return true;
+		}
+	}
+	return false;
 }

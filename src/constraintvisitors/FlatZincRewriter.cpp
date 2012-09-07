@@ -261,7 +261,7 @@ void FlatZincRewriter<Stream>::addBinRel(const string& left, const string& right
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, Atom head, string constr, string bound) {
+void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, const Lit& head, string constr, string bound) {
 	constraints << "constraint " << constr << "([";
 	addIntList(weights, constraints);
 	constraints << "],[" << vars << "], " << bound << ", " << getVarName(head) << ");\n";
@@ -275,7 +275,7 @@ Atom FlatZincRewriter<Stream>::createAtom() {
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<VarID>& vars, Atom head, EqType rel, const Weight& bound) {
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<VarID>& vars, const Lit& head, EqType rel, const Weight& bound) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
@@ -289,7 +289,7 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<Va
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, Atom head, EqType rel, const Weight& bound) {
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, const Lit& head, EqType rel, const Weight& bound) {
 	string constr = "";
 	Weight newbound = bound;
 	switch (rel) {
@@ -328,7 +328,7 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& v
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<VarID>& vars, Atom head, EqType rel, VarID rhsvar) {
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<VarID>& vars, const Lit& head, EqType rel, VarID rhsvar) {
 	vector<VarID> newvars = vars;
 	newvars.push_back(rhsvar);
 
@@ -339,7 +339,7 @@ void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, Atom head, EqType rel, VarID rhsvar) {
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, const Lit& head, EqType rel, VarID rhsvar) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
@@ -421,9 +421,9 @@ VarID FlatZincRewriter<Stream>::addOptimization() {
 			createIntVar(i->getLit(), false, 0);
 		}
 
-		auto head = createAtom();
+		auto head = mkPosLit(createAtom());
 		addVarSum(getWeigths(set), getLiterals(set), head, EqType::EQ, optimvar);
-		Disjunction d(1,{mkPosLit(head)});
+		Disjunction d(1,{head});
 		add(d);
 	} else if (savedlistmnmz.size() > 0) {
 		auto mnm = savedlistmnmz[0];
@@ -501,7 +501,7 @@ void FlatZincRewriter<Stream>::innerExecute() {
 	state = SolverState::FINISHING;
 
 	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
-		addBinRel((*i).left, (*i).right, mkPosLit((*i).head), (*i).rel);
+		addBinRel((*i).left, (*i).right, (*i).head, (*i).rel);
 	}
 
 	for (auto i = savedcpsums.cbegin(); i < savedcpsums.cend(); ++i) {
@@ -779,13 +779,9 @@ void FlatZincRewriter<Stream>::add(const CPBinaryRel& rel) {
 	MAssert(isParsing());
 	check(rel.head);
 
-	BinRel binrel;
-	binrel.left = getIntVarName(rel.varID);
 	stringstream ss;
 	ss << rel.bound;
-	binrel.right = ss.str();
-	binrel.head = rel.head;
-	binrel.rel = rel.rel;
+	BinRel binrel = {rel.head, getIntVarName(rel.varID), ss.str(), rel.rel};
 	savedbinrels.push_back(binrel);
 }
 
@@ -794,11 +790,7 @@ void FlatZincRewriter<Stream>::add(const CPBinaryRelVar& rel) {
 	MAssert(isParsing());
 	check(rel.head);
 
-	BinRel binrel;
-	binrel.left = getIntVarName(rel.lhsvarID);
-	binrel.right = getIntVarName(rel.rhsvarID);
-	binrel.head = rel.head;
-	binrel.rel = rel.rel;
+	BinRel binrel = {rel.head, getIntVarName(rel.lhsvarID), getIntVarName(rel.rhsvarID), rel.rel};
 	savedbinrels.push_back(binrel);
 }
 

@@ -59,7 +59,14 @@ enum CONSTRAINT_TYPE {
 	intlinner,
 
 	arraybooland,
-	arrayboolor
+	arrayboolor,
+	arrayboolxor,
+	arrayboolelem,
+	arrayintelem,
+	arrayvarboolelem,
+	arrayvarintelem,
+
+	setin
 };
 
 enum ARG_TYPE {
