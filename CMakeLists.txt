@@ -3,7 +3,7 @@ project (minisatid)
 
 # The version number.
 set (MinisatID_VERSION_MAJOR 3)
-set (MinisatID_VERSION_MINOR 5)
+set (MinisatID_VERSION_MINOR 6)
 set (MinisatID_VERSION_PATCH 0)
 set (MinisatID_VERSION "${MinisatID_VERSION_MAJOR}.${MinisatID_VERSION_MINOR}.${MinisatID_VERSION_PATCH}")
 
