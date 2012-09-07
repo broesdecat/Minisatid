@@ -67,6 +67,7 @@ InsertWrapper::InsertWrapper(MinisatID::ExternalConstraintVisitor* store)
 	name2type["array_var_int_element"] = arrayvarintelem;
 
 	name2type["set_in"] = setin;
+	name2type["set_in_reif"] = setinr;
 }
 
 InsertWrapper::~InsertWrapper() {
@@ -249,6 +250,21 @@ void createDiv(uint varx, uint vary, uint varz, Storage* storage){
 	storage->addLinear(neglin, {x.var, c, prodyz}, {1,1,-1}, EqType::EQ, 0);
 }
 
+void addReifSet(int head, uint var, bool range, int start, int end, const std::vector<int>& values, Storage* storage){
+	if (range) {
+		storage->addBinI(head, var, EqType::GEQ, start);
+		storage->addBinI(head, var, EqType::LEQ, end);
+	} else {
+		std::vector<int> boolvars;
+		for (auto j : values) {
+			auto b = storage->createOneShotLit();
+			boolvars.push_back(b);
+			storage->addBinI(b, var, EqType::EQ, j);
+		}
+		storage->writeEquiv(head, boolvars, false);
+	}
+}
+
 //VERY IMPORTANT: ALL PARSED VECTORS ARE REVERSED ORDER (TO HAVE FASTER PARSING)!!!!
 void InsertWrapper::add(Constraint* var) {
 	const auto& arguments = *var->id->arguments;
@@ -407,34 +423,45 @@ void InsertWrapper::add(Constraint* var) {
 		auto arg1 = parseInt(*storage, *getRevArg(arguments, 0));
 		const auto& setarg = *getRevArg(arguments, 1);
 		if (setarg.type == EXPR_TYPE::EXPR_SET) {
+			int start = 0, end=0;
+			std::vector<int> values;
 			if (isRangeSet(setarg)) {
 				auto beginend = parseParRangeSet(setarg);
-				storage->addBinI(storage->getTrue(), arg1, EqType::GEQ, beginend.first);
-				storage->addBinI(storage->getTrue(), arg1, EqType::LEQ, beginend.second);
+				start = beginend.first;
+				end = beginend.second;
 			} else {
-				auto set = parseParValueSet(*storage, setarg);
-				std::vector<int> boolvars;
-				for (auto j : set) {
-					auto b = storage->createOneShotLit();
-					boolvars.push_back(b);
-					storage->addBinI(b, arg1, EqType::EQ, j);
-				}
-				storage->addClause(boolvars, { });
+				values = parseParValueSet(*storage, setarg);
 			}
+			addReifSet(storage->getTrue(), arg1, isRangeSet(setarg), start, end, values, storage);
 		} else if (setarg.type == EXPR_TYPE::EXPR_IDENT) {
 			auto setvar = parseSet(*storage, *setarg.ident);
-			if (setvar->isrange) {
-				storage->addBinI(storage->getTrue(), arg1, EqType::GEQ, setvar->start);
-				storage->addBinI(storage->getTrue(), arg1, EqType::LEQ, setvar->end);
+			addReifSet(storage->getTrue(), arg1, setvar->isrange, setvar->start, setvar->end, setvar->values, storage);
+		} else {
+			throw fzexception("Incorrect type, set or setliteral expected");
+		}
+		break;
+	}
+	case setinr: {
+		if (arguments.size() != 3) {
+			throw fzexception("Incorrect number of arguments.\n");
+		}
+		auto arg1 = parseInt(*storage, *getRevArg(arguments, 0));
+		const auto& setarg = *getRevArg(arguments, 1);
+		auto head = parseBool(*storage, *getRevArg(arguments, 2));
+		if (setarg.type == EXPR_TYPE::EXPR_SET) {
+			int start = 0, end=0;
+			std::vector<int> values;
+			if (isRangeSet(setarg)) {
+				auto beginend = parseParRangeSet(setarg);
+				start = beginend.first;
+				end = beginend.second;
 			} else {
-				std::vector<int> boolvars;
-				for (auto j : setvar->values) {
-					auto b = storage->createOneShotLit();
-					boolvars.push_back(b);
-					storage->addBinI(b, arg1, EqType::EQ, j);
-				}
-				storage->addClause(boolvars, { });
+				values = parseParValueSet(*storage, setarg);
 			}
+			addReifSet(storage->getTrue(), arg1, isRangeSet(setarg), start, end, values, storage);
+		} else if (setarg.type == EXPR_TYPE::EXPR_IDENT) {
+			auto setvar = parseSet(*storage, *setarg.ident);
+			addReifSet(head, arg1, setvar->isrange, setvar->start, setvar->end, setvar->values, storage);
 		} else {
 			throw fzexception("Incorrect type, set or setliteral expected");
 		}

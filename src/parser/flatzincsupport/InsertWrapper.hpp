@@ -66,7 +66,8 @@ enum CONSTRAINT_TYPE {
 	arrayvarboolelem,
 	arrayvarintelem,
 
-	setin
+	setin,
+	setinr
 };
 
 enum ARG_TYPE {
