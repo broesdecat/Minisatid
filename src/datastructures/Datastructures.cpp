@@ -5,6 +5,20 @@
 #include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID{
+	std::ostream& operator<<(std::ostream& stream, Value val) {
+		switch (val) {
+		case Value::True:
+			stream << "true";
+			break;
+		case Value::False:
+			stream << "false";
+			break;
+		case Value::Unknown:
+			stream << "unknown";
+			break;
+		}
+	}
+
 	bool isPositive(const Lit& lit){
 		return not sign(lit);
 	}
