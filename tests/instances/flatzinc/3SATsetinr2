@@ -1,0 +1,7 @@
+var -2..3: y :: output_var;
+int: z = 2;
+var bool: r = true;
+array [1..2] of int: A = [3,5];
+set of int: S = {1,z,A[1]};
+constraint set_in_reif(y, S, r);
+solve satisfy;
