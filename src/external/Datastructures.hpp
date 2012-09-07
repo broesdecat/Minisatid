@@ -119,6 +119,9 @@ struct TheoryID{
 	bool operator==(TheoryID other) const{
 		return id==other.id;
 	}
+	bool operator!=(TheoryID other) const{
+		return not(this->operator ==(other));
+	}
 	bool operator<(TheoryID other) const{
 		return id<other.id;
 	}
