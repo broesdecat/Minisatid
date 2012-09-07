@@ -1,0 +1,6 @@
+var -2..3: y :: output_var;
+int: z = 2;
+array [1..2] of int: A = [3,5];
+set of int: S = {1,z,A[1]};
+constraint set_in(y, S);
+solve satisfy;

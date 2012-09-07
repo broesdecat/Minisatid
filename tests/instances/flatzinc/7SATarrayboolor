@@ -1,0 +1,4 @@
+var bool: A = true;
+array [1..3] of var bool: LB ::output_array([1..3]);
+constraint array_bool_or(LB, A);
+solve satisfy;

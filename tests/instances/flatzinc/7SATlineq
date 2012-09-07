@@ -1,0 +1,5 @@
+array [1..3] of int: w = [1,2,-2];
+array [1..3] of var -1..3: v ::output_array([1..3]);
+var {-5,-2,3,7}: result ::output_var = -2;
+constraint int_lin_eq(w,v,result);
+solve satisfy;

@@ -1,0 +1,6 @@
+var bool: A = false;
+var -10..10: X ::output_var;
+var bool: B;
+array [1..3] of var bool: LB ::output_array([1..3]) = [false,B,B];
+constraint array_var_bool_element(X, LB, A);
+solve satisfy;

@@ -1,0 +1,4 @@
+array [1..2] of var -1..1: A :: output_array([1..2]);
+var bool: r;
+constraint int_ne_reif(A[1],A[2],r);
+solve satisfy;

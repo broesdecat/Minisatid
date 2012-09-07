@@ -1,0 +1,3 @@
+var bool: w :: output_var;
+constraint bool_clause([w], []);
+solve satisfy;

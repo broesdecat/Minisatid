@@ -1,0 +1,6 @@
+var -10..10: I ::output_var;
+var {1,-10}: X ::output_var;
+var 1..3: Y ::output_var;
+array [1..3] of var int: LB ::output_array([1..4]) = [20,-10,Y];
+constraint array_var_int_element(I, LB, X);
+solve satisfy;

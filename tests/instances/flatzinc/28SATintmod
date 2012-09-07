@@ -1,0 +1,5 @@
+var -2..6: a ::output_var;
+var -1..3: b ::output_var;
+var {0,2}: c ::output_var;
+constraint int_mod(a,b,c);
+solve satisfy;

@@ -1,0 +1,3 @@
+bool: w = false;
+constraint bool_clause([w], []);
+solve satisfy;

@@ -1,0 +1,4 @@
+var bool: w :: output_var;
+var -3..3: x :: output_var;
+constraint bool2int(w,x);
+solve satisfy;

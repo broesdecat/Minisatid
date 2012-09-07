@@ -1,0 +1,5 @@
+var bool: x :: output_var;
+var bool: y :: output_var = false;
+var bool: z :: output_var;
+constraint bool_and(x,y,z);
+solve satisfy;

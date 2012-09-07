@@ -1,0 +1,5 @@
+var -4..4: a ::output_var;
+var -2..2: b ::output_var;
+var {-1,0,2}: c ::output_var;
+constraint int_div(a,b,c);
+solve satisfy;

@@ -1,0 +1,6 @@
+var bool: x :: output_var;
+var bool: y :: output_var;
+constraint bool_le(x,y);
+constraint bool_clause([],[y, x]);
+constraint bool_clause([x,y],[]);
+solve satisfy;

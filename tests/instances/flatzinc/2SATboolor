@@ -1,0 +1,5 @@
+var bool: x :: output_var;
+var bool: y :: output_var = false;
+var bool: r :: output_var;
+constraint bool_or(x,y,r);
+solve satisfy;
