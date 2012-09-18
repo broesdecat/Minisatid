@@ -93,7 +93,7 @@ if(BUILD_MINISATID_STATIC)
 	MESSAGE(STATUS "build minisatid allstatic")
 endif()
 
-MESSAGE(STATUS "Global CXX flags: ")
+MESSAGE(STATUS "MinisatID CXX flags: ")
 MESSAGE(STATUS "${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(lib/pbsolver)
