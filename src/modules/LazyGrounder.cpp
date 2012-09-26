@@ -105,7 +105,7 @@ LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implicatio
 	getPCSolver().acceptForPropagation(this);
 }
 
-void LazyTseitinClause::accept(ConstraintVisitor& visitor) {
+void LazyTseitinClause::accept(ConstraintVisitor& ) {
 	notYetImplemented("Accepting lazily grounded Tseitin equivalences.");
 }
 

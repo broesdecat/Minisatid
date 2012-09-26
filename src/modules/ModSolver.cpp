@@ -53,7 +53,7 @@ void ModSolver::notifyNewDecisionLevel() {
 	trail.push_back(vector<Lit>());
 }
 
-bool ModSolver::search(const litlist& assumpts, bool search) {
+bool ModSolver::search(const litlist& assumpts, bool ) {
 	/*
 	 * In the end, we would want to propagate level by level, without having to restart the whole process
 	 * every time. This requires a startsearch and continuesearch procedure in the SAT-solver

@@ -38,6 +38,7 @@ if(GMP)
 	endif()
 else()
 	addToCXX("-D NO_GMP")
+	message("WARNING: this IntegerType may not be suitable for some input file. Consider using GMP")
 endif()
 
 if(WITHGECODE)

@@ -21,8 +21,8 @@ SymmetryData::SymmetryData(const Symmetry& symmetry) :
 		symm(symmetry) {
 	for (auto cycle = symmetry.symmetry.cbegin(); cycle != symmetry.symmetry.cend(); ++cycle) {
 		MAssert((*cycle).size()>1);
-		Lit previousLit;
-		Lit firstLit;
+		Lit previousLit = *cycle->cbegin();
+		Lit firstLit= *cycle->cbegin();
 		bool first = true;
 		for (auto currentLit = cycle->cbegin(); currentLit != cycle->cend(); ++currentLit) {
 			if (first) {

@@ -27,7 +27,7 @@ void IntVar::notifyBacktrack(int, const Lit&) {
 	updateBounds();
 }
 
-void IntVar::accept(ConstraintVisitor& visitor) {
+void IntVar::accept(ConstraintVisitor& ) {
 	// FIXME
 	//		which id to use (what with internal vars)
 	//		also add eq and diseq reifs? (can occur in other constraints!)

@@ -61,7 +61,7 @@ void LParsePolicy::printCurrentOptimum(std::ostream& output, const Weight& value
 	output <<"Current optimum " <<value <<"\n";
 }
 
-void FZPolicy::printCurrentOptimum(std::ostream& output, const Weight& value){
+void FZPolicy::printCurrentOptimum(std::ostream& , const Weight& ){
 	// TODO fz comment with current optimum?
 }
 

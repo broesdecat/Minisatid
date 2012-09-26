@@ -81,12 +81,12 @@ bool SumProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) con
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
 
-bool ProdProp::isMonotone(const Agg& agg, const Weight& w) const {
-	MAssert(w>=0);
+bool ProdProp::isMonotone(const Agg& agg, const Weight& ) const {
+	// MAssert(w>=0); TODO Place back if w is needed
 	return !agg.hasUB();
 }
-bool ProdProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) const {
-	MAssert(w>=0);
+bool ProdProp::isMonotone(const TempAgg& agg, const Weight& , const Weight&) const {
+	// MAssert(w>=0); TODO Place back if w is needed
 	return !agg.hasUB();
 }
 

@@ -31,7 +31,6 @@ namespace MinisatID {
 	typedef	mpz_class IntegerType;
 }
 #else
-#warning this IntegerType may not be suitable for some input file. Consider using GMP
 
 namespace MinisatID {
 	typedef long IntegerType;

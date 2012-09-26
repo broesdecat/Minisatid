@@ -44,8 +44,8 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
 	vector<VarID> elemx;
-	int n = 100;
-	for(int i=0; i<n; ++i){
+	uint n = 100;
+	for(uint i=0; i<n; ++i){
 		mult.push_back(Weight(i-1));
 		VarID x = {i};
 		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, 0, n));
@@ -55,7 +55,7 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	vector<Weight> weights;
 	weights.resize(elemx.size(),Weight(1));
 
-	for(int i=0; i<n; ++i){
+	for(uint i=0; i<n; ++i){
 		extAdd(*space, CPCount(DEFAULTCONSTRID,elemx, i, EqType::EQ, elemx[i]));
 	}
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(4)}));
@@ -65,8 +65,8 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(5), elemx, mult, EqType::EQ, 0));
 
 	int literalcount = 6;
-	for(int i=0; i<n; ++i){
-		for(int j=0; j<n; ++j){
+	for(uint i=0; i<n; ++i){
+		for(uint j=0; j<n; ++j){
 			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::EQ, Weight(j)));
 			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::GEQ, Weight(j)));
 		}

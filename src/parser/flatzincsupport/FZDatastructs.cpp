@@ -154,7 +154,9 @@ void SetVar::add(Storage& storage) {
 	} else if (var->enumvalues) {
 		if (isrange) {
 			// FIXME what if the enumvalues contains duplicates?
-			if (var->values->size() < end - start) {
+			MAssert(end>=start);
+			size_t diff = end-start;
+			if (var->values->size() < diff) {
 				unsat = true;
 			}
 			for (auto ev : *var->values) {

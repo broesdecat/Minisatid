@@ -75,7 +75,7 @@
 	MinisatID::Atom cAtom(string* c);
 	MinisatID::Lit cLiteral(string* c);
 	MinisatID::Weight cWeight(string* s);
-	int cID(string* c);
+	uint cID(string* c);
 	VarID cVarID(string* c);
 	
 	// Convert integer to string
@@ -600,7 +600,12 @@ varidbody 	: 	varidbody varid	{ $$ = $1; $$->push_back($2);	}
 		| 	varid  		{ $$ = new vector<VarID>(1, $1);	}
 		;
 		
-varid	:   number	{ $$ = {$1} ;}
+varid	:   	number	{ 
+				if($1<0){
+					throw MinisatID::idpexception("Variable IDs cannot be negative.\n");
+				}
+				$$ = {(uint)$1};
+			}
 		
 number	:	NUMBER	{ $$ = atoi((*$1).c_str()); delete($1); }
 		|	ZERO	{ $$ = 0; }
@@ -633,7 +638,7 @@ Atom cAtom(string* c){
 	return Atom(i);
 }
 
-int cID(string* c){
+uint cID(string* c){
 	int i = atoi(c->c_str());
 	if(i<1){
 		throw idpexception("IDs have to be non-negative nonzero integers.\n");

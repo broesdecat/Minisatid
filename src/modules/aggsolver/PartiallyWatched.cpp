@@ -425,18 +425,27 @@ rClause GenPWAgg::reconstructSet(bool& propagations, Agg const * propagg) {
 
 void GenPWAgg::checkWatches() const {
 	for (auto i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
+#ifndef NDEBUG
 		bool found = false;
+#endif
 		for (auto j = getNWS().cbegin(); j < getNWS().cend(); ++j) {
 			if (var(i->getLit()) == var((*j)->getWL().getLit())) {
+#ifndef NDEBUG
 				found = true;
+#endif
 			}
 		}
 		for (auto j = getWS().cbegin(); j < getWS().cend(); ++j) {
 			if (var(i->getLit()) == var((*j)->getWL().getLit())) {
+#ifndef NDEBUG
 				found = true;
+#endif
 			}
 		}
+#ifndef NDEBUG
 		MAssert(found);
+#endif
+
 	}
 }
 

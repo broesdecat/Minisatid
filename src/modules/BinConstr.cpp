@@ -96,7 +96,7 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	}
 }
 
-void BinaryConstraint::accept(ConstraintVisitor& visitor) {
+void BinaryConstraint::accept(ConstraintVisitor&) {
 	// FIXME
 	//		which id to use
 	//		what with intviews

@@ -260,7 +260,11 @@ void PropagatorFactory::add(const Symmetry& formula) {
 }
 
 template<class T>
-void PropagatorFactory::addCP(const T& formula) {
+void PropagatorFactory::addCP(const T&
+#ifdef CPSUPPORT
+		formula
+#endif
+	) {
 	MAssert(getEngine().modes().usegecode);
 	guaranteeAtRootLevel();
 #ifndef CPSUPPORT
@@ -298,7 +302,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 	}
 }
 
-void PropagatorFactory::add(const BoolVar& object){
+void PropagatorFactory::add(const BoolVar&){
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {

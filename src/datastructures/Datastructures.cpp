@@ -42,6 +42,8 @@ EqType invertEqType(EqType type) {
 	case EqType::LEQ:
 		return EqType::GEQ;
 	}
+	MAssert(false);
+	return EqType::EQ;
 }
 
 WLSet createSet(int setid, const std::vector<Lit>& literals, const Weight& w) {

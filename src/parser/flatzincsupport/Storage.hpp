@@ -350,7 +350,7 @@ public:
 	}
 
 	template<class T>
-	void addBinT(const T& boolvar, uint intvar, MinisatID::EqType eq, int intvar2) {
+	void addBinT(const T& boolvar, uint intvar, MinisatID::EqType eq, uint intvar2) {
 		extAdd(*store, CPBinaryRelVar(maxid++, get(boolvar), VarID { intvar }, eq, { intvar2 }));
 	}
 
@@ -423,7 +423,7 @@ public:
 		extAdd(*store, sum);
 	}
 
-	void addProduct(int head, const std::vector<uint> variables, int weight, MinisatID::EqType eq, int varbound) {
+	void addProduct(int head, const std::vector<uint> variables, int weight, MinisatID::EqType eq, uint varbound) {
 		CPProdWeighted sum(maxid++, get(head), getVarIDs(variables), Weight(weight), eq, VarID { varbound });
 		extAdd(*store, sum);
 	}

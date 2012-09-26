@@ -273,8 +273,8 @@ Atom PCSolver::newVar() {
 /**
  * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
  */
-void PCSolver::createVar(Atom v, TheoryID theoryID) {
-	MAssert(getTheoryID()==theoryID);
+void PCSolver::createVar(Atom v, TheoryID ) {
+	//MAssert(getTheoryID()==theoryID); Place back if theoryId is needed
 	MAssert(v>-1);
 
 	if (((uint64_t) v) >= nVars()) {
