@@ -212,6 +212,14 @@ public:
 		target() << sum.rel << " " << sum.bound << " 0\n";
 	}
 
+	void add(const CPProdWeighted& prod) {
+		target() << CPPRODSTR << " " << toString(prod.head) << " ";
+		for (auto i = prod.varIDs.cbegin(); i < prod.varIDs.cend(); ++i) {
+			target() << toString(*i) << " ";
+		}
+		target() << DELIMSTR <<" " <<prod.prodWeight <<" " << prod.rel << " " << toString(prod.boundID) << " 0\n";
+	}
+
 	void add(const CPElement& elem) {
 		target() << CPELEMENTSTR << " ";
 		for (auto i = elem.varIDs.cbegin(); i < elem.varIDs.cend(); ++i) {
