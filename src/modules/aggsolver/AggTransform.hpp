@@ -23,12 +23,12 @@ class PCSolver;
 void verifyAggregate(WLSet const * const set, AggType settype, const Lit& head, AggType aggtype, const PCSolver& solver);
 
 //@pre: has been split
-void setReduce(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);
+void setReduce(PCSolver* solver, WLSet* set, const AggProp& type);
 void addHeadImplications(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
 void max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
-void card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
-void decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound);
-void decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg*, const Weight& knownbound, uint priority);
+void card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
+void decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs);
+void decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg*, uint priority);
 
 }
 

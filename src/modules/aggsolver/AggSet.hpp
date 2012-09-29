@@ -21,7 +21,6 @@ namespace MinisatID {
 
 class TypedSet: public Propagator {
 protected:
-	Weight kb; //kb is "known bound", the value of the set reduced empty set
 	vwl wl; // INVARIANT: sorted from lowest to highest weight! Except in set reduction operation!
 
 	AggProp const * type;
@@ -39,7 +38,7 @@ private:
 	void addAgg(const TempAgg& tempagg, bool optim);
 
 public:
-	TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
+	TypedSet(PCSolver* solver, int setid, AggProp const * const w, const vwl& wls, bool usewatches,
 			const std::vector<TempAgg*>& aggr, bool optim);
 	virtual ~TypedSet();
 
@@ -78,9 +77,6 @@ public:
 	}
 	bool isUsingWatches() const {
 		return usingwatches;
-	}
-	const Weight& getKnownBound() const {
-		return kb;
 	}
 
 	const AggProp& getType() const {

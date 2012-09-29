@@ -35,7 +35,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 			clog <<c.toString((*i).getLit());
 			clog <<"=" <<(*i).getWeight();
 		}
-		clog <<" }, KB=" <<c.getKnownBound();
+		clog <<" }";
 	}
 	if (endl) {
 		clog <<"\n";
@@ -59,13 +59,13 @@ void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
 			break;
 	}
 	if (ae.hasLB()) {
-		clog <<ae.getCertainBound() <<" =< ";
+		clog <<ae.getBound() <<" =< ";
 	}
 	clog <<ae.getType() <<"{";
 	print(verbosity, *set, false);
 	clog <<"}";
 	if (ae.hasUB()) {
-		clog <<" =< " <<ae.getCertainBound();
+		clog <<" =< " <<ae.getBound();
 	}
 	clog <<".";
 	if(endl){

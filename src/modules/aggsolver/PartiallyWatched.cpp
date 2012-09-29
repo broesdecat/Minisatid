@@ -255,9 +255,9 @@ Agg* GenPWAgg::getAggWithMostStringentBound(bool includeunknown) const {
 		if (relevantagg) {
 			if (strongestagg == NULL) {
 				strongestagg = *i;
-			} else if (strongestagg->hasLB() && strongestagg->getCertainBound() < (*i)->getCertainBound()) {
+			} else if (strongestagg->hasLB() && strongestagg->getBound() < (*i)->getBound()) {
 				strongestagg = *i;
-			} else if (strongestagg->hasUB() && strongestagg->getCertainBound() > (*i)->getCertainBound()) {
+			} else if (strongestagg->hasUB() && strongestagg->getBound() > (*i)->getBound()) {
 				strongestagg = *i;
 			}
 		}
@@ -514,9 +514,9 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 		auto lowerbound = WL(mkPosLit(1), Weight(0));
 		//Calculate lowest
 		if (agg->hasLB()) {
-			lowerbound = WL(mkPosLit(1), getType().removeMax(pessbounds.max, agg->getCertainBound()));
+			lowerbound = WL(mkPosLit(1), getType().removeMax(pessbounds.max, agg->getBound()));
 		} else {
-			lowerbound = WL(mkPosLit(1), getType().removeMin(agg->getCertainBound(), pessbounds.min));
+			lowerbound = WL(mkPosLit(1), getType().removeMin(agg->getBound(), pessbounds.min));
 		}
 		auto i = upper_bound(getSet().getWL().cbegin(), getSet().getWL().cend(), lowerbound, compareByWeights<WL>);
 		bool begin = true;
@@ -538,9 +538,9 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 rClause GenPWAgg::checkHeadPropagationForAgg(bool& propagations, const Agg& agg, const minmaxBounds& bound) {
 	auto confl = nullPtrClause;
 	auto propagatehead = false;
-	if (agg.hasLB() && bound.max < agg.getCertainBound()) {
+	if (agg.hasLB() && bound.max < agg.getBound()) {
 		propagatehead = true;
-	} else if (agg.hasUB() && agg.getCertainBound() < bound.min) {
+	} else if (agg.hasUB() && agg.getBound() < bound.min) {
 		propagatehead = true;
 	}
 	if (propagatehead) {
@@ -687,7 +687,7 @@ public:
 	}
 };
 
-double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
+double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs) {
 	uint totallits = set.getWL().size(), totalwatches = 0;
 	std::vector<TempWatch*> nws;
 
@@ -697,7 +697,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 	const vwl& wls = set.getWL();
 	for (uint i = 0; i < wls.size(); ++i) {
 		const WL& wl = wls[i];
-		bool mono = type.isMonotone(**aggs.cbegin(), wl.getWeight(), knownbound);
+		bool mono = type.isMonotone(**aggs.cbegin(), wl.getWeight());
 		nws.push_back(new TempWatch(wl, mono));
 	}
 
@@ -721,7 +721,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 	minmaxOptimAndPessBounds bounds(emptyinterpretbounds);
 	TempWatch* largest = NULL;
 	uint i = 0;
-	for (; !isSatisfied(agg, bounds.optim, knownbound) && !isSatisfied(agg, bounds.pess, knownbound) && i < nws.size(); ++i) {
+	for (; !isSatisfied(type, agg, bounds.optim) && !isSatisfied(type, agg, bounds.pess) && i < nws.size(); ++i) {
 		WL wl = nws[i]->getWL();
 		lbool val = solver.value(wl.getLit());
 
@@ -741,11 +741,11 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
-	if ((!oneagg || solver.value(agg.getHead()) != l_Undef) && (largest != NULL && !isSatisfied(agg, bounds.pess, knownbound))) {
+	if ((!oneagg || solver.value(agg.getHead()) != l_Undef) && (largest != NULL && !isSatisfied(type, agg, bounds.pess))) {
 		removeValue(type, largest->getWL().getWeight(), largest->isMonotone(), bounds.optim);
 
 		//Again until satisfied IMPORTANT: continue from previous index!
-		for (; !isSatisfied(agg, bounds.optim, knownbound) && !isSatisfied(agg, bounds.pess, knownbound) && i < nws.size(); ++i) {
+		for (; !isSatisfied(type, agg, bounds.optim) && !isSatisfied(type, agg, bounds.pess) && i < nws.size(); ++i) {
 			WL wl = nws[i]->getWL();
 			lbool val = solver.value(wl.getLit());
 

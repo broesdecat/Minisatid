@@ -274,7 +274,7 @@ lbool MinisatID::canPropagateHead(const Agg& agg, const Weight& CC, const Weight
 	auto result = l_Undef;
 
 	//add if derived: headproptime[agg.getIndex()] = getStack().size();
-	auto b = agg.getCertainBound();
+	auto b = agg.getBound();
 	if (agg.hasUB()) {
 		if (CC > b) {
 			result = l_False;
@@ -532,12 +532,12 @@ rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 	auto confl = nullPtrClause;
 	if (headtrue && agg.hasUB()) {
-		for (auto i = getSet().getWL().rbegin(); confl == nullPtrClause && i < getSet().getWL().rend() && agg.getCertainBound() < i->getWeight();
+		for (auto i = getSet().getWL().rbegin(); confl == nullPtrClause && i < getSet().getWL().rend() && agg.getBound() < i->getWeight();
 				++i) {
 			confl = getSet().notifySolver(new SetLitReason(agg, i->getLit(), i->getWeight(), false));
 		}
 	} else if (!headtrue && agg.hasLB()) {
-		for (auto i = getSet().getWL().rbegin(); confl == nullPtrClause && i < getSet().getWL().rend() && agg.getCertainBound() <= i->getWeight();
+		for (auto i = getSet().getWL().rbegin(); confl == nullPtrClause && i < getSet().getWL().rend() && agg.getBound() <= i->getWeight();
 				++i) {
 			confl = getSet().notifySolver(new SetLitReason(agg, i->getLit(), i->getWeight(), false));
 		}
@@ -575,14 +575,14 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	for (vwl::const_iterator i = getSet().getWL().cbegin(); found < 2 && i < getSet().getWL().cend(); ++i) {
 		const WL& wl = (*i);
 		if (headtrue) {
-			if (agg.hasLB() && wl.getWeight() < agg.getCertainBound()) {
+			if (agg.hasLB() && wl.getWeight() < agg.getBound()) {
 				continue;
 			}
-			if (agg.hasUB() && wl.getWeight() > agg.getCertainBound()) {
+			if (agg.hasUB() && wl.getWeight() > agg.getBound()) {
 				continue;
 			}
 		} else { //headfalse
-			if ((!agg.hasLB() || wl.getWeight() >= agg.getCertainBound()) && (!agg.hasUB() || wl.getWeight() <= agg.getCertainBound())) {
+			if ((!agg.hasLB() || wl.getWeight() >= agg.getBound()) && (!agg.hasUB() || wl.getWeight() <= agg.getBound())) {
 				continue;
 			}
 		}
@@ -606,7 +606,7 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	auto head = agg.getHead();
 
 	bool search = true, one, inset = false;
-	auto bound = agg.getCertainBound();
+	auto bound = agg.getBound();
 	if (not ar.isHeadReason()) {
 		lits.push_back(value(head) == l_True ? ~head : head);
 		if (value(head) == l_True) {
@@ -710,7 +710,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	Weight weightbound;
 
 	bool ub = agg.hasUB();
-	auto bound = agg.getCertainBound();
+	auto bound = agg.getBound();
 	//determine the lower bound of which weight literals to consider
 	const AggProp& type = getSet().getType();
 	if (headtrue) {
@@ -811,7 +811,7 @@ void ProdFWAgg::internalInitialize(bool& unsat, bool& sat) {
 		return;
 	}
 	for (auto i = getSet().getAggNonConst().begin(); i < getSet().getAggNonConst().end();) {
-		if ((*i)->getCertainBound() > 0) {
+		if ((*i)->getBound() > 0) {
 			++i;
 			continue;
 		}

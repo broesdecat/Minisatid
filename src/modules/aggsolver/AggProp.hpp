@@ -51,7 +51,6 @@ public:
 	int			getIndex	()					const	{ return index; }
 
 	const Weight&	getBound()					const	{ return bound.bound; }
-	Weight		getCertainBound(const Weight& knownbound) const { return bound.bound - knownbound; }
 	void		setBound	(AggBound b)				{ bound = b; }
 	bool		hasUB		()					const	{ return bound.sign!=AggSign::LB; }
 	bool		hasLB		()					const	{ return bound.sign!=AggSign::UB; }
@@ -75,7 +74,6 @@ public:
 
 	bool		isOptimAgg		() 	const	{ return optim; }
 	TypedSet*	getSet			()	const	{ return set; }
-	Weight		getCertainBound	()	const;
 	SATVAL		reInitializeAgg	();
 	bool		isOptim			() const { return optim; }
 };
@@ -99,7 +97,7 @@ public:
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
 	virtual bool 		isMonotone				(const Agg& agg, const Weight& w)		const = 0;
-	virtual bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const = 0;
+	virtual bool 		isMonotone				(const TempAgg& agg, const Weight& w)	const = 0;
 
 	Weight				getValue				(const TypedSet& set)					const;
 
@@ -131,7 +129,7 @@ public:
 	AggType 	getType					() 										const { return AggType::MAX; }
 	bool 		isNeutralElement		(const Weight&) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
-	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
+	bool 		isMonotone				(const TempAgg& agg, const Weight& w)	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
 	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
@@ -152,7 +150,7 @@ public:
 	AggType 	getType					() 										const { return AggType::PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
-	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
+	bool 		isMonotone				(const TempAgg& agg, const Weight& w)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	virtual Weight	removeMax			(const Weight& lhs, const Weight& rhs) 	const;
 	virtual Weight	removeMin			(const Weight& lhs, const Weight& rhs) 	const;
@@ -173,7 +171,7 @@ public:
 	AggType 	getType					() 										const { return AggType::SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
-	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
+	bool 		isMonotone				(const TempAgg& agg, const Weight& w)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
@@ -202,7 +200,7 @@ struct minmaxBounds{
 
 bool isSatisfied	(const Agg& agg, const Weight& min, const Weight& max);
 bool isSatisfied	(const Agg& agg, const minmaxBounds& bounds);
-bool isSatisfied	(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound);
+bool isSatisfied	(const AggProp& type, const TempAgg& agg, const minmaxBounds& bounds);
 bool isFalsified	(const Agg& agg, const Weight& min, const Weight& max);
 bool isFalsified	(const Agg& agg, const minmaxBounds& bounds);
 void addValue		(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);

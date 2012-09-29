@@ -488,10 +488,9 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 		return SATVAL::POS_SAT;
 	}
 
-	Weight knownbound(0);
 	if (not optimagg) { // TODO can we do better for minimization over aggregates?
 		if (SETNOT2VAL(sat, unsat, aggs)) {
-			setReduce(getEnginep(), set, aggs, *type, knownbound, unsat, sat);
+			setReduce(getEnginep(), set, *type);
 		}
 		if (SETNOT2VAL(sat, unsat, aggs)) {
 			// TODO check the effect on performance of addheadImpl, card2Equiv and bumpVar of agg heads in AggPropagator::initialize
@@ -505,12 +504,12 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 			//card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat);
 		}
 		if (SETNOT2VAL(sat, unsat, aggs)) {
-			decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);
+			decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs);
 		}
 	} else {
 		if (SETNOT2VAL(sat, unsat, aggs)) {
 			MAssert(aggs.size()==1);
-			decideUsingWatchesAndCreateMinimizationPropagator(getEnginep(), set, aggs[0], knownbound, optimpriority);
+			decideUsingWatchesAndCreateMinimizationPropagator(getEnginep(), set, aggs[0], optimpriority);
 		}
 	}
 

@@ -17,23 +17,23 @@
 using namespace std;
 using namespace MinisatID;
 
-TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
+TypedSet::TypedSet(PCSolver* solver, int setid, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
 		Propagator({}, solver, "aggregate"),
-		kb(knownbound),
 		type(w),
 		prop(NULL),
 		setid(setid),
 		usingwatches(usewatches){
 	setWL(wls);
 	MAssert(not optim || aggr.size()==1);
-	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
-		addAgg(**i, optim);
-	}
 
 	if (verbosity() >= 2) {
 		clog << "Added ";
 		MinisatID::print(10000, *this, true);
+	}
+
+	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
+		addAgg(**i, optim);
 	}
 
 	prop = getType().createPropagator(this);
@@ -285,8 +285,7 @@ void MinisatID::makeSumSetPositive(TypedSet& set){
 
 	//Calculate the total negative weight to make all weights positive
 	vwl wlits2;
-	auto kb = set.getKnownBound();
-	Weight totalneg(kb < 0 ? kb : 0);
+	Weight totalneg(0);
 	for (auto i = set.getWL().cbegin(); i < set.getWL().cend(); ++i) {
 		if (i->getWeight() < 0) {
 			totalneg -= i->getWeight();
@@ -303,7 +302,7 @@ void MinisatID::makeSumSetPositive(TypedSet& set){
 		}
 		set.setWL(wlits2);
 		for (auto i = set.getAgg().cbegin(); i < set.getAgg().cend(); ++i) {
-			Weight b = set.getType().add((*i)->getCertainBound(), totalneg);
+			Weight b = set.getType().add((*i)->getBound(), totalneg);
 			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}
 	}

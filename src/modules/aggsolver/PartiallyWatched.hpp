@@ -169,7 +169,7 @@ private:
 	void checkWatches() const;
 };
 
-double testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound);
+double testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs);
 
 }
 

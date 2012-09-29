@@ -17,11 +17,6 @@
 using namespace std;
 using namespace MinisatID;
 
-Weight Agg::getCertainBound() const {
-	MAssert(getSet()!=NULL);
-	return getBound() - getSet()->getKnownBound();
-}
-
 SATVAL Agg::reInitializeAgg() {
 	TypedSet& set = *getSet();
 	// FIXME check whether this is sufficient?
@@ -77,7 +72,7 @@ Weight AggProp::getValue(const TypedSet& set) const {
 bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
-bool SumProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) const {
+bool SumProp::isMonotone(const TempAgg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
 
@@ -85,8 +80,7 @@ bool ProdProp::isMonotone(const Agg& agg, const Weight& ) const {
 	// MAssert(w>=0); TODO Place back if w is needed
 	return !agg.hasUB();
 }
-bool ProdProp::isMonotone(const TempAgg& agg, const Weight& , const Weight&) const {
-	// MAssert(w>=0); TODO Place back if w is needed
+bool ProdProp::isMonotone(const TempAgg& agg, const Weight&) const {
 	return !agg.hasUB();
 }
 
@@ -142,12 +136,11 @@ WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& kno
 // MAX Prop
 
 bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
-	const Weight& w2 = agg.getCertainBound();
+	const Weight& w2 = agg.getBound();
 	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
 }
-bool MaxProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight& knownbound) const {
-	const Weight& w2 = agg.getCertainBound(knownbound);
-	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
+bool MaxProp::isMonotone(const TempAgg& agg, const Weight& w) const {
+	return (agg.hasUB() && agg.getBound() <= w) || (!agg.hasUB());
 }
 
 Weight MaxProp::getMinPossible(const std::vector<WL>&) const {
@@ -306,22 +299,22 @@ bool satisfies(const Weight& min, const Weight& max, bool ub, const Weight& cert
 }
 
 bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max) {
-	return satisfies(min, max, agg.hasUB(), agg.getCertainBound());
+	return satisfies(min, max, agg.hasUB(), agg.getBound());
 }
 
 bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds) {
 	return isSatisfied(agg, bounds.min, bounds.max);
 }
 
-bool MinisatID::isSatisfied(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound) {
-	return satisfies(bounds.min, bounds.max, agg.hasUB(), agg.getCertainBound(knownbound));
+bool MinisatID::isSatisfied(const AggProp& type, const TempAgg& agg, const minmaxBounds& bounds) {
+	return satisfies(bounds.min, bounds.max, agg.hasUB(), agg.getBound());
 }
 
 bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max) {
 	if (agg.hasUB()) {
-		return min > agg.getCertainBound();
+		return min > agg.getBound();
 	} else { //LB
-		return max < agg.getCertainBound();
+		return max < agg.getBound();
 	}
 }
 
