@@ -28,6 +28,22 @@ bool isNegative(const Lit& lit) {
 	return sign(lit);
 }
 
+EqType invertEqType(EqType type) {
+	switch (type) {
+	case EqType::EQ:
+	case EqType::NEQ:
+		return type;
+	case EqType::L:
+		return EqType::G;
+	case EqType::G:
+		return EqType::L;
+	case EqType::GEQ:
+		return EqType::LEQ;
+	case EqType::LEQ:
+		return EqType::GEQ;
+	}
+}
+
 WLSet createSet(int setid, const std::vector<Lit>& literals, const Weight& w) {
 	WLSet set(setid);
 	for (auto i = literals.cbegin(); i < literals.cend(); ++i) {
@@ -117,4 +133,5 @@ DATASTRUCTURE_ACCEPT(LazyGroundImpl)
 DATASTRUCTURE_ACCEPT(LazyAddition)
 DATASTRUCTURE_ACCEPT(SubTheory)
 DATASTRUCTURE_ACCEPT(TwoValuedRequirement)
+DATASTRUCTURE_ACCEPT(LazyElement)
 }
