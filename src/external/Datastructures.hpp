@@ -136,7 +136,10 @@ public:
 	}
 	virtual ~Constraint(){}
 
+	// Returns the set of all boolean variables relevant to this constraints
+	// This allows constraint-independent code to check the existence of those literals
 	virtual std::vector<Atom> getAtoms() const = 0;
+
 	virtual void accept(ConstraintVisitor* visitor) = 0;
 	virtual void accept(Space* visitor) = 0;
 };
