@@ -98,6 +98,7 @@ public:
 	virtual void add(const LazyAddition&);
 	virtual void add(const TwoValuedRequirement&);
 	virtual void add(const SubTheory&);
+	virtual void add(const LazyAtom&);
 
 	Value getTruthValue(const Lit& lit) const;
 };

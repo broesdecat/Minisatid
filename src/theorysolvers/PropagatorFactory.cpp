@@ -22,6 +22,7 @@
 #include "modules/BinConstr.hpp"
 #include "modules/FDAggConstraint.hpp"
 #include "modules/LazyGrounder.hpp"
+#include "modules/LazyAtomPropagator.hpp"
 
 #ifdef CPSUPPORT
 #include "modules/cpsolver/CPSolver.hpp"
@@ -607,4 +608,13 @@ void PropagatorFactory::add(const TwoValuedRequirement& object){
 	}
 //	cerr <<"\n";
 	getEngine().addOutputVars(object.atoms);
+}
+
+void PropagatorFactory::add(const LazyAtom& object) {
+	notifyMonitorsOfAdding(object);
+	std::vector<IntView*> argvars;
+	for (auto arg : object.args) {
+		argvars.push_back(new IntView(getIntVar(arg), 0));
+	}
+	new LazyAtomPropagator(object.getID(), getEnginep(), object.head, argvars, object.grounder);
 }

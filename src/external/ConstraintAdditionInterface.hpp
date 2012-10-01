@@ -101,6 +101,9 @@ public:
 	virtual void add(const SubTheory&) {
 		UNHANDLED("Subtheory", getName())
 	}
+	virtual void add(const LazyAtom&) {
+		UNHANDLED("Lazy atom", getName())
+	}
 };
 
 class Translator;

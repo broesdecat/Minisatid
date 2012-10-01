@@ -247,6 +247,10 @@ public:
 		target() <<"Created subtheory " <<subtheory.childid.id <<"\n";
 		// FIXME implement rest and add printing of theoryids to other add methods
 	}
+
+	void add(const LazyAtom& lg) {
+		target() << "Added lazy element constraint with head " << print(lg.head) << ".\n"; // TODO further info
+	}
 };
 
 }

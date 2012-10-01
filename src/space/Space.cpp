@@ -90,6 +90,9 @@ void Space::add(const IntVarRange& o){
 void Space::add(const CPAllDiff& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
+void Space::add(const CPElement& o){
+	internalAdd(o, o.theoryid, *getEngine());
+}
 void Space::add(const CPBinaryRel& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
@@ -105,9 +108,6 @@ void Space::add(const CPSumWeighted& o){
 void Space::add(const CPProdWeighted& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
-void Space::add(const CPElement& o){
-	internalAdd(o, o.theoryid, *getEngine());
-}
 void Space::add(const LazyGroundLit& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
@@ -121,6 +121,9 @@ void Space::add(const TwoValuedRequirement& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const SubTheory& o){
+	internalAdd(o, o.theoryid, *getEngine());
+}
+void Space::add(const LazyAtom& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
 

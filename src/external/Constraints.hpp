@@ -233,6 +233,13 @@ public:
 		return SubTheory(obj.getID(), map(obj.head, r),obj.childid, map(obj.rigidatoms, r));
 	}
 };
+template<typename Remapper>
+class ExtAdd<LazyAtom, Remapper> {
+public:
+	LazyAtom extAdd(Remapper& r, const LazyAtom& obj) {
+		return LazyAtom(obj.getID(), map(obj.head, r), map(obj.args, r), obj.grounder);
+	}
+};
 
 template<typename Engine>
 Value extGetValue(Engine& space, const Lit& obj) {

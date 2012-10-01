@@ -25,14 +25,23 @@ class Remapper;
 
 // Comparison operator
 enum class EqType {
-	EQ, NEQ, L, G, GEQ, LEQ
+	EQ,
+	NEQ,
+	L,
+	G,
+	GEQ,
+	LEQ
 };
 
 EqType invertEqType(EqType type);
 
 // Aggregate specification operators
 enum class AggType {
-	SUM, PROD, MIN, MAX, CARD
+	SUM,
+	PROD,
+	MIN,
+	MAX,
+	CARD
 };
 // Type of aggregate concerned
 enum class AggSign {
@@ -41,7 +50,9 @@ enum class AggSign {
 };
 // Sign of the bound of the aggregate
 enum class AggSem {
-	COMP, DEF, OR
+	COMP,
+	DEF,
+	OR
 };
 // Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
@@ -58,7 +69,8 @@ struct WLtuple {
 	}
 
 	WLtuple(const Lit& l, const Weight& w)
-			: l(l), w(w) {
+			: 	l(l),
+				w(w) {
 	}
 
 	bool operator<(const WLtuple& p) const {
@@ -111,19 +123,21 @@ class OneShotUnsatCoreExtraction;
 // NOTE: possible optimization during compilation:
 // 	replace ID with a class without fields which always return {} for getID()
 
-struct TheoryID{
+struct TheoryID {
 	uint id;
 
-	TheoryID(uint id): id(id){}
+	TheoryID(uint id)
+			: id(id) {
+	}
 
-	bool operator==(TheoryID other) const{
-		return id==other.id;
+	bool operator==(TheoryID other) const {
+		return id == other.id;
 	}
-	bool operator!=(TheoryID other) const{
-		return not(this->operator ==(other));
+	bool operator!=(TheoryID other) const {
+		return not (this->operator ==(other));
 	}
-	bool operator<(TheoryID other) const{
-		return id<other.id;
+	bool operator<(TheoryID other) const {
+		return id < other.id;
 	}
 };
 #define DEFAULTTHEORYID 1
@@ -131,10 +145,12 @@ struct TheoryID{
 class Constraint {
 public:
 	TheoryID theoryid;
-	Constraint(): theoryid(DEFAULTTHEORYID){
+	Constraint()
+			: theoryid(DEFAULTTHEORYID) {
 
 	}
-	virtual ~Constraint(){}
+	virtual ~Constraint() {
+	}
 
 	// Returns the set of all boolean variables relevant to this constraints
 	// This allows constraint-independent code to check the existence of those literals
@@ -169,7 +185,8 @@ public:
 	std::vector<Lit> literals;
 
 	Disjunction(uint id, const std::vector<Lit>& literals)
-			: ID(id), literals(literals) {
+			: 	ID(id),
+				literals(literals) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -184,7 +201,8 @@ public:
 };
 
 enum class ImplicationType {
-	IMPLIES, EQUIVALENT
+	IMPLIES,
+	EQUIVALENT
 };
 
 class Implication: public ID {
@@ -195,7 +213,11 @@ public:
 	bool conjunction;
 
 	Implication(uint id, const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction)
-			: ID(id), head(head), type(type), body(body), conjunction(conjunction) {
+			: 	ID(id),
+				head(head),
+				type(type),
+				body(body),
+				conjunction(conjunction) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -219,7 +241,11 @@ public:
 	int definitionID;
 
 	Rule(uint id, Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID)
-			: ID(id), head(head), body(body), conjunctive(conjunctive), definitionID(definitionID) {
+			: 	ID(id),
+				head(head),
+				body(body),
+				conjunctive(conjunctive),
+				definitionID(definitionID) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -245,7 +271,8 @@ public:
 			: setID(setID) {
 	}
 	WLSet(int setID, const std::vector<WLtuple>& wl)
-			: setID(setID), wl(wl) {
+			: 	setID(setID),
+				wl(wl) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -273,7 +300,14 @@ public:
 	int defID; //Only relevant if defined aggregate, otherwise the value does not matter
 
 	Aggregate(uint id, const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID)
-			: ID(id), head(head), setID(setID), bound(bound), type(type), sign(sign), sem(sem), defID(defID) {
+			: 	ID(id),
+				head(head),
+				setID(setID),
+				bound(bound),
+				type(type),
+				sign(sign),
+				sem(sem),
+				defID(defID) {
 		MAssert(sem!=AggSem::DEF || defID!=-1);
 		MAssert(sem!=AggSem::DEF || isPositive(head));
 	}
@@ -291,7 +325,8 @@ public:
 	std::vector<Lit> literals;
 
 	MinimizeOrderedList(uint priority, std::vector<Lit> literals)
-			: priority(priority), literals(literals) {
+			: 	priority(priority),
+				literals(literals) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -311,7 +346,8 @@ public:
 	std::vector<Lit> literals;
 
 	MinimizeSubset(uint priority, std::vector<Lit> literals)
-			: priority(priority), literals(literals) {
+			: 	priority(priority),
+				literals(literals) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -331,7 +367,8 @@ public:
 	VarID varID;
 
 	MinimizeVar(uint priority, VarID varID)
-			: priority(priority), varID(varID) {
+			: 	priority(priority),
+				varID(varID) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -348,7 +385,9 @@ public:
 	AggType type;
 
 	MinimizeAgg(uint priority, int setid, AggType type)
-			: priority(priority), setid(setid), type(type) {
+			: 	priority(priority),
+				setid(setid),
+				type(type) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -364,7 +403,8 @@ struct BoolVar: public ID {
 	DATASTRUCTURE_DECLAREACCEPT
 
 	BoolVar(uint id, Atom atom)
-			: ID(id), atom(atom) {
+			: 	ID(id),
+				atom(atom) {
 	}
 
 	virtual std::vector<Atom> getAtoms() const {
@@ -379,7 +419,10 @@ struct IntVarRange: public ID {
 	DATASTRUCTURE_DECLAREACCEPT
 
 	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
-			: ID(id), varID(varID), minvalue(minvalue), maxvalue(maxvalue) {
+			: 	ID(id),
+				varID(varID),
+				minvalue(minvalue),
+				maxvalue(maxvalue) {
 	}
 
 	virtual std::vector<Atom> getAtoms() const {
@@ -392,7 +435,9 @@ struct IntVarEnum: public ID {
 	std::vector<Weight> values;
 
 	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values)
-			: ID(id), varID(varID), values(values) {
+			: 	ID(id),
+				varID(varID),
+				values(values) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -409,7 +454,11 @@ struct CPBinaryRel: public ID {
 	Weight bound;
 
 	CPBinaryRel(uint id, const Lit& head, VarID varID, EqType rel, const Weight& bound)
-			: ID(id), head(head), varID(varID), rel(rel), bound(bound) {
+			: 	ID(id),
+				head(head),
+				varID(varID),
+				rel(rel),
+				bound(bound) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -425,7 +474,11 @@ struct CPBinaryRelVar: public ID {
 	EqType rel;
 
 	CPBinaryRelVar(uint id, const Lit& head, VarID lhsvarID, EqType rel, VarID rhsvarID)
-			: ID(id), head(head), lhsvarID(lhsvarID), rhsvarID(rhsvarID), rel(rel) {
+			: 	ID(id),
+				head(head),
+				lhsvarID(lhsvarID),
+				rhsvarID(rhsvarID),
+				rel(rel) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -443,7 +496,12 @@ struct CPSumWeighted: public ID {
 	Weight bound;
 
 	CPSumWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
-			: ID(id), head(head), varIDs(varIDs), weights(weights), rel(rel), bound(bound) {
+			: 	ID(id),
+				head(head),
+				varIDs(varIDs),
+				weights(weights),
+				rel(rel),
+				bound(bound) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -461,7 +519,12 @@ struct CPProdWeighted: public ID {
 	VarID boundID;
 
 	CPProdWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
-		: ID(id), head(head), varIDs(varIDs), prodWeight(prodweight), rel(rel), boundID(boundid) {
+			: 	ID(id),
+				head(head),
+				varIDs(varIDs),
+				prodWeight(prodweight),
+				rel(rel),
+				boundID(boundid) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -479,7 +542,11 @@ struct CPCount: public ID {
 	VarID rhsvar;
 
 	CPCount(uint id, const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
-			: ID(id), varIDs(varIDs), eqbound(eqbound), rel(rel), rhsvar(rhsvar) {
+			: 	ID(id),
+				varIDs(varIDs),
+				eqbound(eqbound),
+				rel(rel),
+				rhsvar(rhsvar) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -493,7 +560,8 @@ struct CPAllDiff: public ID {
 	std::vector<VarID> varIDs;
 
 	CPAllDiff(uint id, const std::vector<VarID>& varIDs)
-			: ID(id), varIDs(varIDs) {
+			: 	ID(id),
+				varIDs(varIDs) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -509,7 +577,10 @@ struct CPElement: public ID {
 	VarID rhs;
 
 	CPElement(uint id, const std::vector<VarID>& varids, VarID index, VarID rhs)
-			: ID(id), varIDs(varids), index(index), rhs(rhs) {
+			: 	ID(id),
+				varIDs(varids),
+				index(index),
+				rhs(rhs) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -556,7 +627,9 @@ public:
 	LazyGrounder* monitor;
 
 	LazyGroundImpl(uint id, const Implication& impl, LazyGrounder* monitor)
-			: ID(id), impl(impl), monitor(monitor) {
+			: 	ID(id),
+				impl(impl),
+				monitor(monitor) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -576,7 +649,8 @@ public:
 	int ref;
 
 	LazyAddition(const litlist& list, int ref)
-			: list(list), ref(ref) {
+			: 	list(list),
+				ref(ref) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -591,7 +665,9 @@ public:
 };
 
 enum class Value {
-	True, False, Unknown
+	True,
+	False,
+	Unknown
 };
 
 std::ostream& operator<<(std::ostream&, Value);
@@ -622,7 +698,9 @@ public:
 	LazyGroundingCommand* monitor;
 
 	LazyGroundLit(Atom residual, Value watchedvalue, LazyGroundingCommand* monitor)
-			: watchedvalue(watchedvalue), residual(residual), monitor(monitor) {
+			: 	watchedvalue(watchedvalue),
+				residual(residual),
+				monitor(monitor) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -646,20 +724,75 @@ struct TwoValuedRequirement: public Constraint {
 	}
 };
 
-class SubTheory: public ID{
+class SubTheory: public ID {
 public:
 	Atom head;
 	TheoryID childid;
 	std::vector<Atom> rigidatoms;
 
-	SubTheory(uint id, Atom head, TheoryID childid, std::vector<Atom> atoms): ID(id), head(head), childid(childid), rigidatoms(atoms){}
+	SubTheory(uint id, Atom head, TheoryID childid, std::vector<Atom> atoms)
+			: 	ID(id),
+				head(head),
+				childid(childid),
+				rigidatoms(atoms) {
+	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
 		return rigidatoms;
 	}
- };
+};
+
+/**
+ * Responsible for lazily grounding P <=> Q(c1, ..., cn) when P and c1, ..., cn are known.
+ */
+class LazyAtomGrounder {
+public:
+	virtual ~LazyAtomGrounder() {
+	}
+
+	virtual bool isFunction() = 0;
+
+	/**
+	 * Given the constraint P <=> Q(t1, ..., tn) with all t integer variables.
+	 * Given a value for P/0 and for all arguments (except the last one if Q/n is a function,
+	 * adds the constraint
+	 * 	  if P/0 is true and Q/n is not a function
+	 *  		P & t1=v1 & ... & tn=vn => Q(v1, ..., vn)
+	 * 	  if P/0 is true and Q/n is a function
+	 *  		P & t1=v1 & ... & tn-1=vn-1 => Q(v1, ..., vn-1)=vn
+	 * 	  if P/0 is false and Q/n is not a function
+	 *  		~P & t1=v1 & ... & tn=vn => ~Q(v1, ..., vn)
+	 * 	  if P/0 is false and Q/n is a function
+	 *  		analogously
+	 */
+	virtual void ground(bool headvalue, const std::vector<int>& argvalues) = 0;
+};
+
+/*
+ * Represents a constraint of the form head <=> P(args), where args is a set of cp variables and P is lazily grounded by the passed-in grounder.
+ */
+class LazyAtom: public ID {
+public:
+	Lit head;
+	std::vector<VarID> args;
+	LazyAtomGrounder* grounder;
+
+	LazyAtom(uint id, const Lit& head, const std::vector<VarID>& args, LazyAtomGrounder* grounder)
+			: 	ID(id),
+				head(head),
+				args(args),
+				grounder(grounder) {
+
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return {head.getAtom()};
+	}
+};
 
 typedef std::vector<Model*> modellist;
 typedef WLtuple WL;
