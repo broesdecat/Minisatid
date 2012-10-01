@@ -66,7 +66,10 @@ public:
 	virtual void accept(ConstraintVisitor& visitor) = 0;
 	virtual void notifyNewDecisionLevel() = 0;
 	virtual void notifyBacktrack(int untillevel, const Lit& decision); // NOTE: call explicitly when using hasnextprop/nextprop!
+
+	// Requirement: if a conflict is generated during this method, it is obligatory to return a (relevant) conflict clause!
 	virtual rClause notifypropagate() = 0;
+
 	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
 	virtual void saveState(){ throw idpexception("Operation applied to invalid propagator."); }
 	virtual void resetState(){ throw idpexception("Operation applied to invalid propagator."); }
