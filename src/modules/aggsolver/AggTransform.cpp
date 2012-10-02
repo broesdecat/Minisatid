@@ -74,35 +74,40 @@ void MinisatID::setReduce(PCSolver* solver, WLSet* set, const AggProp& type) {
 	//Sort all wlits according to the integer representation of their literal (to get all literals next to each other)
 	std::stable_sort(oldset.begin(), oldset.end(), compareWLByLits<WLtuple>);
 
-	int indexinnew = 0;
-	newset.push_back(oldset[indexinnew]);
-
+	int indexinnew = -1;
 	bool setisreduced = false;
-	for (uint i = 1; i < oldset.size(); ++i) {
-		auto oldl = newset[indexinnew];
+	for (uint i = 0; i < oldset.size(); ++i) {
 		auto newl = oldset[i];
 		auto val = solver->rootValue(newl.getLit());
 		if (val == l_False) {
 			continue;
 		} else if (val == l_True) {
 			knownbound = type.add(newl.getWeight(), knownbound);
-		} else if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
-			setisreduced = true;
-			if (oldl.getLit() == newl.getLit()) { //same literal, keep combined weight
-				auto w = type.getCombinedWeight(newl.getWeight(), oldl.getWeight());
-				newset[indexinnew] = WL(oldl.getLit(), w);
-			} else { //opposite signs
-				newset[indexinnew] = type.handleOccurenceOfBothSigns(oldl, newl, knownbound);
-			}
-		} else {
-			newset.push_back(newl);
-			++indexinnew;
+			continue;
 		}
+		if (newset.size() > 0) {
+			auto oldl = newset[indexinnew];
+			if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
+				setisreduced = true;
+				if (oldl.getLit() == newl.getLit()) { //same literal, keep combined weight
+					auto w = type.getCombinedWeight(newl.getWeight(), oldl.getWeight());
+					newset[indexinnew] = WL(oldl.getLit(), w);
+				} else { //opposite signs
+					newset[indexinnew] = type.handleOccurenceOfBothSigns(oldl, newl, knownbound);
+				}
+				continue;
+			}
+		}
+
+		newset.push_back(newl);
+		++indexinnew;
 	}
 	if (newset.size() < oldset.size()) {
 		setisreduced = true;
 	}
-	newset.push_back({solver->getTrueLit(), knownbound});
+	if (knownbound != type.getESV()) {
+		newset.push_back( { solver->getTrueLit(), knownbound });
+	}
 
 	vwl newset2;
 	for (vwl::size_type i = 0; i < newset.size(); ++i) {
@@ -120,15 +125,15 @@ void MinisatID::setReduce(PCSolver* solver, WLSet* set, const AggProp& type) {
 }
 
 template<class List>
-List combine(const List& listone, const List& listtwo){
+List combine(const List& listone, const List& listtwo) {
 	auto v = listone;
 	v.insert(v.end(), listtwo.cbegin(), listtwo.cend());
 	return v;
 }
 
-Disjunction implies(const TempAgg& from, const TempAgg& to){
-	// FIXME combine both id for unsat core
-	return Disjunction(DEFAULTCONSTRID, {not from.getHead(), to.getHead()});
+Disjunction implies(const TempAgg& from, const TempAgg& to) {
+// FIXME combine both id for unsat core
+	return Disjunction(DEFAULTCONSTRID, { not from.getHead(), to.getHead() });
 }
 
 void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
@@ -172,7 +177,7 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 //After type setting and transforming to max
 //@ pre: set ordered according to weight!
 void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat) {
-	//Simple heuristic to choose for encoding as SAT
+//Simple heuristic to choose for encoding as SAT
 	if (aggs.size() != 1 || aggs.front()->getType() != AggType::MAX || aggs[0]->getSem() == AggSem::OR) {
 		return;
 	}
@@ -185,7 +190,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 	const TempAgg& agg = *aggs[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
-	Disjunction clause(agg.getID(), {ub ? agg.getHead() : not agg.getHead()});
+	Disjunction clause(agg.getID(), { ub ? agg.getHead() : not agg.getHead() });
 	for (auto i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
 			break;
@@ -197,7 +202,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		if (ub && (*i).getWeight() == bound) {
 			break;
 		}
-		clause.literals = { ub ? not agg.getHead() : agg.getHead(), not (*i).getLit()};
+		clause.literals = {ub ? not agg.getHead() : agg.getHead(), not (*i).getLit()};
 		internalAdd(clause, solver->getTheoryID(), *solver);
 	}
 	aggs.clear();
@@ -232,7 +237,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 				}
 			} else if (agg.hasLB() && bound == 1) {
 				litlist body;
-				for (auto wl: set->getWL()) {
+				for (auto wl : set->getWL()) {
 					body.push_back(wl.getLit());
 				}
 				Implication eq(agg.getID(), agg.getHead(), ImplicationType::EQUIVALENT, body, false);
@@ -258,7 +263,7 @@ TypedSet* createPropagator(PCSolver* solver, WLSet* set, const std::vector<TempA
 }
 
 void MinisatID::decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg* agg, uint priority) {
-	// Set correct upper bound:
+// Set correct upper bound:
 	agg->setBound(AggBound(AggSign::UB, getType(agg->getType())->getMaxPossible(set->getWL())));
 
 	double ratio = testGenWatchCount(*solver, *set, *getType(agg->getType()), tempagglist { agg });
@@ -282,14 +287,14 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 		return;
 	}
 
-	//create implication aggs
+//create implication aggs
 	tempagglist implaggs, del;
 	for (auto i = aggs.cbegin(); i < aggs.cend(); ++i) {
 		auto agg = *(*i);
 
-		if(agg.getSem()==AggSem::OR){
+		if (agg.getSem() == AggSem::OR) {
 			implaggs.push_back(*i);
-		}else{
+		} else {
 			auto weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
 			auto signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
 			auto one = new TempAgg(agg.getID(), ~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
@@ -300,7 +305,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 		}
 	}
 
-	//separate in both signs
+//separate in both signs
 	tempagglist signoneaggs, signtwoaggs;
 	signoneaggs.push_back(implaggs[0]);
 	for (auto i = ++implaggs.cbegin(); i < implaggs.cend(); ++i) {
@@ -311,8 +316,8 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 		}
 	}
 
-	//for each, generate watches and count ratio
-	//		partially watched and add sets in new format!
+//for each, generate watches and count ratio
+//		partially watched and add sets in new format!
 	MAssert(signoneaggs.size()>0);
 	double ratioone = testGenWatchCount(*solver, *set, *getType(type), signoneaggs);
 	double ratiotwo = 0;
@@ -320,7 +325,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 		ratiotwo = testGenWatchCount(*solver, *set, *getType(type), signtwoaggs);
 	}
 
-	// Create propagators
+// Create propagators
 	double ratio = ratioone * 0.5 + ratiotwo * 0.5;
 	if (solver->modes().watchesratio != 0 && ratio <= solver->modes().watchesratio) {
 		createPropagator(solver, set, signoneaggs, true, false);
