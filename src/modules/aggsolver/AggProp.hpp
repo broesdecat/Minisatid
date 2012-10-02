@@ -198,11 +198,10 @@ struct minmaxBounds{
 	minmaxBounds(const Weight& min, const Weight& max):min(min),max(max){}
 };
 
-bool isSatisfied	(const Agg& agg, const Weight& min, const Weight& max);
-bool isSatisfied	(const Agg& agg, const minmaxBounds& bounds);
-bool isSatisfied	(const AggProp& type, const TempAgg& agg, const minmaxBounds& bounds);
-bool isFalsified	(const Agg& agg, const Weight& min, const Weight& max);
-bool isFalsified	(const Agg& agg, const minmaxBounds& bounds);
+bool isSatisfied	(const TempAgg& agg, const Weight& min, const Weight& max);
+bool isSatisfied	(const TempAgg& agg, const minmaxBounds& bounds);
+bool isFalsified	(const TempAgg& agg, const Weight& min, const Weight& max);
+bool isFalsified	(const TempAgg& agg, const minmaxBounds& bounds);
 void addValue		(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
 void addValue		(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
 void removeValue	(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);

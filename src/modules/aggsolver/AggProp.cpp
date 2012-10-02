@@ -298,19 +298,15 @@ bool satisfies(const Weight& min, const Weight& max, bool ub, const Weight& cert
 	}
 }
 
-bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max) {
+bool MinisatID::isSatisfied(const TempAgg& agg, const Weight& min, const Weight& max) {
 	return satisfies(min, max, agg.hasUB(), agg.getBound());
 }
 
-bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds) {
+bool MinisatID::isSatisfied(const TempAgg& agg, const minmaxBounds& bounds) {
 	return isSatisfied(agg, bounds.min, bounds.max);
 }
 
-bool MinisatID::isSatisfied(const AggProp& type, const TempAgg& agg, const minmaxBounds& bounds) {
-	return satisfies(bounds.min, bounds.max, agg.hasUB(), agg.getBound());
-}
-
-bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max) {
+bool MinisatID::isFalsified(const TempAgg& agg, const Weight& min, const Weight& max) {
 	if (agg.hasUB()) {
 		return min > agg.getBound();
 	} else { //LB
@@ -318,7 +314,7 @@ bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max
 	}
 }
 
-bool MinisatID::isFalsified(const Agg& agg, const minmaxBounds& bounds) {
+bool MinisatID::isFalsified(const TempAgg& agg, const minmaxBounds& bounds) {
 	return isFalsified(agg, bounds.min, bounds.max);
 }
 

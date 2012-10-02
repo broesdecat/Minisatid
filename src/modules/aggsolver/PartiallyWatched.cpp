@@ -721,7 +721,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 	minmaxOptimAndPessBounds bounds(emptyinterpretbounds);
 	TempWatch* largest = NULL;
 	uint i = 0;
-	for (; !isSatisfied(type, agg, bounds.optim) && !isSatisfied(type, agg, bounds.pess) && i < nws.size(); ++i) {
+	for (; not isSatisfied(agg, bounds.optim) && not isSatisfied(agg, bounds.pess) && i < nws.size(); ++i) {
 		WL wl = nws[i]->getWL();
 		lbool val = solver.value(wl.getLit());
 
@@ -741,11 +741,11 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
-	if ((!oneagg || solver.value(agg.getHead()) != l_Undef) && (largest != NULL && !isSatisfied(type, agg, bounds.pess))) {
+	if ((!oneagg || solver.value(agg.getHead()) != l_Undef) && (largest != NULL && not isSatisfied(agg, bounds.pess))) {
 		removeValue(type, largest->getWL().getWeight(), largest->isMonotone(), bounds.optim);
 
 		//Again until satisfied IMPORTANT: continue from previous index!
-		for (; !isSatisfied(type, agg, bounds.optim) && !isSatisfied(type, agg, bounds.pess) && i < nws.size(); ++i) {
+		for (; not isSatisfied(agg, bounds.optim) && not isSatisfied(agg, bounds.pess) && i < nws.size(); ++i) {
 			WL wl = nws[i]->getWL();
 			lbool val = solver.value(wl.getLit());
 
