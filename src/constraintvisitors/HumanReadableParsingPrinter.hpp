@@ -249,7 +249,17 @@ public:
 	}
 
 	void add(const LazyAtom& lg) {
-		target() << "Added lazy element constraint with head " << print(lg.head) << ".\n"; // TODO further info
+		target() << "Added lazy element constraint with head " << print(lg.head) <<" <=> ";
+		target() <<lg.grounder->getSymbolName() <<"(";
+		bool begin = true;
+		for(auto v: lg.args){
+			if(not begin){
+				target() <<", ";
+			}
+			begin = false;
+			target() << "var" << print(v);
+		}
+		target() <<").\n";
 	}
 };
 

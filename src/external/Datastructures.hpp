@@ -752,7 +752,8 @@ public:
 	virtual ~LazyAtomGrounder() {
 	}
 
-	virtual bool isFunction() = 0;
+	virtual bool isFunction() const = 0;
+	virtual std::string getSymbolName() const = 0;
 
 	/**
 	 * Given the constraint P <=> Q(t1, ..., tn) with all t integer variables.
