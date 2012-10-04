@@ -596,7 +596,7 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 
 void PropagatorFactory::add(const LazyAddition& object) {
 	notifyMonitorsOfAdding(object);
-	MAssert(object.ref>0 && grounder2clause.size()>(uint)object.ref);
+	MAssert(object.ref>=0 && grounder2clause.size()>(uint)object.ref);
 	for(auto lit: object.list){
 		getEngine().getSATSolver()->setInitialPolarity(var(lit), not sign(lit));
 	}
