@@ -23,7 +23,7 @@ LazyAtomPropagator::LazyAtomPropagator(uint id, PCSolver* engine, const Lit& hea
 
 	double size = 2;
 	for (auto arg : args) {
-		size *= (arg->origMaxValue() - arg->origMinValue());
+		size *= (arg->origMaxValue() - arg->origMinValue()) + 1;
 	}
 	if (size > (double) getMaxElem<int>()) {
 		maxsize = getMaxElem<int>();
