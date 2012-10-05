@@ -443,7 +443,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 			}
 
 			if (occ(v) == POSLOOP) {
-				//FIXME lazygrounding? removeDefinition(v);
+				removeDefinition(v);
 				--atomsinposloops;
 			} else {
 				occ(v) = MIXEDLOOP;
@@ -472,8 +472,10 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 			}
 		}
 	}
-	defdVars.clear();
-	defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
+	if(not modes().lazy){
+		defdVars.clear();
+		defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
+	}
 
 //reconstruct the disj and conj occurs with the reduced number of definitions
 	disj.clear();
@@ -1906,6 +1908,11 @@ rClause IDSolver::isWellFoundedModel() {
 
 	// Initialize scc of full dependency graph
 	//TODO also here use reduce memory overhead by only using it for defined variables!
+	wfroot.clear();
+	wfrootnodes.clear();
+	wfqueue = queue<Lit>();
+	wfmarkedAtoms.clear();
+	wfisMarked.clear();
 	wfroot.resize(nbvars, -1);
 	varlist rootofmixed;
 	wfisMarked.resize(nbvars, false);
@@ -1915,7 +1922,7 @@ rClause IDSolver::isWellFoundedModel() {
 	if (verbosity() > 1) {
 		clog << "General SCCs: ";
 		for (uint z = 0; z < wfroot.size(); ++z) {
-			if (DEFINEDINMIXED(z)) {
+			if (DEFINEDINMIXED(wfroot[z])) {
 				clog << toString(z) << " has root " << toString(wfroot[z]) << "\n";
 			}
 		}
@@ -1926,6 +1933,7 @@ rClause IDSolver::isWellFoundedModel() {
 		if (verbosity() > 1) {
 			clog << "The model is well-founded!\n";
 		}
+		CHECKSEEN
 		return nullPtrClause;
 	}
 
@@ -1942,30 +1950,33 @@ rClause IDSolver::isWellFoundedModel() {
 	 * 	kijk of full fixpoint reached, anders begin opnieuw
 	 */
 	wffixpoint = false;
-	while (!wffixpoint) {
+	bool wellfounded = false;
+	while (!wffixpoint && not wellfounded) {
 		wffixpoint = true;
 
 		initializeCounters();
 		forwardPropagate(true);
 		if (wfmarkedAtoms.empty()) {
-			if (verbosity() > 1) {
-				clog << "The model is well-founded!\n";
-			}
-			return nullPtrClause;
+			wellfounded = true;
 		}
 		overestimateCounters();
 		forwardPropagate(false);
 		removeMarks();
 		if (wfmarkedAtoms.empty()) {
-			if (verbosity() > 1) {
-				clog << "The model is well-founded!\n";
-			}
-			return nullPtrClause;
+			wellfounded = true;
 		}
 	}
 
 	for (int i = 0; i < nbvars; ++i) {
 		seen(i) = 0;
+	}
+
+	if(wellfounded){
+		if (verbosity() > 1) {
+			clog << "The model is well-founded!\n";
+		}
+		CHECKSEEN
+		return nullPtrClause;
 	}
 
 	if (verbosity() > 0 && not printednontotalwarning) {
@@ -1981,6 +1992,9 @@ rClause IDSolver::isWellFoundedModel() {
 	getPCSolver().invalidate(invalidation.literals);
 	auto confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addConflictClause(confl);
+
+	CHECKSEEN
+
 	return confl;
 }
 
@@ -2122,6 +2136,7 @@ void IDSolver::mark(Atom h) {
 	if (!wfisMarked[h] && getDefVar(h)->type() != DefType::AGGR) { //FIXME: initializecounters cannot handle aggregates, but at this moment we know they will not be recursive!
 		wfqueue.push(l);
 		wfisMarked[h] = true;
+		//cerr <<"Marked " <<toString(h) <<"\n";
 		wfmarkedAtoms.insert(h);
 	}
 }
@@ -2217,7 +2232,10 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		}
 		wfisMarked[var(l)] = false;
 
+		//cerr <<"Forward propagate of " <<toString(var(l)) <<"\n";
+
 		if (removemarks) {
+			//cerr <<"Unmarked " <<toString(var(l)) <<"\n";
 			wfmarkedAtoms.erase(var(l));
 			wffixpoint = false;
 		}
@@ -2272,9 +2290,12 @@ void IDSolver::overestimateCounters() {
 		Atom v = *i;
 		MAssert(seen(v) > 0);
 
+		//cerr <<"For marked lit " <<toString(v) <<"\n";
+
 		for (uint j = 0; j < definition(v)->size(); ++j) {
 			const Lit& bdl = definition(v)->operator [](j);
 			if (wfisMarked[var(bdl)] && !isPositive(bdl) && v != var(bdl)) {
+				//cerr <<"bdl " <<toString(bdl) <<" can be made true \n";
 				if (type(v) == DefType::CONJ) {
 					seen(v)--;}
 				else {
@@ -2284,6 +2305,7 @@ void IDSolver::overestimateCounters() {
 		}
 
 		if (seen(v) == 0) {
+			//cerr <<"So could be pushed.\n";
 			wfqueue.push(mkPosLit(v));
 		}
 	}
@@ -2307,6 +2329,7 @@ void IDSolver::removeMarks() {
 		}
 	}
 	while (!temp.empty()) {
+		//cerr <<"Unmarked " <<toString(temp.top()) <<"\n";
 		wfmarkedAtoms.erase(temp.top());
 		temp.pop();
 	}
