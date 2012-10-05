@@ -284,13 +284,6 @@ void IDSolver::initialize() {
 	if (not modes().lazy) {
 		defdVars.clear();
 		defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
-		varlist temp;
-		for (auto root : sccroots) {
-			if (isDefined(root)) {
-				temp.push_back(root);
-			}
-		}
-		sccroots = temp;
 	}
 
 	if (atoms_in_pos_loops == 0) {
@@ -713,7 +706,9 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 	bool unsat = false;
 	map<Atom, std::vector<Atom> > root2sccs;
 	for (auto root : sccroots) {
-		MAssert(isDefined(root));
+		if(not isDefined(root)){
+			continue; // It might be that after simplification, some scc root is no longer defined.
+		}
 		bool hasaggs = false;
 		for (auto head : defdVars) {
 			if (scc(root) == scc(head)) {
