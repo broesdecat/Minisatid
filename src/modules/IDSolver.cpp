@@ -149,6 +149,8 @@ void IDSolver::addFinishedRule(const TempRule& rule) {
 		return;
 	}
 
+	//cerr <<"Added rule on " <<toString(head) <<"\n";
+
 	conj = conj || rule.body.size() == 1; //rules with only one body atom are treated as conjunctive
 	auto r = new PropRule(rule.id, mkLit(head), rule.body);
 	createDefinition(head, r, conj ? DefType::CONJ : DefType::DISJ);
@@ -222,6 +224,15 @@ void IDSolver::initialize() {
 		clog << ">>> Initializing inductive definition " << definitionID << "\n";
 	}
 
+	if (modes().lazy) {
+		defdVars.clear();
+		for (uint var = 0; var < definitions.size(); ++var) {
+			if (isDefined(var)) {
+				defdVars.push_back(var);
+			}
+		}
+	}
+
 	//LAZY initialization
 	posloops = true;
 	negloops = true;
@@ -231,6 +242,9 @@ void IDSolver::initialize() {
 		delete (_seen);
 	}
 	_seen = new InterMediateDataStruct(nbvars, minvar);
+	disj.clear();
+	conj.clear();
+	aggr.clear();
 	disj.resize(nVars() * 2);
 	conj.resize(nVars() * 2);
 	aggr.resize(nVars() * 2);
@@ -238,8 +252,7 @@ void IDSolver::initialize() {
 	if (modes().defsem == DEF_COMP || defdVars.size() == 0) {
 		if (not modes().lazy) {
 			notifyNotPresent();
-		}
-		CHECKSEEN
+		} CHECKSEEN;
 		return;
 	}
 
@@ -276,15 +289,13 @@ void IDSolver::initialize() {
 		}
 
 		if (addtonetwork) {
-			//cerr <<"Still defined: " <<toString(mkPosLit(v)) <<"\n";
+			//	cerr <<"Still defined: " <<toString(v) <<"\n";
 			reducedVars.push_back(v);
 			addToNetwork(v);
 		}
 	}
-	if (not modes().lazy) {
-		defdVars.clear();
-		defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
-	}
+	defdVars.clear();
+	defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
 
 	if (atoms_in_pos_loops == 0) {
 		posloops = false;
@@ -337,6 +348,8 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		return true;
 	}
 
+	//cerr <<"Simplifying\n";
+
 	varlist usedseen; //stores which elements in the "seen" datastructure we adapted to reset them later on
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		Atom v = (*i);
@@ -355,6 +368,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 			seen(v) = definition(v)->size();
 			break;
 		}
+		//cerr <<"Counter for " <<toString(v) <<" is " <<seen(v) <<"\n";
 		usedseen.push_back(v);
 	}
 
@@ -388,6 +402,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		for (uint i = 0; i < heads.size(); ++i) {
 			MAssert(jstf[i].size()==1);
 			changejust(var(heads[i]), jstf[i]);
+			//cerr <<"Justified " <<toString(heads[i]) <<"\n";
 			propq.push(heads[i]);
 		}
 
@@ -396,6 +411,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		propagateJustificationAggr(l, jstf2, heads2);
 		for (uint i = 0; i < heads2.size(); ++i) {
 			changejust(var(heads2[i]), jstf2[i]);
+			//cerr <<"Justified " <<toString(heads2[i]) <<"\n";
 			propq.push(heads2[i]);
 		}
 
@@ -465,10 +481,8 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 			}
 		}
 	}
-	if(not modes().lazy){
-		defdVars.clear();
-		defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
-	}
+	defdVars.clear();
+	defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
 
 //reconstruct the disj and conj occurs with the reduced number of definitions
 	disj.clear();
@@ -562,7 +576,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		}
 	}
 #endif
-	CHECKSEEN
+	CHECKSEEN;
 
 	return getPCSolver().satState() != SATVAL::UNSAT;
 }
@@ -923,8 +937,10 @@ void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) 
 		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
+		//cerr <<"Reducing counter of " <<toString(v) <<"\n";
 		seen(v)--;if
 (		seen(v) == 0) {
+			//cerr <<"Justified " <<toString(v) <<"\n";
 			heads.push(mkPosLit(v));
 		}
 	}
@@ -971,14 +987,13 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
  * the state has to be stable for both aggregate and unit propagations
  */
 rClause IDSolver::notifypropagate() {
-	CHECKNOTUNSAT
+	CHECKNOTUNSAT;
 	if (needinitialization) {
 		initialize();
 		if (getPCSolver().isUnsat()) {
 			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 		}
-	}
-	CHECKSEEN CHECKNOTUNSAT
+	} CHECKSEEN;CHECKNOTUNSAT;
 
 	// There was an unfounded set saved which might not have been completely propagated by unit propagation
 	// So check if there are any literals unknown and add more loopformulas
@@ -987,7 +1002,7 @@ rClause IDSolver::notifypropagate() {
 			if (!isFalse(mkPosLit(*i))) {
 				Lit l = mkNegLit(*i);
 				addLoopfClause(l, savedloopf);
-				CHECKSEEN CHECKNOTUNSAT
+				CHECKSEEN;CHECKNOTUNSAT;
 				return nullPtrClause;
 			}
 		}
@@ -995,14 +1010,14 @@ rClause IDSolver::notifypropagate() {
 	}
 
 	if (not posloops || not shouldCheckPropagation()) {
-		CHECKSEEN CHECKNOTUNSAT
+		CHECKSEEN;CHECKNOTUNSAT;
 		return nullPtrClause;
 	}
 
 	findCycleSources();
 
 	if (css.empty()) {
-		CHECKSEEN CHECKNOTUNSAT
+		CHECKSEEN;CHECKNOTUNSAT;
 		return nullPtrClause;
 	}
 
@@ -1049,7 +1064,7 @@ rClause IDSolver::notifypropagate() {
 		}
 	}
 
-	CHECKSEEN
+	CHECKSEEN;
 	return confl;
 }
 
@@ -1927,8 +1942,7 @@ rClause IDSolver::isWellFoundedModel() {
 	if (rootofmixed.empty()) {
 		if (verbosity() > 1) {
 			clog << "The model is well-founded!\n";
-		}
-		CHECKSEEN
+		} CHECKSEEN;
 		return nullPtrClause;
 	}
 
@@ -1966,11 +1980,10 @@ rClause IDSolver::isWellFoundedModel() {
 		seen(i) = 0;
 	}
 
-	if(wellfounded){
+	if (wellfounded) {
 		if (verbosity() > 1) {
 			clog << "The model is well-founded!\n";
-		}
-		CHECKSEEN
+		} CHECKSEEN;
 		return nullPtrClause;
 	}
 
@@ -1988,7 +2001,7 @@ rClause IDSolver::isWellFoundedModel() {
 	auto confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addConflictClause(confl);
 
-	CHECKSEEN
+	CHECKSEEN;
 
 	return confl;
 }
@@ -2331,6 +2344,36 @@ void IDSolver::removeMarks() {
 }
 
 // PRINT INFORMATION
+
+void IDSolver::printRule(Atom var) const {
+	MAssert(isDefined(var));
+	if (isDisjunctive(var)) {
+		clog << toString(var) << " <- ";
+		bool begin = true;
+		for (auto b : definition(var)->getBody()) {
+			if (not begin) {
+				clog << " | ";
+			}
+			begin = false;
+			clog << toString(b);
+		}
+		clog << "\n";
+	} else if (isConjunctive(var)) {
+		clog << toString(var) << " <- ";
+		bool begin = true;
+		for (auto b : definition(var)->getBody()) {
+			if (not begin) {
+				clog << " & ";
+			}
+			begin = false;
+			clog << toString(b);
+		}
+		clog << "\n";
+	} else {
+		MAssert(isDefinedByAggr(var));
+		// TODO
+	}
+}
 
 AggProp const * getProp(AggType type) {
 	switch (type) {

@@ -362,6 +362,8 @@ public:
 	void findJustificationAggr(Atom head, litlist& outjstf) ;
 	bool directlyJustifiable(Atom v, litlist& jstf, varlist& nonjstf, InterMediateDataStruct& currentjust);
 	bool isInitiallyJustified(const IDAgg& agg);
+
+	void printRule(Atom var) const;
 };
 
 }
