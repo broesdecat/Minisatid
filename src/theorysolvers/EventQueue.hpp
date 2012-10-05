@@ -54,6 +54,8 @@ private:
 
 	bool backtrackedtoroot;
 
+	bool _propagating, _requestedmore;
+
 public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();

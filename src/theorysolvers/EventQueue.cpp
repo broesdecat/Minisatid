@@ -22,7 +22,11 @@ using namespace MinisatID;
 using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver)
-		: pcsolver(pcsolver), savingstate(false), backtrackedtoroot(false) {
+		: 	pcsolver(pcsolver),
+			savingstate(false),
+			backtrackedtoroot(false),
+			_propagating(false),
+			_requestedmore(false) {
 	event2propagator[EV_PROPAGATE];
 	event2propagator[EV_DECISIONLEVEL];
 	event2propagator[EV_BACKTRACK];
@@ -215,31 +219,42 @@ Propagator* EventQueue::getAndRemoveFirstPropagator() {
 rClause EventQueue::notifyPropagate() {
 	auto confl = nullPtrClause;
 
-	for (auto i = propagatewatchesasap.cbegin(); i < propagatewatchesasap.cend() && confl == nullPtrClause; ++i) {
-		(*i)->propagate();
-	}
-	propagatewatchesasap.clear();
-
-	confl = runEternalPropagators();
-
-	if (confl != nullPtrClause) {
+	_requestedmore = true;
+	if (_propagating) {
 		return confl;
 	}
+	_propagating = true;
 
-	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-	while (queuesNotEmpty() && confl == nullPtrClause) {
-		Propagator* p = getAndRemoveFirstPropagator();
-		p->notifyDeQueued();
-		if (p->isPresent()) {
-			confl = p->notifypropagate();
-			MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
-			if (confl == nullPtrClause) {
-				confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
-			}
+//	while (_requestedmore && confl==nullPtrClause) {
+		_requestedmore = false;
+		for (auto i = propagatewatchesasap.cbegin(); i < propagatewatchesasap.cend() && confl == nullPtrClause; ++i) {
+			(*i)->propagate();
 		}
-		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
-	}
+		propagatewatchesasap.clear();
 
+		confl = runEternalPropagators();
+
+		if (confl != nullPtrClause) {
+			_propagating = false;
+			return confl;
+		}
+
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
+		while (queuesNotEmpty() && confl == nullPtrClause) {
+			auto p = getAndRemoveFirstPropagator();
+			p->notifyDeQueued();
+			if (p->isPresent()) {
+				confl = p->notifypropagate();
+				MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
+				if (confl == nullPtrClause) {
+					confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
+				}
+			}
+			MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
+		}
+//	}
+
+	_propagating = false;
 	return confl;
 }
 
