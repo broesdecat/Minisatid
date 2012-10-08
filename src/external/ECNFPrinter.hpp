@@ -98,16 +98,7 @@ public:
 	}
 
 	void add(const Implication& impl) {
-		target() << IMPLICATIONSTR << " " << (impl.conjunction ? "C" : "D") << toString(impl.head);
-		switch (impl.type) {
-		case ImplicationType::EQUIVALENT:
-			target() << "<=>";
-			break;
-		case ImplicationType::IMPLIES:
-			target() << "=>";
-			break;
-		}
-		target() << " ";
+		target() << IMPLICATIONSTR << " " << (impl.conjunction ? "C" : "D") << toString(impl.head) <<impl.type <<" ";
 		for (auto l : impl.body) {
 			target() << toString(l) << " ";
 		}

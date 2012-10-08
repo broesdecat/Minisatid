@@ -202,6 +202,7 @@ public:
 
 enum class ImplicationType {
 	IMPLIES,
+	IMPLIEDBY,
 	EQUIVALENT
 };
 
@@ -233,19 +234,32 @@ public:
 	std::vector<Disjunction> getEquivalentClauses() const;
 };
 
+/**
+ * A definition can be seen as
+ * 		- if part of completion (body implies head)
+ * 		- only-if part of completion (head implies body)
+ * 		- unfounded set constraint
+ *
+ * By default the Rule and (defined) Aggregate datastructures imply all three of those.
+ * Sometimes it is useful to represent the only-if and ufs together while the if part is added separately (as clauses),
+ * namely because the only-if and ufs watch heads not being true, whlie the if watches heads not being false.
+ * The "onlyif" option means that they only constrain to no unfounded sets and the only-if of the completion
+ */
 class Rule: public ID {
 public:
 	Atom head;
 	std::vector<Lit> body;
 	bool conjunctive;
 	int definitionID;
+	bool onlyif;
 
-	Rule(uint id, Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID)
+	Rule(uint id, Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID, bool onlyif)
 			: 	ID(id),
 				head(head),
 				body(body),
 				conjunctive(conjunctive),
-				definitionID(definitionID) {
+				definitionID(definitionID),
+				onlyif(onlyif) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -298,8 +312,9 @@ public:
 	AggSign sign;
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate, otherwise the value does not matter
+	bool onlyif;
 
-	Aggregate(uint id, const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID)
+	Aggregate(uint id, const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID, bool onlyif)
 			: 	ID(id),
 				head(head),
 				setID(setID),
@@ -307,7 +322,8 @@ public:
 				type(type),
 				sign(sign),
 				sem(sem),
-				defID(defID) {
+				defID(defID),
+				onlyif(onlyif){
 		MAssert(sem!=AggSem::DEF || defID!=-1);
 		MAssert(sem!=AggSem::DEF || isPositive(head));
 	}

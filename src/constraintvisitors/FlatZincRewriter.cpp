@@ -567,17 +567,10 @@ void FlatZincRewriter<Stream>::addEquiv(const Implication& implication, CloseCon
 		constraints << "], " << getVarName(implication.head) << ")";
 		break;
 	case ImplicationType::IMPLIES:
-		if (implication.conjunction) {
-			Disjunction d(DEFAULTCONSTRID, litlist());
-			d.literals.resize(2, not implication.head);
-			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
-				d.literals[1] = *i;
-				add(d);
-			}
-		} else {
-			Disjunction d(DEFAULTCONSTRID, implication.body);
-			d.literals.push_back(not implication.head);
-			add(d);
+	case ImplicationType::IMPLIEDBY:
+		auto clauses = implication.getEquivalentClauses();
+		for(auto c: clauses){
+			add(c);
 		}
 		break;
 	}
@@ -625,7 +618,7 @@ void FlatZincRewriter<Stream>::add(const Rule& rule) {
 	if (not rule.conjunctive) {
 		if (rule.body.size() > 1) {
 			for (auto i = rule.body.cbegin(); i < rule.body.cend(); ++i) {
-				add(Rule(DEFAULTCONSTRID, rule.head, { *i }, true, rule.definitionID));
+				add(Rule(DEFAULTCONSTRID, rule.head, { *i }, true, rule.definitionID, rule.onlyif));
 			}
 		} else if (rule.body.size() == 0) {
 			Disjunction clause(DEFAULTCONSTRID, {mkPosLit(rule.head)});

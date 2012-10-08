@@ -98,6 +98,9 @@ std::vector<Disjunction> Implication::getEquivalentClauses() const {
 	case ImplicationType::IMPLIES:
 		addImplication(getID(), head, body, conjunction, clauses);
 		break;
+	case ImplicationType::IMPLIEDBY:
+		addReverseImplication(getID(), head, body, conjunction, clauses);
+		break;
 	}
 	return clauses;
 }

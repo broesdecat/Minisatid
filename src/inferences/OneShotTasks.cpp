@@ -40,8 +40,8 @@ void OneShotUnsatCoreExtraction::add(const Aggregate& agg) {
 	extended.head = mkPosLit(newhead);
 	switch (agg.sem) {
 	case AggSem::DEF: {
-		Rule impl(agg.getID(), tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, agg.defID);
-		Rule impl2(agg.getID(), var(oldhead), { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID);
+		Rule impl(agg.getID(), tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, agg.defID, agg.onlyif);
+		Rule impl2(agg.getID(), var(oldhead), { mkPosLit(tseitin), mkPosLit(truemarker) }, true, agg.defID, agg.onlyif);
 		space->add(impl);
 		space->add(impl2);
 		break;
@@ -78,8 +78,8 @@ void OneShotUnsatCoreExtraction::add(const Rule& rule) {
 	auto falsemarker = getRemapper()->getNewVar();
 	auto tseitin = getRemapper()->getNewVar();
 	extended.head = newhead;
-	Rule impl(rule.getID(), tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, rule.definitionID);
-	Rule impl2(rule.getID(), oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, rule.definitionID);
+	Rule impl(rule.getID(), tseitin, { mkPosLit(newhead), mkPosLit(falsemarker) }, false, rule.definitionID, rule.onlyif);
+	Rule impl2(rule.getID(), oldhead, { mkPosLit(tseitin), mkPosLit(truemarker) }, true, rule.definitionID, rule.onlyif);
 	markerAssumptions.push_back(mkNegLit(falsemarker));
 	markerAssumptions.push_back(mkPosLit(truemarker));
 	id2constr[rule.getID()] = new Rule(rule);

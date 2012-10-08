@@ -196,12 +196,12 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
 				auto rule = defvar->definedaggregate();
 				auto setid = getPCSolver().newSetID();
 				visitor.add(WLSet(setid, rule->getWL()));
-				// NOTE: leads to duplicate aggregates!
+				// TODO: leads to duplicate aggregates!
 				visitor.add(
-						Aggregate(rule->getID(), rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID()));
+						Aggregate(rule->getID(), rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID(), true));
 			} else {
 				auto rule = defvar->definition();
-				visitor.add(Rule(rule->getID(), var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID()));
+				visitor.add(Rule(rule->getID(), var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID(), true));
 			}
 		}
 	}
@@ -2080,11 +2080,13 @@ void IDSolver::visitWF(Atom v, varlist &root, vector<bool> &incomp, stack<Atom> 
 		// for a DefType::CONJ, randomly choose one of the false body literals. If there is no loop through it, then it is a good choice.
 		//			If there is, it will be found later if another false literal exists without a mixed loop.
 		Lit l = mkLit(getMaxElem<int>());
+		bool found = false;
 		if (isConjunctive(v)) {
 			for (uint i = 0; i < definition(v)->size(); ++i) {
 				Lit l2 = definition(v)->operator [](i);
 				if (isFalse(l2)) {
 					l = l2;
+					found = true;
 					break;
 				}
 			}
@@ -2093,10 +2095,12 @@ void IDSolver::visitWF(Atom v, varlist &root, vector<bool> &incomp, stack<Atom> 
 				Lit l2 = definition(v)->operator [](i);
 				if (isTrue(l2)) {
 					l = l2;
+					found = true;
 					break;
 				}
 			}
 		}
+		MAssert(found);
 		MAssert(var(l)>-1);
 		Atom w = var(l);
 		if (DEFINEDINMIXED(w)) {

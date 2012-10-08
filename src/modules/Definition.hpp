@@ -1,19 +1,19 @@
 /************************************
-	Definition.hpp
-	this file belongs to GidL 2.0
-	(c) K.U.Leuven
-************************************/
+ Definition.hpp
+ this file belongs to GidL 2.0
+ (c) K.U.Leuven
+ ************************************/
 
 #ifndef DEFINITION_HPP_
 #define DEFINITION_HPP_
 
 #include "external/ExternalUtils.hpp"
 
-namespace MinisatID{
+namespace MinisatID {
 
 class PCSolver;
 
-struct TempRule{
+struct TempRule {
 	uint id;
 	Atom head;
 	std::vector<Lit> body;
@@ -23,16 +23,34 @@ struct TempRule{
 	Aggregate* inneragg;
 	WLSet* innerset;
 
-	TempRule(uint id, Atom head, bool conjunctive, std::vector<Lit> body): id(id), head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
-	TempRule(uint id, Aggregate* inneragg, WLSet* innerset): id(id), head(var(inneragg->head)), isagg(true), inneragg(inneragg), innerset(innerset){
+	bool onlyif;
+
+	TempRule(uint id, bool onlyif, Atom head, bool conjunctive, std::vector<Lit> body)
+			: 	id(id),
+				head(head),
+				body(body),
+				conjunctive(conjunctive),
+				isagg(false),
+				inneragg(NULL),
+				innerset(NULL),
+				onlyif(onlyif) {
+	}
+	TempRule(uint id, Aggregate* inneragg, WLSet* innerset)
+			: 	id(id),
+				head(var(inneragg->head)),
+				conjunctive(false),
+				isagg(true),
+				inneragg(inneragg),
+				innerset(innerset),
+				onlyif(onlyif) {
 		MAssert(isPositive(inneragg->head));
 		MAssert(inneragg->sem==AggSem::DEF);
 	}
 
-	~TempRule(){
-		if(isagg){
-			delete(inneragg);
-			delete(innerset);
+	~TempRule() {
+		if (isagg) {
+			delete (inneragg);
+			delete (innerset);
 		}
 	}
 };
@@ -41,7 +59,7 @@ class IDSolver;
 
 typedef std::vector<Lit> litlist;
 
-class Definition{
+class Definition {
 private:
 	std::map<int, IDSolver*> idsolvers;
 
@@ -63,7 +81,8 @@ private:
 	std::map<int, std::map<Atom, TempRule*> > rules;
 
 public:
-	Definition(PCSolver* solver): solver(solver){
+	Definition(PCSolver* solver)
+			: solver(solver) {
 
 	}
 
@@ -71,12 +90,11 @@ public:
 	void addToPropagators();
 
 	void addDefinedAggregate(uint id, const Aggregate& inneragg, const WLSet& innerset);
-	void addRule(uint id, int defID, bool conj, Atom head, const litlist& ps);
+	void addRule(uint id, bool onlyif, int defID, bool conj, Atom head, const litlist& ps);
 
 private:
 	void addFinishedRule(TempRule* rule);
 };
 }
-
 
 #endif /* DEFINITION_HPP_ */

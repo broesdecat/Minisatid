@@ -236,7 +236,7 @@ void TypedSet::accept(ConstraintVisitor& visitor){
 	auto set = WLSet(getSetID(), getWL());
 	visitor.add(set);
 	for(auto agg:getAgg()){
-		visitor.add(Aggregate(agg->getID(), agg->getHead(), getSetID(), agg->getBound(), agg->getType(), agg->getSign(), agg->getSem(), -1));
+		visitor.add(Aggregate(agg->getID(), agg->getHead(), getSetID(), agg->getBound(), agg->getType(), agg->getSign(), agg->getSem(), -1, false));
 	}
 }
 

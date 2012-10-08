@@ -66,7 +66,7 @@ template<typename Remapper>
 class ExtAdd<Rule, Remapper> {
 public:
 	Rule extAdd(Remapper& r, const Rule& obj) {
-		return Rule(obj.getID(), map(obj.head, r), map(obj.body, r), obj.conjunctive, obj.definitionID);
+		return Rule(obj.getID(), map(obj.head, r), map(obj.body, r), obj.conjunctive, obj.definitionID, obj.onlyif);
 	}
 };
 template<typename Remapper>
@@ -87,7 +87,7 @@ template<typename Remapper>
 class ExtAdd<Aggregate, Remapper> {
 public:
 	Aggregate extAdd(Remapper& r, const Aggregate& obj) {
-		return Aggregate(obj.getID(), map(obj.head, r), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID);
+		return Aggregate(obj.getID(), map(obj.head, r), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID, obj.onlyif);
 	}
 };
 template<typename Remapper>

@@ -295,7 +295,7 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 template<class T>
 void Read<T>::addBasicRules() {
 	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
-		extAdd(getSolver(), Rule(maxid++,(*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID));
+		extAdd(getSolver(), Rule(maxid++,(*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID, false));
 	}
 }
 
@@ -303,7 +303,7 @@ template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
-		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID, false));
 	}
 }
 
@@ -311,7 +311,7 @@ template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
-		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID, false));
 	}
 }
 

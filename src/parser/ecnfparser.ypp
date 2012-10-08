@@ -315,7 +315,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 				if($1==AggSem::OR){
 					error(yyloc, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(id++, cAtom($2), *$3, $1==AggSem::COMP, defaultdefID); //AggSem is bit of a hack, to be fixed
+				Rule rule(id++, cAtom($2), *$3, $1==AggSem::COMP, defaultdefID, false); //AggSem is bit of a hack, to be fixed
 				delete $2; delete $3;
 				CR(wrapper, rule, theoryid);
 			}
@@ -327,7 +327,7 @@ rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 				if($1==AggSem::OR){
 					error(yyloc, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(id++, cAtom($4), *$6, $1==AggSem::COMP, cID($2));//AggSem is bit of a hack, to be fixed
+				Rule rule(id++, cAtom($4), *$6, $1==AggSem::COMP, cID($2), false);//AggSem is bit of a hack, to be fixed
 				delete $2; delete $4; delete $6;
 				CR(wrapper, rule, theoryid);
 			}
@@ -347,13 +347,13 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 					checkVersion(VERSION_OLD);
 				}
 	
-				Aggregate agg(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID);
+				Aggregate agg(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID, false);
 				CR(wrapper, agg, theoryid);
 				delete $4; delete $5; delete $6;
 			}
 		|	AGGDEFN ORSEM SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
-				Aggregate agg(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID);
+				Aggregate agg(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID, false);
 				CR(wrapper, agg, theoryid);
 				delete $4; delete $5; delete $6;
 			}
@@ -361,7 +361,7 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 			{	
 				checkVersion(VERSION_NEW);
 
-				Aggregate agg(id++, mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3));
+				Aggregate agg(id++, mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3), false);
 				CR(wrapper, agg, theoryid);
 				delete $5; delete $6; delete $7;
 			}

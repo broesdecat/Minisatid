@@ -480,7 +480,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			internalAdd(set, getSolver().getBaseTheoryID(), getSolver());
 			auto var = getSolver().newVar();
 			internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(var) }), getSolver().getBaseTheoryID(), getSolver());
-			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver().getBaseTheoryID(), getSolver());
+			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1, false), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		}
 		case Optim::AGG: {

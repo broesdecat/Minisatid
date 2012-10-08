@@ -24,14 +24,17 @@ enum DEFMARKDEPTH {
 };
 // Originally also contained stop_at_cs, which is no longer correct
 // when a guaranteed cycle-free justification is used!
+
+// Unfounded set search strategy
 enum DEFSEARCHSTRAT {
 	breadth_first /*, depth_first*/
 };
-// Unfounded set search strategy
+
+// Definitional semantics
 enum DEFSEM {
 	DEF_STABLE, DEF_WELLF, DEF_COMP
 };
-// Definitional semantics
+
 
 enum class SATVAL {
 	UNSAT, POS_SAT

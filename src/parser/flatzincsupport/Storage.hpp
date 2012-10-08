@@ -390,7 +390,7 @@ public:
 	}
 
 	void writeRule(int head, const std::vector<int>& rhs, bool conj, int definitionID) {
-		extAdd(*store, MinisatID::Rule(maxid++, head, get(rhs), conj, definitionID));
+		extAdd(*store, MinisatID::Rule(maxid++, head, get(rhs), conj, definitionID, false));
 	}
 	void writeEquiv(int head, const std::vector<int>& rhs, bool conj) {
 		extAdd(*store, Implication(maxid++, get(head), ImplicationType::EQUIVALENT, get(rhs), conj));

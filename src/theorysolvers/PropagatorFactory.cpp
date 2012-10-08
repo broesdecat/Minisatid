@@ -62,7 +62,10 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine)
-		: engine(engine), definitions(new Definition(engine)), minnewset(-1), finishedparsing(false) {
+		: 	engine(engine),
+			definitions(new Definition(engine)),
+			minnewset(-1),
+			finishedparsing(false) {
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolver());
@@ -100,7 +103,7 @@ void PropagatorFactory::add(const Disjunction& clause) {
 	notifyMonitorsOfAdding(clause);
 	internalAdd(clause);
 }
-void PropagatorFactory::internalAdd(const Disjunction& clause){
+void PropagatorFactory::internalAdd(const Disjunction& clause) {
 	SATStorage::getStorage()->addClause(clause.literals);
 }
 
@@ -115,7 +118,7 @@ void PropagatorFactory::add(const Implication& formula) {
 void PropagatorFactory::add(const Rule& rule) {
 	notifyMonitorsOfAdding(rule);
 
-	definitions->addRule(rule.getID(), rule.definitionID, rule.conjunctive, rule.head, rule.body);
+	definitions->addRule(rule.getID(), rule.onlyif, rule.definitionID, rule.conjunctive, rule.head, rule.body);
 }
 
 void PropagatorFactory::add(const WLSet& formula) {
@@ -172,8 +175,16 @@ void PropagatorFactory::add(const Aggregate& origagg) {
 
 	getEngine().varBumpActivity(var(newagg.head)); // NOTE heuristic! (TODO move)
 
-	auto agg = new TempAgg(newagg.getID(), newagg.head, AggBound(newagg.sign, newagg.bound), newagg.sem == AggSem::DEF ? AggSem::COMP : newagg.sem,
-			newagg.type);
+	auto newsem = newagg.sem;
+	if (newagg.sem == AggSem::DEF) {
+		if (newagg.onlyif) {
+			newsem = AggSem::OR;
+			newagg.head = not newagg.head;
+		} else {
+			newsem = AggSem::COMP;
+		}
+	}
+	auto agg = new TempAgg(newagg.getID(), newagg.head, AggBound(newagg.sign, newagg.bound), newsem, newagg.type);
 	set.aggs.push_back(agg);
 
 	if (finishedParsing()) {
@@ -244,7 +255,7 @@ void PropagatorFactory::add(const MinimizeVar& formula) {
 	auto it = intvars.find(formula.varID);
 	if (it == intvars.cend()) {
 		stringstream ss;
-		ss << "The CP var " << toString(formula.varID , getEngine()) << " has not been declared yet, but is used in an optimization statement.";
+		ss << "The CP var " << toString(formula.varID, getEngine()) << " has not been declared yet, but is used in an optimization statement.";
 		throw idpexception(ss.str());
 	}
 	OptimStatement optim(formula.priority, it->second);
@@ -264,7 +275,7 @@ void PropagatorFactory::addCP(const T&
 #ifdef CPSUPPORT
 		formula
 #endif
-	) {
+		) {
 	MAssert(getEngine().modes().usegecode);
 	guaranteeAtRootLevel();
 #ifndef CPSUPPORT
@@ -292,17 +303,17 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			throw idpexception(ss.str());
 		}
 		IntVar* intvar = NULL;
-		if ((double)obj.maxvalue - obj.minvalue < 1000) { // TODO verify whether this is a good choice
+		if ((double) obj.maxvalue - obj.minvalue < 1000) { // TODO verify whether this is a good choice
 			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue));
 		} else {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
 		}
-		intvars.insert({obj.varID, intvar });
+		intvars.insert( { obj.varID, intvar });
 		intvar->finish();
 	}
 }
 
-void PropagatorFactory::add(const BoolVar&){
+void PropagatorFactory::add(const BoolVar&) {
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
@@ -316,7 +327,7 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 			throw idpexception(ss.str());
 		}
 		auto intvar = new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values);
-		intvars.insert({obj.varID, intvar});
+		intvars.insert( { obj.varID, intvar });
 		intvar->finish();
 	}
 }
@@ -478,7 +489,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 			auto storage = AggStorage::getStorage();
 			AggStorage::clearStorage();
 			auto satval = execute(*storage);
-			delete(storage);
+			delete (storage);
 			if (satval == SATVAL::UNSAT) {
 				return satval;
 			}
@@ -527,7 +538,7 @@ SATVAL PropagatorFactory::finishParsing() {
 
 	// create reified aggregates
 	for (auto i = parsedaggs.cbegin(); satval == SATVAL::POS_SAT && i != parsedaggs.cend(); ++i) {
-		add(Aggregate((*i)->getID(), getEngine().getTrueLit(), (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1));
+		add(Aggregate((*i)->getID(), getEngine().getTrueLit(), (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1, false));
 		satval &= getEngine().satState();
 	}
 	deleteList<Aggregate>(parsedaggs);
@@ -540,7 +551,7 @@ SATVAL PropagatorFactory::finishParsing() {
 		auto storage = AggStorage::getStorage();
 		AggStorage::clearStorage();
 		satval &= execute(*storage);
-		delete(storage);
+		delete (storage);
 	}
 
 	definitions->addToPropagators();
@@ -568,7 +579,7 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 	if (getEngine().verbosity() > 4) {
 		clog << toString(object.residual, getEngine()) << " is delayed on " << object.watchedvalue << "\n";
 	}
-	getEngine().getSATSolver()->setInitialPolarity(object.residual, object.watchedvalue!=Value::True);
+	getEngine().getSATSolver()->setInitialPolarity(object.residual, object.watchedvalue != Value::True);
 	new LazyResidual(getEnginep(), object.residual, object.watchedvalue, object.monitor);
 }
 
@@ -589,6 +600,11 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
 		}
 		break;
+	case ImplicationType::IMPLIEDBY:
+		if (not object.impl.conjunction) {
+			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+		}
+		break;
 	}
 	auto clauseid = grounder2clause.size();
 	grounder2clause.push_back(new LazyTseitinClause(object.getID(), getEnginep(), object.impl, object.monitor, clauseid));
@@ -597,15 +613,15 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 void PropagatorFactory::add(const LazyAddition& object) {
 	notifyMonitorsOfAdding(object);
 	MAssert(object.ref>=0 && grounder2clause.size()>(uint)object.ref);
-	for(auto lit: object.list){
+	for (auto lit : object.list) {
 		getEngine().getSATSolver()->setInitialPolarity(var(lit), not sign(lit));
 	}
 	grounder2clause[object.ref]->addGrounding(object.list);
 }
 
-void PropagatorFactory::add(const TwoValuedRequirement& object){
+void PropagatorFactory::add(const TwoValuedRequirement& object) {
 //	cerr <<"Adding output vars ";
-	for(auto atom: object.atoms){
+	for (auto atom : object.atoms) {
 		getEngine().getSATSolver()->setDecidable(atom, true);
 //		cerr <<toString(atom) <<", ";
 	}
