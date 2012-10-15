@@ -264,6 +264,8 @@ private:
 	int learntsize_adjust_start_confl;
 	double learntsize_adjust_inc;
 
+	int currentconflicts, maxconflicts;
+
 	// Statistics: (read-only member variable)
 	uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
 	uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;
@@ -319,6 +321,8 @@ protected:
 	vec<Lit> assumptions; // Current set of assumptions provided to solve by the user.
 	Heap<VarOrderLt> order_heap; // A priority queue of variables ordered with respect to the variable activity.
 	bool remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
+
+	void addConflict();
 
 	ClauseAllocator ca;
 

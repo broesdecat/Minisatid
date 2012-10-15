@@ -77,7 +77,9 @@ Solver::Solver(PCSolver* s, bool oneshot)
 
 			// Parameters (experimental):
 					,
-			learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5)
+			learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5),
+
+			currentconflicts(0), maxconflicts(0)
 
 			// Statistics: (formerly in 'SolverStats')
 					,
@@ -256,7 +258,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 	} else if (ps.size() == 1) {
 		if (decisionLevel() > 0) {
 			if (value(ps[0]) == l_False) {
-				conflicts++;
+				addConflict();
 				getPCSolver().backtrackTo(getLevel(var(ps[0])) - 1); // NOTE: Certainly not root level, would have found out otherwise
 			}
 			MAssert(value(ps[0])!=l_False);
@@ -278,6 +280,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 			int outlevel;
 			vec<Lit> outlearnt;
 			analyze(confl, outlearnt, outlevel);
+			addConflict();
 			cancelUntil(outlevel);
 		} while (true);
 		return ok; // FIXME add methods should return the conflict clause if applicable
@@ -377,8 +380,8 @@ void Solver::attachClause(CRef cr, bool conflict) {
 		MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
 
 		if (nonfalse1 == -1) { // Conflict
-			conflicts++;
-			getPCSolver().backtrackTo(getLevel(var(c[recentfalse1])) - 1);
+			addConflict();
+			cancelUntil(getLevel(var(c[recentfalse1])) - 1);
 			nonfalse1 = recentfalse1;
 			MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
 			if (not isFalse(c[recentfalse2])) {
@@ -598,6 +601,9 @@ void Solver::uncheckedBacktrack(int level) {
 
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 void Solver::cancelUntil(int level) {
+	if ((maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
+		level = 0;
+	}
 	if (decisionLevel() > level) {
 		uncheckedBacktrack(level);
 	}
@@ -686,7 +692,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 
 	MAssert(lvl<=decisionLevel());
 
-	cancelUntil(lvl);
+	if(lvl<decisionLevel()){
+		uncheckedBacktrack(lvl);
+	}
 
 	MAssert(confl!=CRef_Undef);
 	MAssert(lvl==decisionLevel());
@@ -1155,6 +1163,11 @@ bool Solver::simplify() {
 	return true;
 }
 
+void Solver::addConflict(){
+	conflicts++;
+	currentconflicts++;
+}
+
 /*_________________________________________________________________________________________________
  |
  |  search : (nof_conflicts : int) (params : const SearchParams&)  ->  [lbool]
@@ -1168,13 +1181,14 @@ bool Solver::simplify() {
  |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
  |    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
  |________________________________________________________________________________________________@*/
-lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
+lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 	MAssert(ok);
 	int backtrack_level;
-	int conflictC = 0;
 	vec<Lit> learnt_clause;
 	starts++;
 	needsimplify = true;
+
+	maxconflicts = maxconfl;
 
 	auto confl = nullPtrClause;
 	for (;;) {
@@ -1195,10 +1209,16 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			return l_False;
 		}
 
+		// NO CONFLICT
+		if ((maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
+			MAssert(decisionLevel()==0);
+			return l_Undef;
+		}
+
 		if (confl != CRef_Undef) {
 			// CONFLICT
-			conflicts++;
-			conflictC++;
+			addConflict();
+
 			if (decisionLevel() == 0) {
 				return l_False;
 			}
@@ -1235,13 +1255,6 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			}
 
 		} else {
-			// NO CONFLICT
-			if ((maxconflicts >= 0 && conflictC >= maxconflicts)) {
-				// Reached bound on number of conflicts:
-				cancelUntil(0);
-				return l_Undef;
-			}
-
 			// Simplify the set of problem clauses:
 			if (decisionLevel() == 0 && not simplify()) {
 				return l_False;
