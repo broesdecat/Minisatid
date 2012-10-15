@@ -16,9 +16,12 @@ using namespace MinisatID;
 
 // Watch BOTH: so watching when it becomes decidable
 LazyResidual::LazyResidual(PCSolver* engine, Atom var, Value watchedvalue, LazyGroundingCommand* monitor)
-		: Propagator(DEFAULTCONSTRID, engine, "lazy residual notifier"), monitor(monitor), residual(var), watchedvalue(watchedvalue) {
+		: 	Propagator(DEFAULTCONSTRID, engine, "lazy residual notifier"),
+			monitor(monitor),
+			residual(var),
+			watchedvalue(watchedvalue) {
 	getPCSolver().accept(this);
-	switch(watchedvalue){
+	switch (watchedvalue) {
 	case Value::True:
 		getPCSolver().accept(this, mkPosLit(var), PRIORITY::FAST);
 		break;
@@ -42,19 +45,19 @@ rClause LazyResidual::notifypropagate() {
 	// NOTE: have to make sure that constraints are never added at a level where they will no have full effect!
 
 	auto confl = nullPtrClause;
-	switch(watchedvalue){
+	switch (watchedvalue) {
 	case Value::Unknown:
-		if(not getPCSolver().isDecisionVar(residual)){
+		if (not getPCSolver().isDecisionVar(residual)) {
 			return confl;
 		}
 		break;
 	case Value::False:
-		if(getPCSolver().value(mkPosLit(residual))!=l_False){
+		if (getPCSolver().value(mkPosLit(residual)) != l_False) {
 			return confl;
 		}
 		break;
 	case Value::True:
-		if(getPCSolver().value(mkPosLit(residual))!=l_True){
+		if (getPCSolver().value(mkPosLit(residual)) != l_True) {
 			return confl;
 		}
 		break;
@@ -74,9 +77,14 @@ rClause LazyResidual::notifypropagate() {
 }
 
 LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID)
-		: Propagator(id, engine, "lazy tseitin eq"), clauseID(clauseID), monitor(monitor),
-		  waseq(impl.type == ImplicationType::EQUIVALENT), implone(impl), impltwo(impl),
-			alreadypropagating(false){
+		: 	Propagator(id, engine, "lazy tseitin eq"),
+			clauseID(clauseID),
+			monitor(monitor),
+			waseq(impl.type == ImplicationType::EQUIVALENT),
+			implone(impl),
+			impltwo(impl),
+			alreadypropagating(false) {
+	MAssert(impl.type!=ImplicationType::IMPLIEDBY);
 	if (waseq) {
 		implone = Implication(getID(), impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
 		litlist lits;
@@ -90,22 +98,22 @@ LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implicatio
 
 	if (implone.conjunction) {
 		for (auto i = implone.body.cbegin(); i < implone.body.cend(); ++i) {
-			add(Disjunction(getID(),  { not implone.head, *i }));
+			add(Disjunction(getID(), { not implone.head, *i }));
 		}
-		implone.body.clear();
+		implone.body.clear(); // Clear all current literals. Only when more are added do we need to consider this
 	}
 	if (waseq && impltwo.conjunction) {
 		for (auto i = impltwo.body.cbegin(); i < impltwo.body.cend(); ++i) {
 			add(Disjunction(getID(), { not impltwo.head, *i }));
 		}
-		impltwo.body.clear();
+		impltwo.body.clear(); // Clear all current literals. Only when more are added do we need to consider this
 	}
 
 	getPCSolver().accept(this);
 	getPCSolver().acceptForPropagation(this);
 }
 
-void LazyTseitinClause::accept(ConstraintVisitor& ) {
+void LazyTseitinClause::accept(ConstraintVisitor&) {
 	notYetImplemented("Accepting lazily grounded Tseitin equivalences.");
 }
 
@@ -115,7 +123,8 @@ private:
 	Propagator* p;
 public:
 	BasicPropWatch(const Lit& watch, Propagator* p)
-			: watch(watch), p(p) {
+			: 	watch(watch),
+				p(p) {
 		//cerr <<"Watching " <<toString(watch, p->getPCSolver()) <<" in lazy propagator.\n";
 	}
 
@@ -174,7 +183,7 @@ rClause LazyTseitinClause::notifypropagate() {
 	//cerr <<"Finished propagating " <<long(this) <<"\n";
 	auto confl = nullPtrClause;
 	if (getPCSolver().isUnsat()) {
-		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, {}), true);
+		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 	}
 	alreadypropagating = false;
 	return confl;
@@ -193,7 +202,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			bool stilldelayed = true;
 			monitor->requestGrounding(clauseID, true, stilldelayed); // get all grounding
 			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-				add(Disjunction(getID(),  { not tocheck.head, signswapped ? not *i : *i }));
+				add(Disjunction(getID(), { not tocheck.head, signswapped ? not *i : *i }));
 				if (waseq) {
 					complement.body.push_back(signswapped ? *i : not *i);
 				}
@@ -229,7 +238,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 				}
 				if (waseq) {
 					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-						add(Disjunction(getID(),  { not complement.head, signswapped ? *i : not *i }));
+						add(Disjunction(getID(), { not complement.head, signswapped ? *i : not *i }));
 					}
 				}
 			}
@@ -249,9 +258,13 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			index++;
 		}
 		if (groundedall) {
-			auto lits = tocheck.body;
-			lits.push_back(not tocheck.head);
-			add(Disjunction(getID(), lits));
+			if (tocheck.conjunction) {
+				MAssert(false);
+			} else {
+				auto lits = tocheck.body;
+				lits.push_back(not tocheck.head);
+				add(Disjunction(getID(), lits));
+			}
 		}
 	}
 	return groundedall;

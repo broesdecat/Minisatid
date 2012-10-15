@@ -50,14 +50,15 @@ public:
 
 class LazyTseitinClause: public Propagator{
 private:
-	int clauseID;
-	LazyGrounder* monitor;
-	bool waseq;
-	Implication implone, impltwo;
+	int clauseID; // The reference the grounder can use to identify this lazy clause
+	LazyGrounder* monitor; // To request additional grounding
+	bool waseq; // True if the lazy Tseitin represents both directions of the equivalence
+	Implication implone; // Represents head => body
+	Implication impltwo; // Represents ~head => ~body Impltwo is irrelevant if waseq is false.
 
-	litlist newgrounding;
+	litlist newgrounding; // Allows to temporarily store the newly grounded literals
 
-	bool alreadypropagating;
+	bool alreadypropagating; // To prevent recursion
 
 public:
 	LazyTseitinClause(uint id, PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID);
