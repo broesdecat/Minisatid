@@ -16,6 +16,8 @@
 
 namespace FZ {
 
+typedef unsigned int uint;
+
 class Storage;
 
 template<typename T>
