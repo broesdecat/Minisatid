@@ -1211,7 +1211,9 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 		// NO CONFLICT
 		if ((maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
-			MAssert(decisionLevel()==0);
+			if(decisionLevel()!=0){
+				cancelUntil(0);
+			}
 			return l_Undef;
 		}
 
