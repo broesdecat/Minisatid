@@ -57,6 +57,7 @@ IDSolver::IDSolver(PCSolver* s, int definitionID)
 		: 	Propagator( { }, s, "definition"),
 			definitionID(definitionID),
 			needinitialization(false),
+			atend(true),
 			infactnotpresent(false),
 			minvar(0),
 			nbvars(0),
@@ -149,7 +150,7 @@ void IDSolver::addFinishedRule(const TempRule& rule) {
 		return;
 	}
 
-	//cerr <<"Added rule on " <<toString(head) <<"\n";
+	//clog <<"Added rule on " <<toString(head) <<"\n";
 
 	conj = conj || rule.body.size() == 1; //rules with only one body atom are treated as conjunctive
 	auto r = new PropRule(rule.id, mkLit(head), rule.body);
@@ -289,7 +290,7 @@ void IDSolver::initialize() {
 		}
 
 		if (addtonetwork) {
-			//	cerr <<"Still defined: " <<toString(v) <<"\n";
+			//clog <<"Still defined: " <<toString(v) <<"\n";
 			reducedVars.push_back(v);
 			addToNetwork(v);
 		}
@@ -348,7 +349,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		return true;
 	}
 
-	//cerr <<"Simplifying\n";
+	//clog <<"Simplifying\n";
 
 	varlist usedseen; //stores which elements in the "seen" datastructure we adapted to reset them later on
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
@@ -368,7 +369,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 			seen(v) = definition(v)->size();
 			break;
 		}
-		//cerr <<"Counter for " <<toString(v) <<" is " <<seen(v) <<"\n";
+		//clog <<"Counter for " <<toString(v) <<" is " <<seen(v) <<"\n";
 		usedseen.push_back(v);
 	}
 
@@ -392,7 +393,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 // While we do this, we build the initial justification.
 	while (not propq.empty()) {
 		Lit l = propq.front(); //only heads are added to the queue
-		//cerr <<"Propagating with " <<toString(l) <<"\n";
+		//clog <<"Propagating with " <<toString(l) <<"\n";
 		MAssert(sign(l) || !isDefined(var(l)) || (seen(var(l))==0));
 		propq.pop();
 
@@ -402,7 +403,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		for (uint i = 0; i < heads.size(); ++i) {
 			MAssert(jstf[i].size()==1);
 			changejust(var(heads[i]), jstf[i]);
-			//cerr <<"Justified " <<toString(heads[i]) <<"\n";
+			//clog <<"Justified " <<toString(heads[i]) <<"\n";
 			propq.push(heads[i]);
 		}
 
@@ -411,7 +412,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		propagateJustificationAggr(l, jstf2, heads2);
 		for (uint i = 0; i < heads2.size(); ++i) {
 			changejust(var(heads2[i]), jstf2[i]);
-			//cerr <<"Justified " <<toString(heads2[i]) <<"\n";
+			//clog <<"Justified " <<toString(heads2[i]) <<"\n";
 			propq.push(heads2[i]);
 		}
 
@@ -937,10 +938,10 @@ void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) 
 		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
-		//cerr <<"Reducing counter of " <<toString(v) <<"\n";
+		//clog <<"Reducing counter of " <<toString(v) <<"\n";
 		seen(v)--;if
 (		seen(v) == 0) {
-			//cerr <<"Justified " <<toString(v) <<"\n";
+			//clog <<"Justified " <<toString(v) <<"\n";
 			heads.push(mkPosLit(v));
 		}
 	}
@@ -973,7 +974,7 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
 			varlist nonjstf;
 
 			if (canJustifyHead(agg, jstf, nonjstf, *_seen, false)) {
-				//cerr <<"Justified " <<toString(mkPosLit(head)) <<"\n";
+				//clog <<"Justified " <<toString(mkPosLit(head)) <<"\n";
 				seen(head) = 0;
 				heads.push_back(mkLit(head, false));
 				jstfs.push_back(jstf);
@@ -989,7 +990,11 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
 rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT;
 	if (needinitialization) {
+//		if(not atend){
+//			return nullPtrClause;
+//		}
 		initialize();
+		atend = false;
 		if (getPCSolver().isUnsat()) {
 			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 		}
@@ -1073,7 +1078,9 @@ rClause IDSolver::notifyFullAssignmentFound() {
 		return nullPtrClause;
 	}
 	twovalueddef = true;
+	atend = true;
 	auto confl = notifypropagate();
+	MAssert(not needinitialization);
 	if (confl == nullPtrClause) {
 		MAssert(not posloops || isCycleFree());
 		if (getSemantics() == DEF_WELLF) {
@@ -1088,6 +1095,11 @@ void IDSolver::notifyNewDecisionLevel() {
 	if (posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
 		throw idpexception("Positive justification graph is not cycle free!\n");
 	}
+}
+
+void IDSolver::notifyBacktrack(int untillevel, const Lit& decision) {
+	backtracked = true;
+	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 /**
@@ -1785,7 +1797,7 @@ bool IDSolver::isCycleFree() const {
 			justified.push(mkLit(i, false));
 		} else {
 			if (not isFalse(mkPosLit(i))) {
-				//cerr <<"Not justified " <<getPrintableVar(i) <<"\n";
+				//clog <<"Not justified " <<getPrintableVar(i) <<"\n";
 				++cnt_nonjustified;
 				isfree[i] = type(i) == DefType::CONJ ? definition(i)->size() : 1;
 			}
@@ -1812,7 +1824,7 @@ bool IDSolver::isCycleFree() const {
 				isfree[d] = 0;
 				justified.push(mkLit(d, false));
 				--cnt_nonjustified;
-				//cerr <<"Justified " <<getPrintableVar(d) <<"\n";
+				//clog <<"Justified " <<getPrintableVar(d) <<"\n";
 			}
 		}
 
@@ -1824,7 +1836,7 @@ bool IDSolver::isCycleFree() const {
 				if (isfree[c] == 0) {
 					justified.push(mkLit(c, false));
 					--cnt_nonjustified;
-					//cerr <<"Justified " <<getPrintableVar(c) <<"\n";
+					//clog <<"Justified " <<getPrintableVar(c) <<"\n";
 				}
 			}
 		}
@@ -1844,7 +1856,7 @@ bool IDSolver::isCycleFree() const {
 				if (isfree[d] == 0) {
 					justified.push(mkLit(d, false));
 					--cnt_nonjustified;
-					//cerr <<"Justified " <<getPrintableVar(d) <<"\n";
+					//clog <<"Justified " <<getPrintableVar(d) <<"\n";
 				}
 			}
 		}
@@ -2148,7 +2160,7 @@ void IDSolver::mark(Atom h) {
 	if (!wfisMarked[h] && getDefVar(h)->type() != DefType::AGGR) { //FIXME: initializecounters cannot handle aggregates, but at this moment we know they will not be recursive!
 		wfqueue.push(l);
 		wfisMarked[h] = true;
-		//cerr <<"Marked " <<toString(h) <<"\n";
+		//clog <<"Marked " <<toString(h) <<"\n";
 		wfmarkedAtoms.insert(h);
 	}
 }
@@ -2244,10 +2256,10 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		}
 		wfisMarked[var(l)] = false;
 
-		//cerr <<"Forward propagate of " <<toString(var(l)) <<"\n";
+		//clog <<"Forward propagate of " <<toString(var(l)) <<"\n";
 
 		if (removemarks) {
-			//cerr <<"Unmarked " <<toString(var(l)) <<"\n";
+			//clog <<"Unmarked " <<toString(var(l)) <<"\n";
 			wfmarkedAtoms.erase(var(l));
 			wffixpoint = false;
 		}
@@ -2302,12 +2314,12 @@ void IDSolver::overestimateCounters() {
 		Atom v = *i;
 		MAssert(seen(v) > 0);
 
-		//cerr <<"For marked lit " <<toString(v) <<"\n";
+		//clog <<"For marked lit " <<toString(v) <<"\n";
 
 		for (uint j = 0; j < definition(v)->size(); ++j) {
 			const Lit& bdl = definition(v)->operator [](j);
 			if (wfisMarked[var(bdl)] && !isPositive(bdl) && v != var(bdl)) {
-				//cerr <<"bdl " <<toString(bdl) <<" can be made true \n";
+				//clog <<"bdl " <<toString(bdl) <<" can be made true \n";
 				if (type(v) == DefType::CONJ) {
 					seen(v)--;}
 				else {
@@ -2317,7 +2329,7 @@ void IDSolver::overestimateCounters() {
 		}
 
 		if (seen(v) == 0) {
-			//cerr <<"So could be pushed.\n";
+			//clog <<"So could be pushed.\n";
 			wfqueue.push(mkPosLit(v));
 		}
 	}
@@ -2341,7 +2353,7 @@ void IDSolver::removeMarks() {
 		}
 	}
 	while (!temp.empty()) {
-		//cerr <<"Unmarked " <<toString(temp.top()) <<"\n";
+		//clog <<"Unmarked " <<toString(temp.top()) <<"\n";
 		wfmarkedAtoms.erase(temp.top());
 		temp.pop();
 	}
