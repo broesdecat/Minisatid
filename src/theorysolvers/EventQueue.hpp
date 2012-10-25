@@ -52,6 +52,7 @@ private:
 	bool savingstate;
 	proplist newpropagators;
 
+	long nbrestarts;
 	bool backtrackedtoroot;
 
 	bool _propagating, _requestedmore;

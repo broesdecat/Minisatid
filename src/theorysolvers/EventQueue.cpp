@@ -24,6 +24,7 @@ using namespace std;
 EventQueue::EventQueue(PCSolver& pcsolver)
 		: 	pcsolver(pcsolver),
 			savingstate(false),
+			nbrestarts(0),
 			backtrackedtoroot(false),
 			_propagating(false),
 			_requestedmore(false) {
@@ -114,7 +115,7 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 		getPCSolver().notifyDecisionVar(var(litevent));
 	}
 	auto& list = lit2priority2propagators[toInt(litevent)][priority];
-	for (auto i = list.cbegin(); i < list.cend(); ++i) { // NOTE: quite expensive way to check doubles
+	for (auto i = list.cbegin(); i < list.cend(); ++i) { // TODO: quite expensive way to check doubles
 		if ((*i) == propagator) {
 			return;
 		}
@@ -297,7 +298,9 @@ void EventQueue::notifyBecameDecidable(Atom v) {
 void EventQueue::notifyNewDecisionLevel() {
 	if (backtrackedtoroot) {
 		backtrackedtoroot = false;
-		clearNotPresentPropagators();
+		if(not getPCSolver().modes().lazy || nbrestarts%10 == 0){
+			clearNotPresentPropagators();
+		}
 	}
 	auto props = event2propagator.at(EV_DECISIONLEVEL);
 	for (uint i = 0; i < size(EV_DECISIONLEVEL); ++i) {
@@ -316,7 +319,10 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 		}
 		props[i]->notifyBacktrack(untillevel, decision);
 	}
-	backtrackedtoroot = untillevel == 0;
+	if(untillevel == 0){
+		backtrackedtoroot = true;
+		nbrestarts++;
+	}
 }
 
 int EventQueue::getNbOfFormulas() const {
