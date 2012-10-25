@@ -1240,8 +1240,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 			return l_False;
 		}
 
-		// NO CONFLICT
-		if ((maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
+		if (confl==nullPtrClause && (maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
 			if(decisionLevel()!=0){
 				cancelUntil(0);
 			}
@@ -1287,7 +1286,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				}
 			}
 
-		} else {
+		} else { // NO CONFLICT
 			// Simplify the set of problem clauses:
 			if (decisionLevel() == 0 && not simplify()) {
 				return l_False;
