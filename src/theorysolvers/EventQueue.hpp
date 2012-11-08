@@ -67,7 +67,7 @@ public:
 
 	void acceptForPropagation(Propagator* propagator){
 		if(not propagator->isQueued() && propagator->isPresent()){
-			fastqueue.push_back(propagator);
+			fastestqueue.push_back(propagator);
 		}
 	}
 
