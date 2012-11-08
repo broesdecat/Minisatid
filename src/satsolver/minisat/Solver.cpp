@@ -592,6 +592,26 @@ bool Solver::satisfied(const Clause& c) const {
 
 // BACKTRACKING
 
+lbool operator not(lbool orig){
+	if(orig==l_True){
+		return l_False;
+	}else if(orig==l_False){
+		return l_True;
+	}else{
+		return orig;
+	}
+}
+
+void Solver::randomizedRestart(){
+	for(uint i=0; i<trail_lim.size(); ++i){
+		auto decvar = var(trail[trail_lim[i]]);
+		if(user_pol[decvar]!=l_Undef){
+			user_pol[decvar] = drand(random_seed)<0.5?l_Undef:(drand(random_seed)>0.5?l_True:l_False);
+		}
+	}
+	cancelUntil(0);
+}
+
 void Solver::uncheckedBacktrack(int level) {
 	if (verbosity > 8) {
 		clog << "Backtracking to " << level << "\n";

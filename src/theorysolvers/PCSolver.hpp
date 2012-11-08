@@ -304,6 +304,11 @@ public:
 	void acceptForDecidable(Atom v, Propagator* prop);
 
 	int getNbOfFormulas() const;
+
+private:
+	uint maxGroundingIterationsBeforeRestart, currentNbGroundingIterations;
+public:
+	void notifyGroundingIteration();
 };
 
 }

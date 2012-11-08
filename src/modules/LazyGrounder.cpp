@@ -63,6 +63,7 @@ rClause LazyResidual::notifypropagate() {
 		break;
 	}
 	//cerr <<"Firing " <<toString(residual) <<" for watched value " <<watchedvalue <<" with value " <<truthvalue <<"\n";
+	getPCSolver().notifyGroundingIteration();
 	monitor->requestGrounding(watchedvalue);
 
 	if (not getPCSolver().isUnsat()) { // NOTE: otherwise, it will be called later and would be incorrect here!
@@ -192,6 +193,9 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 	bool groundedall = false;
 	if (tocheck.conjunction) {
 		if (value(tocheck.head) == l_True) {
+			getPCSolver().notifyGroundingIteration();
+		}
+		if (value(tocheck.head) == l_True) {
 			groundedall = true;
 			bool stilldelayed = true;
 			monitor->requestGrounding(clauseID, true, stilldelayed); // get all grounding
@@ -219,6 +223,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 		while (nonfalse < 1) { // NOTE 1 or 2 in this condition is the difference between one-watched or two-watched schema!
 			MAssert(tocheck.body.size()+1>=index);
 			if (tocheck.body.size() <= index) {
+				getPCSolver().notifyGroundingIteration();
 				bool stilldelayed = true;
 				newgrounding.clear();
 				monitor->requestGrounding(clauseID, false, stilldelayed);

@@ -39,7 +39,8 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 			cpsolver(NULL),
 #endif
 			factory(NULL),
-			trail(new TimeTrail()), terminate(false), saved(false), printer(printer), queue(NULL) {
+			trail(new TimeTrail()), terminate(false), saved(false), printer(printer), queue(NULL),
+			maxGroundingIterationsBeforeRestart(100), currentNbGroundingIterations(0){
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -567,4 +568,12 @@ std::string PCSolver::toString(const Lit& lit) const {
 
 int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas() + optimization.size();
+}
+
+void PCSolver::notifyGroundingIteration(){
+	currentNbGroundingIterations++;
+	if(currentNbGroundingIterations>=maxGroundingIterationsBeforeRestart){
+		maxGroundingIterationsBeforeRestart *= 1.3;
+		getSolver().randomizedRestart();
+	}
 }
