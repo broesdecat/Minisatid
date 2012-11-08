@@ -118,8 +118,12 @@ void LazyIntVar::updateBounds() {
 	}
 	cerr <<"\n";*/
 	int prev = origMinValue();
+	bool unknown = false;
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
 		if (not isFalse(mkPosLit(i->atom))) { // First non-false: then previous one +1 is lowest remaining value
+			if(isUnknown(mkPosLit(i->atom))){
+				unknown = true;
+			}
 			break;
 		}
 		MAssert(i->value!=getMaxElem<int>());
@@ -130,6 +134,9 @@ void LazyIntVar::updateBounds() {
 	int next = origMaxValue();
 	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
 		if (not isTrue(mkPosLit(i->atom))) { // First non true:  => previous is highest remaining value (LEQ!)
+			if(isUnknown(mkPosLit(i->atom))){
+				unknown = true;
+			}
 			break;
 		}
 		next = i->value;
@@ -139,18 +146,17 @@ void LazyIntVar::updateBounds() {
 	//MAssert(isTrue(getGEQLit(minValue())));
 	//MAssert(isTrue(getLEQLit(maxValue())));
 
+	//cerr <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"], originally [" <<origMinValue() <<", " <<origMaxValue() <<"]" <<"\n";
+
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
-	if(not checkAndAddVariable(currentmin)){
-		if(not checkAndAddVariable(currentmax)){
-			if(halve){
-				checkAndAddVariable((currentmin+currentmax)/2, true);
-			}else{
-				checkAndAddVariable(currentmax-1, false);
-			}
-			halve = not halve;
+	if(not unknown && not checkAndAddVariable(currentmin) && not checkAndAddVariable(currentmax)){
+		if(halve){
+			checkAndAddVariable((currentmin+currentmax)/2, true);
+		}else{
+			checkAndAddVariable(currentmax-1, false);
 		}
+		halve = not halve;
 	}
-//	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
 struct CompareVarValue{
@@ -170,9 +176,14 @@ typename List::const_iterator findVariable(int value, const List& list){
 }
 
 bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns true if it was newly created
-//	cerr <<"Checking for value " <<value <<" for var " <<origid() <<"\n";
+	//cerr <<"Checking for value " <<value <<" for var " <<toString(getVarID()) <<"\n";
 	auto i = findVariable(value, leqlits);
 #ifdef DEBUG
+	/*cerr <<"Contains ";
+	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
+		cerr <<j->value <<" ";
+	}
+	cerr <<"\n";*/
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
 		if(j->value==value){
 			MAssert(i==j);
