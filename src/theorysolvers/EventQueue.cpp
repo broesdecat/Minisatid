@@ -106,7 +106,7 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 			continue;
 		}
 		if (not (*i)->isQueued()) {
-			fastqueue.push_back(*i);
+			fastestqueue.push_back(*i);
 		}
 	}
 }
