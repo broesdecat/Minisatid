@@ -71,26 +71,28 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 
 rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	auto reason = reasons.find(lit);
-	MAssert(reason!=reasons.cend());
+	if (reason == reasons.cend()) {
+		throw idpexception("Invalid code path in binconstraint getexplan.");
+	}
+	auto bound = reason->second.bound;
 	if (var(lit) == var(head())) {
 		if (lit == head()) {
-			return getPCSolver().createClause(Disjunction(getID(),  { lit, ~left()->getLEQLit(reason->second.bound), ~right()->getGEQLit(reason->second.bound) }), true);
+			return getPCSolver().createClause(Disjunction(getID(), { lit, ~left()->getLEQLit(bound), ~right()->getGEQLit(reason->second.rightbound) }), true);
 		} else { // head false
-			return getPCSolver().createClause(Disjunction(getID(),  { lit, ~left()->getGEQLit(reason->second.bound), ~right()->getLEQLit(reason->second.bound - 1) }),
-					true);
+			return getPCSolver().createClause(Disjunction(getID(), { lit, ~left()->getGEQLit(bound), ~right()->getLEQLit(reason->second.rightbound) }), true);
 		}
 	} else {
 		if (reason->second.var == left()) {
 			if (reason->second.geq) { // left GEQ bound was propagated
-				return getPCSolver().createClause(Disjunction(getID(),  { lit, head(), ~right()->getGEQLit(reason->second.bound - 1) }), true);
+				return getPCSolver().createClause(Disjunction(getID(), { lit, head(), ~right()->getGEQLit(bound - 1) }), true);
 			} else { // left LEQ bound
-				return getPCSolver().createClause(Disjunction(getID(),  { lit, ~head(), ~right()->getLEQLit(reason->second.bound) }), true);
+				return getPCSolver().createClause(Disjunction(getID(), { lit, ~head(), ~right()->getLEQLit(bound) }), true);
 			}
 		} else { // right var explanation
 			if (reason->second.geq) {
-				return getPCSolver().createClause(Disjunction(getID(),  { lit, ~head(), ~left()->getGEQLit(reason->second.bound) }), true);
+				return getPCSolver().createClause(Disjunction(getID(), { lit, ~head(), ~left()->getGEQLit(bound) }), true);
 			} else {
-				return getPCSolver().createClause(Disjunction(getID(),  { lit, head(), ~left()->getLEQLit(reason->second.bound + 1) }), true);
+				return getPCSolver().createClause(Disjunction(getID(), { lit, head(), ~left()->getLEQLit(bound + 1) }), true);
 			}
 		}
 	}
@@ -108,14 +110,18 @@ rClause BinaryConstraint::notifypropagate() {
 	if (headvalue == l_True) {
 		auto one = left()->getLEQLit(rightmax());
 		auto lit = right()->getLEQLit(rightmax());
-		MAssert(value(lit)==l_True);
+		if (value(lit) != l_True) {
+			throw idpexception("Invalid bin constr path.");
+		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
 			reasons[one] = BinReason(left(), false, rightmax());
 		}
 		auto two = right()->getGEQLit(leftmin());
 		lit = left()->getGEQLit(leftmin());
-		MAssert(value(lit)==l_True);
+		if (value(lit) != l_True) {
+			throw idpexception("Invalid bin constr path.");
+		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
 			reasons[two] = BinReason(right(), true, leftmin());
@@ -123,14 +129,18 @@ rClause BinaryConstraint::notifypropagate() {
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
 		auto lit = right()->getGEQLit(rightmin());
-		MAssert(value(lit)==l_True);
+		if (value(lit) != l_True) {
+			throw idpexception("Invalid bin constr path.");
+		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
 			reasons[one] = BinReason(left(), true, rightmin() + 1);
 		}
 		auto two = right()->getLEQLit(leftmax() - 1);
 		lit = left()->getLEQLit(leftmax());
-		MAssert(value(lit)==l_True);
+		if (value(lit) != l_True) {
+			throw idpexception("Invalid bin constr path.");
+		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
 			reasons[two] = BinReason(right(), false, leftmax() - 1);
@@ -138,18 +148,26 @@ rClause BinaryConstraint::notifypropagate() {
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
 			auto lit = right()->getLEQLit(rightmax());
-			MAssert(value(lit)==l_True);
+			if (value(lit) != l_True) {
+				throw idpexception("Invalid bin constr path.");
+			}
 			lit = left()->getGEQLit(leftmin());
-			MAssert(value(lit)==l_True);
+			if (value(lit) != l_True) {
+				throw idpexception("Invalid bin constr path.");
+			}
 			propagations.push_back(~head());
-			reasons[~head()] = BinReason(NULL, false, left()->minValue());
+			reasons[~head()] = BinReason(NULL, false, left()->minValue(), right()->maxValue());
 		} else if (leftmax() <= rightmin()) {
 			auto lit = right()->getGEQLit(rightmin());
-			MAssert(value(lit)==l_True);
+			if (value(lit) != l_True) {
+				throw idpexception("Invalid bin constr path.");
+			}
 			lit = left()->getLEQLit(leftmax());
-			MAssert(value(lit)==l_True);
+			if (value(lit) != l_True) {
+				throw idpexception("Invalid bin constr path.");
+			}
 			propagations.push_back(head());
-			reasons[head()] = BinReason(NULL, false, left()->maxValue());
+			reasons[head()] = BinReason(NULL, false, left()->maxValue(), right()->minValue());
 		}
 	}
 

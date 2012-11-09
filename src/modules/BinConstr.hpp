@@ -24,11 +24,11 @@ private:
 	struct BinReason {
 		IntView* var;
 		bool geq;
-		int bound;
+		int bound, rightbound; // first is leftbound is headreason, otherwise second bound is irrelevant
 
-		BinReason(): var(NULL), geq(false), bound(0){}
-		BinReason(IntView* var, bool geq, int bound)
-				: var(var), geq(geq), bound(bound) {
+		BinReason(): var(NULL), geq(false), bound(0), rightbound(0){}
+		BinReason(IntView* var, bool geq, int bound, int rightbound = 0)
+				: var(var), geq(geq), bound(bound), rightbound(rightbound) {
 		}
 	};
 	std::map<Lit, BinReason> reasons; // Maps a literal to the propagated intvar (NULL if head) and to the one value necessary for explaining it.
