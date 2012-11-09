@@ -308,6 +308,9 @@ public:
 private:
 	uint maxGroundingIterationsBeforeRestart, currentNbGroundingIterations;
 public:
+	uint getCurrentNumberOfGroundingIterations() const {
+		return currentNbGroundingIterations;
+	}
 	void notifyGroundingIteration();
 };
 
