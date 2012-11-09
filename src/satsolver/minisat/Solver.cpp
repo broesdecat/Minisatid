@@ -141,6 +141,16 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	return v;
 }
 
+double Solver::getActivity(Atom var) const {
+	MAssert(var>=0 && activity.size()>var);
+	return activity[var];
+}
+
+void Solver::setActivity(Atom var, double act){
+	MAssert(var>=0 && activity.size()>var);
+	varBumpActivity(var, act-activity[var]);
+}
+
 inline void Solver::createNewDecisionLevel() {
 	trail_lim.push(trail.size());
 	getPCSolver().newDecisionLevel();

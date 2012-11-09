@@ -66,6 +66,9 @@ public:
 	Atom newVar();
 	void createVar(Atom v, TheoryID theoryID);
 
+	double getActivity(Atom var) const;
+	void setActivity(Atom var, double act);
+
 	// NOTE: do not pass around indiscriminately! Does not pass on ownership
 	VarCreation* getVarCreator() const { return varcreator; }
 

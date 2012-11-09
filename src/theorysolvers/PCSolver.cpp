@@ -295,6 +295,13 @@ void PCSolver::createVar(Atom v, TheoryID ) {
 	}
 }
 
+double PCSolver::getActivity(Atom var) const{
+	return getSolver().getActivity(var);
+}
+void PCSolver::setActivity(Atom var, double act){
+	getSolver().setActivity(var, act);
+}
+
 int PCSolver::newSetID() {
 	return getFactory().newSetID();
 }

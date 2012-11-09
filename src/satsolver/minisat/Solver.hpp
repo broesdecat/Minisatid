@@ -218,6 +218,8 @@ public:
 
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
 	Atom newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
+	void setActivity(Atom var, double activity);
+	double getActivity(Atom var) const;
 
 	void setAssumptions(const std::vector<Lit>& assumps);
 	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
