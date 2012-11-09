@@ -55,7 +55,7 @@ private:
 	long nbrestarts;
 	bool backtrackedtoroot;
 
-	bool _propagating, _requestedmore;
+	bool _propagating, _backtracking, _requestedmore;
 
 public:
 	EventQueue(PCSolver& pcsolver);

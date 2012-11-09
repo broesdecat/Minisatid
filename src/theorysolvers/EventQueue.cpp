@@ -27,6 +27,7 @@ EventQueue::EventQueue(PCSolver& pcsolver)
 			nbrestarts(0),
 			backtrackedtoroot(false),
 			_propagating(false),
+			_backtracking(false),
 			_requestedmore(false) {
 	event2propagator[EV_PROPAGATE];
 	event2propagator[EV_DECISIONLEVEL];
@@ -221,6 +222,8 @@ Propagator* EventQueue::getAndRemoveFirstPropagator() {
 }
 
 rClause EventQueue::notifyPropagate() {
+	MAssert(not _backtracking);
+
 	auto confl = nullPtrClause;
 
 	_requestedmore = true;
@@ -315,6 +318,9 @@ void EventQueue::notifyNewDecisionLevel() {
 }
 
 void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
+	MAssert(not _backtracking);
+	_backtracking = true;
+	_propagating = true;
 	auto props = event2propagator.at(EV_BACKTRACK);
 	for (uint i = 0; i < size(EV_BACKTRACK); ++i) {
 		if (!props[i]->isPresent()) {
@@ -326,6 +332,8 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 		backtrackedtoroot = true;
 		nbrestarts++;
 	}
+	_backtracking = false;
+	_propagating = false;
 }
 
 int EventQueue::getNbOfFormulas() const {
