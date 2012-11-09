@@ -268,6 +268,13 @@ private:
 
 	int currentconflicts, maxconflicts;
 
+	bool twovalued;
+public:
+	bool isTwoValued() const{
+		return twovalued;
+	}
+
+private:
 	// Statistics: (read-only member variable)
 	uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
 	uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;

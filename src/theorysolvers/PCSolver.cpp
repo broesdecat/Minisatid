@@ -120,6 +120,10 @@ bool PCSolver::moreModelsPossible() const {
 	return getCurrentDecisionLevel() != getSolver().getNbOfAssumptions();
 }
 
+bool PCSolver::isTwoValued() const{
+	return getSolver().isTwoValued();
+}
+
 lbool PCSolver::value(Lit p) const {
 	return getSolver().value(p);
 }

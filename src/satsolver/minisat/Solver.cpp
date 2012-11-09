@@ -79,7 +79,9 @@ Solver::Solver(PCSolver* s, bool oneshot)
 					,
 			learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5),
 
-			currentconflicts(0), maxconflicts(0)
+			currentconflicts(0), maxconflicts(0),
+
+			twovalued(false)
 
 			// Statistics: (formerly in 'SolverStats')
 					,
@@ -137,6 +139,8 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	setDecidable(v, dvar);
 
 	newvars.push_back(v);
+
+	twovalued = false;
 
 	return v;
 }
@@ -592,6 +596,7 @@ void Solver::uncheckedBacktrack(int level) {
 	if (verbosity > 8) {
 		clog << "Backtracking to " << level << "\n";
 	}
+	twovalued = false;
 	Lit decision = trail[trail_lim[level]];
 	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
 		Atom x = var(trail[c]);
@@ -1324,8 +1329,13 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				next = pickBranchLit();
 
 				if (next == lit_Undef) {
+					twovalued = true;
+				}
+
+				if(isTwoValued()){
 					confl = getPCSolver().notifyFullAssignmentFound();
-					if (confl != nullPtrClause) {
+
+					if(confl!=nullPtrClause || not isTwoValued()){
 						continue;
 					}
 					return l_True;

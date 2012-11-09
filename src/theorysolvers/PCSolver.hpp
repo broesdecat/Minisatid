@@ -92,6 +92,7 @@ public:
 	std::vector<Lit> getDecisions() const;
 	void invalidate(litlist& clause) const;
 	bool moreModelsPossible() const;
+	bool isTwoValued() const;
 
 	// Level information
 public:
