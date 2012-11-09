@@ -125,11 +125,11 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	activity.push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
 	seen.push(0);
 
-	//if(getPCSolver().modes().lazy){
-	//	polarity.push(((float)rand()/ RAND_MAX)>0.5);
-	//}else{
-	polarity.push(true);
-	//}
+//	if(getPCSolver().modes().lazy){
+//		polarity.push(((float)rand()/ RAND_MAX)>0.2);
+//	}else{
+		polarity.push(true);
+//	}
 
 	user_pol.push(upol);
 	decision.push();
@@ -700,14 +700,17 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		}
 	}
 
-	MAssert(lvl<=decisionLevel());
+	if(lvl>decisionLevel()){
+		throw idpexception("Invalid code path.");
+	}
 
 	if(lvl<decisionLevel()){
 		uncheckedBacktrack(lvl);
 	}
 
-	MAssert(confl!=CRef_Undef);
-	MAssert(lvl==decisionLevel());
+	if(confl==CRef_Undef || lvl!=decisionLevel()){
+		throw idpexception("Invalid code path.");
+	}
 	/*AE*/
 
 	// Generate conflict clause:
@@ -722,7 +725,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 	/*A*/
 	bool deleteImplicitClause = false;
 	do {
-		MAssert(confl != CRef_Undef);
+		if(confl==CRef_Undef){
+			throw idpexception("Invalid code path.");
+		}
 		// (otherwise should be UIP)
 		auto& c = ca[confl];
 
@@ -738,8 +743,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		}
 		/*AE*/
 
-		if (c.learnt())
+		if (c.learnt()){
 			claBumpActivity(c);
+		}
 
 		for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
 			Lit q = c[j];
@@ -747,10 +753,11 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			if (!seen[var(q)] && getLevel(var(q)) > 0) {
 				varBumpActivity(var(q));
 				seen[var(q)] = 1;
-				if (getLevel(var(q)) >= decisionLevel())
+				if (getLevel(var(q)) >= decisionLevel()){
 					pathC++;
-				else
+				} else {
 					out_learnt.push(q);
+				}
 			}
 		}
 
@@ -778,11 +785,25 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			confl = getPCSolver().getExplanation(p);
 #ifdef DEBUG
 			if(confl!=CRef_Undef) {
+				clog <<"Found explanation is ";
+				printClause(confl);
 				auto& test = ca[confl];
-				MAssert(value(test[0])!=l_Undef);
+				if(value(test[0])==l_Undef){
+					throw idpexception("Invalid code path.");
+				}
 				for(int i=1; i<test.size(); ++i) {
-					MAssert(value(test[i])!=l_Undef);
-					MAssert(getPCSolver().assertedBefore(var(test[i]), var(test[0])));
+					if(value(test[i])==l_Undef){
+						throw idpexception("Invalid code path.");
+					}
+					if(not getPCSolver().assertedBefore(var(test[i]), var(test[0]))){
+						clog <<"Lastest decision level: \n";
+						for(uint k = trail_lim.last(); k<trail.size(); ++k){
+							clog <<toString(trail[k]) <<" ";
+						}
+						clog <<"\n";
+						clog <<toString(test[i]) <<" not before " <<toString(test[0]) <<"\n";
+						throw idpexception("Invalid code path.");
+					}
 				}
 			}
 #endif
