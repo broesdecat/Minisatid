@@ -189,9 +189,12 @@ void EventQueue::setTrue(const Lit& l) {
 
 rClause EventQueue::notifyFullAssignmentFound() {
 	auto confl = nullPtrClause;
-	for (auto i = event2propagator[EV_MODELFOUND].cbegin(); confl == nullPtrClause && i < event2propagator[EV_MODELFOUND].cend(); ++i) {
+	for (auto i = event2propagator[EV_MODELFOUND].cbegin(); i < event2propagator[EV_MODELFOUND].cend(); ++i) {
 		if ((*i)->isPresent()) {
 			confl = (*i)->notifyFullAssignmentFound();
+		}
+		if(confl!=nullPtrClause || not getPCSolver().isTwoValued()){
+			break;
 		}
 	}
 	return confl;
