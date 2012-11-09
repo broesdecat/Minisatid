@@ -810,8 +810,10 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			confl = getPCSolver().getExplanation(p);
 #ifdef DEBUG
 			if(confl!=CRef_Undef) {
-				clog <<"Found explanation is ";
-				printClause(confl);
+				if (verbosity > 6) {
+					clog <<"Found explanation is ";
+					printClause(confl);
+				}
 				auto& test = ca[confl];
 				if(value(test[0])==l_Undef){
 					throw idpexception("Invalid code path.");
@@ -821,12 +823,14 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 						throw idpexception("Invalid code path.");
 					}
 					if(not getPCSolver().assertedBefore(var(test[i]), var(test[0]))){
-						clog <<"Lastest decision level: \n";
-						for(uint k = trail_lim.last(); k<trail.size(); ++k){
-							clog <<toString(trail[k]) <<" ";
+						if (verbosity > 1) {
+							clog <<"Lastest decision level: \n";
+							for(uint k = trail_lim.last(); k<trail.size(); ++k){
+								clog <<toString(trail[k]) <<" ";
+							}
+							clog <<"\n";
+							clog <<toString(test[i]) <<" not before " <<toString(test[0]) <<"\n";
 						}
-						clog <<"\n";
-						clog <<toString(test[i]) <<" not before " <<toString(test[0]) <<"\n";
 						throw idpexception("Invalid code path.");
 					}
 				}
