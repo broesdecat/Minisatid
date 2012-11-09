@@ -80,29 +80,28 @@ LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implicatio
 		: 	Propagator(id, engine, "lazy tseitin eq"),
 			clauseID(clauseID),
 			monitor(monitor),
-			waseq(impl.type == ImplicationType::EQUIVALENT),
+			type(impl.type),
 			implone(impl),
 			impltwo(impl),
 			alreadypropagating(false) {
-	MAssert(impl.type!=ImplicationType::IMPLIEDBY);
-	if (waseq) {
+	if (hasImplies()) {
 		implone = Implication(getID(), impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
+	}
+	if (hasImpliedBy()) {
 		litlist lits;
 		for (auto i = impl.body.cbegin(); i < impl.body.cend(); ++i) {
 			lits.push_back(not *i);
 		}
 		impltwo = Implication(getID(), not impl.head, ImplicationType::IMPLIES, lits, not impl.conjunction);
-	} else {
-		implone = impl;
 	}
 
-	if (implone.conjunction) {
+	if (hasImplies() && implone.conjunction) {
 		for (auto i = implone.body.cbegin(); i < implone.body.cend(); ++i) {
 			add(Disjunction(getID(), { not implone.head, *i }));
 		}
 		implone.body.clear(); // Clear all current literals. Only when more are added do we need to consider this
 	}
-	if (waseq && impltwo.conjunction) {
+	if (hasImpliedBy() && impltwo.conjunction) {
 		for (auto i = impltwo.body.cbegin(); i < impltwo.body.cend(); ++i) {
 			add(Disjunction(getID(), { not impltwo.head, *i }));
 		}
@@ -125,11 +124,9 @@ public:
 	BasicPropWatch(const Lit& watch, Propagator* p)
 			: 	watch(watch),
 				p(p) {
-		//cerr <<"Watching " <<toString(watch, p->getPCSolver()) <<" in lazy propagator.\n";
 	}
 
 	virtual void propagate() {
-		//cerr <<"Accepted for propagation on " <<toString(watch, p->getPCSolver()) <<"\n";
 		p->getPCSolver().acceptForPropagation(p);
 	}
 	virtual const Lit& getPropLit() const {
@@ -160,15 +157,14 @@ rClause LazyTseitinClause::notifypropagate() {
 		return nullPtrClause;
 	}
 	alreadypropagating = true;
-	//cerr <<"Propagating " <<long(this) <<"\n";
 	MAssert(isPresent());
 	MAssert(not getPCSolver().isUnsat());
 
 	bool groundedall = false;
-	if (waseq) {
-		groundedall = checkPropagation(impltwo, true, implone); // NOTE: invar: impltwo is the implication with swapped signs!
+	if (hasImpliedBy()) {
+		groundedall = checkPropagation(impltwo, true, implone);
 	}
-	if (not groundedall) {
+	if (not groundedall && hasImplies()) {
 		groundedall = checkPropagation(implone, false, impltwo);
 	}
 
@@ -177,10 +173,9 @@ rClause LazyTseitinClause::notifypropagate() {
 	}
 
 	if (groundedall) {
-		notifyNotPresent(); // IMPORTANT/ only do this after finishparsing as this propagator is then DELETED
+		notifyNotPresent(); // IMPORTANT: only do this after finishparsing as this propagator is then DELETED
 	}
 
-	//cerr <<"Finished propagating " <<long(this) <<"\n";
 	auto confl = nullPtrClause;
 	if (getPCSolver().isUnsat()) {
 		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
@@ -190,7 +185,6 @@ rClause LazyTseitinClause::notifypropagate() {
 }
 
 void LazyTseitinClause::addGrounding(const litlist& list) {
-	//cerr <<"Adding grounding" <<long(this) <<"\n";
 	newgrounding = list;
 }
 
@@ -201,15 +195,17 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 			groundedall = true;
 			bool stilldelayed = true;
 			monitor->requestGrounding(clauseID, true, stilldelayed); // get all grounding
-			for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-				add(Disjunction(getID(), { not tocheck.head, signswapped ? not *i : *i }));
-				if (waseq) {
-					complement.body.push_back(signswapped ? *i : not *i);
+			for (auto bdl : newgrounding) {
+				add(Disjunction(getID(), { not tocheck.head, signswapped ? not bdl : bdl }));
+				if (isEquivalence()) {
+					complement.body.push_back(signswapped ? bdl : not bdl);
 				}
 			}
-			auto lits = complement.body;
-			lits.push_back(not complement.head);
-			add(Disjunction(getID(), lits));
+			if(isEquivalence()) {
+				auto lits = complement.body;
+				lits.push_back(not complement.head);
+				add(Disjunction(getID(), lits));
+			}
 		} else { // Can only happen once, at initialization (if the head has not yet become true at any point). If it becomes true, it is grounded and removed
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this));
 		}
@@ -233,12 +229,12 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool signswapped,
 					}
 				}
 				MAssert(not newgrounding.empty());
-				for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-					tocheck.body.push_back(signswapped ? not *i : *i);
+				for (auto bdl : newgrounding) {
+					tocheck.body.push_back(signswapped ? not bdl : bdl);
 				}
-				if (waseq) {
-					for (auto i = newgrounding.cbegin(); i < newgrounding.cend(); ++i) {
-						add(Disjunction(getID(), { not complement.head, signswapped ? *i : not *i }));
+				if (isEquivalence()) {
+					for (auto bdl : newgrounding) {
+						add(Disjunction(getID(), { not complement.head, signswapped ? bdl : not bdl }));
 					}
 				}
 			}

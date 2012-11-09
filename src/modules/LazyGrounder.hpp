@@ -24,14 +24,14 @@
  * 		if it cannot be made true any more, backtrack to the appropriate level and add the full clause to the solver
  */
 
-namespace MinisatID{
+namespace MinisatID {
 
 class PCSolver;
 class Watch;
 
 class LazyResidual;
 
-class LazyResidual: public Propagator{
+class LazyResidual: public Propagator {
 private:
 	LazyGroundingCommand* monitor;
 	Atom residual;
@@ -42,19 +42,28 @@ public:
 
 	virtual rClause notifypropagate();
 	virtual void accept(ConstraintVisitor& visitor);
-	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
-	virtual void notifyNewDecisionLevel() { MAssert(false); }
-	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }
-	virtual int getNbOfFormulas() const { return 1; }
+	virtual rClause getExplanation(const Lit&) {
+		MAssert(false);
+		return nullPtrClause;
+	}
+	virtual void notifyNewDecisionLevel() {
+		MAssert(false);
+	}
+	virtual void notifyBacktrack(int, const Lit&) {
+		MAssert(false);
+	}
+	virtual int getNbOfFormulas() const {
+		return 1;
+	}
 };
 
-class LazyTseitinClause: public Propagator{
+class LazyTseitinClause: public Propagator {
 private:
 	int clauseID; // The reference the grounder can use to identify this lazy clause
 	LazyGrounder* monitor; // To request additional grounding
-	bool waseq; // True if the lazy Tseitin represents both directions of the equivalence
-	Implication implone; // Represents head => body
-	Implication impltwo; // Represents ~head => ~body Impltwo is irrelevant if waseq is false.
+	ImplicationType type;
+	Implication implone; // Represents IMPLIES:  head => body
+	Implication impltwo; // Represents IMPLIEDBY: ~head => ~body Impltwo is irrelevant if waseq is false.
 
 	litlist newgrounding; // Allows to temporarily store the newly grounded literals
 
@@ -67,13 +76,34 @@ public:
 
 	virtual rClause notifypropagate();
 	virtual void accept(ConstraintVisitor& visitor);
-	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
-	virtual void notifyNewDecisionLevel() { MAssert(false); }
-	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }
-	virtual int getNbOfFormulas() const { return 1; } // TODO incorrect
+	virtual rClause getExplanation(const Lit&) {
+		MAssert(false);
+		return nullPtrClause;
+	}
+	virtual void notifyNewDecisionLevel() {
+		MAssert(false);
+	}
+	virtual void notifyBacktrack(int, const Lit&) {
+		MAssert(false);
+	}
+	virtual int getNbOfFormulas() const {
+		return 1;
+	} // TODO incorrect
 
 private:
 	bool checkPropagation(Implication& tocheck, bool signswapped, Implication& complement);
+
+	bool isEquivalence() const {
+		return type == ImplicationType::EQUIVALENT;
+	}
+
+	bool hasImplies() const {
+		return isEquivalence() || type == ImplicationType::IMPLIES;
+	}
+
+	bool hasImpliedBy() const {
+		return isEquivalence() || type == ImplicationType::IMPLIEDBY;
+	}
 };
 }
 
