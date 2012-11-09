@@ -57,7 +57,6 @@ IDSolver::IDSolver(PCSolver* s, int definitionID)
 		: 	Propagator( { }, s, "definition"),
 			definitionID(definitionID),
 			needinitialization(false),
-			atend(true),
 			infactnotpresent(false),
 			minvar(0),
 			nbvars(0),
@@ -990,11 +989,10 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
 rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT;
 	if (needinitialization) {
-//		if(not atend){
-//			return nullPtrClause;
-//		}
+		if(getPCSolver().getCurrentNumberOfGroundingIterations()%10!=0){
+			return nullPtrClause;
+		}
 		initialize();
-		atend = false;
 		if (getPCSolver().isUnsat()) {
 			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 		}
@@ -1078,7 +1076,6 @@ rClause IDSolver::notifyFullAssignmentFound() {
 		return nullPtrClause;
 	}
 	twovalueddef = true;
-	atend = true;
 	auto confl = notifypropagate();
 	MAssert(not needinitialization);
 	if (confl == nullPtrClause) {

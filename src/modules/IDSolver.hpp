@@ -167,7 +167,6 @@ private:
 	int definitionID;
 
 	bool needinitialization;
-	bool atend;
 	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
 	Atom minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
