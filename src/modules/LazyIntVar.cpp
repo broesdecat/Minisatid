@@ -54,6 +54,11 @@ Lit LazyIntVar::addVariable(int value){
 	}
 
 	auto var = engine().newVar();
+	auto firstact = i>0?engine().getActivity((leqlits.begin()+i-1)->atom):0;
+	auto secondact = i+1<leqlits.size()?engine().getActivity((leqlits.begin()+i+1)->atom):0;
+	auto act = (firstact + secondact) / 2;
+	engine().setActivity(var, act);
+
 	leqlits.insert(leqlits.begin()+i, IntVarValue(this, var, value));
 #ifdef DEBUG
 	bool found = false;
