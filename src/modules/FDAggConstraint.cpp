@@ -35,7 +35,12 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 }
 
 IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
-	auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), min, max);
+	IntVar* newvar = NULL;
+	if(abs(max-min)<1000){ // FIXME duplicate heuristic in Propagatorfactory
+		newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), min, max);
+	}else{
+		newvar = new LazyIntVar(getID(), &getPCSolver(), getPCSolver().newID(), min, max);
+	}
 	newvar->finish();
 	return new IntView(newvar, 0);
 }
