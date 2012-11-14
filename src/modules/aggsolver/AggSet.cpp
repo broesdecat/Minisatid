@@ -71,6 +71,11 @@ TypedSet::TypedSet(PCSolver* solver, int setid, AggProp const * const w, const v
 TypedSet::~TypedSet() {
 	deleteList<Agg>(aggregates);
 	delete (prop);
+	for(auto atom2reason:reasons){
+		if(atom2reason.second!=NULL){
+			delete(atom2reason.second);
+		}
+	}
 }
 
 void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {

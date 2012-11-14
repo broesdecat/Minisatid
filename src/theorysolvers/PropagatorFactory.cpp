@@ -526,6 +526,8 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 
 	aggs.clear();
 
+	delete(set);
+
 	return unsat ? SATVAL::UNSAT : SATVAL::POS_SAT;
 }
 

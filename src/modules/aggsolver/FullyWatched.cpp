@@ -22,7 +22,13 @@ using namespace std;
 using namespace MinisatID;
 
 FWAgg::FWAgg(TypedSet* set) :
-		AggPropagator(set) {
+		AggPropagator(set), savedtrailsize(-1), savedlevel(NULL) {
+}
+
+FWAgg::~FWAgg(){
+	for(auto fwtrail:trail){
+		delete(fwtrail);
+	}
 }
 
 void FWAgg::internalInitialize(bool& unsat, bool& sat) {

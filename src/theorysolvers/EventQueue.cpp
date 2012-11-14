@@ -37,8 +37,9 @@ EventQueue::EventQueue(PCSolver& pcsolver)
 }
 
 EventQueue::~EventQueue() {
-	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
-		delete (*i);
+	deleteList<Propagator>(allpropagators);
+	for(auto lit2watch: lit2watches){
+		deleteList<GenWatch>(lit2watch);
 	}
 }
 

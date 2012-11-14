@@ -61,7 +61,7 @@ protected:
 
 public:
 	FWAgg(TypedSet* set);
-	virtual ~FWAgg(){}
+	virtual ~FWAgg();
 
 	virtual void 	internalInitialize		(bool& unsat, bool& sat);
 	virtual rClause reInitialize			() { return propagateAtEndOfQueue(); }

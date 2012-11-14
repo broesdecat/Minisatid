@@ -34,8 +34,8 @@ GenPWAgg::GenPWAgg(TypedSet* set)
 }
 
 GenPWAgg::~GenPWAgg() {
-	deleteList<GenPWatch>(ws);
-	deleteList<GenPWatch>(nws);
+//	deleteList<GenPWatch>(ws);
+//	deleteList<GenPWatch>(nws);
 }
 
 /**
@@ -715,6 +715,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 	const auto& agg = *worstagg;
 
 	if (oneagg && solver.value(agg.getHead()) == l_True) {
+		deleteList<TempWatch>(nws);
 		return 0;
 	}
 
@@ -764,5 +765,6 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, co
 		}
 	}
 
+	deleteList<TempWatch>(nws);
 	return ((double) totalwatches) / totallits;
 }
