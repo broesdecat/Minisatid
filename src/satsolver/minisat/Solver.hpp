@@ -396,6 +396,11 @@ protected:
 	static inline int irand(double& seed, int size) {
 		return (int) (drand(seed) * size);
 	}
+
+public:
+	double getRandNumber(){
+		return drand(random_seed);
+	}
 };
 
 //=================================================================================================

@@ -195,8 +195,11 @@ bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns
 		return false;
 	}else{
 		auto lit = addVariable(value);
+		auto solver = getPCSolver().getSATSolver();
 		if(defaulttruepol){
-			getPCSolver().getSATSolver()->setInitialPolarity(var(lit), true);
+			solver->setInitialPolarity(var(lit), true);
+		}else{
+			solver->setInitialPolarity(var(lit), solver->getRandNumber()<0.2); // FIXME not included in random seed!
 		}
 		return true;
 	}
