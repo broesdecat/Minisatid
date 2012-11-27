@@ -268,8 +268,8 @@ rClause EventQueue::notifyPropagate() {
 
 rClause EventQueue::runEternalPropagators() {
 	auto confl = nullPtrClause;
-	auto props = event2propagator.at(EV_PROPAGATE);
-	for (uint i = 0; i < size(EV_PROPAGATE) && confl == nullPtrClause; ++i) {
+	auto& props = event2propagator.at(EV_PROPAGATE);
+	for (uint i = 0; i < props.size() && confl == nullPtrClause; ++i) {
 		confl = props[i]->notifypropagate();
 	}
 	return confl;
@@ -309,7 +309,7 @@ void EventQueue::notifyNewDecisionLevel() {
 			clearNotPresentPropagators();
 		}
 	}
-	auto props = event2propagator.at(EV_DECISIONLEVEL);
+	auto& props = event2propagator.at(EV_DECISIONLEVEL);
 	for (uint i = 0; i < size(EV_DECISIONLEVEL); ++i) {
 		if (!props[i]->isPresent()) {
 			continue;
@@ -322,7 +322,7 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 	MAssert(not _backtracking);
 	_backtracking = true;
 	_propagating = true;
-	auto props = event2propagator.at(EV_BACKTRACK);
+	auto& props = event2propagator.at(EV_BACKTRACK);
 	for (uint i = 0; i < size(EV_BACKTRACK); ++i) {
 		if (!props[i]->isPresent()) {
 			continue;
