@@ -1366,7 +1366,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				}
 			}
 
-			if (verbosity > 3) {
+			if (verbosity > 1) {
 				getPCSolver().printChoiceMade(decisionLevel() + 1, next);
 			}
 

@@ -499,7 +499,7 @@ void PCSolver::printEnqueued(const Lit& p) const {
 }
 
 void PCSolver::printChoiceMade(int level, const Lit& l) const {
-	if (modes().verbosity >= 2) {
+	if (modes().verbosity >= 1) {
 		clog << "> Choice literal, dl " << level << ": " << toString(l) << ".\n";
 	}
 }
