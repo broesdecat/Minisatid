@@ -190,10 +190,10 @@ struct lessthan_permute {
 };
 
 // NOTE: do not reimplement as sort with a random comparison operator, comparison should be CONSISTENT on consecutive calls!
-void permuteRandomly(vec<Lit>& lits) {
+void Solver::permuteRandomly(vec<Lit>& lits) {
 	vector<permute> newpositions;
 	for (int i = 0; i < lits.size(); ++i) {
-		newpositions.push_back(permute(rand(), lits[i]));
+		newpositions.push_back(permute(irand(random_seed, lits.size()), lits[i]));
 	}
 	std::sort(newpositions.begin(), newpositions.end(), lessthan_permute());
 	for (int i = 0; i < lits.size(); ++i) {
@@ -265,7 +265,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 	ps.shrinkByNb(i - j);
 
 	// NOTE: sort randomly to reduce dependency on grounding and literal introduction mechanics (certainly for lazy grounding)
-	permuteRandomly(ps);
+//	permuteRandomly(ps);
 
 	if (ps.size() == 0) {
 		return ok = false;
