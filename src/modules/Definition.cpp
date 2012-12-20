@@ -23,7 +23,7 @@ void Definition::addToPropagators() {
 			}
 			r.push_back(i->second);
 		}
-		getIDolver(atom2rule.first)->addRuleSet(r);
+		getIDSolver(atom2rule.first)->addRuleSet(r);
 		deleteList<TempRule, Atom>(atom2rule.second);
 	}
 }

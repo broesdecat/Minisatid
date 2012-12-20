@@ -67,7 +67,7 @@ private:
 		return idsolvers.find(id) != idsolvers.cend();
 	}
 
-	IDSolver* getIDolver(int id) {
+	IDSolver* getIDSolver(int id) {
 		if (!hasIDSolver(id)) {
 			addIDSolver(id);
 		}
