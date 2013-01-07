@@ -13,7 +13,7 @@
 #ifndef NDEBUG
 #define MAssert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw MinisatID::idpexception(ss.str());} }
 #else
-#define MAssert(x) do {} while(0)
+#define MAssert(x) do { (void)(x); } while(0)
 #endif
 
 #endif /* MASSERT_HPP_ */
