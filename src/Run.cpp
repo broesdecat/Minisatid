@@ -148,7 +148,7 @@ int MinisatID::run(const std::string& inputfile, SolverOption modes) {
 				t.execute();
 				break;}
 			case Inference::UNSATCORE:{
-				auto t = OneShotUnsatCoreExtraction(modes);
+                OneShotUnsatCoreExtraction t{modes};
 				parseAndInitializeTheory(inputfile, &t);
 				t.execute();
 				break;}

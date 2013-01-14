@@ -26,9 +26,10 @@ void OneShotUnsatCoreExtraction::add(const WLSet& set) {
  * From P <=> Agg
  * go to
  *
- * P <=> (Pnew | M1) & M2
+ * ts <=> Pnew | MF
+ * P <=> ts & MT
  * Pnew <=> Agg
- * and M1 assumed false, M2 assumed true
+ * and MF assumed false, MT assumed true
  */
 void OneShotUnsatCoreExtraction::add(const Aggregate& agg) {
 	Aggregate extended(agg);
@@ -68,7 +69,14 @@ void OneShotUnsatCoreExtraction::add(const Aggregate& agg) {
 
 }
 /**
- * Exactly same idea is with the aggregate (but then defined
+ * Exactly same idea is with the aggregate (but then defined)
+ * From P <- Body
+ * go to
+ * 
+ * ts <- Pnew | MF
+ * P <- ts & MT
+ * Pnew <- Body
+ * and MF assumed false, MT assumed true
  */
 void OneShotUnsatCoreExtraction::add(const Rule& rule) {
 	Rule extended(rule);
@@ -101,28 +109,32 @@ void OneShotUnsatCoreExtraction::add(const Rule& rule) {
  */
 
 void OneShotUnsatCoreExtraction::innerExecute() {
-	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxoptions, { });
-	mx.setAssumptionsAsInternal(markerAssumptions);
-	mx.execute();
-	MAssert(mx.isUnsat());
-	auto explan = mx.getUnsatExplanation();
-	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog, true);
-	clog << "Unsat core: \n";
-	for (auto i = explan.cbegin(); i < explan.cend(); ++i) {
-		for (auto j = marker2ids[var(*i)].cbegin(); j < marker2ids[var(*i)].cend(); ++j) {
-			unsatcore.push_back(*j);
-			clog << "\t";
-			id2constr[*j]->accept(&printer);
+	mxopts = std::unique_ptr<ModelExpandOptions>(new ModelExpandOptions(0, Models::NONE, Models::NONE));
+	mx = std::unique_ptr<ModelExpand>(new ModelExpand(space, *mxopts, { }));
+	mx->setAssumptionsAsInternal(markerAssumptions);
+	mx->execute();
+	if (mx->isSat()) {
+		return;
+	}
+	auto explanation = mx->getUnsatExplanation();
+	//auto printer = RealECNFPrinter<std::ostream>(mx->getSpace(), clog, true);
+	//clog << "Unsat core: \n";
+	for (auto assumption : explanation) {
+		for (auto id : marker2ids[var(assumption)]) {
+			unsatcore.push_back(id);
+            // TODO: do output this when running directly in MiniSAT
+	//		clog << "\t";
+	//		id2constr[id]->accept(&printer);
 		}
 	}
-	// TODO minimization?
-	// TODO translation into some useful format
 }
 
 OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options)
 		: Task(options), ExternalConstraintVisitor(options, "unsat-core-extractor"), space(new Space(getRemapper(), getTranslator(), options, true)) {
 }
 OneShotUnsatCoreExtraction::~OneShotUnsatCoreExtraction() {
+	for (auto pair : id2constr) {
+		delete pair.second;
+	}
 	// delete space?
 }

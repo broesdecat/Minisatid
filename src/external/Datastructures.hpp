@@ -21,6 +21,8 @@
 typedef unsigned int uint;
 
 namespace MinisatID {
+	
+typedef uint constraint_id;
 
 class Remapper;
 
@@ -163,16 +165,16 @@ public:
 
 class ID: public Constraint {
 private:
-	uint _id;
+	constraint_id _id;
 public:
-	ID(uint id)
+	ID(constraint_id id)
 			: _id(id) {
 	}
 
 	virtual ~ID() {
 	}
 
-	uint getID() const {
+	constraint_id getID() const {
 		return _id;
 	}
 };
@@ -185,7 +187,7 @@ class Disjunction: public ID {
 public:
 	std::vector<Lit> literals;
 
-	Disjunction(uint id, const std::vector<Lit>& literals)
+	Disjunction(constraint_id id, const std::vector<Lit>& literals)
 			: 	ID(id),
 				literals(literals) {
 	}
@@ -214,7 +216,7 @@ public:
 	std::vector<Lit> body;
 	bool conjunction;
 
-	Implication(uint id, const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction)
+	Implication(constraint_id id, const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction)
 			: 	ID(id),
 				head(head),
 				type(type),
@@ -254,7 +256,7 @@ public:
 	int definitionID;
 	bool onlyif;
 
-	Rule(uint id, Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID, bool onlyif)
+	Rule(constraint_id id, Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID, bool onlyif)
 			: 	ID(id),
 				head(head),
 				body(body),
@@ -315,7 +317,7 @@ public:
 	int defID; //Only relevant if defined aggregate, otherwise the value does not matter
 	bool onlyif;
 
-	Aggregate(uint id, const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID, bool onlyif)
+	Aggregate(constraint_id id, const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID, bool onlyif)
 			: 	ID(id),
 				head(head),
 				setID(setID),
@@ -419,7 +421,7 @@ struct BoolVar: public ID {
 
 	DATASTRUCTURE_DECLAREACCEPT
 
-	BoolVar(uint id, Atom atom)
+	BoolVar(constraint_id id, Atom atom)
 			: 	ID(id),
 				atom(atom) {
 	}
@@ -435,7 +437,7 @@ struct IntVarRange: public ID {
 
 	DATASTRUCTURE_DECLAREACCEPT
 
-	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
+	IntVarRange(constraint_id id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
 			: 	ID(id),
 				varID(varID),
 				minvalue(minvalue),
@@ -451,7 +453,7 @@ struct IntVarEnum: public ID {
 	VarID varID;
 	std::vector<Weight> values;
 
-	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values)
+	IntVarEnum(constraint_id id, VarID varID, const std::vector<Weight>& values)
 			: 	ID(id),
 				varID(varID),
 				values(values) {
@@ -470,7 +472,7 @@ struct CPBinaryRel: public ID {
 	EqType rel;
 	Weight bound;
 
-	CPBinaryRel(uint id, const Lit& head, VarID varID, EqType rel, const Weight& bound)
+	CPBinaryRel(constraint_id id, const Lit& head, VarID varID, EqType rel, const Weight& bound)
 			: 	ID(id),
 				head(head),
 				varID(varID),
@@ -490,7 +492,7 @@ struct CPBinaryRelVar: public ID {
 	VarID lhsvarID, rhsvarID;
 	EqType rel;
 
-	CPBinaryRelVar(uint id, const Lit& head, VarID lhsvarID, EqType rel, VarID rhsvarID)
+	CPBinaryRelVar(constraint_id id, const Lit& head, VarID lhsvarID, EqType rel, VarID rhsvarID)
 			: 	ID(id),
 				head(head),
 				lhsvarID(lhsvarID),
@@ -512,7 +514,7 @@ struct CPSumWeighted: public ID {
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
+	CPSumWeighted(constraint_id id, const Lit& head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
 			: 	ID(id),
 				head(head),
 				varIDs(varIDs),
@@ -535,7 +537,7 @@ struct CPProdWeighted: public ID {
 	EqType rel;
 	VarID boundID;
 
-	CPProdWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
+	CPProdWeighted(constraint_id id, const Lit& head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
 			: 	ID(id),
 				head(head),
 				varIDs(varIDs),
@@ -558,7 +560,7 @@ struct CPCount: public ID {
 	EqType rel;
 	VarID rhsvar;
 
-	CPCount(uint id, const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
+	CPCount(constraint_id id, const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
 			: 	ID(id),
 				varIDs(varIDs),
 				eqbound(eqbound),
@@ -576,7 +578,7 @@ struct CPCount: public ID {
 struct CPAllDiff: public ID {
 	std::vector<VarID> varIDs;
 
-	CPAllDiff(uint id, const std::vector<VarID>& varIDs)
+	CPAllDiff(constraint_id id, const std::vector<VarID>& varIDs)
 			: 	ID(id),
 				varIDs(varIDs) {
 	}
@@ -593,7 +595,7 @@ struct CPElement: public ID {
 	VarID index;
 	VarID rhs;
 
-	CPElement(uint id, const std::vector<VarID>& varids, VarID index, VarID rhs)
+	CPElement(constraint_id id, const std::vector<VarID>& varids, VarID index, VarID rhs)
 			: 	ID(id),
 				varIDs(varids),
 				index(index),
@@ -649,7 +651,7 @@ public:
 	Implication impl;
 	LazyGrounder* monitor;
 
-	LazyGroundImpl(uint id, const Implication& impl, LazyGrounder* monitor)
+	LazyGroundImpl(constraint_id id, const Implication& impl, LazyGrounder* monitor)
 			: 	ID(id),
 				impl(impl),
 				monitor(monitor) {
@@ -753,7 +755,7 @@ public:
 	TheoryID childid;
 	std::vector<Atom> rigidatoms;
 
-	SubTheory(uint id, Atom head, TheoryID childid, std::vector<Atom> atoms)
+	SubTheory(constraint_id id, Atom head, TheoryID childid, std::vector<Atom> atoms)
 			: 	ID(id),
 				head(head),
 				childid(childid),
@@ -803,7 +805,7 @@ public:
 	std::vector<VarID> args;
 	LazyAtomGrounder* grounder;
 
-	LazyAtom(uint id, const Lit& head, const std::vector<VarID>& args, LazyAtomGrounder* grounder)
+	LazyAtom(constraint_id id, const Lit& head, const std::vector<VarID>& args, LazyAtomGrounder* grounder)
 			: 	ID(id),
 				head(head),
 				args(args),

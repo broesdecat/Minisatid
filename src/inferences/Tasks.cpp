@@ -276,6 +276,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 				moremodels = false;
 			}
 		}
+
 	}
 
 	return moremodels ? MXState::MODEL : MXState::UNSAT;

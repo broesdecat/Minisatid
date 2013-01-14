@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "Datastructures.hpp"
+#include "ConstraintAdditionInterface.hpp"
 #include "Options.hpp"
 #include "callback.hpp"
 #include <memory>

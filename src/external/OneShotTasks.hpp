@@ -13,6 +13,7 @@
 #include "Datastructures.hpp"
 #include "ConstraintAdditionInterface.hpp"
 #include <typeinfo>
+#include <unordered_set>
 
 namespace MinisatID{
 
@@ -20,23 +21,28 @@ template<class T> class FlatZincRewriter;
 
 class OneShotUnsatCoreExtraction: public Task, public ExternalConstraintVisitor{
 private:
-	std::map<int, ID*> id2constr;
-	std::map<Atom, std::vector<int> > marker2ids;
+	std::map<constraint_id, ID*> id2constr;
+	std::map<Atom, std::vector<constraint_id> > marker2ids;
 	std::vector<Lit> markerAssumptions; // Note: internal literals
 	Space* space;
-	std::vector<int> unsatcore;
+	std::unique_ptr<ModelExpand> mx;
+	std::unique_ptr<ModelExpandOptions> mxopts;
+	std::vector<constraint_id> unsatcore;
+
 public:
+	using ExternalConstraintVisitor::add;
+	
 	virtual void add(const Disjunction&);
 	virtual void add(const WLSet&);
 	virtual void add(const Aggregate&);
 	virtual void add(const Rule&);
-
+	
 	void innerExecute();
 
 	OneShotUnsatCoreExtraction(const SolverOption& options);
 	~OneShotUnsatCoreExtraction();
 
-	std::vector<int> getUnsatCoreIDs() const{
+	std::vector<constraint_id> getUnsatCoreIDs() const{
 		return unsatcore;
 	}
 
