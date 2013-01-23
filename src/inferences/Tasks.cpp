@@ -89,6 +89,9 @@ const modellist& ModelExpand::getSolutions() const {
 	return _solutions->getModels();
 }
 modellist ModelExpand::getBestSolutionsFound() const {
+	if(not getSpace()->isOptimizationProblem()){
+		throw idpexception("Cannot return best models when not doing optimization inference.");
+	}
 	return _solutions->getBestModelsFound();
 }
 
