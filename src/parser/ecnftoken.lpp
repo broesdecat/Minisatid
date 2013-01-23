@@ -28,6 +28,7 @@ using namespace std;
 %s trans
 
 ID			_*[A-Za-z]['a-zA-Z0-9_]*
+ATOMSTRING  _*[A-Za-z]['a-zA-Z0-9_()/ ,]*
 INT			-?[0-9]+
 WHITESPACE	[\t\r ]*
 
@@ -39,6 +40,7 @@ WHITESPACE	[\t\r ]*
 <*>^"p "			{BEGIN(theory);}
 <*>^"translation"	{BEGIN(trans); return ET::TRANSHEADER;}
 <*>^"=== atom translation ==="	{BEGIN(trans); return ET::TRANSHEADER2;}
+<*>^"=== ==="	{BEGIN(theory);}
 
 <theory,INITIAL>^"c\n"	{/* disregard comments */}
 <theory,INITIAL>^"c ".*	{/* disregard comments */}
@@ -124,9 +126,10 @@ WHITESPACE	[\t\r ]*
 <trans>^"func"			{ return ET::FUNC;				}
 <trans>^"true"			{ return ET::TRUE;				}
 <trans>^"arbitrary"		{ return ET::ARBIT;				}
-<trans>{ID}				{ ecnflval->str = new string(yytext);	return ET::T_ID;	}
+<trans>{ATOMSTRING}		{ ecnflval->str = new string(yytext);	return ET::T_ID;	}
 <trans>{INT}			{ ecnflval->integer = atoi(yytext); 	return ET::T_NUM;	}
 <trans>{WHITESPACE}   	{                      		}
+<trans>"|"				{return ET::DELIM;}
 <trans>.				{ return *yytext;			}
 
 <theory,INITIAL,trans>\n {} //IMPORTANT: lex . pattern does NOT match newlines, so match them explicitly!

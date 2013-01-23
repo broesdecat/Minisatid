@@ -557,7 +557,7 @@ numlist		: /* empty */		{ $$ = new vector<int>(0); }
 			;
 			
 tuplelist	: /* empty */ 
-			| tuplelist T_NUM identifier { addTuple($2, *$3); delete($3); }
+			| tuplelist T_NUM DELIM identifier { addTuple($2, *$4); delete($4); }
 			;
 
 identifier	: T_ID	{ $$ = $1;	}
