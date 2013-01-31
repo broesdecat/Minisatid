@@ -386,7 +386,7 @@ public:
 		output.flush();
 	}
 
-	std::string toString(VarID var) {
+	std::string toString(VarID var) const {
 		std::stringstream ss;
 		auto it = var2name.find(var);
 		if (it != var2name.cend()) {
@@ -394,7 +394,7 @@ public:
 		}
 		return ss.str();
 	}
-	std::string toString(const Lit& lit) {
+	std::string toString(const Lit& lit) const {
 		std::stringstream ss;
 		auto it = lit2name.find(lit.getAtom());
 		if (it != lit2name.cend()) {
