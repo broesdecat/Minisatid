@@ -142,7 +142,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 	}
 
 	if (value(p) == l_False) {
-		if (verbosity() >= 2) {
+		if (verbosity() >= 3) {
 			clog << "Deriving conflict in ";
 			clog << toString(p, l_True);
 			clog << " because of the aggregate expression ";
@@ -159,7 +159,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 		getPCSolver().addConflictClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
-		if (verbosity() >= 2) {
+		if (verbosity() >= 3) {
 			clog << "Deriving ";
 			clog << toString(p, l_True);
 			clog << " because of the aggregate expression ";
