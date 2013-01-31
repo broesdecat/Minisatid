@@ -4,8 +4,7 @@
 	(c) K.U.Leuven
 ************************************/
 
-#ifndef MASSERT_HPP_
-#define MASSERT_HPP_
+#pragma once
 
 #include <sstream>
 #include "Idpexception.hpp"
@@ -13,7 +12,5 @@
 #ifndef NDEBUG
 #define MAssert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw MinisatID::idpexception(ss.str());} }
 #else
-#define MAssert(x) do { (void)(x); } while(0)
+#define MAssert(x) do { (void)sizeof(x); } while(0)
 #endif
-
-#endif /* MASSERT_HPP_ */
