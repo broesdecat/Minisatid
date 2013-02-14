@@ -24,11 +24,11 @@ using namespace std;
 %option c++ yyclass="ECNFScanner"
 %option yylineno
 
-%s theory
-%s trans
+%s theory trans trans2
 
 ID			_*[A-Za-z]['a-zA-Z0-9_]*
-ATOMSTRING  _*[A-Za-z]['a-zA-Z0-9_()/ ,]*
+ATOMSTRING  _*[A-Za-z]['a-zA-Z0-9_]*
+ATOM2STRING  _*[A-Za-z]['a-zA-Z0-9_()/ ,]*
 INT			-?[0-9]+
 WHITESPACE	[\t\r ]*
 
@@ -39,7 +39,7 @@ WHITESPACE	[\t\r ]*
 
 <*>^"p "			{BEGIN(theory);}
 <*>^"translation"	{BEGIN(trans); return ET::TRANSHEADER;}
-<*>^"=== atom translation ==="	{BEGIN(trans); return ET::TRANSHEADER2;}
+<*>^"=== atom translation ==="	{BEGIN(trans2); return ET::TRANSHEADER2;}
 <*>^"=== ==="	{BEGIN(theory);}
 
 <theory,INITIAL>^"c\n"	{/* disregard comments */}
@@ -131,6 +131,12 @@ WHITESPACE	[\t\r ]*
 <trans>{WHITESPACE}   	{                      		}
 <trans>"|"				{return ET::DELIM;}
 <trans>.				{ return *yytext;			}
+
+<trans2>{ATOM2STRING}		{ ecnflval->str = new string(yytext);	return ET::T_ID2;	}
+<trans2>{INT}			{ ecnflval->integer = atoi(yytext); 	return ET::T_NUM;	}
+<trans2>{WHITESPACE}   	{                      		}
+<trans2>"|"				{return ET::DELIM;}
+<trans2>.				{ return *yytext;			}
 
 <theory,INITIAL,trans>\n {} //IMPORTANT: lex . pattern does NOT match newlines, so match them explicitly!
 <theory,INITIAL>.	{/* Anything else: parse error */

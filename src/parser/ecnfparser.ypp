@@ -166,11 +166,11 @@
 %token ARBIT
 
 /** Other Terminals **/
-%token <str> T_ID
+%token <str> T_ID T_ID2
 %token <integer> T_NUM
 
 /** Non-terminals with semantic value **/
-%type <str>	identifier
+%type <str>	identifier identifier2
 %type <vints>	numlist
 %type <vstr>	uint
 %type <vstr>	idnlist
@@ -557,10 +557,13 @@ numlist		: /* empty */		{ $$ = new vector<int>(0); }
 			;
 			
 tuplelist	: /* empty */ 
-			| tuplelist T_NUM DELIM identifier { addTuple($2, *$4); delete($4); }
+			| tuplelist T_NUM DELIM identifier2 { addTuple($2, *$4); delete($4); }
 			;
 
 identifier	: T_ID	{ $$ = $1;	}
+			;
+
+identifier2	: T_ID2	{ $$ = $1;	}
 			;		
 
 //---------------------------------------------		
