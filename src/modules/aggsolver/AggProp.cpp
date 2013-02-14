@@ -18,10 +18,11 @@ using namespace std;
 using namespace MinisatID;
 
 SATVAL Agg::reInitializeAgg() {
-	TypedSet& set = *getSet();
-	// FIXME check whether this is sufficient?
-	auto confl = set.getProp()->reInitialize();
-	return confl == nullPtrClause ? SATVAL::POS_SAT : SATVAL::UNSAT;
+	auto confl = getSet()->getProp()->reInitialize();
+	if(confl!=nullPtrClause){
+		getSet()->getPCSolver().addConflictClause(confl);
+	}
+	return getSet()->getPCSolver().satState();
 }
 
 paggprop AggProp::max = paggprop(new MaxProp());
