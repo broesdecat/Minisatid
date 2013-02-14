@@ -1,20 +1,38 @@
-This is the readme for the MinisatID solver, the search algorithm used in the IDP system.
+This is the readme for the MinisatID solver.
+MinisatID is the search algorithm used in the knowledge base system IDP, supporting a ground fragment of the language FO(·)^IDP.
+
+*** Features
+- Accepts input in the languages CNF, ECNF (native format), OPB (pseudo-boolean) QBF, FlatZinc and ground Lparse.
+- Can transform the input theory into CNF or FlatZinc.
+- Extensible, open-source research solver.
+- High performance: 4th place of 16 in the 2nd ASP competition, eye-to-eye with clasp (winner) in the NP category in the 3rd ASP competition.
+
+*** Technology
+- Extends the SAT solver MiniSat using the DPLL(T) architecture.
+- Efficient propagation for pseudo-boolean aggregate expressions (e.g. cardinality).
+- Unfounded set detection algorithms to support inductive definitions (e.g. reachability).
+- Branch-and-bounds optimization.
+- Lazy clause generation for finite domain constraints (over integers).
+- Integration with the constraint programming engine gecode.
+- Dynamic symmetry breaking using minisat-SPFS as backend (to be integrated soon).
+- Interface for incrementally adding any type of variable or constraint, minimally disturbing the current state (used in lazy grounding algorithms).
+- Developed by Broes De Cat and formerly by Maarten Mariën.
 
 *** Installing and running the system
 Required software packages:
-   - C and C++ compiler, supporting most of the C++11 standard. Examples are GCC 4.4 or higher, clang 3.2 or visual studio 11.
-   - Cmake build tools. 
-   - Bison and Flex parser generator software.
-   - Pdflatex and doxygen for building the documentation.
-   - (optional) Gecode for constraint programming support.
+- C and C++ compiler, supporting most of the C++11 standard. Examples are GCC 4.6 or higher, clang 3.2 or visual studio 11.
+- Cmake build tools.
+- Bison and Flex parser generator software.
+- Pdflatex and doxygen for building the documentation.
+- (optional) Gecode for constraint programming support.
 
-Assume minisatid is unpacked in <minisatiddir>, you want to build in <builddir> (cannot be the same as <minisatiddir>) and install in <installdir>. 
+Assume MinisatID is unpacked in <minisatiddir>, you want to build in <builddir> (cannot be the same as <minisatiddir>) and install in <installdir>. 
 Building and installing is then achieved by executing the following commands:
-	cd <builddir>
-	cmake <minisatiddir> -DCMAKE_INSTALL_PREFIX=<installdir> -DCMAKE_BUILD_TYPE="Release"
-	make -j 4
-	make check
-	make install
+  cd <builddir>
+  cmake <minisatiddir> -DCMAKE_INSTALL_PREFIX=<installdir> -DCMAKE_BUILD_TYPE="Release"
+  make -j 4
+  make check
+  make install
 
 Alternatively, cmake-gui can be used as a graphical way to set cmake options.
 
