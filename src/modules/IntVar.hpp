@@ -182,6 +182,23 @@ public:
 		return var()->getEQLit(bound);
 	}
 
+	Lit getCompareLit(int bound, EqType comparison) const {
+		switch (comparison) {
+		case EqType::LEQ:
+			return getLEQLit(bound);
+		case EqType::L:
+			return !getGEQLit(bound);
+		case EqType::GEQ:
+			return getGEQLit(bound);
+		case EqType::G:
+			return !getLEQLit(bound);
+		case EqType::EQ:
+			return getEQLit(bound);
+		case EqType::NEQ:
+			return !getEQLit(bound);
+		}
+	}
+
 	bool isKnown() const{
 		return minValue()==maxValue();
 	}
