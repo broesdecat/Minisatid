@@ -292,7 +292,6 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 			if (confl == CRef_Undef) {
 				break;
 			}
-			printClause(confl);
 			if (decisionLevel() == 0) {
 				notifyUnsat();
 				break;
