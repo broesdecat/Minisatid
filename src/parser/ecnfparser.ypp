@@ -149,6 +149,8 @@
 %type <vweights> weightbody
 %type <varid> varid
 %type <varids> varidbody
+%type <varids> possiblyemptyvaridbody
+%type <varids> emptyvaridbody
 %type <vlits> body
 %type <vlws> wbody
 %type <vlits> cycle
@@ -459,13 +461,13 @@ cpconstraint
 				CR(wrapper, binrel, theoryid);
 				delete $2;
 			}
-		|	CPSUM NUMBER varidbody DELIM weightbody REL weight ZERO   
+		|	CPSUM NUMBER possiblyemptyvaridbody DELIM weightbody REL weight ZERO   
 			{ 	
 				CPSumWeighted sum(id++, mkPosLit(cAtom($2)), *$3, *$5, $6, cWeight($7));
 				CR(wrapper, sum, theoryid);
 				delete $2; delete $3; delete $5; delete $7;
 			}
-		|	CPPROD NUMBER varidbody DELIM weight REL varid ZERO   
+		|	CPPROD NUMBER possiblyemptyvaridbody DELIM weight REL varid ZERO   
 			{ 	
 				CPProdWeighted prod(id++, mkPosLit(cAtom($2)), *$3, cWeight($5), $6, $7);
 				CR(wrapper, prod, theoryid);
@@ -599,9 +601,15 @@ weightbody
 		| 	weight			{ $$ = new vector<Weight>(1, cWeight($1)); delete $1;	}
 		;
 		
+possiblyemptyvaridbody 	:  varidbody { $$=$1;}
+						| emptyvaridbody { $$ = $1;}
+						;
+						
 varidbody 	: 	varidbody varid	{ $$ = $1; $$->push_back($2);	}
 		| 	varid  		{ $$ = new vector<VarID>(1, $1);	}
 		;
+		
+emptyvaridbody	:	{ $$ = new vector<VarID>(0);};
 		
 varid	:   	number	{ 
 				if($1<0){
