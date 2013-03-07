@@ -120,9 +120,7 @@ public:
 	bool isUnsat() const {
 		return not ok;
 	}
-	void notifyUnsat() {
-		ok = false;
-	}
+	void notifyUnsat();
 	int printECNF(std::ostream& stream, std::set<Atom>& printedvars); // Returns the number of clauses that were added
 
 private:

@@ -95,6 +95,10 @@ Solver::Solver(PCSolver* s, bool oneshot)
 Solver::~Solver() {
 }
 
+void Solver::notifyUnsat() {
+	ok = false;
+}
+
 // VARIABLE CREATION
 
 void Solver::setDecidable(Atom v, bool decide) { // NOTE: no-op if already a decision var!
@@ -268,7 +272,8 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 //	permuteRandomly(ps);
 
 	if (ps.size() == 0) {
-		return ok = false;
+		notifyUnsat();
+		return ok;
 	} else if (ps.size() == 1) {
 		if (decisionLevel() > 0) {
 			if (value(ps[0]) == l_False) {
@@ -287,8 +292,9 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 			if (confl == CRef_Undef) {
 				break;
 			}
+			printClause(confl);
 			if (decisionLevel() == 0) {
-				ok = false;
+				notifyUnsat();
 				break;
 			}
 			int outlevel;
@@ -1203,8 +1209,10 @@ bool Solver::simplify() {
 	needsimplify = false;
 	MAssert(decisionLevel() == 0);
 
-	if (!ok || propagate() != CRef_Undef)
-		return ok = false;
+	if (!ok || propagate() != CRef_Undef){
+		notifyUnsat();
+		return ok;
+	}
 
 	if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
 		return true;
@@ -1515,7 +1523,7 @@ lbool Solver::solve(bool nosearch) {
 			}
 		}
 	} else if (status == l_False && conflict.size() == 0) {
-		ok = false;
+		notifyUnsat();
 	}
 
 	return status;
