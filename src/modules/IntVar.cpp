@@ -154,7 +154,13 @@ void RangeIntVar::finish(){
 }
 
 Lit RangeIntVar::getLEQLit(int bound) {
-//	cerr <<"Requesting var" <<origid() <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<"=<" <<bound <<"\n";
+	//cerr <<"Requesting var" <<toString(getVarID()) <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<"=<" <<bound <<"\n";
+	if(origMinValue()>0 && negInfinity()+origMinValue()>bound){
+		return getPCSolver().getFalseLit();
+	}
+	if(origMinValue()<0 && posInfinity()+origMinValue()<bound){
+		return getPCSolver().getTrueLit();
+	}
 	auto index = bound - origMinValue();
 	if (index < 0) {
 		return getPCSolver().getFalseLit();
@@ -166,6 +172,9 @@ Lit RangeIntVar::getLEQLit(int bound) {
 }
 
 Lit RangeIntVar::getGEQLit(int bound) {
+	if(bound==negInfinity()){
+		return getPCSolver().getTrueLit();
+	}
 	return not getLEQLit(bound - 1);
 }
 
@@ -201,7 +210,7 @@ void EnumIntVar::finish(){
 }
 
 Lit EnumIntVar::getLEQLit(int bound) {
-//	cerr <<"Requesting var" <<toString(getVarID()) <<"{" <<origMinValue() <<",...," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
+	//cerr <<"Requesting var" <<toString(getVarID()) <<"{" <<origMinValue() <<",...," <<origMaxValue() <<"}" <<"=<" <<bound <<"\n";
 	if (origMaxValue() < bound) {
 		return getPCSolver().getTrueLit();
 	} else if (bound < origMinValue()) {
@@ -217,7 +226,7 @@ Lit EnumIntVar::getLEQLit(int bound) {
 }
 
 Lit EnumIntVar::getGEQLit(int bound) {
-//	cerr <<"Requesting var" <<origid() <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
+	//cerr <<"Requesting var" <<toString(getVarID()) <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
 	if (bound <= origMinValue()) {
 		return getPCSolver().getTrueLit();
 	} else if (origMaxValue() < bound) {
@@ -236,20 +245,20 @@ Lit EnumIntVar::getGEQLit(int bound) {
 
 int IntView::minValue() const {
 	if(constdiff()>0 && var()->minValue()+constdiff()<var()->minValue()){
-		return getMinElem<int>();
+		return negInfinity();
 	}
 	if(constdiff()<0 && var()->minValue()-constdiff()<var()->minValue()){
-		return getMaxElem<int>();
+		return posInfinity();
 	}
 	return var()->minValue()+constdiff();
 }
 
 int IntView::maxValue() const {
 	if(constdiff()>0 && var()->maxValue()+constdiff()<var()->maxValue()){
-		return getMaxElem<int>();
+		return posInfinity();
 	}
 	if(constdiff()<0 && var()->maxValue()-constdiff()<var()->maxValue()){
-		return getMinElem<int>();
+		return negInfinity();
 	}
 	return var()->maxValue()+constdiff();
 }
