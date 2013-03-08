@@ -212,9 +212,9 @@ void ArrayVar::add(Storage& storage) {
 				storage.addBoolExpr(*var->vars[index], **i);
 			}
 		}
-	} else {
+	} else if(mappedtype==VAR_INT){
 		bool nobounds = false;
-		//	cerr <<"Adding int array " <<getName() <<"\n";
+		//cerr <<"Adding int array " <<getName() <<"\n";
 		auto var = storage.createIntArrayVar(getName(), getOutputName(), end, rangevar, nobounds, isOutput());
 		// values
 		if (arraylit != NULL) {
@@ -234,6 +234,19 @@ void ArrayVar::add(Storage& storage) {
 				storage.writeIntVar(**i);
 			}
 		}
+	}else if(mappedtype ==VAR_SET){
+		if(isOutput()){
+			throw idpexception("Output sets are not supported");
+		}
+		auto var = storage.createSetArrayVar(getName(), getOutputName(), end);
+		if (arraylit != NULL) {
+			int index = 0;
+			for (auto i = arraylit->exprs->rbegin(); i < arraylit->exprs->rend(); ++i, ++index) {
+				storage.addSetExpr(*var->vars[index], **i);
+			}
+		}
+	}else{
+		throw idpexception("Unsupported array type");
 	}
 }
 
@@ -315,7 +328,7 @@ bool FZ::isRangeSet(const Expression& expr) {
 
 std::pair<int, int> FZ::parseParRangeSet(const Expression& expr) {
 	if (expr.type != EXPR_SET || not expr.setlit->range) {
-		throw fzexception("Unexpected type.\n");
+		throw fzexception("Unexpected type in parseParRangeSet.\n");
 	}
 
 	return {expr.setlit->begin, expr.setlit->end};
@@ -323,7 +336,7 @@ std::pair<int, int> FZ::parseParRangeSet(const Expression& expr) {
 
 void parseSetLit(std::vector<int>& elems, const Expression& expr, Storage& storage){
 	if (expr.type != EXPR_SET || expr.setlit->range) {
-		throw fzexception("Unexpected type.\n");
+		throw fzexception("Unexpected type in parsing Set Lit.\n");
 	}
 	for (auto i : *(expr.setlit->values)) {
 		if((*i).type==EXPR_TYPE::EXPR_SET){
@@ -390,7 +403,7 @@ std::vector<int> FZ::parseBoolArray(Storage& storage, Expression& expr) {
 	} else if (expr.type == EXPR_IDENT) {
 		return storage.getBoolArrayVars(*expr.ident->name);
 	} else {
-		throw fzexception("Unexpected type.\n");
+		throw fzexception("Unexpected type in parseBoolArray.\n");
 	}
 }
 
@@ -404,6 +417,6 @@ std::vector<uint> FZ::parseIntArray(Storage& storage, Expression& expr) {
 	} else if (expr.type == EXPR_IDENT) {
 		return storage.getIntArrayVars(*expr.ident->name);
 	} else {
-		throw fzexception("Unexpected type.\n");
+		throw fzexception("Unexpected type in parseIntArray.\n");
 	}
 }

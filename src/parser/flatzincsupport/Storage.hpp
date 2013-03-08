@@ -29,8 +29,9 @@ private:
 	std::set<std::string> usednames;
 	std::map<std::string, MBoolVar*> name2bool;
 	std::map<std::string, MIntVar*> name2int;
-	std::map<std::string, MBoolArrayVar*> name2boolarray;
-	std::map<std::string, MIntArrayVar*> name2intarray;
+	std::map<std::string, MArrayVar<MBoolVar>*> name2boolarray;
+	std::map<std::string, MArrayVar<MIntVar>*> name2intarray;
+	std::map<std::string, MArrayVar<MSetVar>*> name2setarray;
 	std::map<std::string, MSetVar*> name2setvar;
 
 	// TODO garbage collect stuff here
@@ -101,12 +102,12 @@ public:
 		return var;
 	}
 
-	MBoolArrayVar* createBoolArrayVar(const std::string& name, const std::string& outputname, int nbelem, bool output) {
+	MArrayVar<MBoolVar>* createBoolArrayVar(const std::string& name, const std::string& outputname, int nbelem, bool output) {
 		if (usednames.find(name) != usednames.cend()) {
 			throw fzexception("Variable already declared");
 		}
 		usednames.insert(name);
-		auto var = new MBoolArrayVar();
+		auto var = new MArrayVar<MBoolVar>();
 		name2boolarray.insert( { name, var });
 		for (int i = 1; i <= nbelem; i++) {
 			auto boolvar = new MBoolVar();
@@ -123,13 +124,27 @@ public:
 		return var;
 	}
 
-	MIntArrayVar* createIntArrayVar(const std::string& name, const std::string& outputname, int nbelem, Var const* const rangevar, bool& nobounds,
+	MArrayVar<MSetVar>* createSetArrayVar(const std::string& name, const std::string& outputname, int nbelem) {
+		if (usednames.find(name) != usednames.cend()) {
+			throw fzexception("Variable already declared");
+		}
+		usednames.insert(name);
+		auto var = new MArrayVar<MSetVar>();
+		name2setarray.insert( { name, var });
+		for (int i = 1; i <= nbelem; i++) {
+			auto setvar = new MSetVar();
+			var->vars.push_back(setvar);
+		}
+		return var;
+	}
+
+	MArrayVar<MIntVar>* createIntArrayVar(const std::string& name, const std::string& outputname, int nbelem, Var const* const rangevar, bool& nobounds,
 			bool output) {
 		if (usednames.find(name) != usednames.cend()) {
 			throw fzexception("Variable already declared");
 		}
 		usednames.insert(name);
-		auto var = new MIntArrayVar();
+		auto var = new MArrayVar<MIntVar>();
 		name2intarray.insert( { name, var });
 
 		auto intvar = new MIntVar();
@@ -139,6 +154,14 @@ public:
 		nobounds = true;
 		if (rangevar != NULL) {
 			auto rangedvar = dynamic_cast<IntVar const* const >(rangevar);
+			if(rangedvar==NULL){
+				auto rsvar = dynamic_cast<SetVar const* const >(rangevar);
+				if(rsvar!=NULL){
+					rangedvar = rsvar->var;
+				}else{
+					throw idpexception("Unsupported variable type.");
+				}
+			}
 			if (rangedvar->enumvalues) {
 				nobounds = false;
 				intvar->range = false;
@@ -146,6 +169,9 @@ public:
 			} else if (rangedvar->range) {
 				nobounds = false;
 				intvar->set(true, rangedvar->begin, rangedvar->end);
+			}else{
+				nobounds = false;
+				intvar->set(true, getMinElem<int>(), getMaxElem<int>());
 			}
 		}
 		for (int i = 1; i <= nbelem; i++) {
@@ -194,6 +220,14 @@ public:
 			throw fzexception(ss.str());
 		}
 		return (*it).second;
+	}
+
+	MSetVar* getSetVar(const std::string& name, int index) {
+		auto it = name2setarray.find(name);
+		if (it == name2setarray.end() || (*it).second->vars.size() < (uint) index) {
+			throw fzexception("Array was not declared or not initialized.\n");
+		}
+		return (*it).second->vars[index - 1];
 	}
 
 	//IMPORTANT: index starts at ONE, so map to 0 based!
@@ -326,7 +360,23 @@ public:
 			var.mappedvar = getBoolVar(*expr.ident->name);
 			extAdd(*store, Implication(maxid++, get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
 		} else {
-			throw fzexception("Unexpected type.\n");
+			throw fzexception("Unexpected type in adding bool expression.\n");
+		}
+	}
+
+	void addSetExpr(MSetVar& var, const Expression& expr) {
+		if (expr.type == EXPR_SET) {
+			if (isRangeSet(expr)) {
+				auto beginend = parseParRangeSet(expr);
+				var.start = beginend.first;
+				var.end = beginend.second;
+				var.isrange = true;
+			} else {
+				var.values = parseParValueSet(*this, expr);
+				var.isrange = false;
+			}
+		} else {
+			throw fzexception("Unsupported type of set expressions.\n");
 		}
 	}
 
@@ -383,8 +433,10 @@ public:
 				var.values = map->values;
 			}
 			MAssert(not var.hasvalue);
+		} else if(expr.type == EXPR_SET){
+			throw fzexception("Unexpected set in int expression.\n");
 		} else {
-			throw fzexception("Unexpected type.\n");
+			throw fzexception("Unexpected type in adding int expression.\n");
 		}
 		MAssert(var.hasvalue || var.hasmap);
 	}

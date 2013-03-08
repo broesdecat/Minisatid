@@ -215,14 +215,9 @@ struct MSetVar{
 	std::vector<int> values;
 };
 
-struct MBoolArrayVar {
-	std::vector<MBoolVar*> vars;
-	int nbelem;
-};
-
-struct MIntArrayVar {
-	std::vector<MIntVar*> vars;
-	int nbelem;
+template<class Var>
+struct MArrayVar {
+	std::vector<Var*> vars;
 };
 
 enum VAR_TYPE {

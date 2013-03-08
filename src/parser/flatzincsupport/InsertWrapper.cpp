@@ -79,7 +79,6 @@ bool InsertWrapper::isCertainlyUnsat() const {
 }
 
 void InsertWrapper::add(Var* var) {
-//	cerr <<"Adding var " <<*var->id->name <<"\n";
 	for (auto expr : *var->id->arguments) {
 		if (expr->type != EXPR_TYPE::EXPR_IDENT) {
 			continue;
@@ -126,7 +125,7 @@ void InsertWrapper::parseArgs(const vector<Expression*>& origargs, vector<int>& 
 			args.push_back(parseInt(*storage, expr));
 			break;
 		default:
-			throw fzexception("Unexpected type.\n");
+			throw fzexception("Unexpected type in parsing arguments.\n");
 		}
 	}
 }
@@ -436,6 +435,9 @@ void InsertWrapper::add(Constraint* var) {
 		} else if (setarg.type == EXPR_TYPE::EXPR_IDENT) {
 			auto setvar = parseSet(*storage, *setarg.ident);
 			addReifSet(storage->getTrue(), arg1, setvar->isrange, setvar->start, setvar->end, setvar->values, storage);
+		} else if (setarg.type == EXPR_TYPE::EXPR_ARRAYACCESS) {
+			auto setvar = storage->getSetVar(*setarg.arrayaccesslit->id, setarg.arrayaccesslit->index);
+			addReifSet(storage->getTrue(), arg1, setvar->isrange, setvar->start, setvar->end, setvar->values, storage);
 		} else {
 			throw fzexception("Incorrect type, set or setliteral expected");
 		}
@@ -676,7 +678,7 @@ void InsertWrapper::addOptim(Expression& expr, bool maxim) {
 	} else if (expr.type == EXPR_IDENT) {
 		var = storage->getIntVar(*expr.ident->name);
 	} else {
-		throw fzexception("Unexpected type.\n");
+		throw fzexception("Unexpected type in adding optimization statement.\n");
 	}
 
 	if (maxim) {
