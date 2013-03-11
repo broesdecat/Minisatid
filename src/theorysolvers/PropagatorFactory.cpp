@@ -303,7 +303,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			throw idpexception(ss.str());
 		}
 		IntVar* intvar = NULL;
-		if (abs(((double) obj.maxvalue) - obj.minvalue) < 1000) { // // FIXME duplicate heuristic in FDAggConstraint
+		if (abs(((double) obj.maxvalue) - obj.minvalue) < 100) { // // FIXME duplicate heuristic in FDAggConstraint
 			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue));
 		} else {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
