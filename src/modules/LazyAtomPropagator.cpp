@@ -52,18 +52,18 @@ rClause LazyAtomPropagator::notifypropagate() {
 	}
 	std::vector<int> argvalues;
 	for (auto v : args) {
-		if (grounder->isFunction() && argvalues.size() == args.size() - 1) { // Note: do not need the range to be set for the function
-			break;
-		}
+		//if (grounder->isFunction() && argvalues.size() == args.size() - 1) { // Note: do not need the range to be set for the function
+		//	break;
+		//}
 		if (not v->isKnown()) {
 			return confl;
 		} else {
 			argvalues.push_back(v->minValue());
 		}
 	}
-	if(grounder->isFunction()){
-		MAssert(argvalues.size() == args.size() - 1);
-	}
+	//if(grounder->isFunction()){
+	//	MAssert(argvalues.size() == args.size() - 1);
+	//}
 	auto fullinst = argvalues;
 	fullinst.push_back(headvalue == l_True); // Bit of a hack
 	auto exists = grounded.find(fullinst);
