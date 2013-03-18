@@ -74,7 +74,7 @@ namespace MinisatID{
 			if(outputformat==OutputFormat::OPB){
 				stream<<"s SATISFIABLE\n";
 			}else if(outputformat==OutputFormat::ASP){
-				stream <<"ANSWER SET FOUND\n";
+				stream <<"ANSWER\n";
 			}else if(outputformat==OutputFormat::FZ){
 				// No output
 			}else{
@@ -105,6 +105,8 @@ namespace MinisatID{
 				stream<<"s OPTIMUM FOUND\n";
 			}else if(outputformat==OutputFormat::FZ){
 				// Print nothing
+			}else if(outputformat==OutputFormat::ASP){
+				stream<<"OPTIMUM\n";
 			}else{
 				stream<<"OPTIMUM FOUND\n";
 			}

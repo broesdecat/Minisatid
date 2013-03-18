@@ -85,7 +85,7 @@ void Printer::addModel(Model * const model) {
 	ostream output(resman->getBuffer());
 	if (getPrintOption() == Models::ALL || (not optimizing && getPrintOption() == Models::BEST)) {
 		if (modelmanager->getNbModelsFound() == 1) {
-			if (not optimizing && modes.transformat != OutputFormat::ASP) {
+			if (not optimizing  && modes.transformat != OutputFormat::ASP) {
 				printSatisfiable(output, modes.transformat);
 				printSatisfiable(clog, modes.transformat,	modes.verbosity);
 			}
@@ -116,7 +116,7 @@ void Printer::solvingFinished(){
 		printUnknown(output, modes.transformat);
 	}else{ // not unsat and at least one model
 		if(optimizing && getPrintOption()==Models::BEST){
-			if(modelmanager->hasOptimalModel()){
+			if(modelmanager->hasOptimalModel() && modes.transformat != OutputFormat::ASP){
 				printOptimalModelFound(output, modes.transformat);
 			}
 			if(modes.format==InputFormat::OPB){
@@ -125,11 +125,15 @@ void Printer::solvingFinished(){
 			}
 			auto list = modelmanager->getBestModelsFound();
 			for(auto i=list.cbegin(); i<list.cend(); ++i){
+				if(modes.transformat==OutputFormat::ASP){
+					printSatisfiable(output, modes.transformat);
+					printSatisfiable(clog, modes.transformat, modes.verbosity);
+				}
 				getTranslator()->printModel(output, **i);
 			}
-		}else if(not optimizing && modes.transformat == OutputFormat::ASP){ // NOTE: Otherwise, SAT is printed BEFORE the first model is printed, so in addModel
-			printSatisfiable(output, modes.transformat);
-			printSatisfiable(clog, modes.transformat, modes.verbosity);
+			if(modelmanager->hasOptimalModel() && modes.transformat == OutputFormat::ASP){
+				printOptimalModelFound(output, modes.transformat);
+			}
 		}
 		if(nomoremodels){
 			printNoMoreModels(output, modes.transformat);
