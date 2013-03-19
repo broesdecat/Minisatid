@@ -107,7 +107,7 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 			continue;
 		}
 		if (not (*i)->isQueued()) {
-			fastestqueue.push_back(*i);
+			fastqueue.push_back(*i);
 		}
 	}
 }
@@ -153,7 +153,6 @@ void EventQueue::accept(GenWatch* const watch) {
 	}
 	if (addwatch) {
 		watch->addToNetwork();
-		//cerr <<">>> Added watch: " <<toString(watch->getPropLit(), getPCSolver()) <<"\n";
 		lit2watches[toInt(watch->getPropLit())].push_back(watch);
 	}
 }
