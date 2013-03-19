@@ -95,6 +95,13 @@ modellist ModelExpand::getBestSolutionsFound() const {
 	return _solutions->getBestModelsFound();
 }
 
+Weight ModelExpand::getBestValueFound() const{
+	if(not getSpace()->isOptimizationProblem()){
+		throw idpexception("Cannot return best models when not doing optimization inference.");
+	}
+	return _solutions->getBestValueFound();
+}
+
 bool ModelExpand::isSat() const {
 	return _solutions->isSat();
 }
@@ -294,7 +301,6 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 // OPTIMIZATION METHODS
 bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim) {
 	int subsetsize = 0;
-	latestsubsetsize = 0;
 	const auto& minim = optim.to_minimize;
 	for (auto i = minim.cbegin(); i < minim.cend(); ++i) {
 		auto lit = *i;
@@ -306,7 +312,7 @@ bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt, Optim
 		}
 	}
 
-	latestsubsetsize = subsetsize;
+	_solutions->setLatestOptimum(subsetsize);
 
 	if (subsetsize == 0) {
 		return true; //optimum has already been found!!!
@@ -327,7 +333,7 @@ bool ModelExpand::invalidateValue(litlist& invalidation, OptimStatement& optim) 
 				clog << "\n";
 			}
 			currentoptimumfound = true;
-			latestlistoptimum = minim[i];
+			_solutions->setLatestOptimum(minim[i]);
 		}
 		if (!currentoptimumfound) {
 			invalidation.push_back(minim[i]);
@@ -344,16 +350,17 @@ bool ModelExpand::invalidateValue(litlist& invalidation, OptimStatement& optim) 
 bool ModelExpand::invalidateAgg(litlist& invalidation, OptimStatement& optim) {
 	auto agg = optim.agg_to_minimize;
 	auto s = agg->getSet();
-	latestaggoptimum = s->getType().getValue(*s);
+	auto bestvalue = s->getType().getValue(*s);
+	_solutions->setLatestOptimum(bestvalue);
+	printer->notifyCurrentOptimum(bestvalue);
 
-	printer->notifyCurrentOptimum(latestaggoptimum);
 	if (getOptions().verbosity >= 1) {
-		clog << "> Current optimal value " << latestaggoptimum << "\n";
+		clog << "> Current optimal value " << bestvalue << "\n";
 	}
 
-	agg->setBound(AggBound(agg->getSign(), latestaggoptimum - 1));
+	agg->setBound(AggBound(agg->getSign(), bestvalue - 1));
 
-	if (s->getType().getMinPossible(*s) == latestaggoptimum) {
+	if (s->getType().getMinPossible(*s) == bestvalue) {
 		return true;
 	}
 
@@ -365,18 +372,18 @@ bool ModelExpand::invalidateAgg(litlist& invalidation, OptimStatement& optim) {
 
 bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
 	auto var = optim.var;
-	latestvarvalue = var->maxValue();
-
-	printer->notifyCurrentOptimum(latestvarvalue);
+	auto bestvalue = var->maxValue();
+	_solutions->setLatestOptimum(bestvalue);
+	printer->notifyCurrentOptimum(bestvalue);
 	if (getOptions().verbosity >= 1) {
-		clog << "> Current optimal value " << latestvarvalue << "\n";
+		clog << "> Current optimal value " << bestvalue << "\n";
 	}
 
-	if (var->origMinValue() == latestvarvalue) {
+	if (var->origMinValue() == bestvalue) {
 		return true;
 	}
 
-	invalidation.push_back(var->getLEQLit(latestvarvalue - 1));
+	invalidation.push_back(var->getLEQLit(bestvalue - 1));
 	return false;
 }
 
@@ -468,12 +475,12 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		switch (optim.optim) {
 		case Optim::LIST:
 			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
-				if (*i == latestlistoptimum) {
+				if (*i == _solutions->getBestLitFound()) {
 					break;
 				}
 				internalAdd(Disjunction(DEFAULTCONSTRID, { ~*i }), getSolver().getBaseTheoryID(), getSolver());
 			}
-			internalAdd(Disjunction(DEFAULTCONSTRID, { latestlistoptimum }), getSolver().getBaseTheoryID(), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { _solutions->getBestLitFound() }), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		case Optim::SUBSET: {
 			WLSet set(getSolver().newSetID());
@@ -483,17 +490,17 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			internalAdd(set, getSolver().getBaseTheoryID(), getSolver());
 			auto var = getSolver().newVar();
 			internalAdd(Disjunction(DEFAULTCONSTRID, { mkPosLit(var) }), getSolver().getBaseTheoryID(), getSolver());
-			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1, false), getSolver().getBaseTheoryID(), getSolver());
+			internalAdd(Aggregate(DEFAULTCONSTRID, mkPosLit(var), set.setID, _solutions->getBestValueFound(), AggType::CARD, AggSign::UB, AggSem::COMP, -1, false), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		}
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
-			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
+			agg->setBound(AggBound(agg->getSign(), _solutions->getBestValueFound()));
 			agg->reInitializeAgg();
 			break;
 		}
 		case Optim::VAR: {
-			internalAdd(Disjunction(DEFAULTCONSTRID, { optim.var->getEQLit(latestvarvalue) }), getSolver().getBaseTheoryID(), getSolver());
+			internalAdd(Disjunction(DEFAULTCONSTRID, { optim.var->getEQLit(_solutions->getBestValueFound()) }), getSolver().getBaseTheoryID(), getSolver());
 			break;
 		}
 		}

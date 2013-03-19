@@ -41,6 +41,9 @@ private:
 	bool optimalmodelfound;
 	bool unsatfound;
 
+	Weight latestintoptimum;
+	Lit latestlitoptimum; // For ordered litlist optimization
+
 	Models saveoption;
 	Models getSaveOption() const {
 		return saveoption;
@@ -57,6 +60,19 @@ public:
 	 */
 	int getNbModelsFound() const {
 		return nbmodelsfound;
+	}
+
+	void setLatestOptimum(const Lit& lit){
+		latestlitoptimum = lit;
+	}
+	void setLatestOptimum(const Weight& value){
+		latestintoptimum = value;
+	}
+	Lit getBestLitFound() const{
+		return latestlitoptimum;
+	}
+	Weight getBestValueFound() const {
+		return latestintoptimum;
 	}
 
 	void addModel(Model * const model);

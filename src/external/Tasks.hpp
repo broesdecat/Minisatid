@@ -105,6 +105,7 @@ public:
 	// Note: do not call unless the models are being saved!
 	const modellist& getSolutions() const;
 	modellist getBestSolutionsFound() const;
+	Weight getBestValueFound() const;
 
 	bool isSat() const;
 	bool isUnsat() const;
@@ -119,11 +120,8 @@ private:
 	SATVAL invalidateModel(const litlist& clause);
 
 	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
-	Weight latestaggoptimum;
-	Lit latestlistoptimum;
-	int latestsubsetsize;
 	litlist savedinvalidation;
-	int latestvarvalue;
+
 	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
 	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
 	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
