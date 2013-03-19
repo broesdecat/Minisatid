@@ -120,7 +120,7 @@ void BasicIntVar::updateBounds() {
 	if (not found) {
 		currentmax = leqlits.front().value;
 	}
-//	cerr <<"Updated bounds for var" <<origid() <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
+	// clog <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
 RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
@@ -154,7 +154,9 @@ void RangeIntVar::finish(){
 }
 
 Lit RangeIntVar::getLEQLit(int bound) {
-	//cerr <<"Requesting var" <<toString(getVarID()) <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]" <<"=<" <<bound <<"\n";
+	if(verbosity()>5){
+		clog <<"Requesting var" <<toString(getVarID()) <<"[" <<minValue() <<"," <<maxValue() <<"]" <<"=<" <<bound <<" (orig bounds" <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]"  <<")\n";
+	}
 	if(origMinValue()>0 && negInfinity()+origMinValue()>bound){
 		return getPCSolver().getFalseLit();
 	}
@@ -210,7 +212,9 @@ void EnumIntVar::finish(){
 }
 
 Lit EnumIntVar::getLEQLit(int bound) {
-	//cerr <<"Requesting var" <<toString(getVarID()) <<"{" <<origMinValue() <<",...," <<origMaxValue() <<"}" <<"=<" <<bound <<"\n";
+	if(verbosity()>5){
+		clog <<"Requesting var" <<toString(getVarID()) <<"{" <<minValue() <<",...," <<maxValue() <<"}" <<"=<" <<bound <<" (orig bounds" <<"{" <<origMinValue() <<",...)," <<origMaxValue() <<"}"  <<")\n";
+	}
 	if (origMaxValue() < bound) {
 		return getPCSolver().getTrueLit();
 	} else if (bound < origMinValue()) {
@@ -226,7 +230,9 @@ Lit EnumIntVar::getLEQLit(int bound) {
 }
 
 Lit EnumIntVar::getGEQLit(int bound) {
-	//cerr <<"Requesting var" <<toString(getVarID()) <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
+	if(verbosity()>5){
+		clog <<"Requesting var" <<toString(getVarID()) <<"{" <<minValue() <<",...," <<maxValue() <<"}" <<">=" <<bound <<" (orig bounds" <<"{" <<origMinValue() <<",...," <<origMaxValue() <<"}"  <<")\n";
+	}
 	if (bound <= origMinValue()) {
 		return getPCSolver().getTrueLit();
 	} else if (origMaxValue() < bound) {
