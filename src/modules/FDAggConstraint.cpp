@@ -348,11 +348,8 @@ rClause FDAggConstraint::notifypropagateProd() {
 		return checkProduct(min, minbound);
 	}
 
-	return nullPtrClause;
-
 	if (canContainNegatives()) {
-		return nullPtrClause;
-		//return notifypropagateProdWithNeg(min, max, minbound, maxbound);
+		return notifypropagateProdWithNeg(min, max, minbound, maxbound);
 	}
 	return notifypropagateProdWithoutNeg(min, max, minbound, maxbound);
 }
