@@ -207,8 +207,9 @@ vector<Lit> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r)
 vector<VariableEqValue> getBackMappedModel(const std::vector<VariableEqValue>& model, const Remapper& r) {
 	vector<VariableEqValue> outmodel;
 	for (auto vareq : model) {
-		if (r.wasInput(vareq.variable)) {
-			outmodel.push_back({r.getOrigID(vareq.variable),vareq.value});
+		if (r.wasInput(vareq.getVariable())) {
+			auto image = vareq.hasValue();
+			outmodel.push_back({r.getOrigID(vareq.getVariable()), image?vareq.getValue() : 0, image});
 		}
 	}
 	return outmodel;

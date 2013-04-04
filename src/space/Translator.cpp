@@ -27,8 +27,12 @@ void Translator::printModel(std::ostream& output, const Model& model){
 	for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i){
 		ss <<toString(*i) <<" ";
 	}
-	for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
-		ss <<toString((*i).variable) <<"=" <<(*i).value <<" ";
+	for (auto vareq : model.variableassignments){
+		if(not vareq.hasValue()){
+			ss <<toString(vareq.getVariable()) <<"=/"<<" ";
+		}else{
+			ss <<toString(vareq.getVariable()) <<"=" <<vareq.getValue() <<" ";
+		}
 	}
 	ss << "0\n";
 	//TODO start critical section

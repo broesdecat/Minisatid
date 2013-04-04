@@ -159,13 +159,20 @@ public:
 	}
 
 	void add(const IntVarEnum& var) {
-		target() << "Integer variable " << print(var.varID) << " = { ";
+		target() << "Added integer variable " << print(var.varID) << " = { ";
 		printConcatBy(var.values, ", ", target());
+		if(var.partial){
+			target() <<", novalue if " <<print(var.possiblynondenoting);
+		}
 		target() << " }\n";
 	}
 
 	void add(const IntVarRange& var) {
-		target() << "Added integer variable " << print(var.varID) << " = [ " << var.minvalue << ".." << var.maxvalue << " ]\n";
+		target() << "Added integer variable " << print(var.varID) << " = [ " << var.minvalue << ".." << var.maxvalue << " ]";
+		if(var.partial){
+			target() <<", novalue if " <<print(var.possiblynondenoting) <<"\n";
+		}
+		target() <<"\n";
 	}
 
 	void add(const CPAllDiff& alldiff) {

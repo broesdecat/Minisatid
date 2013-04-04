@@ -46,6 +46,17 @@ IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
 
 void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
 		const std::vector<Weight>& weights, EqType rel, IntView* bound) {
+
+	auto conditionswithpartial = conditions;
+	for(uint i=0; i<conditions.size();++i){
+		if(set[i]->isPartial()){
+			auto condandnotpart = getPCSolver().newAtom();
+			// TODO improve algorithm instead of doing this recoding that introduces an additiona tseitin?
+			add(Implication(DEFAULTCONSTRID, mkPosLit(condandnotpart), ImplicationType::EQUIVALENT, {conditions[i], not set[i]->getNoImageLit()}, true));
+			conditionswithpartial[i] = mkPosLit(condandnotpart);
+		}
+	}
+
 	//FIXME .. PASS THE ID
 	if (set.size() == 0) {
 		Weight neutral = 0;
@@ -85,7 +96,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			for(auto v: _vars){
 				varids.push_back(v->getID());
 			}
-			add(CPProdWeighted(DEFAULTCONSTRID, two, conditions, varids, weights.front(), EqType::LEQ, bound->getID()));
+			add(CPProdWeighted(DEFAULTCONSTRID, two, conditionswithpartial, varids, weights.front(), EqType::LEQ, bound->getID()));
 		} else {
 			MAssert(getType() == AggType::SUM);
 			std::vector<VarID> varids;
@@ -95,7 +106,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			varids.push_back(bound->getID());
 			auto newweights = weights;
 			newweights.push_back(Weight(-1));
-			auto newconditions = conditions;
+			auto newconditions = conditionswithpartial;
 			newconditions.push_back(getPCSolver().getTrueLit());
 			add(CPSumWeighted(DEFAULTCONSTRID, two, newconditions, varids, newweights, EqType::LEQ, Weight(0)));
 		}
@@ -117,7 +128,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		_bound = bound;
 	}
 
-	_conditions = conditions;
+	_conditions = conditionswithpartial;
 }
 
 void FDAggConstraint::watchRelevantVars() {
@@ -125,10 +136,15 @@ void FDAggConstraint::watchRelevantVars() {
 		//we only go watching vars if the initialisation did not allready decide taht this aggregate is useless.
 		return;
 	}
+
 	getPCSolver().accept(this, _head, FAST);
 	getPCSolver().accept(this, not _head, FAST);
 	for (auto var : _vars) {
 		getPCSolver().acceptBounds(var, this);
+		if(var->isPartial()){
+			getPCSolver().accept(this, var->getNoImageLit(), FAST);
+			getPCSolver().accept(this, not var->getNoImageLit(), FAST);
+		}
 	}
 	for (auto c : _conditions) {
 		getPCSolver().accept(this, c, FAST);
@@ -548,16 +564,16 @@ rClause FDSumConstraint::notifypropagate() {
 		auto minval = var->minValue(), maxval = var->maxValue();
 		if (value(_conditions[i]) != l_True) {
 			// condition i is possibly false
-			minval = minval < 0 ? minval : 0;
-			maxval = maxval > 0 ? maxval : 0;
-		}
-		if (weight < 0) {
-			minWithoutThisVar -= maxval * weight;
-			maxWithoutThisVar -= minval * weight;
-		} else {
-			minWithoutThisVar -= minval * weight;
-			maxWithoutThisVar -= maxval * weight;
-		}
+				minval = minval < 0 ? minval : 0;
+				maxval = maxval > 0 ? maxval : 0;
+			}
+			if (weight < 0) {
+				minWithoutThisVar -= maxval * weight;
+				maxWithoutThisVar -= minval * weight;
+			} else {
+				minWithoutThisVar -= minval * weight;
+				maxWithoutThisVar -= maxval * weight;
+			}
 
 		// In these cases, more precise bounds reasoning is possible:
 		// If excluding the value of the variable from the minimum/maximum, would it violate the bound?

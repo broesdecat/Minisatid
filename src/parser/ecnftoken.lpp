@@ -88,8 +88,9 @@ WHITESPACE	[\t\r ]*
 <theory>","		{return ET::SYMMDELIM;}
 
 <theory>^"Implication"	{return ET::IMPLICATION;}
-<theory>^"INTVAR"		{return ET::INTVAR;}
-<theory>^"INTVARDOM" 	{return ET::INTVARDOM;}
+<theory>^"PARTIAL"		{return ET::PARTIAL;}
+<theory>"INTVAR"		{return ET::INTVAR;}
+<theory>"INTVARDOM" 	{return ET::INTVARDOM;}
 <theory>^"BINTRI"		{return ET::BINTRI;}
 <theory>^"BINTRT"		{return ET::BINTRT;}
 <theory>^"DISTINCT"		{return ET::DISTINCT;}

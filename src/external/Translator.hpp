@@ -358,10 +358,13 @@ public:
 		MAssert(count==lit2name.size());
 		count = 0;
 		for (auto vareq : model.variableassignments) {
-			auto it = var2name.find(vareq.variable);
+			if(not vareq.hasValue()){
+				continue;
+			}
+			auto it = var2name.find(vareq.getVariable());
 			if (it != var2name.cend()) {
 				count++;
-				PrintPolicy::printVar(output, it->second, vareq.value);
+				PrintPolicy::printVar(output, it->second, vareq.getValue());
 			}
 		}
 		MAssert(count==var2name.size());
@@ -381,8 +384,11 @@ public:
 			std::vector<int> values;
 			for (auto var : array.second) {
 				for (auto vareq : model.variableassignments) {
-					if (vareq.variable == var) {
-						values.push_back(vareq.value);
+					if(not vareq.hasValue()){
+						continue;
+					}
+					if (vareq.getVariable() == var) {
+						values.push_back(vareq.getValue());
 						break;
 					}
 				}

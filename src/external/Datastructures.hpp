@@ -103,8 +103,29 @@ bool compareWLByAbsWeights(const Tuple& one, const Tuple& two) {
 }
 
 struct VariableEqValue {
+private:
 	VarID variable;
 	int value;
+	bool hasimage;
+
+public:
+	VariableEqValue(VarID variable, int value, bool noImage)
+			: 	variable(variable),
+				value(value),
+				hasimage(noImage) {
+
+	}
+
+	bool hasValue() const {
+		return hasimage;
+	}
+	int getValue() const {
+		MAssert(hasValue());
+		return value;
+	}
+	VarID getVariable() const {
+		return variable;
+	}
 };
 
 struct Model {
@@ -430,6 +451,8 @@ struct BoolVar: public ID {
 };
 
 struct IntVarRange: public ID {
+	bool partial;
+	Lit possiblynondenoting; // Should not be used if partial is false
 	VarID varID;
 	Weight minvalue, maxvalue;
 
@@ -438,29 +461,57 @@ struct IntVarRange: public ID {
 #ifndef NOARBITPREC
 	IntVarRange(uint id, VarID varID)
 			: 	ID(id),
+				partial(false),
+				possiblynondenoting(mkNegLit(1)),
 				varID(varID),
 				minvalue(Weight(false)),
 				maxvalue(Weight(true)) {
 	}
 #endif
+
 	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
 			: 	ID(id),
+			  	partial(false),
+			  	possiblynondenoting(mkNegLit(1)),
+				varID(varID),
+				minvalue(minvalue),
+				maxvalue(maxvalue) {
+	}
+	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue, Lit possiblynondenoting)
+			: 	ID(id),
+			  	partial(true),
+			  	possiblynondenoting(possiblynondenoting),
 				varID(varID),
 				minvalue(minvalue),
 				maxvalue(maxvalue) {
 	}
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {};
+		if(partial){
+			return {possiblynondenoting.getAtom()};
+		}else{
+			return {};
+		}
 	}
 };
 
 struct IntVarEnum: public ID {
+	bool partial;
+	Lit possiblynondenoting; // Should not be used if partial is false
 	VarID varID;
 	std::vector<Weight> values;
 
 	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values)
 			: 	ID(id),
+			  	partial(false),
+			  	possiblynondenoting(mkPosLit(1)),
+				varID(varID),
+				values(values) {
+	}
+	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values, Lit possiblynondenoting)
+			: 	ID(id),
+			  	partial(true),
+			  	possiblynondenoting(possiblynondenoting),
 				varID(varID),
 				values(values) {
 	}
@@ -468,7 +519,11 @@ struct IntVarEnum: public ID {
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {};
+		if(partial){
+			return {possiblynondenoting.getAtom()};
+		}else{
+			return {};
+		}
 	}
 };
 

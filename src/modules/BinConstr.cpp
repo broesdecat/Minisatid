@@ -24,9 +24,6 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
 		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::GEQ, _right->getID()));
 		head_ = lefthead;
@@ -40,9 +37,6 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
 		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::G, _right->getID()));
 		head_ = lefthead;
@@ -86,9 +80,20 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		right_ = getPCSolver().getIntView(_left->getID(), -1);
 		break;
 	}
+
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
+	if(left_->isPartial()){
+		add(Implication(getID(), not head(), ImplicationType::IMPLIEDBY, {left_->getNoImageLit()}, true));
+		getPCSolver().accept(this, left_->getNoImageLit(), FAST);
+		getPCSolver().accept(this, not left_->getNoImageLit(), FAST);
+	}
+	if(right_->isPartial()){
+		add(Implication(getID(), not head(), ImplicationType::IMPLIEDBY, {right_->getNoImageLit()}, true));
+		getPCSolver().accept(this, right_->getNoImageLit(), FAST);
+		getPCSolver().accept(this, not right_->getNoImageLit(), FAST);
+	}
 	getPCSolver().acceptBounds(left(), this);
 	getPCSolver().acceptBounds(right(), this);
 	getPCSolver().acceptForPropagation(this);
@@ -146,6 +151,11 @@ void BinaryConstraint::accept(ConstraintVisitor&) {
 }
 
 rClause BinaryConstraint::notifypropagate() {
+	if(not left_->certainlyHasImage() || not right_->certainlyHasImage()){
+		return nullPtrClause;
+	}
+	cerr <<"PROPAGATING\n";
+
 	auto headvalue = getPCSolver().value(head());
 	litlist propagations;
 	if (headvalue == l_True) {

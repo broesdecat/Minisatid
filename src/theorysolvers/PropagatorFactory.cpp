@@ -302,9 +302,9 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 		}
 		IntVar* intvar = NULL;
 		if (not isNegInfinity(obj.minvalue) && not isPosInfinity(obj.maxvalue) && abs(obj.maxvalue - obj.minvalue) < 100) {
-			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue);
+			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
 		} else {
-			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue); // TODO also for enum variables
+			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit()); // TODO also for enum variables
 		}
 		intvars.insert({ obj.varID, new IntView(intvar, intvar->getVarID(), Weight(0)) });
 		intvar->finish();
@@ -324,7 +324,7 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
-		auto intvar = new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values);
+		auto intvar = new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
 		intvars.insert( { obj.varID, new IntView(intvar, obj.varID, Weight(0)) });
 		intvar->finish();
 	}
@@ -366,7 +366,9 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		new BinaryConstraint(obj.getID(), getEnginep(), getIntView(obj.lhsvarID, Weight(0)), obj.rel, getIntView(obj.rhsvarID, Weight(0)), obj.head);
+		auto leftint = getIntView(obj.lhsvarID, Weight(0));
+		auto rightint = getIntView(obj.rhsvarID, Weight(0));
+		new BinaryConstraint(obj.getID(), getEnginep(), leftint, obj.rel, rightint, obj.head);
 	}
 }
 
@@ -412,7 +414,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 		auto allknown = true;
 		for(auto varid : obj.varIDs){
 			auto var = getIntView(varid, Weight(0));
-			if(var->origMinValue()!=var->origMaxValue()){
+			if((var->isPartial() && not var->certainlyHasImage()) || var->origMinValue()!=var->origMaxValue()){
 				allknown = false;
 				break;
 			}
@@ -451,10 +453,18 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 			}
 		}else{
 			vector<IntView*> vars;
-			for (auto varid : obj.varIDs) {
-				vars.push_back(getIntView(varid, 0));
+			litlist conditions;
+			for (size_t i=0; i< obj.varIDs.size(); ++i) {
+				auto var = getIntView(obj.varIDs[i], 0);
+				vars.push_back(var);
+				if(not var->isPartial()){
+					conditions.push_back(obj.conditions[i]);
+				}else{
+					conditions.push_back(mkPosLit(getEngine().newAtom()));
+					add(Implication(obj.getID(), conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
+				}
 			}
-			new FDSumConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.weights, obj.rel, obj.bound);
+			new FDSumConstraint(obj.getID(), getEnginep(), obj.head, conditions, vars, obj.weights, obj.rel, obj.bound);
 		}
 	}
 }
@@ -465,10 +475,18 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
 		addCP(createUnconditional(obj, 1));
 	} else {
 		vector<IntView*> vars;
-		for (auto varid : obj.varIDs) {
-			vars.push_back(getIntView(varid, 0));
+		litlist conditions;
+		for (size_t i=0; i< obj.varIDs.size(); ++i) {
+			auto var = getIntView(obj.varIDs[i], 0);
+			vars.push_back(var);
+			if(not var->isPartial()){
+				conditions.push_back(obj.conditions[i]);
+			}else{
+				conditions.push_back(mkPosLit(getEngine().newAtom()));
+				add(Implication(obj.getID(), conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
+			}
 		}
-		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
+		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
 	}
 }
 
@@ -635,16 +653,14 @@ SATVAL PropagatorFactory::finish() {
 }
 
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments) {
-	for (auto i = intvars.cbegin(); i != intvars.cend(); ++i) {
-		VariableEqValue vareq;
-		auto ivar = (*i).second;
-		if (ivar->minValue() != ivar->maxValue()) {
+	for (auto name2var : intvars) {
+		auto ivar = name2var.second;
+		auto image = ivar->possiblyHasImage();
+		if (image && ivar->minValue() != ivar->maxValue()) {
 			cerr << "Variable " << ivar->toString() << "[" << ivar->minValue() << "," << ivar->maxValue() << "]" << " is not assigned.\n";
 			throw idpexception("Current interpretation is a not a model.");
 		}
-		vareq.variable = ivar->getVarID();
-		vareq.value = (int)ivar->minValue(); // TODO
-		varassignments.push_back(vareq);
+		varassignments.push_back({ivar->getVarID(), image?ivar->minValue():0, image});
 	}
 }
 

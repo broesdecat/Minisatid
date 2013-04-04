@@ -514,7 +514,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 // NOTE: never call directly from within!
-void Solver::saveState() {	
+void Solver::saveState() {
 	if (verbosity > 3) {
 		clog << ">>> Saving the state.\n";
 	}
@@ -1029,6 +1029,10 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 	getPCSolver().notifySetTrue(p);
 	if (verbosity > 3) {
 		getPCSolver().printEnqueued(p);
+		if(from!=nullPtrClause && verbosity > 5){
+			clog <<"\tbecause ";
+			printClause(from);
+		}
 	}
 }
 

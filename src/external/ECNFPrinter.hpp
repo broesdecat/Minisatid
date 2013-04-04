@@ -155,11 +155,24 @@ public:
 	}
 
 	void add(const IntVarRange& range) {
-		target() << INTVARRANGESTR << " " << toString(range.varID) << " " << range.minvalue << " " << range.maxvalue << " 0\n";
+		if(range.partial){
+			target() <<PARTIALSTR <<" ";
+		}
+		target() << INTVARRANGESTR << " " <<toString(range.varID) <<" ";
+		if(range.partial){
+			target() <<toString(range.possiblynondenoting) <<" ";
+		}
+		target() << range.minvalue << " " << range.maxvalue << " 0\n";
 	}
 
 	void add(const IntVarEnum& intvar) {
-		target() << INTVARENUMSTR << " " << toString(intvar.varID) << " ";
+		if(intvar.partial){
+			target() <<PARTIALSTR <<" ";
+		}
+		target() << INTVARENUMSTR << " " <<toString(intvar.varID) << " ";
+		if(intvar.partial){
+			target() <<toString(intvar.possiblynondenoting) <<" ";
+		}
 		for (auto i = intvar.values.cbegin(); i < intvar.values.cend(); ++i) {
 			target() << *i << " ";
 		}
