@@ -36,9 +36,9 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 
 IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
 	IntVar* newvar = NULL;
-	if(abs(max-min)<100){ // FIXME duplicate heuristic in Propagatorfactory
+	if (abs(max - min) < 100) { // FIXME duplicate heuristic in Propagatorfactory
 		newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), min, max);
-	}else{
+	} else {
 		newvar = new LazyIntVar(getID(), &getPCSolver(), getPCSolver().newID(), min, max);
 	}
 	newvar->finish();
@@ -48,6 +48,25 @@ IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
 void FDAggConstraint::sharedInitialization(AggType type, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set,
 		const std::vector<Weight>& weights, EqType rel, IntView* bound) {
 	//FIXME .. PASS THE ID
+	if (set.size() == 0) {
+		int neutral = 0;
+		if (type == AggType::PROD) {
+			MAssert(weights.size() == 1);
+			neutral = weights[0];
+		}
+		//HEAD <=> neutral (* weight) rel bound
+		//Thus, we should get the bound rel neutral lit and invert it in case rel is not EQ or NEQ
+		auto condition = bound->getCompareLit(neutral, rel);
+		if (rel != EqType::EQ && rel != EqType::NEQ) {
+			condition = ! condition;
+		}
+		add(Implication(getID(), head, ImplicationType::EQUIVALENT, { condition }, true));
+		if (verbosity() > 5) {
+			clog << "Set was empty, FDAGGConstraint simplified to:";
+			clog << toString(head) << " <=> " << toString(condition) << endl;
+		}
+		return;
+	}
 	_head = head;
 	_vars = set;
 	if (rel == EqType::EQ || rel == EqType::NEQ) {
@@ -103,14 +122,16 @@ bool additionOverflow(int x, int y) {
 
 FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
 		EqType rel, const Weight& bound)
-		: Propagator(id, engine, "fdaggconstr"), _type(getType(type)) {
+		: 	Propagator(id, engine, "fdaggconstr"),
+			_type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
 	initializeSum(engine, head, set, weights, rel, createBound(bound, bound));
 }
 
 FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
 		EqType rel, IntView* bound)
-		: Propagator(id, engine, "fdaggconstr"), _type(getType(type)) {
+		: 	Propagator(id, engine, "fdaggconstr"),
+			_type(getType(type)) {
 	MAssert(type==AggType::SUM && weights.size()==set.size());
 	initializeSum(engine, head, set, weights, rel, bound);
 }
@@ -152,7 +173,7 @@ void FDAggConstraint::initializeSum(PCSolver* engine, const Lit& head, const std
 
 	SafeInt<Weight> absmax(0); //note that s == 0 unless set
 	try {
-		for(uint i=0; i<newset.size(); ++i){
+		for (uint i = 0; i < newset.size(); ++i) {
 			SafeInt<Weight> sumterm(newweights[i]);
 			sumterm *= max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
 			absmax += sumterm;
@@ -166,14 +187,16 @@ void FDAggConstraint::initializeSum(PCSolver* engine, const Lit& head, const std
 
 FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		const Weight& bound)
-		: Propagator(id, engine, "fdaggconstr"), _type(getType(type)) {
+		: 	Propagator(id, engine, "fdaggconstr"),
+			_type(getType(type)) {
 	MAssert(type==AggType::PROD);
 	initializeProd(engine, head, set, weight, rel, createBound(bound, bound));
 }
 
 FDAggConstraint::FDAggConstraint(uint id, PCSolver* engine, const Lit& head, AggType type, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		IntView* bound)
-		: Propagator(id, engine, "fdaggconstr"), _type(getType(type)) {
+		: 	Propagator(id, engine, "fdaggconstr"),
+			_type(getType(type)) {
 	MAssert(type==AggType::PROD);
 	initializeProd(engine, head, set, weight, rel, bound);
 }
@@ -399,8 +422,7 @@ rClause FDAggConstraint::checkProduct(int val, int boundvalue) {
 	return nullPtrClause;
 }
 
-
-litlist FDAggConstraint::notAllVarsArePositive(){
+litlist FDAggConstraint::notAllVarsArePositive() {
 	litlist lits;
 	for (uint i = 0; i < _vars.size(); ++i) {
 		lits.push_back(_vars[i]->getLEQLit(-1));
@@ -581,10 +603,10 @@ rClause FDAggConstraint::notifypropagateProdWithoutNeg(int mini, int maxi, int m
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			if(value(boundlit) == l_False){
+			if (value(boundlit) == l_False) {
 				getPCSolver().addConflictClause(c);
 				return c;
-			}else{
+			} else {
 				MAssert(value(boundlit)==l_Undef);
 				getPCSolver().addLearnedClause(c);
 				return nullPtrClause;
@@ -713,11 +735,10 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			if(value(boundlit ) ==l_False){
+			if (value(boundlit) == l_False) {
 				getPCSolver().addConflictClause(c);
 				return c;
-			}
-			else{
+			} else {
 				MAssert(value(boundlit)==l_Undef);
 				getPCSolver().addLearnedClause(c);
 				return nullPtrClause;
@@ -733,11 +754,10 @@ rClause FDAggConstraint::notifypropagateProdWithNeg(int minval, int maxval, int 
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
-			if(value(boundlit ) ==l_False){
+			if (value(boundlit) == l_False) {
 				getPCSolver().addConflictClause(c);
 				return c;
-			}
-			else{
+			} else {
 				MAssert(value(boundlit)==l_Undef);
 				getPCSolver().addLearnedClause(c);
 				return nullPtrClause;
