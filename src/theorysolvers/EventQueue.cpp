@@ -107,6 +107,7 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 			continue;
 		}
 		if (not (*i)->isQueued()) {
+			(*i)->notifyQueued();
 			fastqueue.push_back(*i);
 		}
 	}
@@ -253,7 +254,7 @@ rClause EventQueue::notifyPropagate() {
 			if (p->isPresent()) {
 				confl = p->notifypropagate();
 				MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
-				if (confl == nullPtrClause) {
+				if (confl == nullPtrClause) { // TODO AND something changed?
 					confl = runEternalPropagators(); // Always immediately go to unit propagation after any other propagation
 				}
 			}
@@ -289,6 +290,7 @@ void EventQueue::acceptForDecidable(Atom v, Propagator* prop) {
 	if (not getPCSolver().isDecisionVar(v)) {
 		var2decidable[v].push_back(prop);
 	} else {
+		prop->notifyQueued();
 		fastqueue.push_back(prop);
 	}
 }
@@ -296,6 +298,7 @@ void EventQueue::acceptForDecidable(Atom v, Propagator* prop) {
 void EventQueue::notifyBecameDecidable(Atom v) {
 	MAssert((uint)v<var2decidable.size());
 	for (auto i = var2decidable[v].cbegin(); i < var2decidable[v].cend(); ++i) {
+		(*i)->notifyQueued();
 		fastqueue.push_back(*i);
 	}
 	var2decidable[v].clear();
