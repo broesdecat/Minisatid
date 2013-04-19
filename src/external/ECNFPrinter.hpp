@@ -24,7 +24,8 @@ private:
 	using ConstraintPrinter::getPrinter;
 public:
 	RealECNFPrinter(LiteralPrinter* solver, Stream& stream, bool remap = true)
-			: ConstraintStreamPrinter<Stream>(solver, stream, "ecnfprinter"), remap(remap) {
+			: 	ConstraintStreamPrinter<Stream>(solver, stream, "ecnfprinter"),
+				remap(remap) {
 	}
 	virtual ~RealECNFPrinter() {
 	}
@@ -38,12 +39,12 @@ public:
 		target().flush();
 	}
 
-	std::string toString(VarID id){
-		if(remap){
+	std::string toString(VarID id) {
+		if (remap) {
 			return getPrinter()->toString(id);
-		}else{
+		} else {
 			std::stringstream ss;
-			ss <<id.id;
+			ss << id.id;
 			return ss.str();
 		}
 	}
@@ -98,7 +99,7 @@ public:
 	}
 
 	void add(const Implication& impl) {
-		target() << IMPLICATIONSTR << " " << (impl.conjunction ? "C" : "D") << toString(impl.head) <<impl.type <<" ";
+		target() << IMPLICATIONSTR << " " << (impl.conjunction ? "C" : "D") << toString(impl.head) << impl.type << " ";
 		for (auto l : impl.body) {
 			target() << toString(l) << " ";
 		}
@@ -126,13 +127,15 @@ public:
 	}
 
 	void add(const MinimizeVar& mnm) {
-		target() << VARMNMSTR << " " <<toString(mnm.varID) << " 0\n";
+		target() << VARMNMSTR << " " << toString(mnm.varID) << " 0\n";
 	}
 
 	void add(const Symmetry& symm) {
+		std::vector<std::vector<MinisatID::Lit> > cycles;
+		symm.getCycles(cycles);
 		target() << "[";
 		bool symmbegin = true;
-		for (auto i = symm.symmetry.cbegin(); i < symm.symmetry.cend(); ++i) {
+		for (auto i = cycles.cbegin(); i < cycles.cend(); ++i) {
 			if (not symmbegin) {
 				target() << ", ";
 			}
@@ -152,11 +155,11 @@ public:
 	}
 
 	void add(const IntVarRange& range) {
-		target() << INTVARRANGESTR << " " <<toString(range.varID) << " " << range.minvalue << " " << range.maxvalue << " 0\n";
+		target() << INTVARRANGESTR << " " << toString(range.varID) << " " << range.minvalue << " " << range.maxvalue << " 0\n";
 	}
 
 	void add(const IntVarEnum& intvar) {
-		target() << INTVARRANGESTR << " " <<toString(intvar.varID) << " ";
+		target() << INTVARRANGESTR << " " << toString(intvar.varID) << " ";
 		for (auto i = intvar.values.cbegin(); i < intvar.values.cend(); ++i) {
 			target() << *i << " ";
 		}
@@ -165,22 +168,20 @@ public:
 
 	void add(const CPAllDiff& alldiff) {
 		target() << CPDISTINCTSTR << " ";
-		for (auto varid: alldiff.varIDs) {
+		for (auto varid : alldiff.varIDs) {
 			target() << toString(varid) << " ";
 		}
 		target() << DELIMSTR << " 0\n";
 	}
 
 	void add(const CPBinaryRel& binconstr) {
-		target() << CPBININTSTR << " " << toString(binconstr.head) << " " << toString(binconstr.varID)
-				<< " " << binconstr.rel << " " << binconstr.bound
+		target() << CPBININTSTR << " " << toString(binconstr.head) << " " << toString(binconstr.varID) << " " << binconstr.rel << " " << binconstr.bound
 				<< " 0\n";
 	}
 
 	void add(const CPBinaryRelVar& binconstr) {
-		target() << CPBINVARSTR << " " << toString(binconstr.head) << " " << toString(binconstr.lhsvarID)
-				<< " " << binconstr.rel << " " << toString(binconstr.rhsvarID)
-				<< " 0\n";
+		target() << CPBINVARSTR << " " << toString(binconstr.head) << " " << toString(binconstr.lhsvarID) << " " << binconstr.rel << " "
+				<< toString(binconstr.rhsvarID) << " 0\n";
 	}
 
 	void add(const CPCount& count) {
@@ -208,7 +209,7 @@ public:
 		for (auto i = prod.varIDs.cbegin(); i < prod.varIDs.cend(); ++i) {
 			target() << toString(*i) << " ";
 		}
-		target() << DELIMSTR <<" " <<prod.prodWeight <<" " << prod.rel << " " << toString(prod.boundID) << " 0\n";
+		target() << DELIMSTR << " " << prod.prodWeight << " " << prod.rel << " " << toString(prod.boundID) << " 0\n";
 	}
 
 	void add(const CPElement& elem) {

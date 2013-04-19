@@ -37,32 +37,33 @@ public:
 	}
 
 	template<class Elem>
-	std::string print(const Elem& id){
+	std::string print(const Elem& id) {
 		return toString(id, *getPrinter());
 	}
 
 	template<class Elem>
-	struct Print{
+	struct Print {
 	private:
 		LiteralPrinter* printer;
 	public:
-		Print(LiteralPrinter* printer):printer(printer){
+		Print(LiteralPrinter* printer)
+				: printer(printer) {
 
 		}
-		std::string operator() (const Elem& elem){
+		std::string operator()(const Elem& elem) {
 			return toString(elem, *printer);
 		}
 	};
 
 	template<typename List, typename SS, typename Functor>
-	void printConcatWithFunctor(const List& list, const std::string& concat, SS& stream, Functor func){
+	void printConcatWithFunctor(const List& list, const std::string& concat, SS& stream, Functor func) {
 		bool begin = true;
-		for(auto i=list.cbegin(); i<list.cend(); ++i) {
-			if(not begin){
-				stream <<concat;
+		for (auto i = list.cbegin(); i < list.cend(); ++i) {
+			if (not begin) {
+				stream << concat;
 			}
 			begin = false;
-			stream <<func(*i);
+			stream << func(*i);
 		}
 	}
 
@@ -131,7 +132,7 @@ public:
 	}
 
 	void add(const MinimizeVar& mnm) {
-		target() << "Searching model with minimal value for variable " <<print(mnm.varID) << "\n";
+		target() << "Searching model with minimal value for variable " << print(mnm.varID) << "\n";
 	}
 
 	void add(const MinimizeAgg& mnm) {
@@ -141,8 +142,10 @@ public:
 
 	void add(const Symmetry& symm) {
 		target() << "Added symmetry:\n\t";
+		std::vector<std::vector<MinisatID::Lit> > cycles;
+		symm.getCycles(cycles);
 		bool begin = true;
-		for (auto i = symm.symmetry.cbegin(); i < symm.symmetry.cend(); ++i) {
+		for (auto i = cycles.cbegin(); i < cycles.cend(); ++i) {
 			target() << "[";
 			for (auto j = i->cbegin(); j < i->cend(); ++j) {
 				if (not begin) {
@@ -173,8 +176,7 @@ public:
 	}
 
 	void add(const CPBinaryRel& rel) {
-		target() << "Added binary constraint " << print(rel.head) << " <=> var"
-				<< print(rel.varID) << " " << rel.rel << " " << rel.bound << "\n";
+		target() << "Added binary constraint " << print(rel.head) << " <=> var" << print(rel.varID) << " " << rel.rel << " " << rel.bound << "\n";
 	}
 
 	void add(const CPCount& obj) {
@@ -184,8 +186,7 @@ public:
 	}
 
 	void add(const CPBinaryRelVar& rel) {
-		target() << "Added binary constraint " << print(rel.head) << " <=> var"
-				<< print(rel.lhsvarID) << " " << rel.rel << " var" << print(rel.rhsvarID)
+		target() << "Added binary constraint " << print(rel.head) << " <=> var" << print(rel.lhsvarID) << " " << rel.rel << " var" << print(rel.rhsvarID)
 				<< "\n";
 	}
 
@@ -195,7 +196,7 @@ public:
 		auto litit = sum.varIDs.cbegin();
 		auto weightit = sum.weights.cbegin();
 		for (; litit < sum.varIDs.cend(); ++litit, ++weightit) {
-			if(not begin){
+			if (not begin) {
 				target() << ", ";
 			}
 			begin = false;
@@ -211,13 +212,14 @@ public:
 		bool begin = true;
 		auto litit = prod.varIDs.cbegin();
 		for (; litit < prod.varIDs.cend(); ++litit) {
-			if(not begin){
+			if (not begin) {
 				target() << ", ";
 			}
 			begin = false;
 			target() << "var" << print(*litit);
 		}
-		target() << " }) " << prod.rel << " " << "var"<<print(prod.boundID) << "\n";	}
+		target() << " }) " << prod.rel << " " << "var" << print(prod.boundID) << "\n";
+	}
 
 	void add(const CPElement& rel) {
 		target() << "Added element constraint {";
@@ -230,8 +232,8 @@ public:
 	}
 
 	virtual void add(const LazyGroundImpl& lg) {
-		target() << "Added lazy " << (lg.impl.conjunction ? "conjunctive" : "disjunctive") << " implication " << ": "
-				<< print(lg.impl.head) << " " << lg.impl.type;
+		target() << "Added lazy " << (lg.impl.conjunction ? "conjunctive" : "disjunctive") << " implication " << ": " << print(lg.impl.head) << " "
+				<< lg.impl.type;
 		printConcatWithFunctor(lg.impl.body, lg.impl.conjunction ? " & " : " | ", target(), Print<Lit>(getPrinter()));
 		if (lg.impl.body.size() > 0) {
 			target() << (lg.impl.conjunction ? " & " : " | ");
@@ -244,22 +246,22 @@ public:
 		target() << " to lazy implication " << lg.ref << "\n";
 	}
 	virtual void add(const SubTheory& subtheory) {
-		target() <<"Created subtheory " <<subtheory.childid.id <<"\n";
+		target() << "Created subtheory " << subtheory.childid.id << "\n";
 		// FIXME implement rest and add printing of theoryids to other add methods
 	}
 
 	void add(const LazyAtom& lg) {
-		target() << "Added lazy element constraint with head " << print(lg.head) <<" <=> ";
-		target() <<lg.grounder->getSymbolName() <<"(";
+		target() << "Added lazy element constraint with head " << print(lg.head) << " <=> ";
+		target() << lg.grounder->getSymbolName() << "(";
 		bool begin = true;
-		for(auto v: lg.args){
-			if(not begin){
-				target() <<", ";
+		for (auto v : lg.args) {
+			if (not begin) {
+				target() << ", ";
 			}
 			begin = false;
 			target() << "var" << print(v);
 		}
-		target() <<").\n";
+		target() << ").\n";
 	}
 };
 

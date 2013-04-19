@@ -32,7 +32,7 @@ Atom map(const Atom& atom, Remapper& remapper) {
 	return remapper.getVar(atom);
 }
 
-VarID map(VarID var, Remapper& remapper){
+VarID map(VarID var, Remapper& remapper) {
 	return {remapper.getID(var.id)};
 }
 

@@ -323,7 +323,7 @@ public:
 				sign(sign),
 				sem(sem),
 				defID(defID),
-				onlyif(onlyif){
+				onlyif(onlyif) {
 		MAssert(sem!=AggSem::DEF || defID!=-1);
 		MAssert(sem!=AggSem::DEF || isPositive(head));
 	}
@@ -608,23 +608,24 @@ struct CPElement: public ID {
 
 class Symmetry: public Constraint {
 public:
-	// INVAR: the keys are unique
-	std::vector<std::vector<Lit> > symmetry;
-	Symmetry(std::vector<std::vector<Lit> > s)
-			: symmetry(s) {
-	}
+	// INVAR: symmetry satisfies the bijection constraint
+	// INVAR: the set of keys is also the set of values
+
+	std::map<Lit, Lit> symmetry;
+	Symmetry(const std::map<Lit, Lit>& s);
+	Symmetry(const std::vector<std::vector<Lit> >& s);
 
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
 		std::vector<Atom> atoms;
-		for (auto i = symmetry.cbegin(); i < symmetry.cend(); ++i) {
-			for (auto j = i->cbegin(); j < i->cend(); ++j) {
-				atoms.push_back(var(*j));
-			}
+		for (auto litpair : symmetry) {
+			atoms.push_back(var(litpair.first));
 		}
 		return atoms;
 	}
+
+	void getCycles(std::vector<std::vector<Lit> >& dcn) const;
 };
 
 // POCO

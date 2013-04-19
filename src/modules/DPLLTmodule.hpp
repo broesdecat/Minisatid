@@ -31,13 +31,20 @@ protected:
 	PCSolver* pcsolver;
 
 public:
-	Propagator(uint id, PCSolver* s, const std::string& name) :
-			present(true), trailindex(0), inqueue(false), name(name), id(id), pcsolver(s) {
+	Propagator(uint id, PCSolver* s, const std::string& name)
+			: 	present(true),
+				trailindex(0),
+				inqueue(false),
+				name(name),
+				id(id),
+				pcsolver(s) {
 	}
 	virtual ~Propagator() {
 	}
 
-	const uint& getID() const{ return id; }
+	const uint& getID() const {
+		return id;
+	}
 
 	// queueing mech, only use for MAIN (propagation) queue
 	void notifyQueued() {
@@ -59,7 +66,7 @@ public:
 	}
 
 	// Propagator methods
-	std::string getName() const{
+	std::string getName() const {
 		return name;
 	}
 	virtual rClause getExplanation(const Lit&) = 0;
@@ -70,9 +77,17 @@ public:
 	// Requirement: if a conflict is generated during this method, it is obligatory to return a (relevant) conflict clause!
 	virtual rClause notifypropagate() = 0;
 
-	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
-	virtual void saveState(){ throw idpexception("Operation applied to invalid propagator."); }
-	virtual void resetState(){ throw idpexception("Operation applied to invalid propagator."); }
+	virtual rClause notifyFullAssignmentFound() {
+		throw idpexception("Operation applied to invalid propagator.");
+	}
+	virtual void saveState() {
+		throw idpexception("Operation applied to invalid propagator.");
+	}
+	virtual void resetState() {
+		throw idpexception("Operation applied to invalid propagator.");
+	}
+	// Supposed to return an estimate of the number of clauses this propagator represents.
+	// However, most implementations simply return 1.
 	virtual int getNbOfFormulas() const = 0;
 
 	// Convenience methods (based on getPCSolver)
@@ -107,7 +122,7 @@ public:
 
 	// Add a constraint to the current Theory
 	template<class Object>
-	void add(Object&& constraint){
+	void add(Object&& constraint) {
 		internalAdd(constraint, getPCSolver().getTheoryID(), getPCSolver());
 	}
 
