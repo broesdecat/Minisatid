@@ -86,7 +86,7 @@ private:
 	std::set<Atom> _outputvars;
 public:
 	void addOutputVars(const std::vector<Atom>& outputvars);
-	bool isDecisionVar(Atom var);
+	bool isDecisionVar(Atom var); // This is confusing, seems to have the same functionality as "isDecided". Rename to canBeDecisionVar or allowedAsDecisionVar?
 	void notifyDecisionVar(Atom var);
 	bool isDecided(Atom var);
 	std::vector<Lit> getDecisions() const;
@@ -226,7 +226,7 @@ public:
 	rClause propagate();
 	int getTime(const Atom& var) const;
 	bool assertedBefore(const Atom& l, const Atom& p) const;
-	rClause getExplanation(const Lit& l); //NON-OWNING pointer
+	rClause getExplanation(const Lit& l); //NON-OWNING pointer // JO: is this pointer owning or non-owning?? .cpp says it is.
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
 	void notifyBecameDecidable(Atom v);
 	void notifyBoundsChanged(IntVar* var);

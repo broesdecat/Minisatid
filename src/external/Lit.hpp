@@ -105,3 +105,15 @@ inline Lit  mkPosLit	(Atom var) 	{ return mkLit(var, false); }
 inline Lit  mkNegLit	(Atom var) 	{ return mkLit(var, true); }
 
 }
+
+// To use Lit in an unordered_map, a hash function had to be defined in namespace std
+namespace std {
+
+template<>
+struct hash<MinisatID::Lit> {
+	size_t operator()(const MinisatID::Lit& t) const {
+		return (size_t) t.x;
+	}
+};
+
+}

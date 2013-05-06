@@ -141,6 +141,7 @@ DATASTRUCTURE_ACCEPT(TwoValuedRequirement)
 DATASTRUCTURE_ACCEPT(LazyAtom)
 
 // constructor used when passing data from grounder to solver
+// TODO: check whether it satisfies the right constraints (e.g.: no literal is mapped to itself, commuting with negation) => currently solved in the getSymmetry method
 Symmetry::Symmetry(const std::map<Lit, Lit>& s)
 		: symmetry(s) {
 }
@@ -171,6 +172,28 @@ void Symmetry::getCycles(std::vector<std::vector<Lit> >& dcn) const {
 			dcn.push_back(newCycle);
 		}
 	}
+}
+
+std::unordered_map<Lit,Lit> Symmetry::getSymmetrical() const{
+	std::unordered_map<Lit,Lit> result;
+	for(auto litpair:symmetry){
+		if(litpair.first!=litpair.second){
+			result.insert({litpair.first,litpair.second});
+			result.insert({not litpair.first,not litpair.second});
+		}
+	}
+	return result;
+}
+
+std::unordered_map<Lit,Lit> Symmetry::getInverse() const{
+	std::unordered_map<Lit,Lit> result;
+	for(auto litpair:symmetry){
+		if(litpair.first!=litpair.second){
+			result.insert({litpair.second,litpair.first});
+			result.insert({not litpair.second,not litpair.first});
+		}
+	}
+	return result;
 }
 
 }

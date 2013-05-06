@@ -1013,11 +1013,11 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 }
 
 bool Solver::isDecided(Atom v) {
-	if (value(mkPosLit(v)) == l_Undef) {
+	if (getLevel(v) == 0 || value(mkPosLit(v)) == l_Undef) {
 		return false;
 	}
-	MAssert(getLevel(v) >= 0 || getLevel(v) <= decisionLevel());
-	return var(trail[trail_lim[getLevel(v) - 1]]) == v;
+	MAssert(getLevel(v) > 0 || getLevel(v) <= decisionLevel());
+	return trail[trail_lim[getLevel(v) - 1]].getAtom() == v;
 }
 
 /*_________________________________________________________________________________________________

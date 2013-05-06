@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <cstdint>
 #include <cstdlib>
 #include "Weight.hpp"
@@ -626,6 +627,11 @@ public:
 	}
 
 	void getCycles(std::vector<std::vector<Lit> >& dcn) const;
+
+	// These methods are needed to create const unordered_maps in a SymmetryPropagator
+	// TODO: better solution than returning by value?
+	std::unordered_map<Lit, Lit> getSymmetrical() const;
+	std::unordered_map<Lit, Lit> getInverse() const;
 };
 
 // POCO

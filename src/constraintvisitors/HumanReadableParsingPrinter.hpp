@@ -144,8 +144,8 @@ public:
 		target() << "Added symmetry:\n\t";
 		std::vector<std::vector<MinisatID::Lit> > cycles;
 		symm.getCycles(cycles);
-		bool begin = true;
 		for (auto i = cycles.cbegin(); i < cycles.cend(); ++i) {
+			bool begin = true;
 			target() << "[";
 			for (auto j = i->cbegin(); j < i->cend(); ++j) {
 				if (not begin) {
