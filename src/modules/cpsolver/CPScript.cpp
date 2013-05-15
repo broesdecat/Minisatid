@@ -21,12 +21,12 @@ CPScript::CPScript(): Space(){
 
 CPScript::CPScript(bool share, CPScript& s): Space(share, s){
 	for(auto i=s.boolvars.begin(); i<s.boolvars.end(); i++){
-		boolvars.push_back(BoolVar());
+		boolvars.push_back(Gecode::BoolVar());
 		boolvars.back().update(*this, share, *i);
 	}
 
 	for(auto i=s.intvars.begin(); i<s.intvars.end(); i++){
-		intvars.push_back(IntVar());
+		intvars.push_back(Gecode::IntVar());
 		intvars.back().update(*this, share, *i);
 	}
 }
@@ -36,25 +36,25 @@ CPScript* CPScript::copy(bool share){
 }
 
 intvarindex CPScript::addIntVar(int min, int max){
-	intvars.push_back(IntVar(*this, min, max));
+	intvars.push_back(Gecode::IntVar(*this, min, max));
 	return intvars.size()-1;
 }
 
 intvarindex CPScript::addIntVar(const vector<int>& values){
 	auto set = IntSet(values.data(), values.size());
-	intvars.push_back(IntVar(*this, set));
+	intvars.push_back(Gecode::IntVar(*this, set));
 	return intvars.size()-1;
 }
 
 boolvarindex CPScript::addBoolVar(){
-	boolvars.push_back(BoolVar(*this, 0, 1));
+	boolvars.push_back(Gecode::BoolVar(*this, 0, 1));
 	return boolvars.size()-1;
 }
 
 void CPScript::accept(ConstraintVisitor& visitor){
 	int id = 1;
 	for(auto i=intvars.cbegin(); i<intvars.cend(); ++i){
-		visitor.add(IntVarRange(id++, i->min(), i->max()));
+		visitor.add(IntVarRange(DEFAULTCONSTRID, {id++}, i->min(), i->max()));
 	}
 }
 

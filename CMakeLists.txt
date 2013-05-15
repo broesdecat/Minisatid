@@ -22,7 +22,6 @@ macro(addToCXX ARGUMENT)
 endmacro()
 
 OPTION(WITHGECODE		"Include gecode support for cp (need gecode to be installed)" OFF)
-set(GECODE_DIR  		"" CACHE STRING "Gecode installation directory (needs include and lib subdirectories)")
 OPTION(BUILDTESTS  		"Run the gtest tests" ON)
 OPTION(GMP  			"Enable gmp support" OFF)
 
@@ -47,7 +46,7 @@ if(WITHGECODE)
 		include_directories(${Gecode_INCLUDE_DIRS})
 		set(LIBS ${LIBS} ${Gecode_LIBRARIES})
 	else()
-		message(FATAL_ERROR "Gecode not found (maybe specify a custom install directory via GECODE_DIR?)")
+		message(FATAL_ERROR "Gecode not found")
 	endif()
 endif()
 

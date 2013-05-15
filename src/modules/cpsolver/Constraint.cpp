@@ -23,11 +23,11 @@ TermIntVar::TermIntVar()
 		: range(false), min(-1), max(-1), var(-1) {
 }
 
-TermIntVar::TermIntVar(CPScript& space, uint groundterm, int min, int max)
+TermIntVar::TermIntVar(CPScript& space, VarID groundterm, int min, int max)
 		: ID(groundterm), range(false), min(min), max(max), var(space.addIntVar(min, max)) {
 }
 
-TermIntVar::TermIntVar(CPScript& space, uint groundterm, const vector<int>& values)
+TermIntVar::TermIntVar(CPScript& space, VarID groundterm, const vector<int>& values)
 		: ID(groundterm), range(false), min(-1), max(-1), values(values), var(space.addIntVar(values)) {
 }
 
@@ -35,8 +35,8 @@ Gecode::IntVar TermIntVar::getIntVar(const CPScript& space) const {
 	return space.getIntVars()[var];
 }
 
-std::vector<uint> getID(const std::vector<TermIntVar>& vars){
-	std::vector<uint> ids;
+std::vector<VarID> getID(const std::vector<TermIntVar>& vars){
+	std::vector<VarID> ids;
 	for(auto i=vars.cbegin(); i<vars.cend(); ++i){
 		ids.push_back(i->getID());
 	}
@@ -80,7 +80,7 @@ void SumConstraint::accept(ConstraintVisitor& visitor) {
 	for(auto i=mult.cbegin(); i<mult.cend(); ++i){
 		w.push_back(Weight(*i));
 	}
-	visitor.add(CPSumWeighted(getHead(), getID(set), w, toEqType(rel), Weight(irhs)));
+	visitor.add(CPSumWeighted(DEFAULTCONSTRID, mkPosLit(getHead()), getID(set), w, toEqType(rel), Weight(irhs)));
 }
 
 CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> set, IntRelType rel, int value, TermIntVar rhs)
@@ -93,7 +93,7 @@ CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> set, IntRel
 	count(space, ar, value, rel, trhs.getIntVar(space)/*,consistency level*/);
 }
 void CountConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPCount(getID(set), Weight(intrhs), toEqType(rel), trhs.getID()));
+	visitor.add(CPCount(DEFAULTCONSTRID, getID(set), Weight(intrhs), toEqType(rel), trhs.getID()));
 }
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, Atom atom)
@@ -112,9 +112,9 @@ BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelTy
 }
 void BinArithConstraint::accept(ConstraintVisitor& visitor) {
 	if(intrhs) {
-		visitor.add(CPBinaryRel(getHead(), lhs.getID(), toEqType(rel), Weight(irhs)));
+		visitor.add(CPBinaryRel(DEFAULTCONSTRID, mkPosLit(getHead()), lhs.getID(), toEqType(rel), Weight(irhs)));
 	} else {
-		visitor.add(CPBinaryRelVar(getHead(), lhs.getID(), toEqType(rel), trhs.getID()));
+		visitor.add(CPBinaryRelVar(DEFAULTCONSTRID, mkPosLit(getHead()), lhs.getID(), toEqType(rel), trhs.getID()));
 	}
 }
 
@@ -127,7 +127,7 @@ DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> set)
 	distinct(space, gset, ICL_DOM);
 }
 void DistinctConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPAllDiff(getID(set)));
+	visitor.add(CPAllDiff(DEFAULTCONSTRID, getID(set)));
 }
 
 ElementConstraint::ElementConstraint(CPScript& space, vector<TermIntVar> set, TermIntVar index, TermIntVar rhs)
@@ -141,12 +141,12 @@ ElementConstraint::ElementConstraint(CPScript& space, vector<TermIntVar> set, Te
 	element(space, gset, gindex, grhs, ICL_DOM);
 }
 void ElementConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPElement(getID(set), index.getID(), rhs.getID()));
+	visitor.add(CPElement(DEFAULTCONSTRID, getID(set), index.getID(), rhs.getID()));
 }
 
 //Atmostone NON REIF
 //min max abs mult NON REIF
 
 ostream& MinisatID::operator<<(ostream& os, const TermIntVar& tiv) {
-	return os << tiv.ID << "[" << tiv.min << "," << tiv.max << "]";
+	return os << tiv.ID.id << "[" << tiv.min << "," << tiv.max << "]";
 }

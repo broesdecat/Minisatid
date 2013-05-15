@@ -22,7 +22,7 @@ namespace MinisatID{
 	// The mapping of an index to an interval bounded term to an ID number
 	class TermIntVar{
 	private:
-		uint ID;
+		VarID ID;
 		bool range;
 		int min, max;
 		std::vector<int> values;
@@ -30,33 +30,33 @@ namespace MinisatID{
 
 	public:
 		TermIntVar();
-		TermIntVar(CPScript& space, uint groundterm, int min, int max);
-		TermIntVar(CPScript& space, uint groundterm, const std::vector<int>& values);
+		TermIntVar(CPScript& space, VarID groundterm, int min, int max);
+		TermIntVar(CPScript& space, VarID groundterm, const std::vector<int>& values);
 
-		uint		getID	() const { return ID; }
+		VarID		getID	() const { return ID; }
 
 		virtual ~TermIntVar(){}
 
 		Gecode::IntVar 	getIntVar(const CPScript& space) 	const;
 
 		bool 	operator==(const TermIntVar& rhs)	const { return this->operator ==(rhs.ID); }
-		bool 	operator==(const int& rhs) 			const { return ID==(uint)rhs; }
+		bool 	operator==(const VarID& rhs) 			const { return ID==rhs; }
 
 		friend std::ostream &operator<<(std::ostream &stream, const TermIntVar& tiv);
 	};
 
-	class Constraint{
+	class GecodeConstraint{
 	public:
-		virtual ~Constraint(){}
+		virtual ~GecodeConstraint(){}
 		virtual void accept(ConstraintVisitor& visitor) = 0;
 	};
 
-	class NonReifiedConstraint: public Constraint{
+	class NonReifiedConstraint: public GecodeConstraint{
 
 	};
 
 	// Represents ATOM <=> ConstraintReifiedBy(BoolVars[var])
-	class ReifiedConstraint: public Constraint{
+	class ReifiedConstraint: public GecodeConstraint{
 	private:
 		Atom head;
 		boolindex var;

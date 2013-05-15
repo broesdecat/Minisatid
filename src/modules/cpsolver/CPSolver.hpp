@@ -138,8 +138,8 @@ private:
 	}
 	const CPScript& getSpace() const;
 	CPScript& getSpace();
-	TermIntVar convertToVar(uint term) const;
-	vtiv convertToVars(const std::vector<uint>& terms) const;
+	TermIntVar convertToVar(VarID term) const;
+	vtiv convertToVars(const std::vector<VarID>& terms) const;
 };
 
 }

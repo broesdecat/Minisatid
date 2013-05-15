@@ -70,21 +70,21 @@ void CPSolverData::addTerm(const TermIntVar& var){
 	terms.push_back(var);
 }
 
-vector<TermIntVar> CPSolverData::convertToVars(const vector<uint>& terms) const {
+vector<TermIntVar> CPSolverData::convertToVars(const vector<VarID>& terms) const {
 	vtiv set;
-	for(vector<uint>::const_iterator i=terms.cbegin(); i<terms.cend(); i++){
+	for(auto i=terms.cbegin(); i<terms.cend(); i++){
 		set.push_back(convertToVar(*i));
 	}
 	return set;
 }
 
-TermIntVar CPSolverData::convertToVar(uint term) const {
-	for(vtiv::const_iterator j=getTerms().cbegin(); j<getTerms().cend(); j++){
+TermIntVar CPSolverData::convertToVar(VarID term) const {
+	for(auto j=getTerms().cbegin(); j<getTerms().cend(); j++){
 		if((*j).operator ==(term)){
 			return *j;
 		}
 	}
 	stringstream ss;
-	ss <<"The integer variable " <<term <<" occurred without having been created.\n";
+	ss <<"The integer variable " <<term.id <<" occurred without having been created.\n";
 	throw idpexception(ss.str());
 }

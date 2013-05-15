@@ -16,12 +16,12 @@
 namespace MinisatID{
 	class TermIntVar;
 	class ReifiedConstraint;
-	class Constraint;
+	class GecodeConstraint;
 	class CPScript;
 
 	typedef std::vector<TermIntVar> vtiv;
 	typedef std::vector<ReifiedConstraint*> reifconstrlist;
-	typedef std::vector<Constraint*> vnonrconstrptr;
+	typedef std::vector<GecodeConstraint*> vnonrconstrptr;
 
 	class CPSolverData{
 	private:
@@ -52,12 +52,12 @@ namespace MinisatID{
 		const reifconstrlist& 	getReifConstraints()	const 	{ return reifconstraints; }
 		//owning pointer
 		void 		addReifConstraint(ReifiedConstraint* c){ reifconstraints.push_back(c); }
-		void 		addNonReifConstraint(Constraint* c){ nonreifconstraints.push_back(c); }
+		void 		addNonReifConstraint(GecodeConstraint* c){ nonreifconstraints.push_back(c); }
 
 		//vector<Lit> getBoolChanges	() const;
 
-		TermIntVar 	convertToVar	(uint term) const;
-		vtiv		convertToVars	(const std::vector<uint>& terms) const;
+		TermIntVar 	convertToVar	(VarID term) const;
+		vtiv		convertToVars	(const std::vector<VarID>& terms) const;
 	};
 }
 

@@ -79,10 +79,10 @@ CPScript& CPSolver::getSpace() {
 	return getData().getSpace();
 }
 
-TermIntVar CPSolver::convertToVar(uint term) const {
+TermIntVar CPSolver::convertToVar(VarID term) const {
 	return getData().convertToVar(term);
 }
-vtiv CPSolver::convertToVars(const std::vector<uint>& terms) const {
+vtiv CPSolver::convertToVars(const std::vector<VarID>& terms) const {
 	return getData().convertToVars(terms);
 }
 
@@ -104,14 +104,14 @@ bool CPSolver::add(const IntVarRange& form) {
 
 bool CPSolver::add(const CPBinaryRel& form) {
 	TermIntVar lhs(convertToVar(form.varID));
-	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), toInt(form.bound), form.head));
+	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), toInt(form.bound), form.head.getAtom()));
 	return true;
 }
 
 bool CPSolver::add(const CPBinaryRelVar& form) {
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
-	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
+	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head.getAtom()));
 	return true;
 }
 
@@ -121,7 +121,7 @@ bool CPSolver::add(const CPSumWeighted& form) {
 	for (auto i = form.weights.cbegin(); i < form.weights.cend(); ++i) {
 		values.push_back(toInt(*i));
 	}
-	add(new SumConstraint(getSpace(), set, values, toRelType(form.rel), toInt(form.bound), form.head));
+	add(new SumConstraint(getSpace(), set, values, toRelType(form.rel), toInt(form.bound), form.head.getAtom()));
 	return true;
 }
 

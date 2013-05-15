@@ -12,15 +12,15 @@ using namespace MinisatID;
 
 using namespace Gecode;
 
-bool MinisatID::isTrue(BoolVar var) {
+bool MinisatID::isTrue(Gecode::BoolVar var) {
 	return var.assigned() && var.one();
 }
 
-bool MinisatID::isFalse(BoolVar var) {
+bool MinisatID::isFalse(Gecode::BoolVar var) {
 	return var.assigned() && var.zero();
 }
 
-bool MinisatID::isAssigned(BoolVar var) {
+bool MinisatID::isAssigned(Gecode::BoolVar var) {
 	return var.assigned();
 }
 
