@@ -13,9 +13,7 @@
 #include "external/utils/ContainerUtils.hpp"
 
 using namespace std;
-
 using namespace MinisatID;
-
 using namespace Gecode;
 
 CPSolverData::CPSolverData(){
@@ -32,59 +30,42 @@ void CPSolverData::addSpace(){
 	history.push_back(static_cast<CPScript*>(getSpace().clone()));
 }
 
-void CPSolverData::removeSpace(int untillevel){
-	/*reportf("BACKTRACKING SPACES");
-	for(int i=0; i<history.size(); i++){
-		reportf("SPACE");
-		cout <<*history[i] <<endl;
-	}*/
-
-	while(history.size()>uint(untillevel+1)){
-		auto old = history.back();
-		history.pop_back();
-		delete old;
-	}
+void CPSolverData::removeSpace(){
+	auto old = history.back();
+	history.pop_back();
+	delete old;
 }
 
 void CPSolverData::replaceLastWith(CPScript* space){
-	CPScript* old = history.back();
+	auto old = history.back();
 	history.pop_back();
 	delete old;
 	history.push_back(space);
 }
 
-/*vector<Lit> CPSolverData::getBoolChanges() const{
-	vector<Lit> lits;
-	for(vreifconstrptr::const_iterator i=getReifConstraints().cbegin(); i<getReifConstraints().cend(); i++){
-		BoolVar current = (*i)->getBoolVar(getSpace());
-		MAssert(history.size()>1);
-		BoolVar prev = (*i)->getBoolVar(*history[history.size()-2]);
-		if(current.min() == current.max() && prev.min() != prev.max()){
-			lits.push_back(mkLit((*i)->getAtom(), current.min()==0));
-		}
-	}
-	return lits;
-}*/
-
 void CPSolverData::addTerm(const TermIntVar& var){
-	terms.push_back(var);
+	terms[var.getID()]=var;
+}
+
+void CPSolverData::addReifConstraint(ReifiedConstraint* c) {
+	reifconstraints[c->getHead()]=c;
 }
 
 vector<TermIntVar> CPSolverData::convertToVars(const vector<VarID>& terms) const {
-	vtiv set;
-	for(auto i=terms.cbegin(); i<terms.cend(); i++){
-		set.push_back(convertToVar(*i));
+	std::vector<TermIntVar> set;
+	for(auto term:terms){
+		set.push_back(convertToVar(term));
 	}
 	return set;
 }
 
 TermIntVar CPSolverData::convertToVar(VarID term) const {
-	for(auto j=getTerms().cbegin(); j<getTerms().cend(); j++){
-		if((*j).operator ==(term)){
-			return *j;
-		}
+	auto it = getTerms().find(term);
+	if(it==getTerms().cend()){
+		stringstream ss;
+		ss <<"The integer variable " <<term.id <<" occurred without having been created.\n";
+		throw idpexception(ss.str());
 	}
-	stringstream ss;
-	ss <<"The integer variable " <<term.id <<" occurred without having been created.\n";
-	throw idpexception(ss.str());
+	return it->second;
+
 }

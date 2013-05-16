@@ -37,8 +37,8 @@ Gecode::IntVar TermIntVar::getIntVar(const CPScript& space) const {
 
 std::vector<VarID> getID(const std::vector<TermIntVar>& vars){
 	std::vector<VarID> ids;
-	for(auto i=vars.cbegin(); i<vars.cend(); ++i){
-		ids.push_back(i->getID());
+	for(auto var:vars){
+		ids.push_back(var.getID());
 	}
 	return ids;
 }
@@ -59,8 +59,8 @@ rClause ReifiedConstraint::propagate(bool becametrue, CPScript& space) {
 	return nullPtrClause;
 }
 
-SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> set, vector<int> mult, IntRelType rel, int rhs, Atom atom)
-		: ReifiedConstraint(atom, space), set(set), rel(rel), intrhs(true), irhs(rhs), withmult(true), mult(mult) {
+SumConstraint::SumConstraint(CPScript& space, const vector<TermIntVar>& set, const vector<int>& mult, IntRelType rel, int rhs, Atom atom)
+		: ReifiedConstraint(atom, space), set(set), irhs(rhs) {
 	IntVarArgs ar(set.size());
 	for (uint i = 0; i < set.size(); i++) {
 		ar[i] = set[i].getIntVar(space);
@@ -74,41 +74,46 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> set, vector<int
 }
 void SumConstraint::accept(ConstraintVisitor& visitor) {
 	std::vector<Weight> w;
-	/*std::for_each(mult.cbegin(), mult.cend(), [&w](int x) {
-	  w.push_back(Weight(x));
-	});*/
-	for(auto i=mult.cbegin(); i<mult.cend(); ++i){
-		w.push_back(Weight(*i));
+	for(auto val:mult){
+		w.push_back(Weight(val));
 	}
 	visitor.add(CPSumWeighted(DEFAULTCONSTRID, mkPosLit(getHead()), getID(set), w, toEqType(rel), Weight(irhs)));
 }
 
-CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> set, IntRelType rel, int value, TermIntVar rhs)
-		: set(set), rel(rel), intrhs(false), trhs(rhs) {
+ProdConstraint::ProdConstraint(CPScript& space, const TermIntVar& one, const TermIntVar& two, const TermIntVar& rhs, Atom atom)
+		: ReifiedConstraint(atom, space), one(one), two(two), rhs(rhs) {
+	mult(space, one.getIntVar(space), two.getIntVar(space), rhs.getIntVar(space) /*,consistency level*/);
+}
+void ProdConstraint::accept(ConstraintVisitor&) {
+	throw notYetImplemented("Accept gecode-prod-constraint");
+}
+
+CountConstraint::CountConstraint(CPScript& space, const vector<TermIntVar>& set, IntRelType rel, int value, TermIntVar rhs)
+		: set(set), rel(rel), eqbound(value), trhs(rhs) {
 	IntVarArgs ar(set.size());
 	for (uint i = 0; i < set.size(); i++) {
 		ar[i] = set[i].getIntVar(space);
 	}
 
-	count(space, ar, value, rel, trhs.getIntVar(space)/*,consistency level*/);
+	count(space, ar, eqbound, rel, trhs.getIntVar(space)/*,consistency level*/);
 }
 void CountConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPCount(DEFAULTCONSTRID, getID(set), Weight(intrhs), toEqType(rel), trhs.getID()));
+	visitor.add(CPCount(DEFAULTCONSTRID, getID(set), Weight(eqbound), toEqType(rel), trhs.getID()));
 }
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, Atom atom)
-		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(false), trhs(rhs) {
-	IntVar ialhs = lhs.getIntVar(space), iarhs = trhs.getIntVar(space);
+		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(false), irhs(0), trhs(rhs) {
+	auto ialhs = lhs.getIntVar(space);
+	auto iarhs = trhs.getIntVar(space);
 
 	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
 }
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, Atom atom)
-		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs) {
-	IntVar ialhs = lhs.getIntVar(space);
-	int iarhs = irhs;
+		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs), trhs() {
+	auto ialhs = lhs.getIntVar(space);
 
-	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
+	Gecode::rel(space, ialhs, rel, irhs, getBoolVar(space), ICL_DOM);
 }
 void BinArithConstraint::accept(ConstraintVisitor& visitor) {
 	if(intrhs) {
@@ -130,7 +135,7 @@ void DistinctConstraint::accept(ConstraintVisitor& visitor) {
 	visitor.add(CPAllDiff(DEFAULTCONSTRID, getID(set)));
 }
 
-ElementConstraint::ElementConstraint(CPScript& space, vector<TermIntVar> set, TermIntVar index, TermIntVar rhs)
+ElementConstraint::ElementConstraint(CPScript& space, const vector<TermIntVar>& set, TermIntVar index, TermIntVar rhs)
 		: set(set), index(index), rhs(rhs) {
 	auto gindex = index.getIntVar(space);
 	auto grhs = rhs.getIntVar(space);
@@ -143,9 +148,6 @@ ElementConstraint::ElementConstraint(CPScript& space, vector<TermIntVar> set, Te
 void ElementConstraint::accept(ConstraintVisitor& visitor) {
 	visitor.add(CPElement(DEFAULTCONSTRID, getID(set), index.getID(), rhs.getID()));
 }
-
-//Atmostone NON REIF
-//min max abs mult NON REIF
 
 ostream& MinisatID::operator<<(ostream& os, const TermIntVar& tiv) {
 	return os << tiv.ID.id << "[" << tiv.min << "," << tiv.max << "]";

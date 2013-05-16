@@ -6,59 +6,61 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef CPSOLVERDATA_HPP_
-#define CPSOLVERDATA_HPP_
+#pragma once
 
 #include <vector>
 
 #include "modules/cpsolver/CPUtils.hpp"
 
-namespace MinisatID{
-	class TermIntVar;
-	class ReifiedConstraint;
-	class GecodeConstraint;
-	class CPScript;
+namespace MinisatID {
+class TermIntVar;
+class ReifiedConstraint;
+class GecodeConstraint;
+class CPScript;
 
-	typedef std::vector<TermIntVar> vtiv;
-	typedef std::vector<ReifiedConstraint*> reifconstrlist;
-	typedef std::vector<GecodeConstraint*> vnonrconstrptr;
+class CPSolverData {
+private:
+	std::vector<CPScript*> history;
+	std::map<VarID,TermIntVar> terms;
+	std::vector<GecodeConstraint*> nonreifconstraints;
+	std::map<Atom,ReifiedConstraint*> reifconstraints;
 
-	class CPSolverData{
-	private:
-		std::vector<CPScript*> history;
-		vtiv terms;
-		vnonrconstrptr nonreifconstraints;
-		reifconstrlist reifconstraints;
+public:
+	CPSolverData();
+	virtual ~CPSolverData();
 
-	public:
-		CPSolverData();
-		virtual ~CPSolverData();
+	CPScript& getSpace() const {
+		return *history.back();
+	}
+	CPScript& getPrevSpace() const {
+		MAssert(history.size() > 1);
+		return *history[history.size() - 2];
+	}
 
-		CPScript& 	getSpace	()	const 				{ return *history.back(); }
-		CPScript& 	getPrevSpace()	const 				{ MAssert(history.size()>1); return *history[history.size()-2]; }
+	void replaceLastWith(CPScript* space);
 
-		void 		replaceLastWith	(CPScript* space);
+	void addSpace();
+	void removeSpace();
 
-		void 		addSpace	();
-		void 		removeSpace	(int nblevels);
+	const std::map<VarID,TermIntVar>& getTerms() const {
+		return terms;
+	}
+	void addTerm(const TermIntVar& var);
 
-		int 		size		() 	const 				{ return history.size(); }
-		const CPScript & operator[](int i) const 	{ return *history[i]; }
+	const std::vector<GecodeConstraint*>& getNonReifConstraints() const {
+		return nonreifconstraints;
+	}
+	const std::map<Atom,ReifiedConstraint*>& getReifConstraints() const {
+		return reifconstraints;
+	}
 
-		const vtiv& getTerms	()	const				{ return terms; }
-		void 		addTerm		(const TermIntVar& var);
+	//owning pointers
+	void addReifConstraint(ReifiedConstraint* c);
+	void addNonReifConstraint(GecodeConstraint* c) {
+		nonreifconstraints.push_back(c);
+	}
 
-		const vnonrconstrptr& 	getNonReifConstraints()	const 	{ return nonreifconstraints; }
-		const reifconstrlist& 	getReifConstraints()	const 	{ return reifconstraints; }
-		//owning pointer
-		void 		addReifConstraint(ReifiedConstraint* c){ reifconstraints.push_back(c); }
-		void 		addNonReifConstraint(GecodeConstraint* c){ nonreifconstraints.push_back(c); }
-
-		//vector<Lit> getBoolChanges	() const;
-
-		TermIntVar 	convertToVar	(VarID term) const;
-		vtiv		convertToVars	(const std::vector<VarID>& terms) const;
-	};
+	TermIntVar convertToVar(VarID term) const;
+	std::vector<TermIntVar> convertToVars(const std::vector<VarID>& terms) const;
+};
 }
-
-#endif /* CPSOLVERDATA_HPP_ */

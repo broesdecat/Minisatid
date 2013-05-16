@@ -6,12 +6,12 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef CPSOLVER_HPP_
-#define CPSOLVER_HPP_
+#pragma once
 
 #include "modules/DPLLTmodule.hpp"
 
 #include <set>
+#include <queue>
 #include <map>
 
 namespace Gecode {
@@ -21,7 +21,6 @@ class DFS;
 
 namespace MinisatID {
 class TermIntVar;
-typedef std::vector<TermIntVar> vtiv;
 class CPScript;
 
 class ReifiedConstraint;
@@ -34,14 +33,12 @@ class LitTrail {
 private:
 	std::vector<std::vector<Lit>::size_type> trailindexoflevel;
 	std::vector<Lit> trail;
-	std::map<Atom, lbool> values;
 
 public:
 	LitTrail();
 	void newDecisionLevel();
 	void backtrackDecisionLevels(int untillevel);
 	void propagate(const Lit& lit);
-	lbool value(const Lit& lit) const;
 	const std::vector<Lit>& getTrail() const {
 		return trail;
 	}
@@ -69,10 +66,15 @@ private:
 
 	bool searchedandnobacktrack;
 	Gecode::DFS<CPScript>* savedsearchengine;
+	CPScript* model;
 
 	std::set<Atom> heads;
 
-	bool fullassignmentfound;
+	std::vector<bool> level2hasspace;
+
+	std::queue<ReifiedConstraint*> recentreifconstr;
+
+	bool searchstarted; // To prevent CP search during parsing
 
 public:
 	CPSolver(PCSolver * pcsolver);
@@ -83,6 +85,7 @@ public:
 	bool add(const CPBinaryRel& form);
 	bool add(const CPBinaryRelVar& form);
 	bool add(const CPSumWeighted& form);
+	bool add(const CPProdWeighted& form);
 	bool add(const CPCount& form);
 	bool add(const CPAllDiff& form);
 	bool add(const CPElement& form);
@@ -95,19 +98,15 @@ public:
 	void notifyNewDecisionLevel();
 	void notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
-	virtual rClause notifyFullAssignmentFound() {
-		fullassignmentfound = true;
-		return notifypropagate();
-	}
-	void saveState(){
-		// TODO save new constraints
+	rClause notifyFullAssignmentFound();
+
+	void saveState() {
 		addedconstraints = false;
 		savedtrail = trail;
 	}
-	void resetState(){
-		// TODO remove new constraints
-		if(addedconstraints){
-			throw notYetImplemented("Remove new cp constraints added during search.");
+	void resetState() {
+		if (addedconstraints) {
+			throw notYetImplemented("Saving and resetting new gecode-constraints added during search.");
 		}
 		trail = savedtrail;
 	}
@@ -139,9 +138,7 @@ private:
 	const CPScript& getSpace() const;
 	CPScript& getSpace();
 	TermIntVar convertToVar(VarID term) const;
-	vtiv convertToVars(const std::vector<VarID>& terms) const;
+	std::vector<TermIntVar> convertToVars(const std::vector<VarID>& terms) const;
 };
 
 }
-
-#endif /* CPSOLVER_HPP_ */

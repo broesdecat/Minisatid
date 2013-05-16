@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef CONSTRAINT_HPP_
-#define CONSTRAINT_HPP_
+#pragma once
 
 #include <vector>
 
@@ -16,9 +15,6 @@
 namespace MinisatID{
 	class CPScript;
 
-	typedef std::vector<Gecode::IntVar>::size_type termindex;
-	typedef std::vector<Gecode::BoolVar>::size_type boolindex;
-
 	// The mapping of an index to an interval bounded term to an ID number
 	class TermIntVar{
 	private:
@@ -26,7 +22,7 @@ namespace MinisatID{
 		bool range;
 		int min, max;
 		std::vector<int> values;
-		termindex var;
+		uint var;
 
 	public:
 		TermIntVar();
@@ -39,8 +35,7 @@ namespace MinisatID{
 
 		Gecode::IntVar 	getIntVar(const CPScript& space) 	const;
 
-		bool 	operator==(const TermIntVar& rhs)	const { return this->operator ==(rhs.ID); }
-		bool 	operator==(const VarID& rhs) 			const { return ID==rhs; }
+		bool 	operator==(const TermIntVar& rhs)	const { return ID==rhs.ID; }
 
 		friend std::ostream &operator<<(std::ostream &stream, const TermIntVar& tiv);
 	};
@@ -59,7 +54,7 @@ namespace MinisatID{
 	class ReifiedConstraint: public GecodeConstraint{
 	private:
 		Atom head;
-		boolindex var;
+		uint var;
 
 	public:
 		ReifiedConstraint(Atom atom, CPScript& space);
@@ -78,16 +73,22 @@ namespace MinisatID{
 	private:
 		std::vector<TermIntVar> set;
 		Gecode::IntRelType rel;
-
-		bool intrhs;
-		TermIntVar trhs;
 		int irhs;
 
-		bool withmult;
 		std::vector<int> mult;
 
 	public:
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, Atom atom);
+		SumConstraint(CPScript& space, const std::vector<TermIntVar>& set, const std::vector<int>&, Gecode::IntRelType rel, int rhs, Atom atom);
+
+		virtual void accept(ConstraintVisitor& visitor);
+	};
+
+	class ProdConstraint: public ReifiedConstraint{
+	private:
+		TermIntVar one, two, rhs;
+
+	public:
+		ProdConstraint(CPScript& space, const TermIntVar& one, const TermIntVar& two, const TermIntVar& rhs, Atom atom);
 
 		virtual void accept(ConstraintVisitor& visitor);
 	};
@@ -96,13 +97,11 @@ namespace MinisatID{
 	private:
 		std::vector<TermIntVar> set;
 		Gecode::IntRelType rel;
-
-		bool intrhs;
+		int eqbound;
 		TermIntVar trhs;
-		int irhs;
 
 	public:
-		CountConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int value, TermIntVar rhs);
+		CountConstraint(CPScript& space, const std::vector<TermIntVar>& tset, Gecode::IntRelType rel, int value, TermIntVar rhs);
 
 		virtual void accept(ConstraintVisitor& visitor);
 	};
@@ -113,8 +112,8 @@ namespace MinisatID{
 		Gecode::IntRelType rel;
 
 		bool intrhs;
-		TermIntVar trhs;
 		int irhs;
+		TermIntVar trhs;
 
 	public:
 		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, Atom atom);
@@ -139,10 +138,8 @@ namespace MinisatID{
 		TermIntVar index, rhs;
 	public:
 		//global element constraint
-		ElementConstraint(CPScript& space, std::vector<TermIntVar> tset, TermIntVar index, TermIntVar rhs);
+		ElementConstraint(CPScript& space, const std::vector<TermIntVar>& tset, TermIntVar index, TermIntVar rhs);
 
 		virtual void accept(ConstraintVisitor& visitor);
 	};
 }
-
-#endif /* CONSTRAINT_HPP_ */

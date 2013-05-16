@@ -392,7 +392,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 void PropagatorFactory::add(const CPProdWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
-		throw notYetImplemented("Products and gecode"); //TODO
+		addCP(obj);
 	} else {
 		vector<IntView*> vars;
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
@@ -633,6 +633,9 @@ void PropagatorFactory::add(const TwoValuedRequirement& object) {
 
 void PropagatorFactory::add(const LazyAtom& object) {
 	notifyMonitorsOfAdding(object);
+	if(getEngine().modes().usegecode){
+		throw idpexception("Gecode does not support lazily expanded atoms yet.");
+	}
 	std::vector<IntView*> argvars;
 	for (auto arg : object.args) {
 		argvars.push_back(new IntView(getIntVar(arg), 0));

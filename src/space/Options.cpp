@@ -56,11 +56,7 @@ SolverOption::SolverOption():
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),
 		lazy(false),
-#ifdef CPSUPPORT
-		usegecode(true),
-#else
 		usegecode(false),
-#endif
 		outputfile(""),
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
 		fullmodelcheck(false){

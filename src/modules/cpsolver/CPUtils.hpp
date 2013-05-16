@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef CPUTILS_H
-#define CPUTILS_H
+#pragma once
 
 #include <gecode/kernel.hh>
 #include <gecode/driver.hh>
@@ -28,5 +27,3 @@ namespace MinisatID{
 
 	std::ostream& operator<<(std::ostream& stream, Gecode::IntRelType rel);
 }
-
-#endif /*CPUTILS_H*/
