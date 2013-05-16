@@ -134,8 +134,6 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int ma
 	setOrigMin(min);
 }
 
-extern std::map<Atom,std::string> atom2name;
-
 void RangeIntVar::finish() {
 	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
 		auto var = engine().newVar();
@@ -144,7 +142,7 @@ void RangeIntVar::finish() {
 		engine().accept(this, mkNegLit(var), FASTEST);
 		stringstream ss;
 		ss<<"var" << toString(getVarID()) << "=<" << i;
-		atom2name[var]= ss.str();
+		getPCSolver().setString(var,ss.str());
 		if (verbosity() > 3) {
 			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << i << "\n";
 		}

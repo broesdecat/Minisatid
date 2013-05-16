@@ -99,6 +99,8 @@ public:
 
 class PlainTranslator: public Translator {
 public:
+	virtual void setString(const Atom&, const std::string&) {}
+
 	virtual bool hasTranslation(const MinisatID::Lit&) const {
 		return true;
 	}
@@ -163,6 +165,8 @@ public:
 	}
 
 	bool hasTranslation(const MinisatID::Lit& lit) const;
+
+	void setString(const Atom&, const std::string&) {}
 
 	std::string toString(const Lit& lit) const;
 	void printModel(std::ostream& output, const Model& model);
@@ -331,7 +335,7 @@ public:
 		vararrays.push_back( { name, vars });
 	}
 
-	void addTuple(Atom atom, const std::string& name) {
+	void setString(const Atom& atom, const std::string& name) {
 		lit2name[atom] = name;
 	}
 

@@ -14,15 +14,13 @@
 using namespace MinisatID;
 using namespace std;
 
-extern std::map<Atom,std::string> atom2name;
-
 BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, const Lit& h)
 		: Propagator(id, engine, "binary constraint") {
 	switch (comp) {
 	case EqType::EQ: {
 		stringstream ss;
 		ss<<"var" <<_left->getVarID().id << " = var" << _right->getVarID().id;
-		atom2name[h.getAtom()]= ss.str();
+		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newVar());
 		auto righthead = mkPosLit(getPCSolver().newVar());
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
@@ -35,7 +33,7 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	case EqType::NEQ: {
 		stringstream ss;
 		ss<<"var" <<_left->getVarID().id << " != var" << _right->getVarID().id;
-		atom2name[h.getAtom()]= ss.str();
+		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newVar());
 		auto righthead = mkPosLit(getPCSolver().newVar());
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
@@ -75,7 +73,7 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 
 	stringstream ss;
 	ss<<left()->toString() << " =< " << right()->toString();
-	atom2name[head().getAtom()]= ss.str();
+	getPCSolver().setString(head().getAtom(), ss.str());
 
 	if (verbosity() > 5) {
 		clog << "Binconstr: " << toString(head()) << " <=> " << left()->toString() << " =< " << right()->toString() << "\n";

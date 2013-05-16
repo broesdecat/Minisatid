@@ -344,7 +344,7 @@ template<class T> bool PBRead<T>::readIdentifier(vector<int> &list) {
 
 	stringstream ss;
 	ss <<"x" <<::abs(varID);
-	getTranslator().addTuple(Atom(::abs(varID)), ss.str());
+	getTranslator().setString(Atom(::abs(varID)), ss.str());
 
 	return true;
 }

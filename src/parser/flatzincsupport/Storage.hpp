@@ -56,7 +56,7 @@ public:
 		name2bool.insert( { name, var });
 		extAdd(*store, BoolVar(maxid++, var->var));
 		if (output) {
-			translator->addTuple(var->var, name);
+			translator->setString(var->var, name);
 		}
 		return var;
 	}

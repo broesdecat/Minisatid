@@ -703,7 +703,7 @@ void CR(Wrapper* wrapper, T& formula, TheoryID level){
 
 void addTuple(int literalnumber, const string& atom) {
 	if(simpletrans!=NULL){
-		simpletrans->addTuple(Atom(literalnumber), atom);
+		simpletrans->setString(Atom(literalnumber), atom);
 	}
 }
 
@@ -761,7 +761,7 @@ void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>
 		for(auto lit:rigidlits){
 			stringstream ss;
 			ss <<lit.getAtom();
-			trans->addTuple(lit.getAtom(), ss.str());
+			trans->setString(lit.getAtom(), ss.str());
 		}
 	}
 	

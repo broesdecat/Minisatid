@@ -50,6 +50,7 @@ public:
 	SATVAL satState() const;
 	bool isUnsat() const;
 
+	void setString(const Atom& lit, const std::string& name);
 	std::string toString(VarID id) const;
 	std::string toString(const Lit& lit) const;
 

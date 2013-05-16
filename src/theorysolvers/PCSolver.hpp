@@ -265,6 +265,7 @@ public:
 private:
 	LiteralPrinter* printer;
 public:
+	virtual void setString(const Atom& lit, const std::string& name);
 	virtual std::string toString(VarID id) const;
 	virtual std::string toString(const Lit& lit) const;
 	void printEnqueued(const Lit& p) const;

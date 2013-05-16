@@ -125,6 +125,7 @@ public:
 private:
 	Translator *_translator, *_origtranslator;
 public:
+	virtual void setString(const Atom& lit, const std::string& name);
 	virtual std::string toString(VarID id) const;
 	virtual std::string toString(const Lit& lit) const;
 	std::string toString(const litlist& literals) const;

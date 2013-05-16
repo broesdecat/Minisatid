@@ -5,8 +5,7 @@
  *      Author: broes
  */
 
-#ifndef PRINTLITERAL_HPP_
-#define PRINTLITERAL_HPP_
+#pragma once
 
 #include <string>
 #include <sstream>
@@ -27,7 +26,7 @@ public:
 		ss <<(sign(lit)?"-":"") <<var(lit);
 		return ss.str();
 	}
+
+	virtual void setString(const Atom&, const std::string&){};
 };
 }
-
-#endif /* PRINTLITERAL_HPP_ */

@@ -59,6 +59,9 @@ SATVAL SearchEngine::satState() const {
 bool SearchEngine::isUnsat() const {
 	return getSolver()->isUnsat();
 }
+void SearchEngine::setString(const Atom& lit, const std::string& name){
+	return getSolver()->setString(lit, name);
+}
 std::string SearchEngine::toString(VarID id) const {
 	return getSolver()->toString(id);
 }

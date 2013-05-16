@@ -559,6 +559,10 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 	getEventQueue().accept(visitor);
 }
 
+void PCSolver::setString(const Atom& lit, const std::string& name){
+	printer->setString(lit, name);
+}
+
 std::string PCSolver::toString(VarID id) const {
 	return printer->toString(id);
 }

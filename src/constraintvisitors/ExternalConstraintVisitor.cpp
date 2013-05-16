@@ -40,6 +40,9 @@ std::string ExternalConstraintVisitor::toString(VarID id) const {
 	ss << "internvar_" << id.id;
 	return ss.str();
 }
+void ExternalConstraintVisitor::setString(const Atom& atom, const std::string& name){
+	getTranslator()->setString(atom, name);
+}
 std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 	std::stringstream ss;
 	if (getRemapper()->wasInput(l)) {

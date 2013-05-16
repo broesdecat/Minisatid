@@ -41,6 +41,8 @@ namespace Tests{
 		int verbosity() const { return 1; }
 		SolverMOC& getFactory(TheoryID) { return *const_cast<SolverMOC*>(this); }
 
+		void setString(const Atom& lit, const std::string& name){}
+
 		TheoryID getTheoryID(){
 			return TheoryID(1);
 		}

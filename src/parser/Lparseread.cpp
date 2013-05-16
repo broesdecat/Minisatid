@@ -441,9 +441,9 @@ bool Read<T>::read(istream &f) {
 		}
 
 		if (*s) {
-			translator->addTuple(Atom(i), s + 1);
+			translator->setString(Atom(i), s + 1);
 		} else {
-			translator->addTuple(Atom(i), "");
+			translator->setString(Atom(i), "");
 		}
 	}
 
