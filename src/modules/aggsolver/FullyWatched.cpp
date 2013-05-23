@@ -615,7 +615,11 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	auto bound = agg.getBound();
 	if (not ar.isHeadReason()) {
 		lits.push_back(value(head) == l_True ? ~head : head);
-		if (value(head) == l_True) {
+		auto explainheadtrue = value(head)==l_True;
+		if(agg.getSem()==AggSem::OR){
+			explainheadtrue = not explainheadtrue;
+		}
+		if (explainheadtrue) {
 			if (agg.hasLB()) {
 				//all OTHERS larger or eq to bound
 				one = false;
@@ -632,11 +636,11 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 			}
 		}
 	} else {
-		auto reqhead = not sign(ar.getPropLit());
+		auto explainheadtrue = not sign(ar.getPropLit());
 		if(agg.getSem()==AggSem::OR){
-			reqhead = not reqhead;
+			explainheadtrue = not explainheadtrue;
 		}
-		if (reqhead) { // NOTE: check the REQUESTED head value, not the real value!
+		if (explainheadtrue) { // NOTE: check the REQUESTED head value, not the real value!
 			if (agg.hasLB()) {
 				//find one larger or eq and inset
 				one = true;
@@ -676,6 +680,9 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 					found = true;
 				}
 			}
+		}
+		if(one && not found){
+			throw idpexception("Invalid code path");
 		}
 	}
 }
