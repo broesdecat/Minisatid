@@ -72,6 +72,8 @@ int MinisatID::run(const std::string& inputfile, SolverOption modes) {
 	signal(SIGSEGV, SIGSEGV_handler);
 	signal(SIGINT, SIGINT_handler);
 #if defined(__linux__)
+	signal(SIGXCPU, SIGINT_handler);
+	signal(SIGXFSZ, SIGABRT_handler);
 	signal(SIGHUP, SIGINT_handler);
 #endif
 	//set memory handler
