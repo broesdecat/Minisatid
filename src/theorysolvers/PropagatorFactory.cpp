@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "theorysolvers/PropagatorFactory.hpp"
@@ -385,7 +385,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDAggConstraint(obj.getID(), getEnginep(), obj.head, AggType::SUM, vars, obj.weights, obj.rel, obj.bound);
+		new FDSumConstraint(obj.getID(), getEnginep(), obj.head, vars, obj.weights, obj.rel, obj.bound);
 	}
 }
 
@@ -398,7 +398,7 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDAggConstraint(obj.getID(), getEnginep(), obj.head, AggType::PROD, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
+		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
 	}
 }
 
