@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
@@ -26,7 +26,7 @@ TEST(CPTest, UnSatCPSum) {
 	VarID groundone={1}, groundtwo={2};
 	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundone, -3, 7));
 	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundtwo, 7, 10));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(1), {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
+	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(1), {mkNegLit(3),mkNegLit(3)}, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, {});
@@ -40,6 +40,7 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	SolverOption options;
 	options.verbosity = 0;
 	auto space = new Space(options);
+	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(42)}));
 
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
@@ -59,10 +60,10 @@ TEST(CPTest, DISABLED_MagicSeq) {
 		extAdd(*space, CPCount(DEFAULTCONSTRID,elemx, i, EqType::EQ, elemx[i]));
 	}
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(4)}));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(4), elemx, weights, EqType::EQ, n));
+	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(4), vector<Lit>(elemx.size(), mkPosLit(42)), elemx, weights, EqType::EQ, n));
 
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(5)}));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(5), elemx, mult, EqType::EQ, 0));
+	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(5),vector<Lit>(elemx.size(), mkPosLit(42)), elemx, mult, EqType::EQ, 0));
 
 	int literalcount = 6;
 	for(uint i=0; i<n; ++i){

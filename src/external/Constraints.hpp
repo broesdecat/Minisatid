@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #pragma once
@@ -195,14 +195,14 @@ template<typename Remapper>
 class ExtAdd<CPSumWeighted, Remapper> {
 public:
 	CPSumWeighted extAdd(Remapper& r, const CPSumWeighted& obj) {
-		return CPSumWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.weights, obj.rel, obj.bound);
+		return CPSumWeighted(obj.getID(), map(obj.head, r), map(obj.conditions, r), map(obj.varIDs, r), obj.weights, obj.rel, obj.bound);
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPProdWeighted, Remapper> {
 public:
 	CPProdWeighted extAdd(Remapper& r, const CPProdWeighted& obj) {
-		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, map(obj.boundID,r));
+		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.conditions, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, map(obj.boundID,r));
 	}
 };
 template<typename Remapper>

@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "external/FlatZincRewriter.hpp"
@@ -790,6 +790,7 @@ void FlatZincRewriter<Stream>::add(const CPBinaryRelVar& rel) {
 template<typename Stream>
 void FlatZincRewriter<Stream>::add(const CPSumWeighted& sum) {
 	MAssert(isParsing());
+	throw notYetImplemented("Conditional CPSum in Flatzinc");
 	check(sum.head);
 	savedcpsums.push_back(sum);
 }

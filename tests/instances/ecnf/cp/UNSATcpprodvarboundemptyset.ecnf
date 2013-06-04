@@ -1,5 +1,5 @@
 p ecnf
 INTVAR 1 3 3 0 
-CPPROD 2 | 1 > 1 0
+CPPROD 2 | | 1 > 1 0
 2 0
 

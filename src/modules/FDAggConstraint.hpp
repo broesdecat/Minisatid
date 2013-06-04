@@ -14,12 +14,13 @@ protected:
 	Lit _head;
 	std::vector<IntView*> _vars;
 	IntView* _bound;
+	std::vector<Lit> _conditions;
 
 protected:
 	FDAggConstraint(uint id, PCSolver* s, const std::string& name);
 	virtual void setWeights(const std::vector<Weight>&) = 0;
-	void sharedInitialization(const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
-
+	void sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
+			EqType rel, IntView* bound);
 
 public:
 
@@ -61,6 +62,19 @@ protected:
 	virtual std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const = 0;
 
 	/**
+	 * Returns a list of all variables contributing to the current maximum/minimum
+	 */
+	litlist varsContributingToMax() const;
+	litlist varsContributingToMin() const;
+
+	/**
+	 * Returns a list of all variables contributing to the current maximum/minimum
+	 * But excludes the excludedVar'th variable
+	 */
+	virtual litlist varsContributingToMax(size_t excludedVar) const = 0;
+	virtual litlist varsContributingToMin(size_t excludedVar) const = 0;
+
+	/**
 	 * This method returns true if and only if one of the variables can still take negative values
 	 */
 	bool canContainNegatives() const;
@@ -76,23 +90,11 @@ protected:
 	IntView* createBound(const Weight& min, const Weight& max);
 
 	/**
-	 * For every variable (different from the "excludedvar"),
-	 * add lits that stand for Not the current absval situation.
-	 * I.e. ,if in the current situation, a variable is in absolute value smaller than
-	 * x, we add lits
-	 * var < -x || var > x
-	 *
-	 * NOTE, excludedvarloc, can be a value that is bigger than (or equal to) the size of _vars,
-	 * In that case, it means we don't want to exclude a variable
+	 * Adds the disjunction of lits to the solver and returns the clause
+	 * If criticalLit is false, this is a conflict-clause
+	 * otherwise, a learned clause
 	 */
-	void getLitsNotCurrentAbsValSituation(litlist& lits, uint excludedvarloc);
-
-	/**
-	 * Returns a vector of literals that represents
-	 *   (v_1 \leq 0) \vee (v_2 \leq 0) \vee \cdots
-	 * Where v_i are alle the vars in the aggregate
-	 */
-	litlist notAllVarsArePositive();
+	rClause addClause(litlist& lits, bool conflict);
 
 	virtual AggType getType() const = 0;
 };
@@ -100,16 +102,17 @@ protected:
 class FDSumConstraint: public FDAggConstraint {
 private:
 	std::vector<Weight> _weights;
-	void initialize(const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
+	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
+			IntView* bound);
 
 public:
 	// Sum constraint: one weight for each var, where bound is an int.
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
-			const int& bound);
+	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
+			const std::vector<Weight>& weights, EqType rel, const int& bound);
 
 	// Sum constraint: one weight for each var, where bound is an intview.
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
-			IntView* bound);
+	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
+			const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);
@@ -124,6 +127,13 @@ private:
 	 */
 	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
 
+	/**
+	 * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
+	 * But excludes the excludedVar'th variable
+	 */
+	litlist varsContributingToMax(size_t excludedVar) const;
+	litlist varsContributingToMin(size_t excludedVar) const;
+
 	virtual AggType getType() const {
 		return AggType::SUM;
 	}
@@ -133,14 +143,14 @@ private:
 class FDProdConstraint: public FDAggConstraint {
 private:
 	Weight _weight;
-	void initialize(const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
+	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
 
 public:
 
-	// Product constraint: one weight for the whole expression, bound is an integer! TODO MOVE TO PUBLIC AGAIN OR DELETE
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
+	// Product constraint: one weight for the whole expression, bound is an integer!
+	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
 	// Product constraint: one weight for the whole expression, bound is a variable!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
+	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);
@@ -195,6 +205,23 @@ private:
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
 	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
+	/**
+	 * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
+	 * But excludes the excludedVar'th variable
+	 */
+	litlist varsContributingToMax(size_t excludedVar) const;
+	litlist varsContributingToMin(size_t excludedVar) const;
+	litlist varsContributingToAbsVal(size_t excludedVar) const;
+	litlist varsContributingToAbsVal() const;
+
+	litlist varsContributingToMax(size_t excludedVar, bool canBeNegative) const;
+	litlist varsContributingToMin(size_t excludedVar, bool canBeNegative) const;
+
+	/**
+	 * Returns a vector of literals that represents that explains why this product cannot contain negatives
+	 */
+	litlist explainNotNegative();
+
 	virtual AggType getType() const {
 		return AggType::PROD;
 	}

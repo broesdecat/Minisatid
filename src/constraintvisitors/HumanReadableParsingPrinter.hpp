@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #ifndef ECNFPRINTER_HPP_
@@ -193,14 +193,15 @@ public:
 	void add(const CPSumWeighted& sum) {
 		target() << "Added sum constraint " << print(sum.head) << " <=> sum({ ";
 		bool begin = true;
+		auto condit = sum.conditions.cbegin();
 		auto litit = sum.varIDs.cbegin();
 		auto weightit = sum.weights.cbegin();
-		for (; litit < sum.varIDs.cend(); ++litit, ++weightit) {
+		for (; litit < sum.varIDs.cend(); ++litit, ++weightit, ++condit) {
 			if (not begin) {
 				target() << ", ";
 			}
 			begin = false;
-			target() << "var" << print(*litit) << "*" << *weightit;
+			target() << "if " << print(*condit) << " var" << print(*litit) << "*" << *weightit;
 		}
 		target() << " }) " << sum.rel << " " << sum.bound << "\n";
 	}
@@ -211,12 +212,13 @@ public:
 		target() << "prod({ ";
 		bool begin = true;
 		auto litit = prod.varIDs.cbegin();
+		auto condit = prod.conditions.cbegin();
 		for (; litit < prod.varIDs.cend(); ++litit) {
 			if (not begin) {
 				target() << ", ";
 			}
 			begin = false;
-			target() << "var" << print(*litit);
+			target() << "if " << print(*condit) << " var" << print(*litit);
 		}
 		target() << " }) " << prod.rel << " " << "var" << print(prod.boundID) << "\n";
 	}

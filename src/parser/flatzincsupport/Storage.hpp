@@ -471,12 +471,13 @@ public:
 	}
 
 	void addLinear(int head, const std::vector<uint> variables, const std::vector<int>& weights, MinisatID::EqType eq, int bound) {
-		CPSumWeighted sum(maxid++, get(head), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
+		CPSumWeighted sum(maxid++, get(head), std::vector<Lit>(variables.size(), get(getTrue())), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
 		extAdd(*store, sum);
 	}
 
 	void addProduct(int head, const std::vector<uint> variables, int weight, MinisatID::EqType eq, uint varbound) {
-		CPProdWeighted sum(maxid++, get(head), getVarIDs(variables), Weight(weight), eq, VarID { varbound });
+		CPProdWeighted sum(maxid++, get(head), std::vector<Lit>(variables.size(), get(getTrue())), getVarIDs(variables), Weight(weight), eq,
+				VarID { varbound });
 		extAdd(*store, sum);
 	}
 

@@ -379,26 +379,28 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 void PropagatorFactory::add(const CPSumWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
+		throw notYetImplemented("CPSUM WITH CONDITIONS AND GECODE"); //TODO
 		addCP(obj);
 	} else {
 		vector<IntView*> vars;
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDSumConstraint(obj.getID(), getEnginep(), obj.head, vars, obj.weights, obj.rel, obj.bound);
+		new FDSumConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.weights, obj.rel, obj.bound);
 	}
 }
 
 void PropagatorFactory::add(const CPProdWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
+		throw notYetImplemented("CPPROD WITH CONDITIONS AND GECODE"); //TODO
 		addCP(obj);
 	} else {
 		vector<IntView*> vars;
 		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
 			vars.push_back(new IntView(getIntVar(*i), 0));
 		}
-		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
+		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
 	}
 }
 

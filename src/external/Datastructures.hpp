@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #ifndef DATASTRUCTURES_HPP_
@@ -507,14 +507,17 @@ struct CPBinaryRelVar: public ID {
 
 struct CPSumWeighted: public ID {
 	Lit head;
+	std::vector<Lit> conditions;
 	std::vector<VarID> varIDs;
 	std::vector<Weight> weights;
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights, EqType rel, Weight bound)
+	CPSumWeighted(uint id, const Lit& head, const std::vector<Lit>& conditions, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights,
+			EqType rel, Weight bound)
 			: 	ID(id),
 				head(head),
+				conditions(conditions),
 				varIDs(varIDs),
 				weights(weights),
 				rel(rel),
@@ -530,14 +533,16 @@ struct CPSumWeighted: public ID {
 
 struct CPProdWeighted: public ID {
 	Lit head;
+	std::vector<Lit> conditions;
 	std::vector<VarID> varIDs;
 	Weight prodWeight;
 	EqType rel;
 	VarID boundID;
 
-	CPProdWeighted(uint id, const Lit& head, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
+	CPProdWeighted(uint id, const Lit& head, const std::vector<Lit>& conditions, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
 			: 	ID(id),
 				head(head),
+				conditions(conditions),
 				varIDs(varIDs),
 				prodWeight(prodweight),
 				rel(rel),

@@ -1,0 +1,6 @@
+p ecnf
+INTVAR 1 -1 1 0 
+INTVAR 2 -1 1 0 
+CPSUM 4 5 6 | 1 2 | 1 1 = 0 0
+-4 0
+
