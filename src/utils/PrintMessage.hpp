@@ -165,6 +165,13 @@ void printSearchEnd(T& stream, int verbosity = 1000) {
 }
 
 template<class T>
+void printSearchAborted(T& stream, int verbosity = 1000) {
+	if (verbosity >= 1) {
+		stream << ">>> Search aborted\n";
+	}
+}
+
+template<class T>
 void printModuleNotPresent(T& stream, std::string name, int verbosity = 1000) {
 	if (verbosity > 0) {
 		stream << ">    (there will be no propagations on " << name

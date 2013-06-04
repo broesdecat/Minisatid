@@ -168,6 +168,7 @@ void Printer::notifySolvingFinished() {
 	}
 	solvingstate = SolvingState::FINISHEDCLEANLY;
 	solvingFinished();
+	printSearchEnd(clog, modes.verbosity);
 }
 
 void Printer::notifySolvingAborted() {
@@ -179,4 +180,5 @@ void Printer::notifySolvingAborted() {
 	}
 	solvingstate = SolvingState::ABORTED;
 	solvingFinished();
+	printSearchAborted(clog, modes.verbosity);
 }

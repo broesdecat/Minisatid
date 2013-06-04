@@ -181,8 +181,6 @@ void ModelExpand::innerExecute() {
 	} else {
 		printer->notifySolvingFinished();
 	}
-
-	printSearchEnd(clog, getOptions().verbosity);
 }
 
 //Translate into original vocabulary
