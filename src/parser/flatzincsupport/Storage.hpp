@@ -124,7 +124,7 @@ public:
 		return var;
 	}
 
-	MArrayVar<MSetVar>* createSetArrayVar(const std::string& name, const std::string& outputname, int nbelem) {
+	MArrayVar<MSetVar>* createSetArrayVar(const std::string& name, const std::string&, int nbelem) {
 		if (usednames.find(name) != usednames.cend()) {
 			throw fzexception("Variable already declared");
 		}

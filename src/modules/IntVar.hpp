@@ -197,6 +197,8 @@ public:
 		case EqType::NEQ:
 			return !getEQLit(bound);
 		}
+		MAssert(false);
+		return getLEQLit(bound);
 	}
 
 	bool isKnown() const{

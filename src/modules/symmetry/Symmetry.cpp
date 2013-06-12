@@ -31,8 +31,8 @@ SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
 	}
 }
 
-void SymmetryPropagator::accept(ConstraintVisitor& visitor) {
-	throw notYetImplemented("ask Broes what this does, then implement?"); // TODO
+void SymmetryPropagator::accept(ConstraintVisitor&) {
+	throw notYetImplemented("Acceptance in Symmprop"); // TODO
 }
 
 /*
@@ -42,7 +42,6 @@ void SymmetryPropagator::accept(ConstraintVisitor& visitor) {
  * 	3: you can propagate l now
  */
 int SymmetryPropagator::canPropagate(Lit l) {
-	auto tmp = l.getAtom();
 	if (getPCSolver().isDecided(l.getAtom()) || symmetrical.count(l) == 0 || getPCSolver().value(symmetrical.at(l)) == l_True) {
 		return 1;
 	}
@@ -154,7 +153,7 @@ void SymmetryPropagator::getSymmetricalClause(rClause in_clause, vector<Lit>& ou
 	}
 }
 
-void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit& decision) {
+void SymmetryPropagator::notifyBacktrack(int, const Lit&) {
 	// TODO: optimize
 	nextToPropagate = 0;
 	potentialLits.clear();

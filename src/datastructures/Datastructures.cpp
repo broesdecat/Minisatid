@@ -151,7 +151,7 @@ Symmetry::Symmetry(const std::map<Lit, Lit>& s)
 Symmetry::Symmetry(const std::vector<std::vector<Lit> >& s)
 		: symmetry(std::map<Lit, Lit>()) {
 	for (auto cycle : s) {
-		for (int i = 0; i < cycle.size(); ++i) {
+		for (uint i = 0; i < cycle.size(); ++i) {
 			symmetry.insert( { cycle[i], cycle[(i + 1) % cycle.size()] });
 		}
 	}
