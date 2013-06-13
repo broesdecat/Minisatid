@@ -376,15 +376,36 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	}
 }
 
+template<class Elem>
+Elem PropagatorFactory::createUnconditional(const Elem& obj, Weight neutral){
+	// NOTE: Duplicate code with FlatZincParser interface
+	Elem newsum(obj);
+	newsum.conditions.clear();
+	for(uint i=0; i<newsum.varIDs.size(); ++i){
+		auto origintvar = getIntVar(newsum.varIDs[i]);
+		auto newcpvarid = getEngine().newID();
+		add(IntVarRange(obj.getID(), newcpvarid, min(neutral,origintvar->origMinValue()), max(neutral,origintvar->origMaxValue())));
+				// TODO: better make it an enum if 0 if far from the other values?
+		newsum.varIDs[i] = newcpvarid;
+		auto tseitin0 = getEngine().newAtom();
+		auto tseitineq = getEngine().newAtom();
+		auto id = newsum.getID();
+		add(Disjunction(id, {obj.conditions[i], mkPosLit(tseitin0)}));
+		add(CPBinaryRel(id, mkPosLit(tseitin0), newcpvarid, EqType::EQ, 0));
+		add(Disjunction(id, {~obj.conditions[i], mkPosLit(tseitineq)}));
+		add(CPBinaryRelVar(id, mkPosLit(tseitineq), newcpvarid, EqType::EQ, newsum.varIDs[i]));
+	}
+	return newsum;
+}
+
 void PropagatorFactory::add(const CPSumWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
-		throw notYetImplemented("CPSUM WITH CONDITIONS AND GECODE"); //TODO
-		addCP(obj);
+		addCP(createUnconditional(obj, 0));
 	} else {
 		vector<IntView*> vars;
-		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
-			vars.push_back(new IntView(getIntVar(*i), 0));
+		for (auto varid : obj.varIDs) {
+			vars.push_back(new IntView(getIntVar(varid), 0));
 		}
 		new FDSumConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.weights, obj.rel, obj.bound);
 	}
@@ -393,12 +414,11 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 void PropagatorFactory::add(const CPProdWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
-		throw notYetImplemented("CPPROD WITH CONDITIONS AND GECODE"); //TODO
-		addCP(obj);
+		addCP(createUnconditional(obj, 1));
 	} else {
 		vector<IntView*> vars;
-		for (auto i = obj.varIDs.cbegin(); i < obj.varIDs.cend(); ++i) {
-			vars.push_back(new IntView(getIntVar(*i), 0));
+		for (auto varid : obj.varIDs) {
+			vars.push_back(new IntView(getIntVar(varid), 0));
 		}
 		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
 	}

@@ -202,6 +202,9 @@ private:
 	}
 
 	SATVAL finishSet(const WLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false, uint optimpriority = -1);
+
+	template<class Elem>
+	Elem createUnconditional(const Elem& obj, Weight neutral);
 };
 
 }

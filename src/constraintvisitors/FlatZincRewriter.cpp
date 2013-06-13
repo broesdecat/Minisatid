@@ -500,20 +500,32 @@ template<typename Stream>
 void FlatZincRewriter<Stream>::innerExecute() {
 	state = SolverState::FINISHING;
 
-	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
-		addBinRel((*i).left, (*i).right, (*i).head, (*i).rel);
+	for (auto binrel : savedbinrels) {
+		addBinRel(binrel.left, binrel.right, binrel.head, binrel.rel);
 	}
 
-	for (auto i = savedcpsums.cbegin(); i < savedcpsums.cend(); ++i) {
-		addSum((*i).weights, (*i).varIDs, (*i).head, (*i).rel, (*i).bound);
+	for (auto sum : savedcpsums) {
+		// NOTE: Duplicate code with PropagatorFactory
+		std::vector<VarID> newvars;
+		for(auto i=0; i<sum.varIDs.size(); ++i){
+			auto newvar = newCpVar(min(0,getMin(sum.varIDs[i])), max(0,getMax(sum.varIDs[i]))); // TODO: better make it an enum if 0 if far from the other values?
+			newvars.push_back(newvar);
+			auto tseitin0 = newAtom();
+			auto tseitineq = newAtom();
+			add(Disjunction(sum.getID(), {sum.conditions[i], mkPosLit(tseitin0)}));
+			add(CPBinaryRel(sum.getID(), mkPosLit(tseitin0), newvar, EqType::EQ, Weight(0)));
+			add(Disjunction(sum.getID(), {~sum.conditions[i], mkPosLit(tseitineq)}));
+			add(CPBinaryRelVar(sum.getID(), mkPosLit(tseitineq), newvar, EqType::EQ, sum.varIDs[i]));
+		}
+		addSum(sum.weights, newvars, sum.head, sum.rel, sum.bound);
 	}
 
-	for (auto i = savedaggs.cbegin(); i < savedaggs.cend(); ++i) {
-		if ((*i).type == AggType::PROD) {
-			addProduct(*i, getSet((*i).setID));
+	for (auto agg : savedaggs) {
+		if (agg.type == AggType::PROD) {
+			addProduct(agg, getSet(agg.setID));
 		} else {
-			MAssert((*i).type==AggType::SUM || (*i).type==AggType::CARD);
-			addSum(*i, getSet((*i).setID));
+			MAssert(agg.type==AggType::SUM || agg.type==AggType::CARD);
+			addSum(agg, getSet(agg.setID));
 		}
 	}
 
@@ -790,7 +802,7 @@ void FlatZincRewriter<Stream>::add(const CPBinaryRelVar& rel) {
 template<typename Stream>
 void FlatZincRewriter<Stream>::add(const CPSumWeighted& sum) {
 	MAssert(isParsing());
-	throw notYetImplemented("Conditional CPSum in Flatzinc");
+
 	check(sum.head);
 	savedcpsums.push_back(sum);
 }
