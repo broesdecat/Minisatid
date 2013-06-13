@@ -117,10 +117,10 @@ protected:
 	void checkOnlyPos(const std::vector<Lit>& lits);
 	void check(const std::vector<std::vector<Lit> >& lits);
 
-	Atom createAtom();
-	VarID createCpVar(const Weight& min, const Weight& max);
-	VarID createCpVar(const std::vector<Weight>& values);
-	void createIntVar(const Lit& lit, bool defined, int defID);
+	Atom newAtom();
+	VarID newCpVar(const Weight& min, const Weight& max);
+	VarID newCpVar(const std::vector<Weight>& values);
+	void newIntVar(const Lit& lit, bool defined, int defID);
 	void addIntegerVar(VarID varID, const std::string& domainexpr, const Weight& min, const Weight& max);
 
 	const Weight& getMin(VarID var);

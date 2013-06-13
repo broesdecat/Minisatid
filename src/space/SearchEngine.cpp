@@ -34,8 +34,8 @@ int SearchEngine::verbosity() const {
 const SolverOption& SearchEngine::modes() const {
 	return getSolver()->modes();
 }
-Atom SearchEngine::newVar() {
-	return getSolver()->newVar();
+Atom SearchEngine::newAtom() {
+	return getSolver()->newAtom();
 }
 int SearchEngine::newSetID() {
 	return getSolver()->newSetID();

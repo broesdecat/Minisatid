@@ -51,7 +51,7 @@ Lit IntVar::getEQLit(int bound) {
 	if(it!=eqlits.cend()){
 		return it->second;
 	}
-	auto head = mkPosLit(getPCSolver().newVar());
+	auto head = mkPosLit(getPCSolver().newAtom());
 	eqlits[bound] = head;
 	add(Implication(getID(), head, ImplicationType::EQUIVALENT, { getGEQLit(bound), getLEQLit(bound) }, true));
 	return head;
@@ -136,7 +136,7 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int ma
 
 void RangeIntVar::finish() {
 	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
-		auto var = engine().newVar();
+		auto var = engine().newAtom();
 		leqlits.push_back(IntVarValue(this, var, i));
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
@@ -197,7 +197,7 @@ EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector
 
 void EnumIntVar::finish(){
 	for (auto i = _values.cbegin(); i < _values.cend(); ++i) {
-		auto var = engine().newVar();
+		auto var = engine().newAtom();
 		leqlits.push_back(IntVarValue(this, var, *i));
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);

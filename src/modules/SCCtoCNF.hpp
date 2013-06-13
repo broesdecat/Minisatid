@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef SCCtoCNF_HPP_
-#define SCCtoCNF_HPP_
+#pragma once
 
 #include <vector>
 #include <cmath>
@@ -52,7 +51,7 @@ public:
 			std::clog <<"loopsize = " <<maxlevel <<", maxbits = " <<maxbits <<"\n";
 		}
 		for(int i=0; i<maxbits; ++i) {
-			auto var = solver.newVar();
+			auto var = solver.newAtom();
 			if(solver.verbosity()>4){
 				std::clog <<toString(mkPosLit(var), solver) <<" <=> " <<"l(" <<toString(mkPosLit(head), solver) <<")>=" <<pow(2, i) <<"\n";
 			}
@@ -391,7 +390,7 @@ private:
 		if(it!=andmap.cend()){
 			return it->second;
 		}
-		auto tseitin = mkPosLit(solver_.newVar());
+		auto tseitin = mkPosLit(solver_.newAtom());
 		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, true), solver_.getTheoryID(), solver_);
 		andmap[remlits] = tseitin;
 		return tseitin;
@@ -421,7 +420,7 @@ private:
 		if(it!=ormap.cend()){
 			return it->second;
 		}
-		auto tseitin = mkPosLit(solver_.newVar());
+		auto tseitin = mkPosLit(solver_.newAtom());
 		internalAdd(Implication(DEFAULTCONSTRID, tseitin, ImplicationType::EQUIVALENT, remlits, false), solver_.getTheoryID(), solver_);
 		ormap[remlits] = tseitin;
 		return tseitin;
@@ -438,5 +437,4 @@ bool transformSCCtoCNF(Solver& solver, std::vector<Rule*>& rules){
 
 }
 
-} /* namespace MinisatID */
-#endif /* SCCtoCNF_HPP_ */
+}

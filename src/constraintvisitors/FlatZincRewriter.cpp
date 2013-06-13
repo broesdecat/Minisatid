@@ -146,7 +146,7 @@ void FlatZincRewriter<Stream>::check(const Lit& lit) {
 
 // Allows to add integer representation only once
 template<typename Stream>
-void FlatZincRewriter<Stream>::createIntVar(const Lit& lit, bool def, int defID) {
+void FlatZincRewriter<Stream>::newIntVar(const Lit& lit, bool def, int defID) {
 	int value = var(lit);
 	set<uint>& seenset = isPositive(lit) ? litatomsseen : litnegatomsseen;
 
@@ -268,7 +268,7 @@ void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string&
 }
 
 template<typename Stream>
-Atom FlatZincRewriter<Stream>::createAtom() {
+Atom FlatZincRewriter<Stream>::newAtom() {
 	Atom lit = Atom(maxatomnumber + 1);
 	check(lit);
 	return lit;
@@ -304,13 +304,13 @@ void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& v
 		newbound = bound - 1;
 		break;
 	case EqType::G: {
-		Atom newhead = createAtom();
+		Atom newhead = newAtom();
 		constr = "int_lin_le_reif";
 		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
 		break;
 	}
 	case EqType::GEQ: {
-		Atom newhead = createAtom();
+		Atom newhead = newAtom();
 		constr = "int_lin_le_reif";
 		newbound = bound - 1;
 		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
@@ -360,7 +360,7 @@ void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlis
 template<typename Stream>
 void FlatZincRewriter<Stream>::addSum(const Aggregate& agg, const WLSet& set) {
 	for (auto i = set.wl.cbegin(); i < set.wl.cend(); ++i) {
-		createIntVar(i->getLit(), agg.sem == AggSem::DEF, agg.defID);
+		newIntVar(i->getLit(), agg.sem == AggSem::DEF, agg.defID);
 	}
 
 	Lit h = agg.head;
@@ -380,14 +380,14 @@ void FlatZincRewriter<Stream>::addSum(const Aggregate& agg, const WLSet& set) {
 }
 
 template<typename Stream>
-VarID FlatZincRewriter<Stream>::createCpVar(const Weight& min, const Weight& max) {
+VarID FlatZincRewriter<Stream>::newCpVar(const Weight& min, const Weight& max) {
 	IntVarRange newvar(DEFAULTCONSTRID, {maxcpnumber + 1}, min, max);
 	add(newvar);
 	return newvar.varID;
 }
 
 template<typename Stream>
-VarID FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
+VarID FlatZincRewriter<Stream>::newCpVar(const std::vector<Weight>& values) {
 	IntVarEnum newvar(DEFAULTCONSTRID, {maxcpnumber + 1}, values);
 	add(newvar);
 	return newvar.varID;
@@ -415,20 +415,20 @@ VarID FlatZincRewriter<Stream>::addOptimization() {
 			}
 		}
 
-		optimvar = createCpVar(min, max);
+		optimvar = newCpVar(min, max);
 
 		for (auto i = set.wl.cbegin(); i < set.wl.cend(); ++i) {
-			createIntVar(i->getLit(), false, 0);
+			newIntVar(i->getLit(), false, 0);
 		}
 
-		auto head = mkPosLit(createAtom());
+		auto head = mkPosLit(newAtom());
 		addVarSum(getWeigths(set), getLiterals(set), head, EqType::EQ, optimvar);
 		Disjunction d(1,{head});
 		add(d);
 	} else if (savedlistmnmz.size() > 0) {
 		auto mnm = savedlistmnmz[0];
 
-		optimvar = createCpVar(1, long(mnm.literals.size()));
+		optimvar = newCpVar(1, long(mnm.literals.size()));
 
 		int currentvalue = 1;
 		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {
@@ -471,7 +471,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 		weights.push_back(1);
 		weights.push_back(weight);
 
-		auto varID = createCpVar(weights);
+		auto varID = newCpVar(weights);
 		constraints << "constraint int_eq_reif(" << getIntVarName(varID) << ", " << weight << ", " << getVarName(set.wl[i].getLit()) << ");\n";
 
 		Weight prevmin = min;
@@ -482,7 +482,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 		max = std::max(max, weight * prevmax);
 
 		if (!begin) {
-			auto newvar = createCpVar(min, max);
+			auto newvar = newCpVar(min, max);
 			constraints << "constraint int_times(" << getIntVarName(varID) << ", " << getIntVarName(prevvar) << ", " << getIntVarName(newvar) << ");\n";
 			prevvar = newvar;
 		} else {

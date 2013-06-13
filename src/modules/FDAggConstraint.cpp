@@ -25,7 +25,7 @@ FDAggConstraint::FDAggConstraint(uint id, PCSolver* s, const std::string& name)
 
 IntView* FDAggConstraint::negation(IntView* bound) {
 	auto result = createBound(-bound->maxValue(), -bound->minValue());
-	auto head = getPCSolver().newVar();
+	auto head = getPCSolver().newAtom();
 	auto headIsTrue = mkPosLit(head);
 	auto t = getPCSolver().getTrueLit();
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
@@ -76,8 +76,8 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 	_vars = set;
 	if (rel == EqType::EQ || rel == EqType::NEQ) {
 		auto eq = (rel == EqType::EQ);
-		auto one = mkPosLit(getPCSolver().newVar());
-		auto two = mkPosLit(getPCSolver().newVar());
+		auto one = mkPosLit(getPCSolver().newAtom());
+		auto two = mkPosLit(getPCSolver().newAtom());
 		add(Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true));
 		if (verbosity() > 5) {
 			clog << "split FDAggConstraint with head " << toString(head) << " into GEQ with head " << toString(one) << " and LEQ with head " << toString(two)

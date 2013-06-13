@@ -1589,7 +1589,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 		// No conflict: then enqueue all facts and their loop formulas.
 		if ((long) (loopf.literals.size() * ufs.size()) > modes().ufsvarintrothreshold) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-			auto v = getPCSolver().newVar();
+			auto v = getPCSolver().newAtom();
 			if (verbosity() >= 2) {
 				clog << "Adding new variable " << toString(v) << "for a ufs of size " << ufs.size() << " and " << loopf.literals.size()
 						<< " external disjuncts.\n";

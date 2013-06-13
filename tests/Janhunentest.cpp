@@ -28,7 +28,7 @@ namespace Tests{
 		void createVar(Atom v, TheoryID){
 			start = v+1;
 		}
-		int newVar() { return start++; }
+		int newAtom() { return start++; }
 		bool add(const Disjunction& d){ disj.push_back(new Disjunction(d)); return true; }
 		bool add(const Implication& eq){ eqs.push_back(new Implication(eq)); return true; }
 		SATVAL isUnsat() const { return SATVAL::POS_SAT; }
@@ -66,8 +66,8 @@ namespace Tests{
 	TEST(SCCTest, SimpleLoop) {
 		SolverMOC moc;
 		vector<toCNF::Rule*> rules;
-		auto varone = moc.newVar();
-		auto vartwo = moc.newVar();
+		auto varone = moc.newAtom();
+		auto vartwo = moc.newAtom();
 		rules.push_back(new toCNF::Rule(DEFAULTCONSTRID, false, varone, {mkPosLit(vartwo)}, {}));
 		rules.push_back(new toCNF::Rule(DEFAULTCONSTRID, false, vartwo, {mkPosLit(varone)}, {}));
 		auto notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);

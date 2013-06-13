@@ -36,7 +36,7 @@ public:
 	void createVar(Atom v, TheoryID theoryID);
 	PropagatorFactory& getFactory(TheoryID theoryID);
 
-	Atom newVar();
+	Atom newAtom();
 	int newSetID();
 
 	int verbosity() const;

@@ -63,7 +63,7 @@ private:
 	VarCreation* varcreator;
 public:
 	VarID newID();
-	Atom newVar();
+	Atom newAtom();
 	void createVar(Atom v, TheoryID theoryID);
 
 	double getActivity(Atom var) const;

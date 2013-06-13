@@ -53,7 +53,7 @@ Lit LazyIntVar::addVariable(int value){
 		}
 	}
 
-	auto var = engine().newVar();
+	auto var = engine().newAtom();
 	auto firstact = i>0?engine().getActivity((leqlits.begin()+i-1)->atom):0;
 	auto secondact = i+1<leqlits.size()?engine().getActivity((leqlits.begin()+i+1)->atom):0;
 	auto act = (firstact + secondact) / 2;

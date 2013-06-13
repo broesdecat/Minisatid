@@ -21,8 +21,8 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		stringstream ss;
 		ss<<"var" <<_left->getVarID().id << " = var" << _right->getVarID().id;
 		getPCSolver().setString(h.getAtom(),ss.str());
-		auto lefthead = mkPosLit(getPCSolver().newVar());
-		auto righthead = mkPosLit(getPCSolver().newVar());
+		auto lefthead = mkPosLit(getPCSolver().newAtom());
+		auto righthead = mkPosLit(getPCSolver().newAtom());
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()));
 		head_ = lefthead;
@@ -34,8 +34,8 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		stringstream ss;
 		ss<<"var" <<_left->getVarID().id << " != var" << _right->getVarID().id;
 		getPCSolver().setString(h.getAtom(),ss.str());
-		auto lefthead = mkPosLit(getPCSolver().newVar());
-		auto righthead = mkPosLit(getPCSolver().newVar());
+		auto lefthead = mkPosLit(getPCSolver().newAtom());
+		auto righthead = mkPosLit(getPCSolver().newAtom());
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
 		head_ = lefthead;

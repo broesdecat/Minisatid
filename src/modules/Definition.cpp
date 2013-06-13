@@ -42,12 +42,12 @@ void Definition::addDefinedAggregate(uint id, const Aggregate& inneragg, const W
 		throw idpexception("Rules on the same head in the same definition need to have the same semantics.");
 	}
 	if (prevrule->conjunctive) { // introduce new var (we need disjunctive root anyway
-		auto newvar = solver->newVar();
+		auto newvar = solver->newAtom();
 		def[newvar] = new TempRule(id, inneragg.onlyif, newvar, prevrule->conjunctive, prevrule->body);
 		prevrule->conjunctive = false;
 		prevrule->body = {mkLit(newvar)};
 	}
-	auto newvar = solver->newVar();
+	auto newvar = solver->newAtom();
 	newrule->inneragg->head = mkPosLit(newvar);
 	newrule->head = newvar;
 	def[newvar] = newrule;
@@ -67,13 +67,13 @@ void Definition::addRule(uint id, bool onlyif, int defID, bool conj, Atom head, 
 		throw idpexception("Rules on the same head in the same definition need to have the same semantics.");
 	}
 	if (prevrule->conjunctive) { // introduce new var (we need disjunctive root anyway)
-		auto newvar = solver->newVar();
+		auto newvar = solver->newAtom();
 		def[newvar] = new TempRule(id, onlyif, newvar, prevrule->conjunctive, prevrule->body);
 		prevrule->conjunctive = false;
 		prevrule->body = {mkLit(newvar)};
 	}
 	if (conj) { // Create a new var and rule first
-		auto newvar = solver->newVar();
+		auto newvar = solver->newAtom();
 		def[newvar] = new TempRule(id, onlyif, newvar, conj, ps);
 		prevrule->body.push_back(mkPosLit(newvar));
 	} else { // Disjunctive, so can add directly

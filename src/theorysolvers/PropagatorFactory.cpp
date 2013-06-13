@@ -220,7 +220,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 
 	guaranteeAtRootLevel();
 
-	auto head = getEngine().newVar();
+	auto head = getEngine().newAtom();
 	add(Disjunction(DEFAULTCONSTRID, { mkPosLit(head) }));
 
 	auto it = parsedsets.find(formula.setid);

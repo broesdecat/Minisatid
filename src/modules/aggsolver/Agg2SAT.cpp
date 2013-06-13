@@ -55,7 +55,7 @@ Lit mapFromPBLit(MiniSatPP::Lit lit, int maxopbvar, PCSolver& pcsolver, std::map
 	}else{
 		auto it = opbinternal2pcsolver.find(var);
 		if(it==opbinternal2pcsolver.cend()){
-			auto newv = pcsolver.newVar();
+			auto newv = pcsolver.newAtom();
 			opbinternal2pcsolver[var] = newv;
 			var = newv;
 		}else{

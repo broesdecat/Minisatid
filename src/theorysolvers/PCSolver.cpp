@@ -56,8 +56,8 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 		modes.print(clog);
 	}
 
-	dummy1 = newVar();
-	dummy2 = newVar();
+	dummy1 = newAtom();
+	dummy2 = newAtom();
 	Disjunction disj(DEFAULTCONSTRID, { mkPosLit(dummy1) });
 	disj.theoryid = getTheoryID();
 	Disjunction disj2(DEFAULTCONSTRID, { mkPosLit(dummy2) });
@@ -266,7 +266,7 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 VarID PCSolver::newID(){
 	return varcreator->createID();
 }
-Atom PCSolver::newVar() {
+Atom PCSolver::newAtom() {
 	auto var = varcreator->createVar();
 	if ((uint64_t) var >= nVars()) {
 		getEventQueue().notifyNbOfVars(var); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)

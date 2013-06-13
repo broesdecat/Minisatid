@@ -108,6 +108,7 @@ bool CPSolver::add(const CPBinaryRelVar& form) {
 }
 
 bool CPSolver::add(const CPSumWeighted& form) {
+	MAssert(form.conditions.empty());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	vector<int> values;
 	for (auto i = form.weights.cbegin(); i < form.weights.cend(); ++i) {
@@ -118,6 +119,7 @@ bool CPSolver::add(const CPSumWeighted& form) {
 }
 
 bool CPSolver::add(const CPProdWeighted& form) {
+	MAssert(form.conditions.empty());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	auto id=getPCSolver().newID();
 	if(form.prodWeight!=Weight(1)){
