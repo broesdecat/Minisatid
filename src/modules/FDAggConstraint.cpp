@@ -118,6 +118,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 	}
 	for (auto c : _conditions) {
 		getPCSolver().accept(this, c, FAST);
+		getPCSolver().accept(this, not c, FAST);
 	}
 	getPCSolver().acceptBounds(_bound, this);
 	getPCSolver().acceptForPropagation(this);
@@ -346,7 +347,6 @@ rClause FDSumConstraint::notifypropagate() {
 
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
-
 		if (min >= bound) {
 			auto minlits = FDAggConstraint::varsContributingToMin();
 			minlits.push_back(_head);
