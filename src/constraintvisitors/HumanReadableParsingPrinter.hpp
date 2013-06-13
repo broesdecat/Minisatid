@@ -193,15 +193,12 @@ public:
 	void add(const CPSumWeighted& sum) {
 		target() << "Added sum constraint " << print(sum.head) << " <=> sum({ ";
 		bool begin = true;
-		auto condit = sum.conditions.cbegin();
-		auto litit = sum.varIDs.cbegin();
-		auto weightit = sum.weights.cbegin();
-		for (; litit < sum.varIDs.cend(); ++litit, ++weightit, ++condit) {
+		for(uint i=0; i<sum.varIDs.size(); ++i){
 			if (not begin) {
 				target() << ", ";
 			}
 			begin = false;
-			target() << "if " << print(*condit) << " var" << print(*litit) << "*" << *weightit;
+			target() << "if " << print(sum.conditions[i]) << " var" << print(sum.varIDs[i]) << "*" << sum.weights[i];
 		}
 		target() << " }) " << sum.rel << " " << sum.bound << "\n";
 	}
@@ -211,14 +208,12 @@ public:
 		target() << prod.prodWeight << " * ";
 		target() << "prod({ ";
 		bool begin = true;
-		auto litit = prod.varIDs.cbegin();
-		auto condit = prod.conditions.cbegin();
-		for (; litit < prod.varIDs.cend(); ++litit) {
+		for(uint i=0; i<prod.varIDs.size(); ++i){
 			if (not begin) {
 				target() << ", ";
 			}
 			begin = false;
-			target() << "if " << print(*condit) << " var" << print(*litit);
+			target() << "if " << print(prod.conditions[i]) << " var" << print(prod.varIDs[i]);
 		}
 		target() << " }) " << prod.rel << " " << "var" << print(prod.boundID) << "\n";
 	}
