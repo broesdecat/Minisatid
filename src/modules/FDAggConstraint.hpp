@@ -75,11 +75,6 @@ protected:
 	virtual litlist varsContributingToMin(size_t excludedVar) const = 0;
 
 	/**
-	 * This method returns true if and only if one of the variables can still take negative values
-	 */
-	bool canContainNegatives() const;
-
-	/**
 	 * Returns the unary negation of this bound (-bound)
 	 */
 	IntView* negation(IntView* bound);
@@ -143,14 +138,18 @@ private:
 class FDProdConstraint: public FDAggConstraint {
 private:
 	Weight _weight;
+	Lit _definitelyPositive; //True if this agg is guaranteed to be positive
+
 	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
 
 public:
 
 	// Product constraint: one weight for the whole expression, bound is an integer!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
+	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight,
+			EqType rel, const Weight& bound);
 	// Product constraint: one weight for the whole expression, bound is a variable!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
+	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight,
+			EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);
@@ -218,9 +217,9 @@ private:
 	litlist varsContributingToMin(size_t excludedVar, bool canBeNegative) const;
 
 	/**
-	 * Returns a vector of literals that represents that explains why this product cannot contain negatives
+	 * This method returns true if and only if one of the variables can still take negative values
 	 */
-	litlist explainNotNegative();
+	bool canContainNegatives() const;
 
 	virtual AggType getType() const {
 		return AggType::PROD;

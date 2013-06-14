@@ -146,18 +146,6 @@ litlist FDAggConstraint::varsContributingToMin() const {
 	return varsContributingToMin(_vars.size());
 }
 
-bool FDAggConstraint::canContainNegatives() const {
-	for (uint j = 0; j < _vars.size(); j++) {
-		if (value(_conditions[j]) == l_False) {
-			continue;
-		}
-		if (_vars[j]->minValue() < 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
 /**
  * Adds the disjunction of lits to the solver and returns the clause
  * If criticalLit is false, this is a conflict-clause
@@ -514,6 +502,10 @@ void FDProdConstraint::setWeights(const std::vector<Weight>& w) {
 	_weight = w[0];
 }
 
+bool FDProdConstraint::canContainNegatives() const {
+	return value(_definitelyPositive) != l_True;
+}
+
 void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		IntView* bound) {
 	if (weight == 0) {
@@ -532,6 +524,26 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	}
 
 	sharedInitialization(head, conditions, set, { weight }, rel, bound);
+
+	//For every variable, add a lit that says whether or not it is guaranteed to have postive influence on the set.
+	std::vector<Lit> poslits;
+	for (uint i = 0; i < _vars.size(); i++) {
+		if (_vars[i]->origMinValue() < 0) {
+			auto poslit = mkPosLit(getPCSolver().newAtom());
+			auto notpresent = !_conditions[i];
+			auto positive = _vars[i]->getGEQLit(0);
+			add(Implication(getID(), poslit, ImplicationType::EQUIVALENT, { notpresent, positive }, false));
+			poslits.push_back(poslit);
+		}
+	}
+	if (poslits.size() == 0) {
+		_definitelyPositive = getPCSolver().getTrueLit();
+	} else if (poslits.size() == 1) {
+		_definitelyPositive = poslits[0];
+	} else {
+		_definitelyPositive = mkPosLit(getPCSolver().newAtom());
+		add(Implication(getID(), _definitelyPositive, ImplicationType::EQUIVALENT, poslits, true));
+	}
 }
 
 FDProdConstraint::FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
@@ -670,6 +682,10 @@ std::pair<int, int> FDProdConstraint::getMinAndMaxPossibleAggValsWithout(size_t 
 			if (i != excludedVar && value(_conditions[i]) != l_False) {
 				auto minval = _vars[i]->minValue();
 				auto maxval = _vars[i]->maxValue();
+				if (value(_conditions[i]) != l_True) {
+					minval = minval < 1 ? minval : 1;
+					maxval = maxval > 1 ? maxval : 1;
+				}
 				min *= minval;
 				max *= maxval;
 			}
@@ -689,7 +705,6 @@ rClause FDProdConstraint::notifypropagate() {
 	if (min == max && boundKnown) {
 		return check(min, minbound);
 	}
-
 	if (canContainNegatives()) {
 		return notifypropagateWithNeg(min, max, minbound, maxbound);
 	}
@@ -732,21 +747,11 @@ rClause FDProdConstraint::check(int val, int boundvalue) {
 	return addClause(lits, conflict);
 }
 
-litlist FDProdConstraint::explainNotNegative() {
-	litlist lits;
-	for (uint i = 0; i < _vars.size(); ++i) {
-		if (value(_conditions[i]) == l_False) {
-			lits.push_back(not _conditions[i]);
-		} else {
-			lits.push_back(_vars[i]->getLEQLit(-1));
-		}
-	}
-	return lits;
-}
-
 rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minbound, int maxbound) {
 	auto headval = value(_head);
-
+	MAssert(not canContainNegatives());
+	MAssert(value(_definitelyPositive) == l_True);
+	//In EVERY LEARNED CLAUSE: Don't forget to add !_definitelyPositive!!!!!
 	MAssert(_weight != 0);
 	//Constructor should guarantee this.
 
@@ -756,48 +761,23 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 
 	//First propagation: Aggregate and bound -> head
 	if (headval == l_Undef) {
-		litlist lits = explainNotNegative();
+
+		litlist lits;
 		bool propagate = false;
 		if (realmin >= maxbound) {
+			lits = FDAggConstraint::varsContributingToMin();
 			propagate = true;
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
 			//List all vars that have had a contribution to realmin
-			for (uint i = 0; i < _vars.size(); ++i) {
-				if (value(_conditions[i]) == l_False) {
-					lits.push_back(_conditions[i]);
-					continue;
-				}
-				if (value(_conditions[i]) == l_True) {
-					lits.push_back(not _conditions[i]);
-				}
-				if (not reverted) {
-					lits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
-				} else {
-					lits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
-				}
-			}
 		} else if (realmax < minbound) {
+			lits = FDAggConstraint::varsContributingToMax();
 			propagate = true;
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
-			//List all vars that have had a contribution to realmax
-			for (uint i = 0; i < _vars.size(); ++i) {
-				if (value(_conditions[i]) == l_False) {
-					lits.push_back(_conditions[i]);
-					continue;
-				}
-				if (value(_conditions[i]) == l_True) {
-					lits.push_back(not _conditions[i]);
-				}
-				if (not reverted) {
-					lits.push_back(not _vars[i]->getLEQLit(_vars[i]->maxValue()));
-				} else {
-					lits.push_back(not _vars[i]->getGEQLit(_vars[i]->minValue()));
-				}
-			}
 		}
 		if (propagate) {
+			lits.push_back(!_definitelyPositive);
 			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
@@ -824,12 +804,10 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 		//[realmin,realmax] >= [minbound,maxbound]
 		//Thus, we can eliminate all bounds greater than realmax
 		if (realmax < maxbound) {
-			litlist lits = explainNotNegative();
-			lits.push_back(not _head);
 			//List all vars that have had a contribution to realmax
-			for (auto maxlit : FDAggConstraint::varsContributingToMax()) {
-				lits.push_back(maxlit);
-			}
+			litlist lits = FDAggConstraint::varsContributingToMax();
+			lits.push_back(!_definitelyPositive);
+			lits.push_back(not _head);
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
 			bool conflict = value(boundlit) == l_False;
@@ -878,13 +856,11 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 				conditionRelevant = factormissing < 1;
 			}
 
-			litlist lits = explainNotNegative();
+			//List all vars that have had a contribution to realmax
+			litlist lits = FDAggConstraint::varsContributingToMax();
+			lits.push_back(!_definitelyPositive);
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
-			//List all vars that have had a contribution to realmax
-			for (auto maxlit : FDAggConstraint::varsContributingToMax()) {
-				lits.push_back(maxlit);
-			}
 
 			if (value(_conditions[i]) != l_True && conditionRelevant) {
 				litlist litscopy = litlist(lits);
@@ -920,12 +896,10 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 		//[realmin,realmax] < [minbound,maxbound]
 		//Thus, we can eliminate all bounds smaller than realmin
 		if (realmin > minbound) {
-			litlist lits = explainNotNegative();
-			lits.push_back(_head);
 			//List all vars that have had a contribution to realmin
-			for (auto minlit : FDAggConstraint::varsContributingToMin()) {
-				lits.push_back(minlit);
-			}
+			litlist lits = FDAggConstraint::varsContributingToMin();
+			lits.push_back(!_definitelyPositive);
+			lits.push_back(_head);
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
 			return addClause(lits, value(boundlit) == l_False);
@@ -980,14 +954,11 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 				lit = var->getLEQLit(maxFactorThisVar);
 				conditionRelevant = (maxFactorThisVar < 1);
 			}
-
-			litlist lits = explainNotNegative();
+			//List all vars that have had a contribution to realmin
+			litlist lits = FDAggConstraint::varsContributingToMin();
+			lits.push_back(!_definitelyPositive);
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
-			//List all vars that have had a contribution to realmin
-			for (auto minlit : FDAggConstraint::varsContributingToMin()) {
-				lits.push_back(minlit);
-			}
 
 			if (value(_conditions[i]) != l_True && conditionRelevant) {
 				litlist litscopy = litlist(lits);
@@ -1022,11 +993,11 @@ rClause FDProdConstraint::notifypropagateWithNeg(int minval, int maxval, int min
 		if (realmin >= maxbound) {
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
-			addClause(lits,false);
+			addClause(lits, false);
 		} else if (realmax < minbound) {
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
-			addClause(lits,false);
+			addClause(lits, false);
 		}
 		return nullPtrClause;
 	}
