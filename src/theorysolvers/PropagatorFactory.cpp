@@ -403,11 +403,53 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(createUnconditional(obj, 0));
 	} else {
-		vector<IntView*> vars;
-		for (auto varid : obj.varIDs) {
-			vars.push_back(new IntView(getIntVar(varid), 0));
+		auto allknown = true;
+		for(auto varid : obj.varIDs){
+			auto var = getIntVar(varid);
+			if(var->origMinValue()!=var->origMaxValue()){
+				allknown = false;
+				break;
+			}
 		}
-		new FDSumConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.weights, obj.rel, obj.bound);
+		if(allknown && obj.varIDs.size()>50){
+			WLSet set(getEngine().newSetID());
+			for(auto i=0; i<obj.varIDs.size(); ++i){
+				set.wl.push_back({obj.conditions[i], getIntVar(obj.varIDs[i])->origMinValue()});
+			}
+			add(set);
+			switch(obj.rel){
+			case EqType::EQ:{
+				auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
+				add(Aggregate(obj.getID(), ts1, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				add(Aggregate(obj.getID(), ts2, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				add(Implication(obj.getID(), obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, true));
+				break;}
+			case EqType::NEQ:{
+				auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
+				add(Aggregate(obj.getID(), ts1, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				add(Aggregate(obj.getID(), ts2, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				add(Implication(obj.getID(), obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, false));
+				break;}
+			case EqType::GEQ:
+				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				break;
+			case EqType::LEQ:
+				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				break;
+			case EqType::L:
+				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				break;
+			case EqType::G:
+				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				break;
+			}
+		}else{
+			vector<IntView*> vars;
+			for (auto varid : obj.varIDs) {
+				vars.push_back(new IntView(getIntVar(varid), 0));
+			}
+			new FDSumConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.weights, obj.rel, obj.bound);
+		}
 	}
 }
 

@@ -45,35 +45,6 @@ public:
 		throw idpexception("Invalid code path.");
 	}
 protected:
-
-	/**
-	 * Returns a pair (min,max), where the first of the two is an underbound on the values the aggregate can take
-	 * and the second is an upperbound. These bounds are not exact. I.e. in some cases it is possible that the bounds
-	 * can not be achieved. However, if the aggregates value can be decided, it is guaranteed that this method returns
-	 * a pair where both values are equal.
-	 */
-	std::pair<int, int> getMinAndMaxPossibleAggVals() const;
-
-	/**
-	 * Similar to getMinAndMaxPossibleAggVals(), but without taking the excludedVar'th var into account.
-	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
-	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
-	 */
-	virtual std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const = 0;
-
-	/**
-	 * Returns a list of all variables contributing to the current maximum/minimum
-	 */
-	litlist varsContributingToMax() const;
-	litlist varsContributingToMin() const;
-
-	/**
-	 * Returns a list of all variables contributing to the current maximum/minimum
-	 * But excludes the excludedVar'th variable
-	 */
-	virtual litlist varsContributingToMax(size_t excludedVar) const = 0;
-	virtual litlist varsContributingToMin(size_t excludedVar) const = 0;
-
 	/**
 	 * Returns the unary negation of this bound (-bound)
 	 */
@@ -120,12 +91,21 @@ private:
 	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
+	inline std::pair<int, int> getMinAndMaxPossibleAggVals() const{
+		return getMinAndMaxPossibleAggValsWithout(_vars.size());
+	}
 	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
 
 	/**
 	 * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
 	 * But excludes the excludedVar'th variable
 	 */
+	inline litlist varsContributingToMax() const {
+		return varsContributingToMax(_vars.size());
+	}
+	inline litlist varsContributingToMin() const {
+		return varsContributingToMin(_vars.size());
+	}
 	litlist varsContributingToMax(size_t excludedVar) const;
 	litlist varsContributingToMin(size_t excludedVar) const;
 
@@ -203,6 +183,9 @@ private:
 	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
+	std::pair<int, int> getMinAndMaxPossibleAggVals() const{
+		return getMinAndMaxPossibleAggValsWithout(_vars.size());
+	}
 	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
 	/**
 	 * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
@@ -212,6 +195,13 @@ private:
 	litlist varsContributingToMin(size_t excludedVar) const;
 	litlist varsContributingToAbsVal(size_t excludedVar) const;
 	litlist varsContributingToAbsVal() const;
+
+	litlist varsContributingToMax() const {
+		return varsContributingToMax(_vars.size());
+	}
+	litlist varsContributingToMin() const {
+		return varsContributingToMin(_vars.size());
+	}
 
 	litlist varsContributingToMax(size_t excludedVar, bool canBeNegative) const;
 	litlist varsContributingToMin(size_t excludedVar, bool canBeNegative) const;

@@ -135,17 +135,6 @@ bool additionOverflow(int x, int y) {
 	return false;
 }
 
-std::pair<int, int> FDAggConstraint::getMinAndMaxPossibleAggVals() const {
-	return getMinAndMaxPossibleAggValsWithout(_vars.size());
-}
-
-litlist FDAggConstraint::varsContributingToMax() const {
-	return varsContributingToMax(_vars.size());
-}
-litlist FDAggConstraint::varsContributingToMin() const {
-	return varsContributingToMin(_vars.size());
-}
-
 /**
  * Adds the disjunction of lits to the solver and returns the clause
  * If criticalLit is false, this is a conflict-clause
@@ -253,7 +242,8 @@ std::pair<int, int> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
 			//Variable has no influence as he should be excluded
 			continue;
 		}
-		if (value(_conditions[i]) == l_False) {
+		auto condval = value(_conditions[i]);
+		if (condval == l_False) {
 			//Variable has no influence as his conditions is false
 			continue;
 		}
@@ -261,7 +251,7 @@ std::pair<int, int> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
 		auto weight = _weights[i];
 		auto minval = _vars[i]->minValue();
 		auto maxval = _vars[i]->maxValue();
-		if (value(_conditions[i]) != l_True) {
+		if (condval != l_True) {
 			//conditions i is possibly false
 			minval = minval < 0 ? minval : 0;
 			maxval = maxval > 0 ? maxval : 0;
@@ -287,10 +277,11 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar) const {
 		if (j == excludedVar) {
 			continue;
 		}
-		if (value(_conditions[j]) == l_False) {
+		auto condval = value(_conditions[j]);
+		if (condval == l_False) {
 			lits.push_back(_conditions[j]);
 		} else {
-			if (value(_conditions[j]) == l_True) {
+			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
 			if (_weights[j] < 0) {
@@ -308,10 +299,11 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
 		if (j == excludedVar) {
 			continue;
 		}
-		if (value(_conditions[j]) == l_False) {
+		auto condval = value(_conditions[j]);
+		if (condval == l_False) {
 			lits.push_back(_conditions[j]);
 		} else {
-			if (value(_conditions[j]) == l_True) {
+			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
 			if (_weights[j] < 0) {
@@ -324,7 +316,11 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
 	return lits;
 }
 
+int ccc = 0;
+int cccc = 0;
+
 rClause FDSumConstraint::notifypropagate() {
+//	clog <<"FD Sum Prop " <<ccc++ <<"\n";
 	auto _headval = value(_head);
 	auto minmax = getMinAndMaxPossibleAggVals();
 	int min = minmax.first;
@@ -336,11 +332,11 @@ rClause FDSumConstraint::notifypropagate() {
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
 		if (min >= bound) {
-			auto minlits = FDAggConstraint::varsContributingToMin();
+			auto minlits = varsContributingToMin();
 			minlits.push_back(_head);
 			addClause(minlits, false);
 		} else if (max < bound) {
-			auto maxlits = FDAggConstraint::varsContributingToMax();
+			auto maxlits = varsContributingToMax();
 			maxlits.push_back(not _head);
 			addClause(maxlits, false);
 		}
@@ -351,17 +347,27 @@ rClause FDSumConstraint::notifypropagate() {
 	if ((min >= bound && _headval == l_True) || (max < bound && _headval == l_False)) {
 		return nullPtrClause;
 	}
+
+	//clog <<"Not irrelevant " <<cccc++ <<"\n";
+
+	/*cerr <<toString(_head) <<" <=> ";
+	for(auto i=0; i<_vars.size(); ++i){
+		clog <<"(" <<toString(_conditions[i]) <<", "<<_vars[i]->toString() <<")";
+	}
+	cerr <<_bound->toString() <<"\n";*/
+
 	for (uint i = 0; i < _vars.size(); ++i) {
+		auto condval = value(_conditions[i]);
 		auto var = _vars[i];
 		auto weight = _weights[i];
 		//Calculate max and min without this var: this method is more efficient than doing the entire
 		//Calculation again.
 		int maxWithoutThisVar = max;
 		int minWithoutThisVar = min;
-		if (value(_conditions[i]) != l_False) {
+		if (condval != l_False) {
 			auto minval = var->minValue();
 			auto maxval = var->maxValue();
-			if (value(_conditions[i]) != l_True) {
+			if (condval != l_True) {
 				//conditions i is possibly false
 				minval = minval < 0 ? minval : 0;
 				maxval = maxval > 0 ? maxval : 0;
@@ -377,7 +383,7 @@ rClause FDSumConstraint::notifypropagate() {
 		if (_headval == l_True) {
 			Lit lit;
 			bool notBeingZeroIsRelevant = false;
-			if (value(_conditions[i]) == l_False) {
+			if (condval == l_False) {
 				//In this case, we can only derive a possible conflict:
 				if (max < bound) {
 					auto lits = varsContributingToMax(i);
@@ -404,7 +410,7 @@ rClause FDSumConstraint::notifypropagate() {
 					notBeingZeroIsRelevant = (val < 0);
 				}
 			}
-			if (value(_conditions[i]) == l_Undef && notBeingZeroIsRelevant) {
+			if (condval == l_Undef && notBeingZeroIsRelevant) {
 				auto maxlits = varsContributingToMax(i);
 				maxlits.push_back(not _head);
 				//(otherMax & head) => _condition
@@ -431,7 +437,7 @@ rClause FDSumConstraint::notifypropagate() {
 			Lit lit;
 			bool notBeingZeroIsRelevant = false;
 
-			if (value(_conditions[i]) == l_False) {
+			if (condval == l_False) {
 				if (min >= bound) {
 					auto lits = varsContributingToMin(i);
 					lits.push_back(_head);
@@ -467,26 +473,28 @@ rClause FDSumConstraint::notifypropagate() {
 				notBeingZeroIsRelevant = (val > 0);
 			}
 
-			if (value(_conditions[i]) != l_True && notBeingZeroIsRelevant) {
+			if (condval != l_True && notBeingZeroIsRelevant) {
 				litlist minlits = varsContributingToMin(i);
 				minlits.push_back(_head);
 				//(otherMin & not head) => _condition
 				minlits.push_back(_conditions[i]);
-				auto cl = addClause(minlits, value(_conditions[i]) == l_False);
+				auto cl = addClause(minlits, condval == l_False);
 				if (cl != nullPtrClause) {
 					return cl;
 				}
 			}
 			//We can only propagate something about the value of term i if its condition is true (or propagated to be true)
-			bool propagateValue = notBeingZeroIsRelevant || value(_conditions[i]) == l_True;
-			if (propagateValue && value(lit) != l_True) {
+			condval = value(_conditions[i]);
+			bool propagateValue = notBeingZeroIsRelevant || condval == l_True;
+			auto litval = value(lit);
+			if (propagateValue && litval != l_True) {
 				litlist minlits = varsContributingToMin(i);
 				minlits.push_back(_head);
 				minlits.push_back(not _conditions[i]);
 				//(otherMin & conditions & not head) => lit
 				minlits.push_back(lit);
 				//Only a conflict if the i'th conditoin is already true and derived lit is false
-				bool conflict = (value(_conditions[i]) == l_True) && (value(lit) == l_False);
+				bool conflict = (condval == l_True) && (litval == l_False);
 				return addClause(minlits, conflict);
 			}
 		}
@@ -719,7 +727,7 @@ rClause FDProdConstraint::check(int val, int boundvalue) {
 		if (headval == l_True) {
 			return nullPtrClause;
 		}
-		lits = FDAggConstraint::varsContributingToMin();
+		lits = varsContributingToMin();
 		lits.push_back(_head);
 
 		if (headval == l_False) {
@@ -729,7 +737,7 @@ rClause FDProdConstraint::check(int val, int boundvalue) {
 		if (headval == l_False) {
 			return nullPtrClause;
 		}
-		lits = FDAggConstraint::varsContributingToMax();
+		lits = varsContributingToMax();
 		lits.push_back(not _head);
 		if (headval == l_True) {
 			conflict = true;
@@ -765,13 +773,13 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 		litlist lits;
 		bool propagate = false;
 		if (realmin >= maxbound) {
-			lits = FDAggConstraint::varsContributingToMin();
+			lits = varsContributingToMin();
 			propagate = true;
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
 			//List all vars that have had a contribution to realmin
 		} else if (realmax < minbound) {
-			lits = FDAggConstraint::varsContributingToMax();
+			lits = varsContributingToMax();
 			propagate = true;
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
@@ -805,7 +813,7 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 		//Thus, we can eliminate all bounds greater than realmax
 		if (realmax < maxbound) {
 			//List all vars that have had a contribution to realmax
-			litlist lits = FDAggConstraint::varsContributingToMax();
+			litlist lits = varsContributingToMax();
 			lits.push_back(!_definitelyPositive);
 			lits.push_back(not _head);
 			auto boundlit = _bound->getLEQLit(realmax);
@@ -857,7 +865,7 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 			}
 
 			//List all vars that have had a contribution to realmax
-			litlist lits = FDAggConstraint::varsContributingToMax();
+			litlist lits = varsContributingToMax();
 			lits.push_back(!_definitelyPositive);
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
@@ -897,7 +905,7 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 		//Thus, we can eliminate all bounds smaller than realmin
 		if (realmin > minbound) {
 			//List all vars that have had a contribution to realmin
-			litlist lits = FDAggConstraint::varsContributingToMin();
+			litlist lits = varsContributingToMin();
 			lits.push_back(!_definitelyPositive);
 			lits.push_back(_head);
 			auto boundlit = _bound->getGEQLit(realmin);
@@ -955,7 +963,7 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 				conditionRelevant = (maxFactorThisVar < 1);
 			}
 			//List all vars that have had a contribution to realmin
-			litlist lits = FDAggConstraint::varsContributingToMin();
+			litlist lits = varsContributingToMin();
 			lits.push_back(!_definitelyPositive);
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));

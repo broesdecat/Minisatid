@@ -170,13 +170,47 @@ public:
 		return var()->origMaxValue()+constdiff();
 	}
 
-	int minValue() const;
+	int minValue() const {
+		auto minval = var()->minValue();
+		if(constdiff()>0 && minval+constdiff()<minval){
+			return negInfinity();
+		}
+		if(constdiff()<0 && minval-constdiff()<minval){
+			return posInfinity();
+		}
+		return minval+constdiff();
+	}
 
-	int maxValue() const;
+	int maxValue() const {
+		auto maxval = var()->maxValue();
+		if(constdiff()>0 && maxval+constdiff()<maxval){
+			return posInfinity();
+		}
+		if(constdiff()<0 && maxval-constdiff()<maxval){
+			return negInfinity();
+		}
+		return maxval+constdiff();
+	}
 
-	Lit getLEQLit(int bound) const;
+	Lit getLEQLit(int bound) const {
+		if(constdiff()>0 && bound-constdiff()>bound){
+			return var()->getPCSolver().getFalseLit();
+		}
+		if(constdiff()<0 && bound-constdiff()<bound){
+			return var()->getPCSolver().getTrueLit();
+		}
+		return var()->getLEQLit(bound-constdiff());
+	}
 
-	Lit getGEQLit(int bound) const;
+	Lit getGEQLit(int bound) const {
+		if(constdiff()>0 && bound-constdiff()>bound){
+			return var()->getPCSolver().getTrueLit();
+		}
+		if(constdiff()<0 && bound-constdiff()<bound){
+			return var()->getPCSolver().getFalseLit();
+		}
+		return var()->getGEQLit(bound-constdiff());
+	}
 
 	Lit getEQLit(int bound) const{
 		return var()->getEQLit(bound);
