@@ -411,7 +411,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 				break;
 			}
 		}
-		if(allknown && obj.varIDs.size()>50){
+		if(allknown){
 			WLSet set(getEngine().newSetID());
 			for(auto i=0; i<obj.varIDs.size(); ++i){
 				set.wl.push_back({obj.conditions[i], getIntVar(obj.varIDs[i])->origMinValue()});

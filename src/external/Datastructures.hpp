@@ -527,7 +527,12 @@ struct CPSumWeighted: public ID {
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {var(head)};
+		std::vector<Atom> atoms;
+		for(auto lit: conditions){
+			atoms.push_back(var(lit));
+		}
+		atoms.push_back(var(head));
+		return atoms;
 	}
 };
 
@@ -552,7 +557,12 @@ struct CPProdWeighted: public ID {
 	DATASTRUCTURE_DECLAREACCEPT
 
 	virtual std::vector<Atom> getAtoms() const {
-		return {var(head)};
+		std::vector<Atom> atoms;
+		for(auto lit: conditions){
+			atoms.push_back(var(lit));
+		}
+		atoms.push_back(var(head));
+		return atoms;
 	}
 };
 
