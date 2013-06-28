@@ -95,7 +95,7 @@ public:
 			break;
 		}
 
-		target() << (agg.sign == AggSign::UB ? "G" : "L") << " " << toString(agg.head) << " " << agg.setID << " " << agg.bound << " 0\n";
+		target() << (agg.sign == AggSign::UB ? "L" : "G") << " " << toString(agg.head) << " " << agg.setID << " " << agg.bound << " 0\n";
 	}
 
 	void add(const Implication& impl) {
@@ -159,7 +159,7 @@ public:
 	}
 
 	void add(const IntVarEnum& intvar) {
-		target() << INTVARRANGESTR << " " << toString(intvar.varID) << " ";
+		target() << INTVARENUMSTR << " " << toString(intvar.varID) << " ";
 		for (auto i = intvar.values.cbegin(); i < intvar.values.cend(); ++i) {
 			target() << *i << " ";
 		}
