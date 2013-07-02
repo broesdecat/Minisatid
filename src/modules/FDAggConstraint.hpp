@@ -7,6 +7,8 @@
 
 namespace MinisatID {
 
+struct Lit; // Note: To help eclipse indexer
+
 // NOTE: always GEQ at the moment!
 // 		_head <=> AGG >= _bound
 class FDAggConstraint: public Propagator {
@@ -19,8 +21,7 @@ protected:
 protected:
 	FDAggConstraint(uint id, PCSolver* s, const std::string& name);
 	virtual void setWeights(const std::vector<Weight>&) = 0;
-	void sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights,
-			EqType rel, IntView* bound);
+	void sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
 public:
 
@@ -68,17 +69,21 @@ protected:
 class FDSumConstraint: public FDAggConstraint {
 private:
 	std::vector<Weight> _weights;
-	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel,
-			IntView* bound);
+	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
+
+	// Sum only works on KNOWN bounds
+	Weight getBound() const {
+		return _bound->minValue();
+	}
 
 public:
 	// Sum constraint: one weight for each var, where bound is an int.
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
-			const std::vector<Weight>& weights, EqType rel, const int& bound);
+	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, const int& bound);
 
-	// Sum constraint: one weight for each var, where bound is an intview.
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
-			const std::vector<Weight>& weights, EqType rel, IntView* bound);
+private:
+	friend class FDAggConstraint;
+	// NOTE: bound has to have a KNOWN value!
+	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);
@@ -91,7 +96,7 @@ private:
 	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
-	inline std::pair<int, int> getMinAndMaxPossibleAggVals() const{
+	inline std::pair<int, int> getMinAndMaxPossibleAggVals() const {
 		return getMinAndMaxPossibleAggValsWithout(_vars.size());
 	}
 	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
@@ -113,6 +118,9 @@ private:
 		return AggType::SUM;
 	}
 
+	enum class Contrib { MIN, MAX };
+	rClause createClause(Contrib use, bool conflict, const std::vector<Lit>& extralits);
+	rClause createClauseExcl(Contrib use, size_t varindex, bool conflict, const std::vector<Lit>& extralits);
 };
 
 class FDProdConstraint: public FDAggConstraint {
@@ -125,11 +133,9 @@ private:
 public:
 
 	// Product constraint: one weight for the whole expression, bound is an integer!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight,
-			EqType rel, const Weight& bound);
+	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
 	// Product constraint: one weight for the whole expression, bound is a variable!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight,
-			EqType rel, IntView* bound);
+	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);
@@ -183,7 +189,7 @@ private:
 	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
-	std::pair<int, int> getMinAndMaxPossibleAggVals() const{
+	std::pair<int, int> getMinAndMaxPossibleAggVals() const {
 		return getMinAndMaxPossibleAggValsWithout(_vars.size());
 	}
 	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
