@@ -77,9 +77,9 @@ Lit LazyIntVar::addVariable(int value){
 #endif
 	engine().accept(this, mkPosLit(var), FASTEST);
 	engine().accept(this, mkNegLit(var), FASTEST);
-	if (verbosity() > 3) {
-		clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << value << "\n";
-	}
+	stringstream ss;
+	ss<<"var" << toString(getVarID()) << "=<" << value;
+	getPCSolver().setString(var,ss.str());
 	if(value==origMaxValue()){
 		add(Disjunction(getID(), { mkPosLit(var) }));
 	}

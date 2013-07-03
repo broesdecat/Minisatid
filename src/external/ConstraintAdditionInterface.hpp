@@ -124,6 +124,7 @@ public:
 
 private:
 	Translator *_translator, *_origtranslator;
+	std::map<Atom,std::string> atom2string;
 public:
 	virtual void setString(const Atom& lit, const std::string& name);
 	virtual std::string toString(VarID id) const;

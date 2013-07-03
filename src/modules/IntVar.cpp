@@ -143,9 +143,6 @@ void RangeIntVar::finish() {
 		stringstream ss;
 		ss<<"var" << toString(getVarID()) << "=<" << i;
 		getPCSolver().setString(var,ss.str());
-		if (verbosity() > 3) {
-			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << i << "\n";
-		}
 	}
 
 	getPCSolver().accept(this);
@@ -201,9 +198,9 @@ void EnumIntVar::finish(){
 		leqlits.push_back(IntVarValue(this, var, *i));
 		engine().accept(this, mkPosLit(var), FASTEST);
 		engine().accept(this, mkNegLit(var), FASTEST);
-		if (verbosity() > 3) {
-			clog << toString(mkPosLit(var)) << " <=> " << "var" << toString(getVarID()) << "=<" << *i << "\n";
-		}
+		stringstream ss;
+		ss<<"var" << toString(getVarID()) << "=<" << *i;
+		getPCSolver().setString(var,ss.str());
 	}
 
 	getPCSolver().accept(this);

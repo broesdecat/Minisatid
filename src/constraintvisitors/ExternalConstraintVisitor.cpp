@@ -41,9 +41,13 @@ std::string ExternalConstraintVisitor::toString(VarID id) const {
 	return ss.str();
 }
 void ExternalConstraintVisitor::setString(const Atom& atom, const std::string& name){
-	getTranslator()->setString(atom, name);
+	atom2string[atom]=name;
 }
 std::string ExternalConstraintVisitor::toString(const Lit& l) const {
+	auto overriddenit = atom2string.find(l.getAtom());
+	if(overriddenit!=atom2string.cend()){
+		return sign(l)?"-"+overriddenit->second:overriddenit->second;
+	}
 	std::stringstream ss;
 	if (getRemapper()->wasInput(l)) {
 		auto lit = getRemapper()->getLiteral(l);
