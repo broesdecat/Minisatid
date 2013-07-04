@@ -60,11 +60,18 @@ add_library(minisatid
 
 set(LIBS ${LIBS} pbsolver)
 target_link_libraries(minisatid ${LIBS})
+if(GPERF)
+	target_link_libraries(minisatid tcmalloc_and_profiler)
+endif()
 
 add_executable(minisatid-bin 
 		Main.cpp
 )
 target_link_libraries(minisatid-bin pbsolver minisatid)
+if(GPERF)
+	target_link_libraries(minisatid-bin tcmalloc_and_profiler)
+endif()
+
 set_target_properties(minisatid-bin PROPERTIES OUTPUT_NAME minisatid)
 
 if(BUILD_MINISATID_STATIC)

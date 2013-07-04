@@ -21,6 +21,11 @@ macro(addToCXX ARGUMENT)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARGUMENT}")
 endmacro()
 
+option(GPERF  "Enable profiling support with google-perftools" OFF)
+if(GPERF)
+	addToCXX("-fno-omit-frame-pointer")
+endif()
+
 OPTION(WITHGECODE		"Include gecode support for cp (need gecode to be installed)" OFF)
 OPTION(BUILDTESTS  		"Run the gtest tests" ON)
 OPTION(GMP  			"Enable gmp support" OFF)
