@@ -107,16 +107,16 @@ public:
 	std::string toString(VarID id) const;
 	std::string toString(const Lit& lit) const;
 	std::string toString(const Lit& lit, lbool value) const;
-	bool isTrue(const Lit& l) const {
+	bool isTrue(Lit l) const {
 		return value(l) == l_True;
 	}
-	bool isFalse(const Lit& l) const {
+	bool isFalse(Lit l) const {
 		return value(l) == l_False;
 	}
-	bool isUnknown(const Lit& l) const {
+	bool isUnknown(Lit l) const {
 		return value(l) == l_Undef;
 	}
-	lbool value(const Lit& p) const {
+	lbool value(Lit p) const {
 		return getPCSolver().value(p);
 	}
 
