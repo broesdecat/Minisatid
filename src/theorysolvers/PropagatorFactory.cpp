@@ -413,8 +413,8 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 		}
 		if(allknown){
 			WLSet set(getEngine().newSetID());
-			for(auto i=0; i<obj.varIDs.size(); ++i){
-				set.wl.push_back({obj.conditions[i], getIntVar(obj.varIDs[i])->origMinValue()});
+			for(uint i=0; i<obj.varIDs.size(); ++i){
+				set.wl.push_back({obj.conditions[i], getIntVar(obj.varIDs[i])->origMinValue() * obj.weights[i]});
 			}
 			add(set);
 			switch(obj.rel){
