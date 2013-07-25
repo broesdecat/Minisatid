@@ -72,6 +72,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			clog << "Set was empty, FDAGGConstraint simplified to:";
 			clog << toString(head) << " <=> " << toString(condition) << endl;
 		}
+		notifyNotPresent();
 		return;
 	}
 	_head = head;
@@ -112,11 +113,17 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 	}
 
 	_conditions = conditions;
+}
 
+void FDAggConstraint::watchRelevantVars() {
+	if (not isPresent()) {
+		//we only go watching vars if the initialisation did not allready decide taht this aggregate is useless.
+		return;
+	}
 	getPCSolver().accept(this, _head, FAST);
 	getPCSolver().accept(this, not _head, FAST);
-	for (auto i = _vars.cbegin(); i != _vars.cend(); ++i) {
-		getPCSolver().acceptBounds(*i, this);
+	for (auto var : _vars) {
+		getPCSolver().acceptBounds(var, this);
 	}
 	for (auto c : _conditions) {
 		getPCSolver().accept(this, c, FAST);
@@ -225,6 +232,7 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
 	}
 	sharedInitialization(head, newConditions, newset, newweights, rel, bound);
+	watchRelevantVars();
 }
 
 FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
@@ -577,7 +585,9 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	}
 
 	sharedInitialization(head, conditions, set, { weight }, rel, bound);
-
+	if (not isPresent()) {
+		return;
+	}
 	//For every variable, add a lit that says whether or not it is guaranteed to have postive influence on the set.
 	std::vector<Lit> poslits;
 	for (uint i = 0; i < _vars.size(); i++) {
@@ -597,6 +607,8 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		_definitelyPositive = mkPosLit(getPCSolver().newAtom());
 		add(Implication(getID(), _definitelyPositive, ImplicationType::EQUIVALENT, poslits, true));
 	}
+	watchRelevantVars();
+
 }
 
 FDProdConstraint::FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,

@@ -22,7 +22,7 @@ protected:
 	FDAggConstraint(uint id, PCSolver* s, const std::string& name);
 	virtual void setWeights(const std::vector<Weight>&) = 0;
 	void sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
-
+	void watchRelevantVars(); //sets all watches
 public:
 
 	// Propagator methods
