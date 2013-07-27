@@ -220,6 +220,10 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 	lazydesc.push_back(pair<string, string>("yes", "Use lazy grounding"));
 	lazydesc.push_back(pair<string, string>("no", "Don't use lazy grounding"));
 
+	vector<pair<string, string> > simplifydesc;
+	simplifydesc.push_back(pair<string, string>("yes", "Use preprocessing"));
+	simplifydesc.push_back(pair<string, string>("no", "Don't preprocess"));
+
 	vector<pair<string, string> > fmdesc;
 	fmdesc.push_back(pair<string, string>("yes", "Check"));
 	fmdesc.push_back(pair<string, string>("no", "Don't check"));
@@ -316,6 +320,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 			modes.idclausesaving, cmd, "Choose how to handle propagation reasons for inductive definitions"));
 	options.push_back(new Option<bool, string>	("","lazy", 	yesnovals, lazydesc,
 			modes.lazy, cmd, "Choose whether to use lazy grounding of formulas"));
+	options.push_back(new Option<bool, string>	("","simplifier", 	yesnovals, simplifydesc,
+			modes.lazy, cmd, "Choose whether to use a preprocessor before search"));
 #ifdef CPSUPPORT
 	options.push_back(new Option<bool, string>	("","gecode", 	yesnovals, gecodedesc,
 			modes.usegecode, cmd, "Choose whether to use Gecode for propagation over finite domain constraints."));

@@ -16,8 +16,7 @@
 namespace MinisatID {
 
 class PCSolver;
-class TheorySimplifier;
-typedef TheorySimplifier Factory;
+class Factory;
 struct OptimStatement;
 
 class SearchEngine: public LiteralPrinter {

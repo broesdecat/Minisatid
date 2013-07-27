@@ -14,8 +14,11 @@ namespace MinisatID {
  * 		saves all lit <=> var = bound
  * 				  lit <=> var =< bound
  * 		for the associated vars, the pcsolver does not make new literals, but reuses the heads of these.
+ *
+ * NOTE:
+ * 		currently, disables propagation during parsing, which can be an issue for grounding.
  */
-class TheorySimplifier: public ConstraintVisitor {
+class TheorySimplifier: public Factory {
 private:
 	PropagatorFactory* factory;
 	std::queue<Constraint*> constraints;
@@ -107,14 +110,18 @@ private:
 
 public:
 	TheorySimplifier(PropagatorFactory* factory)
-			: 	ConstraintVisitor("theorystorage"),
+			: 	Factory("theorystorage"),
 				factory(factory),
-				finished(false){
+				finished(false) {
 
 	}
 
 	~TheorySimplifier() {
 		delete (factory);
+	}
+
+	void includeCPModel(std::vector<VariableEqValue>& varassignments){
+		return factory->includeCPModel(varassignments);
 	}
 
 	SATVAL finish() {
@@ -125,9 +132,10 @@ public:
 			c->accept(factory);
 			delete (c);
 		}
-		return factory->finishParsing();
+		return factory->finish();
 	}
 
+private:
 	template<class T>
 	void internalAdd(const T& obj) {
 //		if(not ok) {
@@ -142,6 +150,8 @@ public:
 //			atom2constraints[a].insert(constraints.back());
 //		}
 	}
+
+public:
 
 	virtual void add(const Disjunction& obj) {
 		internalAdd(obj);

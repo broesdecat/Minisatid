@@ -41,7 +41,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 			cpsolver(NULL),
 #endif
 			factory(NULL),
-			trail(new TimeTrail()), terminate(false), saved(false), printer(printer), queue(NULL),
+			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL),
 			maxGroundingIterationsBeforeRestart(100), currentNbGroundingIterations(0){
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
@@ -52,7 +52,12 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 #endif
 	}
 
-	factory = new Factory(new PropagatorFactory(modes, this));
+	auto propfactory = new PropagatorFactory(modes, this);
+	if(modes.usesimplifier){
+		factory = new TheorySimplifier(propfactory);
+	}else{
+		factory = propfactory;
+	}
 
 	if (verbosity() > 1) {
 		modes.print(clog);
@@ -309,10 +314,6 @@ void PCSolver::setActivity(Atom var, double act){
 	getSolver().setActivity(var, act);
 }
 
-int PCSolver::newSetID() {
-	return getFactory().getFactory().newSetID();
-}
-
 void PCSolver::notifyBoundsChanged(IntVar* var) {
 	getEventQueue().notifyBoundsChanged(var);
 }
@@ -524,7 +525,7 @@ void PCSolver::extractLitModel(std::shared_ptr<Model> fullmodel) {
 
 void PCSolver::extractVarModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->variableassignments.clear();
-	getFactory().getFactory().includeCPModel(fullmodel->variableassignments);
+	getFactory().includeCPModel(fullmodel->variableassignments);
 #ifdef CPSUPPORT
 	if(hasCPSolver()) {
 		getCPSolver()->getVariableSubstitutions(fullmodel->variableassignments);

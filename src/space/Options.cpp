@@ -59,7 +59,8 @@ SolverOption::SolverOption():
 		usegecode(false),
 		outputfile(""),
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
-		fullmodelcheck(false){
+		fullmodelcheck(false),
+		usesimplifier(false){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();

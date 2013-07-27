@@ -122,8 +122,20 @@ struct SetWithAggs{
 	}
 };
 
+class Factory: public ConstraintVisitor{
+public:
+	Factory(std::string name): ConstraintVisitor(name){
+
+	}
+	virtual SATVAL finish() = 0;
+	virtual void includeCPModel(std::vector<VariableEqValue>& varassignments) = 0;
+	virtual Lit exists(CPBinaryRel){
+		return mkPosLit(0);
+	}
+};
+
 class PropagatorFactory:
-	public ConstraintVisitor,
+	public Factory,
 	public SATStorage,
 	public AggStorage
 #ifdef CPSUPPORT
@@ -138,7 +150,6 @@ private:
 	std::map<VarID, IntVar*> intvars;
 
 	// Parsing support
-	int minnewset; // Interal sets count downwards!
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<Aggregate*> parsedaggs;
 	std::vector<LazyTseitinClause*> grounder2clause;
@@ -182,9 +193,7 @@ public:
 	void add(const TwoValuedRequirement& object);
 	void add(const LazyAtom& object);
 
-	int newSetID();
-
-	SATVAL finishParsing();
+	SATVAL finish();
 
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 

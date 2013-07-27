@@ -89,6 +89,12 @@ TEST_P(MXFileTests, ECNF) {
 	runWithModelCheck(options, GetParam());
 }
 
+TEST_P(MXFileTests, ECNFPreprocessing) {
+	auto options = createMXOptions(InputFormat::FODOT);
+	options.usesimplifier = true;
+	runWithModelCheck(options, GetParam());
+}
+
 TEST_P(MXFileTests, ECNFToCNF) {
 	auto options = createMXOptions(InputFormat::FODOT);
 	options.tocnf = true;

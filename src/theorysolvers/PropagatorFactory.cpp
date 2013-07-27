@@ -62,10 +62,9 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine)
-		: 	ConstraintVisitor("Propagatorfactory"),
+		: 	Factory("Propagatorfactory"),
 		  	engine(engine),
 			definitions(new Definition(engine)),
-			minnewset(-1),
 			finishedparsing(false) {
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
@@ -94,10 +93,6 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->add(obj);
 	}
-}
-
-int PropagatorFactory::newSetID() {
-	return minnewset--;
 }
 
 void PropagatorFactory::add(const Disjunction& clause) {
@@ -593,7 +588,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 	return unsat ? SATVAL::UNSAT : SATVAL::POS_SAT;
 }
 
-SATVAL PropagatorFactory::finishParsing() {
+SATVAL PropagatorFactory::finish() {
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->notifyEnd();
 	}

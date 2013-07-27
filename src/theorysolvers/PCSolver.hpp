@@ -35,8 +35,6 @@ class Printer;
 
 class Monitor;
 
-typedef TheorySimplifier Factory;
-
 class PCSolver: public LiteralPrinter{
 private:
 	TheoryID theoryID;
@@ -79,7 +77,9 @@ public:
 	lbool value(Lit p) const; // The current value of a literal.
 	lbool rootValue(Lit p) const; // The current value of a literal if it is known at level 0, otherwise l_Undef
 	uint64_t nVars() const; // The current number of variables.
-	int newSetID();
+	int newSetID(){
+		return minnewset--;
+	}
 
 	// Decision information
 private:
@@ -194,6 +194,8 @@ public:
 private:
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Atom dummy1, dummy2;
+	int minnewset; // Internal sets count downwards!
+
 public:
 	Lit getTrueLit() const;
 	Lit getFalseLit() const;
