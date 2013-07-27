@@ -224,6 +224,10 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 	simplifydesc.push_back(pair<string, string>("yes", "Use preprocessing"));
 	simplifydesc.push_back(pair<string, string>("no", "Don't preprocess"));
 
+	vector<pair<string, string> > lazyheurdesc;
+	lazyheurdesc.push_back(pair<string, string>("yes", "Use lazy-optimized heuristic"));
+	lazyheurdesc.push_back(pair<string, string>("no", "Don't use lazy-optimized heuristic"));
+
 	vector<pair<string, string> > fmdesc;
 	fmdesc.push_back(pair<string, string>("yes", "Check"));
 	fmdesc.push_back(pair<string, string>("no", "Don't check"));
@@ -324,6 +328,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 			modes.lazy, cmd, "Choose whether to use lazy grounding of formulas"));
 	options.push_back(new Option<bool, string>	("","simplifier", 	yesnovals, simplifydesc,
 			modes.lazy, cmd, "Choose whether to use a preprocessor before search"));
+	options.push_back(new Option<bool, string>	("","lazy-heur", 	yesnovals, lazyheurdesc,
+			modes.lazyheur, cmd, "Choose whether to use a special search heuristic optimized for lazily adding constraints"));
 #ifdef CPSUPPORT
 	options.push_back(new Option<bool, string>	("","gecode", 	yesnovals, gecodedesc,
 			modes.usegecode, cmd, "Choose whether to use Gecode for propagation over finite domain constraints."));

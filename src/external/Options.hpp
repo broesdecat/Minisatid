@@ -81,7 +81,8 @@ public:
 	bool bumpaggonnotify, bumpidonstart;
 	long ufsvarintrothreshold;
 	bool subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
-	bool lazy;
+	bool lazy, lazyheur, watchedrelevance;
+	bool expandimmediately; // Debug option to test lazy grounding overhead by expanding everything asap
 	bool usegecode;
 	std::string outputfile;
 	int maxNbOfLearnedClauses;

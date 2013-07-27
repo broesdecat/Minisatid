@@ -56,6 +56,9 @@ SolverOption::SolverOption():
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),
 		lazy(false),
+		lazyheur(false),
+		watchedrelevance(false),
+		expandimmediately(false),
 		usegecode(false),
 		outputfile(""),
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
@@ -111,6 +114,9 @@ void SolverOption::print(std::ostream& so) const{
 	so << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
 	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
+	so << "lazy heuristic: "	<<(lazyheur?"yes":"no") <<"\n";
+	so << "watchedrelevance: "	<<(watchedrelevance?"yes":"no") <<"\n";
+	so << "expand immediately: "<<(expandimmediately?"yes":"no") <<"\n";
 	so << "outputfile: "		<<outputfile <<"\n";
 	so << "max number of learned clauses: " <<maxNbOfLearnedClauses <<"\n";
 }
