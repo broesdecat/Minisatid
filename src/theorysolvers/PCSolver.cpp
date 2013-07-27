@@ -254,8 +254,8 @@ void PCSolver::accept(GenWatch* const watch) {
 	getEventQueue().accept(watch);
 }
 
-void PCSolver::acceptForPropagation(Propagator* propagator) {
-	getEventQueue().acceptForPropagation(propagator);
+void PCSolver::acceptForPropagation(Propagator* propagator, PRIORITY priority) {
+	getEventQueue().acceptForPropagation(propagator, priority);
 }
 
 void PCSolver::accept(Propagator* propagator, EVENT event) {

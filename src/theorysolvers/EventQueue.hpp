@@ -65,9 +65,19 @@ public:
 	// IMPORTANT: EACH PROPAGATOR SHOULD DO THIS ONLY ONCE!!!
 	void accept(Propagator* propagator);
 
-	void acceptForPropagation(Propagator* propagator){
+	void acceptForPropagation(Propagator* propagator, PRIORITY priority){
 		if(not propagator->isQueued() && propagator->isPresent()){
-			fastestqueue.push_back(propagator);
+			switch(priority){
+			case PRIORITY::FAST:
+				fastqueue.push_back(propagator);
+				break;
+			case PRIORITY::FASTEST:
+				fastestqueue.push_back(propagator);
+				break;
+			case PRIORITY::SLOW:
+				slowqueue.push_back(propagator);
+				break;
+			}
 		}
 	}
 

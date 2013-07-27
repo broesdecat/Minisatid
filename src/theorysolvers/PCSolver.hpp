@@ -302,7 +302,7 @@ public:
 	void accept(Propagator* propagator);
 
 	void accept(GenWatch* const watch);
-	void acceptForPropagation(Propagator* propagator);
+	void acceptForPropagation(Propagator* propagator, PRIORITY priority = PRIORITY::FASTEST);
 	void accept(Propagator* propagator, EVENT event);
 	void acceptBounds(IntView* var, Propagator* propagator);
 	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
