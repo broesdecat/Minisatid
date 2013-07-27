@@ -132,11 +132,11 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	activity.push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
 	seen.push(0);
 
-//	if(getPCSolver().modes().lazy){
-//		polarity.push(((float)rand()/ RAND_MAX)>0.2);
-//	}else{
+	if(getPCSolver().modes().lazyheur){
+		polarity.push(((float)rand()/ RAND_MAX)>0.2);
+	}else{
 		polarity.push(true);
-//	}
+	}
 
 	user_pol.push(upol);
 	decision.push();
