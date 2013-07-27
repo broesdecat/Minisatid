@@ -74,7 +74,9 @@ void SearchEngine::invalidate(litlist& clause) const {
 }
 
 void SearchEngine::finishParsing() {
-	getSolver()->finishParsing();
+	for(auto solver: solvers){
+		solver.second->finishParsing();
+	}
 }
 bool SearchEngine::isOptimizationProblem() const {
 	return getSolver()->isOptimizationProblem();
