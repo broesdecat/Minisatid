@@ -342,13 +342,10 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 		auto intbound = toInt(obj.bound);
 		switch (obj.rel) {
 		case EqType::EQ:
-			eq.body.push_back(left->getLEQLit(intbound));
-			eq.body.push_back(left->getGEQLit(intbound));
+			eq.body.push_back(left->getEQLit(intbound));
 			break;
 		case EqType::NEQ:
-			eq.conjunction = false;
-			eq.body.push_back(~left->getLEQLit(intbound));
-			eq.body.push_back(~left->getGEQLit(intbound));
+			eq.body.push_back(~left->getEQLit(intbound));
 			break;
 		case EqType::GEQ:
 			eq.body.push_back(left->getGEQLit(intbound));
