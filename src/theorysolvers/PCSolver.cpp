@@ -22,6 +22,8 @@
 #include "modules/aggsolver/AggSet.hpp"
 #include "external/ConstraintVisitor.hpp"
 
+#include "TheorySimplifier.hpp"
+
 #include "utils/NumericLimits.hpp"
 
 #include "utils/Print.hpp"
@@ -50,7 +52,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 #endif
 	}
 
-	factory = new PropagatorFactory(modes, this);
+	factory = new Factory(new PropagatorFactory(modes, this));
 
 	if (verbosity() > 1) {
 		modes.print(clog);
@@ -308,7 +310,7 @@ void PCSolver::setActivity(Atom var, double act){
 }
 
 int PCSolver::newSetID() {
-	return getFactory().newSetID();
+	return getFactory().getFactory().newSetID();
 }
 
 void PCSolver::notifyBoundsChanged(IntVar* var) {
@@ -415,7 +417,7 @@ void PCSolver::finishParsing() {
 
 	propagations.resize(nVars(), NULL); //Lazy init
 
-	auto val = getFactory().finishParsing();
+	auto val = getFactory().finish();
 	if (val == SATVAL::UNSAT) {
 		notifyUnsat();
 	}
@@ -522,7 +524,7 @@ void PCSolver::extractLitModel(std::shared_ptr<Model> fullmodel) {
 
 void PCSolver::extractVarModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->variableassignments.clear();
-	getFactory().includeCPModel(fullmodel->variableassignments);
+	getFactory().getFactory().includeCPModel(fullmodel->variableassignments);
 #ifdef CPSUPPORT
 	if(hasCPSolver()) {
 		getCPSolver()->getVariableSubstitutions(fullmodel->variableassignments);
@@ -579,5 +581,18 @@ void PCSolver::notifyGroundingIteration(){
 	if(currentNbGroundingIterations>=maxGroundingIterationsBeforeRestart){
 		maxGroundingIterationsBeforeRestart *= 1.3;
 		getSolver().randomizedRestart();
+	}
+}
+
+Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
+	auto lit = getFactory().exists(CPBinaryRel(0, mkPosLit(0), var, eq, bound));
+	if(lit.x==0){
+		auto atom = newAtom();
+		stringstream ss;
+		ss<<"var" << toString(var) << "=<" << bound;
+		setString(atom,ss.str());
+		return mkPosLit(atom);
+	}else{
+		return lit;
 	}
 }

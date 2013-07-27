@@ -16,6 +16,8 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/Definition.hpp"
 
+#include "external/ConstraintVisitor.hpp"
+
 namespace Minisat{
 	class Solver;
 }
@@ -121,6 +123,7 @@ struct SetWithAggs{
 };
 
 class PropagatorFactory:
+	public ConstraintVisitor,
 	public SATStorage,
 	public AggStorage
 #ifdef CPSUPPORT

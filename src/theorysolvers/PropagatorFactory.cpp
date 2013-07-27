@@ -62,7 +62,8 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine)
-		: 	engine(engine),
+		: 	ConstraintVisitor("Propagatorfactory"),
+		  	engine(engine),
 			definitions(new Definition(engine)),
 			minnewset(-1),
 			finishedparsing(false) {

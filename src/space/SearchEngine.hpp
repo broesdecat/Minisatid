@@ -16,7 +16,8 @@
 namespace MinisatID {
 
 class PCSolver;
-class PropagatorFactory;
+class TheorySimplifier;
+typedef TheorySimplifier Factory;
 struct OptimStatement;
 
 class SearchEngine: public LiteralPrinter {
@@ -34,7 +35,7 @@ public:
 	}
 
 	void createVar(Atom v, TheoryID theoryID);
-	PropagatorFactory& getFactory(TheoryID theoryID);
+	Factory& getFactory(TheoryID theoryID);
 
 	Atom newAtom();
 	int newSetID();

@@ -13,7 +13,7 @@
 #include <memory>
 
 #include "external/LiteralPrinter.hpp"
-#include "theorysolvers/PropagatorFactory.hpp"
+#include "theorysolvers/TheorySimplifier.hpp"
 #include "datastructures/OptimStatement.hpp"
 
 namespace Minisat {
@@ -26,7 +26,6 @@ class TimeTrail;
 class CPSolver;
 class SolverOption;
 class Propagator;
-class PropagatorFactory;
 class EventQueue;
 class SearchMonitor;
 class IntView;
@@ -35,6 +34,8 @@ class ConstraintVisitor;
 class Printer;
 
 class Monitor;
+
+typedef TheorySimplifier Factory;
 
 class PCSolver: public LiteralPrinter{
 private:
@@ -167,16 +168,15 @@ public:
 
 	// Propagatorfactory
 private:
-	PropagatorFactory* factory;
-	const PropagatorFactory& getFactory() const {
+	Factory* factory;
+	const Factory& getFactory() const {
+		return *factory;
+	}
+	Factory& getFactory() {
 		return *factory;
 	}
 public:
-	PropagatorFactory& getFactory() {
-		return *factory;
-	}
-public:
-	PropagatorFactory& getFactory(TheoryID id) {
+	Factory& getFactory(TheoryID id) {
 		if(id!=getTheoryID()){
 			throw idpexception("Invalid code path");
 		}
@@ -313,6 +313,8 @@ public:
 		return currentNbGroundingIterations;
 	}
 	void notifyGroundingIteration();
+
+	Lit getLit(VarID var, EqType eq, Weight bound);
 };
 
 }

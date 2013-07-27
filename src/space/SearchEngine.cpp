@@ -21,7 +21,7 @@ SearchEngine::~SearchEngine(){
 	}
 }
 
-PropagatorFactory& SearchEngine::getFactory(TheoryID theoryID) {
+Factory& SearchEngine::getFactory(TheoryID theoryID) {
 	return getSolver(theoryID)->getFactory(theoryID);
 }
 void SearchEngine::createVar(Atom v, TheoryID theoryID) {
