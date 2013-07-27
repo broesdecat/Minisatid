@@ -37,13 +37,13 @@ void LazyIntVar::finish(){
 
 //Add a variable for var =< value
 Lit LazyIntVar::addVariable(int value){
-//	cerr <<"Adding variable with value " <<value <<" for var " <<origid() <<"\n";
 	if(value>origMaxValue()){
 		return getPCSolver().getTrueLit();
 	}
 	if(value<origMinValue()){
 		return getPCSolver().getFalseLit();
 	}
+
 	uint i=0;
 	for(; i<leqlits.size(); ++i) {
 		const auto& lq = leqlits[i];
@@ -60,11 +60,10 @@ Lit LazyIntVar::addVariable(int value){
 	engine().setActivity(var.getAtom(), act);
 
 	leqlits.insert(leqlits.begin()+i, IntVarValue(this, var, value));
+
 #ifdef DEBUG
 	bool found = false;
-//	cerr <<"Var" <<origid() <<" is grounded for ";
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
-//		cerr <<j->value <<" ";
 		if((j+1)<leqlits.cend()){
 			MAssert(j->value < (j+1)->value);
 		}
@@ -72,9 +71,9 @@ Lit LazyIntVar::addVariable(int value){
 			found = true;
 		}
 	}
-//	cerr <<"\n";
 	MAssert(found);
 #endif
+
 	engine().accept(this, var, FASTEST);
 	engine().accept(this, ~var, FASTEST);
 	if(value==origMaxValue()){
@@ -109,13 +108,8 @@ void LazyIntVar::resetState(){
  */
 
 void LazyIntVar::updateBounds() {
-/*	cerr <<"For var" <<origid() <<":\n";
-	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
-		cerr <<toString(mkPosLit(i->atom)) << "<=> var" <<origid() <<"=<" <<i->value <<"\n";
-	}
-	cerr <<"\n";*/
-	int prev = origMinValue();
-	bool unknown = false;
+	auto prev = origMinValue();
+	auto unknown = false;
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
 		if (not isFalse(i->lit)) { // First non-false: then previous one +1 is lowest remaining value
 			if(isUnknown(i->lit)){
@@ -128,7 +122,7 @@ void LazyIntVar::updateBounds() {
 	}
 	currentmin = prev;
 
-	int next = origMaxValue();
+	auto next = origMaxValue();
 	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
 		if (not isTrue(i->lit)) { // First non true:  => previous is highest remaining value (LEQ!)
 			if(isUnknown(i->lit)){
@@ -139,11 +133,6 @@ void LazyIntVar::updateBounds() {
 		next = i->value;
 	}
 	currentmax = next;
-
-	//MAssert(isTrue(getGEQLit(minValue())));
-	//MAssert(isTrue(getLEQLit(maxValue())));
-
-	//cerr <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"], originally [" <<origMinValue() <<", " <<origMaxValue() <<"]" <<"\n";
 
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
 	if(not unknown && not checkAndAddVariable(currentmin) && not checkAndAddVariable(currentmax)){
@@ -173,14 +162,8 @@ typename List::const_iterator findVariable(int value, const List& list){
 }
 
 bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns true if it was newly created
-	//cerr <<"Checking for value " <<value <<" for var " <<toString(getVarID()) <<"\n";
 	auto i = findVariable(value, leqlits);
 #ifdef DEBUG
-	/*cerr <<"Contains ";
-	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
-		cerr <<j->value <<" ";
-	}
-	cerr <<"\n";*/
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
 		if(j->value==value){
 			MAssert(i==j);
