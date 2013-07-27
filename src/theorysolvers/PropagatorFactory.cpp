@@ -224,16 +224,25 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 		throwUndefinedSet(formula.setid);
 	}
 	auto set = it->second.set;
+	auto type = formula.type;
+	if(type==AggType::MIN){
+		it->second.type = AggType::MAX;
+		type = AggType::MAX;
+		for(auto i = set->wl.begin(); i<set->wl.end(); ++i){
+			*i = {i->getLit(), -i->getWeight()};
+		}
+		throw notYetImplemented("Minimizing a minimum aggregate (as this needs either native support for maximization or for minimum aggregates).");
+	}
 
 	if (it->second.aggs.size() == 0) {
 		it->second.type = formula.type;
 	}
 
-	verifyAggregate(set, formula.type, mkPosLit(head), formula.type, getEngine());
+	verifyAggregate(set, type, mkPosLit(head), type, getEngine());
 
 	tempagglist aggs;
 	AggBound bound(AggSign::UB, Weight(0));
-	aggs.push_back(new TempAgg(DEFAULTCONSTRID, mkNegLit(head), bound, AggSem::OR, formula.type));
+	aggs.push_back(new TempAgg(DEFAULTCONSTRID, mkNegLit(head), bound, AggSem::OR, type));
 	finishSet(set, aggs, true, formula.priority);
 }
 
