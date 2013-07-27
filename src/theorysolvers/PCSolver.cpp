@@ -112,6 +112,9 @@ SATVAL PCSolver::findNextCPModel() {
 void PCSolver::invalidate(litlist& clause) const {
 	if(_outputvarsset){
 		for(auto var: _outputvars){
+			if(value(mkPosLit(var))==l_Undef){
+				continue;
+			}
 			clause.push_back(value(mkPosLit(var))==l_True?mkNegLit(var):mkPosLit(var));
 		}
 	}else{
