@@ -51,7 +51,20 @@ Lit IntVar::getEQLit(int bound) {
 	if(it!=eqlits.cend()){
 		return it->second;
 	}
-	auto head = mkPosLit(getPCSolver().newAtom());
+	auto head = getPCSolver().getLit(getVarID(), EqType::EQ, bound);
+
+// Adding equality theory turns out to be expensive
+/*	for(auto bound2eq : eqlits){
+		auto othereq = bound2eq.second;
+		add(Implication(getID(), head, ImplicationType::IMPLIES, { ~othereq }, true));
+		add(Implication(getID(), othereq, ImplicationType::IMPLIES, { ~head }, true));
+	}*/
+
+//	auto firstact = engine().getActivity(getGEQLit(bound).getAtom());
+//	auto secondact = engine().getActivity(getLEQLit(bound).getAtom());
+//	auto act = (firstact + secondact) / 2 + 0.00001; // A slight higher activity of equal literals
+//	engine().setActivity(head.getAtom(), act); // TODO in krinkelplanning, good for lazy, not for non-lazy
+
 	eqlits[bound] = head;
 	add(Implication(getID(), head, ImplicationType::EQUIVALENT, { getGEQLit(bound), getLEQLit(bound) }, true));
 	return head;
@@ -100,7 +113,7 @@ void BasicIntVar::addConstraints() {
 
 void BasicIntVar::updateBounds() {
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
-		if (not isFalse(mkPosLit(i->atom))) { // First non-false is lowest remaining value
+		if (not isFalse(i->lit)) { // First non-false is lowest remaining value
 			currentmin = i->value;
 			break;
 		}
@@ -108,7 +121,7 @@ void BasicIntVar::updateBounds() {
 
 	bool found = false;
 	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
-		if (not isTrue(mkPosLit(i->atom))) { // First non true => previous is highest remaining value (LEQ!)
+		if (not isTrue(i->lit)) { // First non true => previous is highest remaining value (LEQ!)
 			if(i==leqlits.crbegin()){
 				return; // Conflict, will be resolved by unit propagation anyway
 			}
@@ -136,13 +149,10 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int ma
 
 void RangeIntVar::finish() {
 	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
-		auto var = engine().newAtom();
+		auto var = engine().getLit(getVarID(), EqType::LEQ, i);
 		leqlits.push_back(IntVarValue(this, var, i));
-		engine().accept(this, mkPosLit(var), FASTEST);
-		engine().accept(this, mkNegLit(var), FASTEST);
-		stringstream ss;
-		ss<<"var" << toString(getVarID()) << "=<" << i;
-		getPCSolver().setString(var,ss.str());
+		engine().accept(this, var, FASTEST);
+		engine().accept(this, ~var, FASTEST);
 	}
 
 	getPCSolver().accept(this);
@@ -170,7 +180,7 @@ Lit RangeIntVar::getLEQLit(int bound) {
 	if ((int) leqlits.size() <= index) {
 		return getPCSolver().getTrueLit();
 	}
-	return mkPosLit(leqlits[index].atom);
+	return leqlits[index].lit;
 }
 
 Lit RangeIntVar::getGEQLit(int bound) {
@@ -194,13 +204,10 @@ EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector
 
 void EnumIntVar::finish(){
 	for (auto i = _values.cbegin(); i < _values.cend(); ++i) {
-		auto var = engine().newAtom();
+		auto var = engine().getLit(getVarID(), EqType::LEQ, *i);
 		leqlits.push_back(IntVarValue(this, var, *i));
-		engine().accept(this, mkPosLit(var), FASTEST);
-		engine().accept(this, mkNegLit(var), FASTEST);
-		stringstream ss;
-		ss<<"var" << toString(getVarID()) << "=<" << *i;
-		getPCSolver().setString(var,ss.str());
+		engine().accept(this, var, FASTEST);
+		engine().accept(this, ~var, FASTEST);
 	}
 
 	getPCSolver().accept(this);
@@ -222,7 +229,7 @@ Lit EnumIntVar::getLEQLit(int bound) {
 	} else {
 		for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) {
 			if (i->value <= bound) {
-				return mkPosLit(i->atom);
+				return i->lit;
 			}
 		}
 		throw idpexception("Invalid code path");
@@ -240,9 +247,9 @@ Lit EnumIntVar::getGEQLit(int bound) {
 	} else {
 		for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) {
 			if (i->value < bound) {
-				return mkNegLit(i->atom);
+				return ~i->lit;
 			} else if (bound == i->value) {
-				return mkNegLit((++i)->atom);
+				return ~((++i)->lit);
 			}
 		}
 		throw idpexception("Invalid code path");

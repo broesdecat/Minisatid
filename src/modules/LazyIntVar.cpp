@@ -53,11 +53,11 @@ Lit LazyIntVar::addVariable(int value){
 		}
 	}
 
-	auto var = engine().newAtom();
-	auto firstact = i>0?engine().getActivity((leqlits.begin()+i-1)->atom):0;
-	auto secondact = i+1<leqlits.size()?engine().getActivity((leqlits.begin()+i+1)->atom):0;
+	auto var = engine().getLit(getVarID(), EqType::LEQ, value);
+	auto firstact = i>0?engine().getActivity((leqlits.begin()+i-1)->lit.getAtom()):0;
+	auto secondact = i+1<leqlits.size()?engine().getActivity((leqlits.begin()+i+1)->lit.getAtom()):0;
 	auto act = (firstact + secondact) / 2;
-	engine().setActivity(var, act);
+	engine().setActivity(var.getAtom(), act);
 
 	leqlits.insert(leqlits.begin()+i, IntVarValue(this, var, value));
 #ifdef DEBUG
@@ -75,13 +75,10 @@ Lit LazyIntVar::addVariable(int value){
 //	cerr <<"\n";
 	MAssert(found);
 #endif
-	engine().accept(this, mkPosLit(var), FASTEST);
-	engine().accept(this, mkNegLit(var), FASTEST);
-	stringstream ss;
-	ss<<"var" << toString(getVarID()) << "=<" << value;
-	getPCSolver().setString(var,ss.str());
+	engine().accept(this, var, FASTEST);
+	engine().accept(this, ~var, FASTEST);
 	if(value==origMaxValue()){
-		add(Disjunction(getID(), { mkPosLit(var) }));
+		add(Disjunction(getID(), { var }));
 	}
 	IntVarValue* next = NULL;
 	if((i+1)<leqlits.size()){
@@ -92,7 +89,7 @@ Lit LazyIntVar::addVariable(int value){
 		prev = &(leqlits[i-1]);
 	}
 	addConstraint(prev, leqlits[i], next);
-	return mkPosLit(var);
+	return var;
 }
 
 void LazyIntVar::saveState(){
@@ -120,8 +117,8 @@ void LazyIntVar::updateBounds() {
 	int prev = origMinValue();
 	bool unknown = false;
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
-		if (not isFalse(mkPosLit(i->atom))) { // First non-false: then previous one +1 is lowest remaining value
-			if(isUnknown(mkPosLit(i->atom))){
+		if (not isFalse(i->lit)) { // First non-false: then previous one +1 is lowest remaining value
+			if(isUnknown(i->lit)){
 				unknown = true;
 			}
 			break;
@@ -133,8 +130,8 @@ void LazyIntVar::updateBounds() {
 
 	int next = origMaxValue();
 	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
-		if (not isTrue(mkPosLit(i->atom))) { // First non true:  => previous is highest remaining value (LEQ!)
-			if(isUnknown(mkPosLit(i->atom))){
+		if (not isTrue(i->lit)) { // First non true:  => previous is highest remaining value (LEQ!)
+			if(isUnknown(i->lit)){
 				unknown = true;
 			}
 			break;
@@ -167,7 +164,7 @@ struct CompareVarValue{
 
 template<class List>
 typename List::const_iterator findVariable(int value, const List& list){
-	auto i = lower_bound(list.cbegin(), list.cend(), IntVarValue(NULL, -1,value), CompareVarValue());
+	auto i = lower_bound(list.cbegin(), list.cend(), IntVarValue(NULL, mkPosLit(1),value), CompareVarValue());
 	if(i!=list.cend() && i->value==value){
 		return i;
 	}else{
@@ -214,7 +211,7 @@ Lit LazyIntVar::getLEQLit(int bound) {
 	} else {
 		auto i = findVariable(bound, leqlits);
 		if(i!=leqlits.cend()){
-			return mkPosLit(i->atom);
+			return i->lit;
 		}else{
 			return addVariable(bound);
 		}

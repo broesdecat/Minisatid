@@ -13,10 +13,10 @@ class IntVar;
 
 struct IntVarValue{
 	IntVar* intvar;
-	Atom atom;
+	Lit lit;
 	int value;
 
-	IntVarValue(IntVar* intvar, Atom atom, int value): intvar(intvar), atom(atom), value(value){}
+	IntVarValue(IntVar* intvar, Lit lit, int value): intvar(intvar), lit(lit), value(value){}
 };
 
 class IntVar: public Propagator{
