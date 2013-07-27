@@ -179,7 +179,7 @@ void EventQueue::setTrue(const Lit& l) {
 			if (not (*i)->dynamic()) {
 				remwatches.push_back(*i);
 			} else {
-				(*i)->removeFromNetwork();
+				(*i)->removeFromNetwork(); // TODO delete dynamic watch? (might not be allowed here)
 			}
 		}
 		lw = remwatches;
