@@ -1,5 +1,4 @@
-#ifndef INTVAR_HPP
-#define INTVAR_HPP
+#pragma once
 
 #include <vector>
 #include "modules/DPLLTmodule.hpp"
@@ -79,6 +78,7 @@ public:
 private:
 	std::map<int, Lit> eqlits;
 public:
+
 	Lit getEQLit(int bound);
 };
 
@@ -126,6 +126,7 @@ public:
 class LazyIntVar: public IntVar{
 private:
 	bool halve; // Heuristic optimization to choose to halve the domain or not
+
 	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
 
 	Lit addVariable(int value);
@@ -241,7 +242,7 @@ public:
 
 	std::string toString() const {
 		std::stringstream ss;
-		ss <<"var" <<var()->toString(getVarID());
+		ss <<var()->toString(getVarID());
 		if(constdiff_!=0){
 			if(constdiff_>0){
 				ss <<"+";
@@ -253,5 +254,3 @@ public:
 };
 
 }
-
-#endif //INTVAR_HPP

@@ -19,7 +19,7 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	switch (comp) {
 	case EqType::EQ: {
 		stringstream ss;
-		ss<<"var" <<_left->getVarID().id << " = var" << _right->getVarID().id;
+		ss <<_left->getVarID().id << " = " << _right->getVarID().id;
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
@@ -32,7 +32,7 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	}
 	case EqType::NEQ: {
 		stringstream ss;
-		ss<<"var" <<_left->getVarID().id << " != var" << _right->getVarID().id;
+		ss <<_left->getVarID().id << " != " << _right->getVarID().id;
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());

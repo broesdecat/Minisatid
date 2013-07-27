@@ -160,13 +160,13 @@ public:
 	}
 
 	void add(const IntVarEnum& var) {
-		target() << "Integer variable var" << print(var.varID) << " = { ";
+		target() << "Integer variable " << print(var.varID) << " = { ";
 		printConcatBy(var.values, ", ", target());
 		target() << " }\n";
 	}
 
 	void add(const IntVarRange& var) {
-		target() << "Added integer variable var" << print(var.varID) << " = [ " << var.minvalue << ".." << var.maxvalue << " ]\n";
+		target() << "Added integer variable " << print(var.varID) << " = [ " << var.minvalue << ".." << var.maxvalue << " ]\n";
 	}
 
 	void add(const CPAllDiff& alldiff) {
@@ -176,7 +176,7 @@ public:
 	}
 
 	void add(const CPBinaryRel& rel) {
-		target() << "Added binary constraint " << print(rel.head) << " <=> var" << print(rel.varID) << " " << rel.rel << " " << rel.bound << "\n";
+		target() << "Added binary constraint " << print(rel.head) << " <=> " << print(rel.varID) << " " << rel.rel << " " << rel.bound << "\n";
 	}
 
 	void add(const CPCount& obj) {
@@ -186,7 +186,7 @@ public:
 	}
 
 	void add(const CPBinaryRelVar& rel) {
-		target() << "Added binary constraint " << print(rel.head) << " <=> var" << print(rel.lhsvarID) << " " << rel.rel << " var" << print(rel.rhsvarID)
+		target() << "Added binary constraint " << print(rel.head) << " <=> " << print(rel.lhsvarID) << " " << rel.rel << " " << print(rel.rhsvarID)
 				<< "\n";
 	}
 
@@ -198,7 +198,7 @@ public:
 				target() << ", ";
 			}
 			begin = false;
-			target() << "if " << print(sum.conditions[i]) << " var" << print(sum.varIDs[i]) << "*" << sum.weights[i];
+			target() << "if " << print(sum.conditions[i]) << " " << print(sum.varIDs[i]) << "*" << sum.weights[i];
 		}
 		target() << " }) " << sum.rel << " " << sum.bound << "\n";
 	}
@@ -213,9 +213,9 @@ public:
 				target() << ", ";
 			}
 			begin = false;
-			target() << "if " << print(prod.conditions[i]) << " var" << print(prod.varIDs[i]);
+			target() << "if " << print(prod.conditions[i]) << " " << print(prod.varIDs[i]);
 		}
-		target() << " }) " << prod.rel << " " << "var" << print(prod.boundID) << "\n";
+		target() << " }) " << prod.rel << " " << print(prod.boundID) << "\n";
 	}
 
 	void add(const CPElement& rel) {
@@ -256,7 +256,7 @@ public:
 				target() << ", ";
 			}
 			begin = false;
-			target() << "var" << print(v);
+			target() << print(v);
 		}
 		target() << ").\n";
 	}

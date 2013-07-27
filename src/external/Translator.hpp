@@ -83,6 +83,9 @@ public:
 	template<typename List> // vector/map/set with pairs of unsigned int and MinisatID::Literal
 	void printTranslation(std::ostream& output, const List& l);
 
+	virtual bool hasTranslation(const MinisatID::VarID&) const {
+		return false;
+	}
 	virtual bool hasTranslation(const MinisatID::Lit&) const {
 		return false;
 	}

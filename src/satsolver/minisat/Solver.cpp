@@ -300,7 +300,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 			vec<Lit> outlearnt;
 			analyze(confl, outlearnt, outlevel);
 			addConflict();
-			cancelUntil(outlevel);
+			getPCSolver().backtrackTo(outlevel);
 		} while (true);
 		return ok; // FIXME add methods should return the conflict clause if applicable
 	} else {
@@ -400,7 +400,7 @@ void Solver::attachClause(CRef cr, bool conflict) {
 
 		if (nonfalse1 == -1) { // Conflict
 			addConflict();
-			cancelUntil(getLevel(var(c[recentfalse1])) - 1);
+			getPCSolver().backtrackTo(getLevel(var(c[recentfalse1])) - 1);
 			nonfalse1 = recentfalse1;
 			MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
 			if (not isFalse(c[recentfalse2])) {
@@ -614,7 +614,7 @@ void Solver::randomizedRestart(){
 			user_pol[decvar] = drand(random_seed)<0.5?l_Undef:(drand(random_seed)>0.5?l_True:l_False);
 		}
 	}
-	cancelUntil(0);
+	getPCSolver().backtrackTo(0);
 }
 
 void Solver::uncheckedBacktrack(int level) {
@@ -1278,7 +1278,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 		if (confl==nullPtrClause && (maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
 			if(decisionLevel()!=0){
-				cancelUntil(0);
+				getPCSolver().backtrackTo(0);
 			}
 			return l_Undef;
 		}
@@ -1295,7 +1295,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 			analyze(confl, learnt_clause, backtrack_level);
 
-			cancelUntil(backtrack_level);
+			getPCSolver().backtrackTo(backtrack_level);
 
 			auto cr = CRef_Undef;
 			if (learnt_clause.size() > 1) {
@@ -1435,7 +1435,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 	if (not oneshot && assumpset) {
 		getPCSolver().resetState();
 	}
-	cancelUntil(0);
+	getPCSolver().backtrackTo(0);
 	assumptions.clear();
 	//clog <<"Assumptions: ";
 	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {

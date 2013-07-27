@@ -585,11 +585,16 @@ void PCSolver::notifyGroundingIteration(){
 }
 
 Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
+	MAssert(eq==EqType::EQ || eq==EqType::LEQ);
 	auto lit = getFactory().exists(CPBinaryRel(0, mkPosLit(0), var, eq, bound));
 	if(lit.x==0){
 		auto atom = newAtom();
 		stringstream ss;
-		ss<<"var" << toString(var) << "=<" << bound;
+		if(eq==EqType::LEQ){
+			ss<< toString(var) << "=<" << bound;
+		}else{
+			ss<< toString(var) << "=" << bound;
+		}
 		setString(atom,ss.str());
 		return mkPosLit(atom);
 	}else{
