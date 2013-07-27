@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef IDSOLVER_H_
-#define IDSOLVER_H_
+#pragma once
 
 #include <set>
 #include <stack>
@@ -166,8 +165,8 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	bool needinitialization;
-	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
+	bool oneInitDone;
+	unsigned int groundingSteps, stepsTillInitialize; // Number of times rulesets have been added, and threshold after which initialization can be redone (not every time to reduce cost).
 
 	Atom minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 
@@ -367,5 +366,3 @@ public:
 };
 
 }
-
-#endif /* IDSOLVER_H_ */

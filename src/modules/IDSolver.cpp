@@ -56,8 +56,9 @@ IDAgg::IDAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type, con
 IDSolver::IDSolver(PCSolver* s, int definitionID)
 		: 	Propagator( { }, s, "definition"),
 			definitionID(definitionID),
-			needinitialization(false),
-			infactnotpresent(false),
+			oneInitDone(false),
+			groundingSteps(0),
+			stepsTillInitialize(0),
 			minvar(0),
 			nbvars(0),
 			conj(DefType::CONJ),
@@ -184,8 +185,8 @@ void IDSolver::addRuleSet(const std::vector<TempRule*>& rules) {
 			addFinishedRule(**i);
 		}
 	}
-	needinitialization = true;
-	getPCSolver().acceptForPropagation(this);
+	groundingSteps++;
+	getPCSolver().acceptForPropagation(this, PRIORITY::SLOW);
 }
 
 void IDSolver::accept(ConstraintVisitor& visitor) {
@@ -217,7 +218,8 @@ void IDSolver::initialize() {
 		getPCSolver().backtrackTo(0);
 	}
 
-	needinitialization = false;
+	stepsTillInitialize += 100;
+	oneInitDone = true;
 	MAssert(not getPCSolver().isUnsat());
 
 	if (verbosity() > 0) {
@@ -988,15 +990,13 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
  */
 rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT;
-	if (needinitialization) {
-		if(getPCSolver().getCurrentNumberOfGroundingIterations()%10!=0){
-			return nullPtrClause;
-		}
+	if(not oneInitDone || groundingSteps>stepsTillInitialize){
 		initialize();
 		if (getPCSolver().isUnsat()) {
 			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
 		}
-	} CHECKSEEN;CHECKNOTUNSAT;
+	}
+	CHECKSEEN;CHECKNOTUNSAT;
 
 	// There was an unfounded set saved which might not have been completely propagated by unit propagation
 	// So check if there are any literals unknown and add more loopformulas
@@ -1072,12 +1072,9 @@ rClause IDSolver::notifypropagate() {
 }
 
 rClause IDSolver::notifyFullAssignmentFound() {
-	if (infactnotpresent) {
-		return nullPtrClause;
-	}
 	twovalueddef = true;
 	auto confl = notifypropagate();
-	MAssert(not needinitialization);
+	MAssert(stepsTillInitialize<groundingSteps);
 	if (confl == nullPtrClause) {
 		MAssert(not posloops || isCycleFree());
 		if (getSemantics() == DEF_WELLF) {
