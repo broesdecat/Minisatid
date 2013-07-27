@@ -217,6 +217,9 @@ private:
 
 	template<class Elem>
 	Elem createUnconditional(const Elem& obj, Weight neutral);
+
+	template<class Engine>
+	void propagateAfterAddition(int ID, Engine& engine);
 };
 
 }

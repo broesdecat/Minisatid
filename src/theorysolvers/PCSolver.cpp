@@ -41,8 +41,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 			cpsolver(NULL),
 #endif
 			factory(NULL),
-			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL),
-			maxGroundingIterationsBeforeRestart(100), currentNbGroundingIterations(0){
+			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL){
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -301,9 +300,9 @@ void PCSolver::createVar(Atom v, TheoryID ) {
 		// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
 		auto decide = modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
 		getSolver().setDecidable(v, decide == VARHEUR::DECIDE);
-		if (propagations.size() < nVars()) { //Lazy init
-			propagations.resize(nVars(), NULL);
-		}
+	}
+	if (propagations.size() < nVars()) { //Lazy init
+		propagations.resize(nVars(), NULL);
 	}
 }
 
@@ -406,6 +405,9 @@ bool compareByPriority(const T& left, const T& right) {
 }
 
 void PCSolver::notifyFinishParsingNeed(){
+	if(isUnsat()){
+		return;
+	}
 	if(parsingfinished){
 		finishParsing();
 	}
@@ -418,8 +420,6 @@ void PCSolver::finishParsing() {
 			throw idpexception("Two optimization statement cannot have the same priority.");
 		}
 	}
-
-	propagations.resize(nVars(), NULL); //Lazy init
 
 	auto val = getFactory().finish();
 	if (val == SATVAL::UNSAT) {
@@ -578,14 +578,6 @@ std::string PCSolver::toString(const Lit& lit) const {
 
 int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas() + optimization.size();
-}
-
-void PCSolver::notifyGroundingIteration(){
-	currentNbGroundingIterations++;
-	if(currentNbGroundingIterations>=maxGroundingIterationsBeforeRestart){
-		maxGroundingIterationsBeforeRestart *= 1.3;
-		getSolver().randomizedRestart();
-	}
 }
 
 Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){

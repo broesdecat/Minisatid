@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef PCSOLVER_H_
-#define PCSOLVER_H_
+#pragma once
 
 #include "utils/Utils.hpp"
 #include <memory>
@@ -236,6 +235,7 @@ public:
 	rClause notifyFullAssignmentFound();
 
 	// Called by lazy grounding to do finishparsing if real parsing has already been finished.
+	// Finishparsing among others guarantees that propagators for definitions are created / updated
 	void notifyFinishParsingNeed();
 
 	// Clause management
@@ -310,17 +310,8 @@ public:
 
 	int getNbOfFormulas() const;
 
-private:
-	uint maxGroundingIterationsBeforeRestart, currentNbGroundingIterations;
 public:
-	uint getCurrentNumberOfGroundingIterations() const {
-		return currentNbGroundingIterations;
-	}
-	void notifyGroundingIteration();
-
 	Lit getLit(VarID var, EqType eq, Weight bound);
 };
 
 }
-
-#endif /* PCSOLVER_H_ */

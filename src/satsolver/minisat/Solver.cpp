@@ -1455,12 +1455,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 }
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
-int ccount = 0;
 lbool Solver::solve(bool nosearch) {
-//	ccount++;
-//	if(ccount>10){
-//		exit(0);
-//	}
 	if (not assumpset) {
 		getPCSolver().saveState(); // NOTE: to assure that the state has been saved exactly once
 	}

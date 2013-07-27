@@ -17,11 +17,11 @@
 #include "modules/IDSolver.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
-#include "modules/LazyGrounder.hpp"
 #include "modules/symmetry/Symmetry.hpp"
 #include "modules/BinConstr.hpp"
 #include "modules/FDAggConstraint.hpp"
-#include "modules/LazyGrounder.hpp"
+#include "modules/LazyImplication.hpp"
+#include "modules/LazyResidual.hpp"
 #include "modules/LazyAtomPropagator.hpp"
 
 #ifdef CPSUPPORT
@@ -486,6 +486,8 @@ void PropagatorFactory::add(const CPElement& obj) {
 	}
 }
 
+// NOTE: need to guarantee that constraints are never added at a level where they will not have full effect.
+// E.g. if propagation is done, but could in fact have been done at earlier level and is not rechecked when backtracking.
 void PropagatorFactory::guaranteeAtRootLevel() {
 	// FIXME use reverse trail instead!
 	if (getEngine().getCurrentDecisionLevel() > 0) {
@@ -625,11 +627,23 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 		auto ivar = (*i).second;
 		if (ivar->minValue() != ivar->maxValue()) {
 			cerr << "Variable " << ivar->toString(ivar->getVarID()) << "[" << ivar->minValue() << "," << ivar->maxValue() << "]" << " is not assigned.\n";
-			MAssert(ivar->minValue()==ivar->maxValue());
+			throw idpexception("Current interpretation is a not a model.");
 		}
 		vareq.variable = ivar->getVarID();
 		vareq.value = ivar->minValue();
 		varassignments.push_back(vareq);
+	}
+}
+
+template<class Engine>
+void PropagatorFactory::propagateAfterAddition(int ID, Engine& engine){
+	auto confl = engine.propagate();
+	if(confl!=nullPtrClause){
+		litlist lits;
+		for(uint i=0; i<engine.getClauseSize(confl); ++i){
+			lits.push_back(engine.getClauseLit(confl, i));
+		}
+		add(Disjunction(ID, lits));
 	}
 }
 
@@ -638,35 +652,45 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 	if (getEngine().verbosity() > 4) {
 		clog << toString(object.residual, getEngine()) << " is delayed on " << object.watchedvalue << "\n";
 	}
-	getEngine().getSATSolver()->setInitialPolarity(object.residual, object.watchedvalue != Value::True);
+	if(getEngine().modes().lazyheur){
+		getEngine().getSATSolver()->setInitialPolarity(object.residual, object.watchedvalue != Value::True);
+	}
 	new LazyResidual(getEnginep(), object.residual, object.watchedvalue, object.monitor);
+
+	propagateAfterAddition(0, getEngine());
 }
 
 void PropagatorFactory::add(const LazyGroundImpl& object) {
 	MAssert(getEngine().modes().lazy);
 	notifyMonitorsOfAdding(object);
 	auto headtruesign = sign(object.impl.head);
-	switch (object.impl.type) {
-	case ImplicationType::EQUIVALENT:
-		if (object.impl.conjunction) {
-			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
-		} else {
-			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+
+	if(getEngine().modes().lazyheur){
+		switch (object.impl.type) {
+		case ImplicationType::EQUIVALENT:
+			if (object.impl.conjunction) {
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+			} else {
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+			}
+			break;
+		case ImplicationType::IMPLIES:
+			if (object.impl.conjunction) {
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+			}
+			break;
+		case ImplicationType::IMPLIEDBY:
+			if (not object.impl.conjunction) {
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+			}
+			break;
 		}
-		break;
-	case ImplicationType::IMPLIES:
-		if (object.impl.conjunction) {
-			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
-		}
-		break;
-	case ImplicationType::IMPLIEDBY:
-		if (not object.impl.conjunction) {
-			getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
-		}
-		break;
 	}
+
 	auto clauseid = grounder2clause.size();
 	grounder2clause.push_back(new LazyTseitinClause(object.getID(), getEnginep(), object.impl, object.monitor, clauseid));
+
+	propagateAfterAddition(object.getID(), getEngine());
 }
 
 void PropagatorFactory::add(const LazyAddition& object) {
@@ -676,15 +700,14 @@ void PropagatorFactory::add(const LazyAddition& object) {
 		getEngine().getSATSolver()->setInitialPolarity(var(lit), not sign(lit));
 	}
 	grounder2clause[object.ref]->addGrounding(object.list);
+
+	propagateAfterAddition(0, getEngine());
 }
 
 void PropagatorFactory::add(const TwoValuedRequirement& object) {
-//	cerr <<"Adding output vars ";
 	for (auto atom : object.atoms) {
 		getEngine().getSATSolver()->setDecidable(atom, true);
-//		cerr <<toString(atom) <<", ";
 	}
-//	cerr <<"\n";
 	getEngine().addOutputVars(object.atoms);
 }
 
@@ -698,4 +721,6 @@ void PropagatorFactory::add(const LazyAtom& object) {
 		argvars.push_back(new IntView(getIntVar(arg), 0));
 	}
 	new LazyAtomPropagator(object.getID(), getEnginep(), object.head, argvars, object.grounder);
+
+	propagateAfterAddition(object.getID(), getEngine());
 }
