@@ -85,8 +85,9 @@ Solver::Solver(PCSolver* s, bool oneshot)
 
 			// Statistics: (formerly in 'SolverStats')
 					,
-			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(0),
-			tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
+			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0),
+			max_literals(0), tot_literals(0), time_of_first_decision(0),
+			ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
 			order_heap(VarOrderLt(activity)), remove_satisfied(true), max_learnts(0) {
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_PROPAGATE);
@@ -652,6 +653,11 @@ void Solver::cancelUntil(int level) {
 // VARIABLE CHOICE
 
 Lit Solver::pickBranchLit() {
+	if(decisions==0){
+		time_of_first_decision = ((double)clock()*1000/(CLOCKS_PER_SEC));
+	}
+	decisions++;
+
 	Atom next = var_Undef;
 
 	// Random decision:
@@ -1356,7 +1362,6 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				}
 
 				// New variable decision:
-				decisions++;
 				next = pickBranchLit();
 
 				if (next == lit_Undef) {
@@ -1525,6 +1530,10 @@ lbool Solver::solve(bool nosearch) {
 		notifyUnsat();
 	}
 
+	if(verbosity>0){
+		printStatistics();
+	}
+
 	return status;
 }
 
@@ -1611,8 +1620,8 @@ void Solver::garbageCollect() {
 
 void Solver::printStatistics() const {
 	std::clog << "> restarts              : " << starts << "\n";
-	std::clog << "> conflicts             : " << decisions << "  (" << (float) rnd_decisions * 100 / (float) decisions << " % random)\n";
-	std::clog << "> decisions             : " << starts << "\n";
+	std::clog << "> decisions             : " << decisions << "  (" << (float) rnd_decisions * 100 / (float) decisions << " % random)\n";
+	std::clog << "> conflicts             : " << conflicts << "\n";
 	std::clog << "> propagations          : " << propagations << "\n";
 	std::clog << "> conflict literals     : " << tot_literals << "  (" << ((max_literals - tot_literals) * 100 / (double) max_literals) << " % deleted)\n";
 }

@@ -358,6 +358,9 @@ lbool PCSolver::getModelValue(Atom v) {
 lbool PCSolver::getModelValue(const Lit & lit) {
 	return getSolver().modelValue(lit);
 }
+MXStatistics PCSolver::getStats() const{
+	return MXStatistics{getSolver().getNbOfRestarts(),getSolver().getNbOfDecision(),getSolver().getNbOfPropagations(),getSolver().getNbOfConflicts(), getSolver().getTimeOfFirstDecision()};
+}
 
 litlist PCSolver::getEntailedLiterals() const {
 	litlist list;

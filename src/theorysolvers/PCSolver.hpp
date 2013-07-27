@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "external/LiteralPrinter.hpp"
+#include "external/MXStatistics.hpp"
 #include "theorysolvers/TheorySimplifier.hpp"
 #include "datastructures/OptimStatement.hpp"
 
@@ -282,6 +283,7 @@ public:
 	lbool getModelValue(Atom v);
 	lbool getModelValue(const Lit& lit);
 	litlist getEntailedLiterals() const;
+	MXStatistics getStats() const;
 
 	// Constraint visiting
 	void accept(ConstraintVisitor& visitor);

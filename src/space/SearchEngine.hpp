@@ -10,6 +10,7 @@
 #define SEARCHENGINE_HPP_
 
 #include "external/LiteralPrinter.hpp"
+#include "external/MXStatistics.hpp"
 #include "utils/Utils.hpp"
 #include <memory>
 
@@ -73,6 +74,7 @@ public:
 	std::shared_ptr<Model> getModel();
 	lbool getModelValue(Atom v);
 	lbool getModelValue(const Lit& lit);
+	MXStatistics getStats() const;
 
 	void accept(ConstraintVisitor& visitor);
 

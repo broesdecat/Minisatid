@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "Datastructures.hpp"
+#include "MXStatistics.hpp"
 #include "Options.hpp"
 #include <memory>
 #include <iostream>
@@ -83,6 +84,7 @@ public:
 	virtual bool isSat() const = 0;
 	virtual bool isUnsat() const = 0;
 	virtual void notifySolvingAborted() = 0;
+	MXStatistics getStats() const;
 };
 
 class ModelExpand: public MXTask {

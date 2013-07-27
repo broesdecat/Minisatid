@@ -275,10 +275,28 @@ public:
 
 private:
 	// Statistics: (read-only member variable)
-	uint64_t solves, starts, decisions, rnd_decisions, propagations, conflicts;
+	uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
 	uint64_t dec_vars, clauses_literals, learnts_literals, max_literals, tot_literals;
+	uint64_t time_of_first_decision; // time when propagation was first at fixpoint
 
 	void permuteRandomly(vec<Lit>& lits);
+
+public:
+	uint64_t getNbOfRestarts() const {
+		return starts;
+	}
+	uint64_t getNbOfDecision() const {
+		return decisions;
+	}
+	uint64_t getNbOfPropagations() const {
+		return propagations;
+	}
+	uint64_t getNbOfConflicts() const {
+		return conflicts;
+	}
+	uint64_t getTimeOfFirstDecision() const {
+		return time_of_first_decision;
+	}
 
 protected:
 	void varDecayActivity(); // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.

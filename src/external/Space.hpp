@@ -9,6 +9,7 @@
 #include <vector>
 #include "Options.hpp"
 #include "LiteralPrinter.hpp"
+#include "MXStatistics.hpp"
 #include "ConstraintAdditionInterface.hpp"
 
 namespace MinisatID{
@@ -100,6 +101,8 @@ public:
 	virtual void add(const LazyAtom&);
 
 	Value getTruthValue(const Lit& lit) const;
+
+	MXStatistics getStats() const;
 };
 
 }

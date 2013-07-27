@@ -118,6 +118,9 @@ lbool SearchEngine::getModelValue(const Lit& v) {
 lbool SearchEngine::getModelValue(Atom v) {
 	return getSolver()->getModelValue(v);
 }
+MXStatistics SearchEngine::getStats() const{
+	return getSolver()->getStats();
+}
 
 void SearchEngine::accept(ConstraintVisitor& visitor) {
 	getSolver()->accept(visitor);

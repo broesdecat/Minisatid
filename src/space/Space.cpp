@@ -137,3 +137,7 @@ Value Space::getTruthValue(const Lit& lit) const {
 		return Value::Unknown;
 	}
 }
+
+MXStatistics Space::getStats() const{
+	return getEngine()->getStats();
+}

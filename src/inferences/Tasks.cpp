@@ -57,6 +57,10 @@ void SpaceTask::notifyTerminateRequested() {
 	space->getEngine()->notifyTerminateRequested();
 }
 
+MXStatistics MXTask::getStats() const{
+	return getSpace()->getStats();
+}
+
 // NOTE: EXTERNAL literals
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
 		: MXTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
