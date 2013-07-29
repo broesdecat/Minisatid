@@ -658,6 +658,8 @@ void PropagatorFactory::propagateAfterAddition(int ID, Engine& engine){
 
 void PropagatorFactory::add(const LazyGroundLit& object) {
 	MAssert(getEngine().modes().lazy);
+	notifyMonitorsOfAdding(object);
+
 	if (getEngine().verbosity() > 4) {
 		clog << toString(object.residual, getEngine()) << " is delayed on " << object.watchedvalue << "\n";
 	}
@@ -672,8 +674,8 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 void PropagatorFactory::add(const LazyGroundImpl& object) {
 	MAssert(getEngine().modes().lazy);
 	notifyMonitorsOfAdding(object);
-	auto headtruesign = sign(object.impl.head);
 
+	auto headtruesign = sign(object.impl.head);
 	if(getEngine().modes().lazyheur){
 		switch (object.impl.type) {
 		case ImplicationType::EQUIVALENT:
@@ -704,6 +706,7 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 
 void PropagatorFactory::add(const LazyAddition& object) {
 	notifyMonitorsOfAdding(object);
+
 	MAssert(object.ref>=0 && grounder2clause.size()>(uint)object.ref);
 	for (auto lit : object.list) {
 		getEngine().getSATSolver()->setInitialPolarity(var(lit), not sign(lit));
@@ -714,6 +717,8 @@ void PropagatorFactory::add(const LazyAddition& object) {
 }
 
 void PropagatorFactory::add(const TwoValuedRequirement& object) {
+	notifyMonitorsOfAdding(object);
+
 	for (auto atom : object.atoms) {
 		getEngine().getSATSolver()->setDecidable(atom, true);
 	}
@@ -722,6 +727,7 @@ void PropagatorFactory::add(const TwoValuedRequirement& object) {
 
 void PropagatorFactory::add(const LazyAtom& object) {
 	notifyMonitorsOfAdding(object);
+
 	if(getEngine().modes().usegecode){
 		throw idpexception("Gecode does not support lazily expanded atoms yet.");
 	}

@@ -147,6 +147,9 @@ void LazyTseitinClause::addGrounding(const litlist& list) {
 bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, Implication& complement, bool& grounded) {
 	bool groundedall = false;
 	if (tocheck.conjunction) {
+		if (value(tocheck.head) == l_True) { // Should ground => verify first whether a restart would be done, in which case we might not need to fire now but just add a watch.
+			getPCSolver().notifyGroundingCall();
+		}
 		if (not getPCSolver().modes().expandimmediately && value(tocheck.head) == l_Undef) {
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this, not impliedby));
 			return false;
@@ -177,6 +180,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, I
 		while (getPCSolver().modes().expandimmediately || nonfalse < 1) { // NOTE 1 or 2 in this condition is the difference between one-watched or two-watched schema!
 			MAssert(tocheck.body.size() + 1 >= index);
 			if (tocheck.body.size() <= index) {
+				getPCSolver().notifyGroundingCall();
 				bool stilldelayed = true;
 				newgrounding.clear();
 				grounded = true;

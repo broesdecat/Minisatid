@@ -312,6 +312,11 @@ public:
 
 public:
 	Lit getLit(VarID var, EqType eq, Weight bound);
+
+private:
+	long groundingCalls, maxCallsBeforeRestart;
+public:
+	void notifyGroundingCall();
 };
 
 }

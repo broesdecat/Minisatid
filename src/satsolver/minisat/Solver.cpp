@@ -614,7 +614,7 @@ void Solver::randomizedRestart(){
 	if(not modes().lazyheur){
 		return;
 	}
-	for(uint i=0; i<trail_lim.size(); ++i){
+	for(int i=0; i<trail_lim.size(); ++i){
 		auto decvar = var(trail[trail_lim[i]]);
 		if(drand(random_seed)>0.6){
 			polarity[decvar] = drand(random_seed)>0.7?true:false;
@@ -1334,8 +1334,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 		} else { // NO CONFLICT
 			// Simplify the set of problem clauses:
 			if (decisionLevel() == 0 && not simplify()){
-					return l_False;
-				}
+				return l_False;
 			}
 
 			if (learnts.size() - nAssigns() >= max_learnts) {

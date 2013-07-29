@@ -41,7 +41,8 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 			cpsolver(NULL),
 #endif
 			factory(NULL),
-			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL){
+			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL),
+			groundingCalls(0), maxCallsBeforeRestart(100) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -598,5 +599,16 @@ Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
 		return mkPosLit(atom);
 	}else{
 		return lit;
+	}
+}
+
+void PCSolver::notifyGroundingCall(){
+	if(getCurrentDecisionLevel()==0 || not modes().userandomizedrestarts){
+		return;
+	}
+	groundingCalls++;
+	if(groundingCalls>maxCallsBeforeRestart){
+		maxCallsBeforeRestart *= 1.3;
+		getSolver().randomizedRestart();
 	}
 }

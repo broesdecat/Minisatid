@@ -88,6 +88,7 @@ public:
 	int maxNbOfLearnedClauses;
 	bool fullmodelcheck; // Check whether the model satisfies all constraints
 	bool usesimplifier; // Use code that caches all constraints, applies some simplifications (removing duplicate variables, ...) and then goes on to propagation and solving.
+	bool userandomizedrestarts;
 
 	SolverOption();
 
