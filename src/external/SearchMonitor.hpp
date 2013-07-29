@@ -6,12 +6,10 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef MONITORINTERFACE_HPP
-#define MONITORINTERFACE_HPP
+#pragma once
 
 #include <functional>
 #include "ExternalUtils.hpp"
-#include "callback.hpp"
 
 namespace MinisatID {
 
@@ -20,14 +18,14 @@ namespace MinisatID {
  */
 class PropAndBackMonitor{
 private:
-	cb::Callback1<void, int> backtrackcb;
-	cb::Callback2<void, Lit, int> propagatedcb;
+	std::function<void(int)> backtrackcb;
+	std::function<void(Lit, int)> propagatedcb;
 
 public:
-	void setBacktrackCB(cb::Callback1<void, int> cb){
+	void setBacktrackCB(std::function<void(int)> cb){
 		backtrackcb = cb;
 	}
-	void setPropagateCB(cb::Callback2<void, Lit, int> cb){
+	void setPropagateCB(std::function<void(Lit, int)> cb){
 		propagatedcb = cb;
 	}
 
@@ -42,5 +40,3 @@ public:
 };
 
 }
-
-#endif /* MONITORINTERFACE_HPP */

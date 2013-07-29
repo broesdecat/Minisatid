@@ -8,7 +8,6 @@
 
 #include <vector>
 #include "Options.hpp"
-#include "callback.hpp"
 #include "LiteralPrinter.hpp"
 #include "ConstraintAdditionInterface.hpp"
 

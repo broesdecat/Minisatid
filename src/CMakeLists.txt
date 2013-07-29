@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 2.8)
 include_directories (
 	"${PROJECT_SOURCE_DIR}/src/"
 	"${PROJECT_BINARY_DIR}/src/"
-	"${PROJECT_SOURCE_DIR}/lib/pluscallback1.7/"
 	"${PROJECT_SOURCE_DIR}/lib/tclap/include"
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" 
