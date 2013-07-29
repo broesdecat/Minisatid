@@ -307,7 +307,7 @@ void EventQueue::notifyBecameDecidable(Atom v) {
 void EventQueue::notifyNewDecisionLevel() {
 	if (backtrackedtoroot) {
 		backtrackedtoroot = false;
-		if(not getPCSolver().modes().lazy || nbrestarts%10 == 0){
+		if(not getPCSolver().modes().lazy && nbrestarts%10 == 0){
 			clearNotPresentPropagators();
 		}
 	}
