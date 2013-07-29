@@ -301,7 +301,7 @@ void PCSolver::createVar(Atom v, TheoryID ) {
 	if (not getSolver().isDecisionVar(v)) {
 		// If lazy, do not decide for literals in decisions
 		// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
-		auto decide = modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
+		auto decide = modes().watchedrelevance ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
 		getSolver().setDecidable(v, decide == VARHEUR::DECIDE);
 	}
 	if (propagations.size() < nVars()) { //Lazy init

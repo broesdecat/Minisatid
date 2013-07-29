@@ -473,7 +473,7 @@ void Solver::addToClauses(CRef cr, bool learnt) {
  * complexity: O(1)
  */
 void Solver::checkDecisionVars(const Clause& c) {
-	if (not modes().lazy) { // Optimization // TODO invars should guarantee this (and speedup in other case?)
+	if (not modes().watchedrelevance) { // Optimization // TODO invars should guarantee this (and speedup in other case?)
 		MAssert((not isFalse(c[0]) && isDecisionVar(var(c[0]))) || (not isFalse(c[1]) && isDecisionVar(var(c[1]))));
 		return;
 	}
