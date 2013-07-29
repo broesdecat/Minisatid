@@ -106,6 +106,9 @@ void Solver::setDecidable(Atom v, bool decide) { // NOTE: no-op if already a dec
 	bool newdecidable = decide && not decision[v];
 	if (newdecidable) {
 		dec_vars++;
+		if(isUnknown(mkPosLit(v))){
+			twovalued = false;
+		}
 	} else if (not decide && decision[v]) {
 		dec_vars--;
 	} else {
@@ -348,9 +351,8 @@ void swap(Clause& c, int from, int to) {
 	c[to] = temp;
 }
 
-void Solver::setInitialPolarity(Atom var, bool pol) {
-//	cerr << "Setting initial polarity of " << toString(mkPosLit(var)) << " to " << (pol ? "true" : "false") << "\n";
-	polarity[var] = not pol;
+void Solver::setInitialPolarity(Atom var, bool initiallyMakeTrue) {
+	polarity[var] = not initiallyMakeTrue; // Do NOT give it a sign if initiallyMakeTrue is true
 }
 
 void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
@@ -609,10 +611,16 @@ lbool operator not(lbool orig){
 }
 
 void Solver::randomizedRestart(){
-	for(int i=0; i<trail_lim.size(); ++i){
+	if(not modes().lazyheur){
+		return;
+	}
+	for(uint i=0; i<trail_lim.size(); ++i){
 		auto decvar = var(trail[trail_lim[i]]);
-		if(user_pol[decvar]!=l_Undef){
-			user_pol[decvar] = drand(random_seed)<0.5?l_Undef:(drand(random_seed)>0.5?l_True:l_False);
+		if(drand(random_seed)>0.6){
+			polarity[decvar] = drand(random_seed)>0.7?true:false;
+		}
+		if(drand(random_seed)<0.4){
+			varReduceActivity(decvar);
 		}
 	}
 	getPCSolver().backtrackTo(0);
@@ -1261,14 +1269,11 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 	starts++;
 	needsimplify = true;
 
+	currentconflicts = 0;
 	maxconflicts = maxconfl;
 
 	auto confl = nullPtrClause;
 	for (;;) {
-		/*		cerr <<"IN DATABASE:\n";
-		 for(int i=0; i<clauses.size(); ++i){
-		 cerr <<"\t"; printClause(clauses[i]);
-		 }*/
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
 		}
@@ -1282,19 +1287,17 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 			return l_False;
 		}
 
-		if (confl==nullPtrClause && (maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
-			if(decisionLevel()!=0){
-				getPCSolver().backtrackTo(0);
-			}
-			return l_Undef;
-		}
-
 		if (confl != CRef_Undef) {
 			// CONFLICT
 			addConflict();
 
 			if (decisionLevel() == 0) {
 				return l_False;
+			}
+
+			if (maxconflicts >= 0 && currentconflicts >= maxconflicts) {
+				getPCSolver().backtrackTo(0);
+				return l_Undef;
 			}
 
 			learnt_clause.clear();
@@ -1330,8 +1333,9 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 		} else { // NO CONFLICT
 			// Simplify the set of problem clauses:
-			if (decisionLevel() == 0 && not simplify()) {
-				return l_False;
+			if (decisionLevel() == 0 && not simplify()){
+					return l_False;
+				}
 			}
 
 			if (learnts.size() - nAssigns() >= max_learnts) {
