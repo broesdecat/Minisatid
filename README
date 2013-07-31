@@ -22,7 +22,7 @@ MinisatID is the search algorithm used in the knowledge base system IDP, support
 Required software packages:
 - C and C++ compiler, supporting most of the C++11 standard. Examples are GCC 4.6 or higher, clang 3.2 or visual studio 11.
 - Cmake build tools.
-- Bison and Flex parser generator software.
+- Bison 2.6 and Flex parser generator software.
 - Pdflatex and doxygen for building the documentation.
 - (optional) Gecode for constraint programming support.
 
@@ -37,4 +37,4 @@ Building and installing is then achieved by executing the following commands:
 Alternatively, cmake-gui can be used as a graphical way to set cmake options.
 
 *** Further information
-For more information on using the system, please check out our website http://dtai.cs.kuleuven.be/krr/software/minisatid
+For more information on using the system, please check out our website dtai.cs.kuleuven.be/krr/software/minisatid

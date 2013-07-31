@@ -266,6 +266,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 
 	TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile", "The file which contains the input theory. If not provided, the standard-in stream is assumed as input.", false, "", "inputfile", cmd);
 
+	auto flatzincall = new TCLAP::SwitchArg("a","flatzinc_all", "find all models", cmd, false);
+
 	options.push_back(new NoValsOption<int>		("n","nbmodels", 	"int",
 			modes.nbmodels, cmd, "The number of models to search for."));
 	options.push_back(new NoValsOption<int>		("","verbosity", 	"int",
@@ -340,6 +342,10 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 
 	for(auto i=options.cbegin(); i<options.cend(); ++i){
 		(*i)->parse();
+	}
+	
+	if(flatzincall->getValue()){
+		modes.nbmodels=0;
 	}
 
 	if(inputfilearg.isSet()){
