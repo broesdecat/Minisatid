@@ -1,0 +1,7 @@
+var int: x :: output_var;
+var int: y :: output_var;
+constraint int_le(x,10000);
+constraint int_le(9998,x);
+constraint int_le(9998,y);
+constraint int_lt(y,x);
+solve satisfy;
