@@ -79,6 +79,7 @@ rClause LazyResidual::notifypropagate() {
 	if (verbosity() > 7) {
 		clog << "Firing lazy residual " << toString(residual) << " for watched value " << watchedvalue << "\n";
 	}
+	getPCSolver().notifyGroundingCall();
 	monitor->requestGrounding(watchedvalue);
 
 	getPCSolver().notifyFinishParsingNeed();

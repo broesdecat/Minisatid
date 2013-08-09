@@ -146,11 +146,10 @@ void LazyTseitinClause::addGrounding(const litlist& list) {
 // Returns true iff no more grounding is available for this clause
 bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, Implication& complement, bool& grounded) {
 	bool groundedall = false;
-	if (tocheck.conjunction) {
-		if (value(tocheck.head) == l_True) { // Should ground => verify first whether a restart would be done, in which case we might not need to fire now but just add a watch.
+	if (tocheck.conjunction) { // TODO what if groundall is very large and restarting might help out?
+		if (value(tocheck.head) == l_True) {
 			getPCSolver().notifyGroundingCall();
-		}
-		if (not getPCSolver().modes().expandimmediately && value(tocheck.head) == l_Undef) {
+		}else if (not getPCSolver().modes().expandimmediately){
 			getPCSolver().accept(new BasicPropWatch(tocheck.head, this, not impliedby));
 			return false;
 		}

@@ -680,19 +680,19 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 		switch (object.impl.type) {
 		case ImplicationType::EQUIVALENT:
 			if (object.impl.conjunction) {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
-			} else {
 				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+			} else {
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
 			}
 			break;
 		case ImplicationType::IMPLIES:
 			if (object.impl.conjunction) {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
 			}
 			break;
 		case ImplicationType::IMPLIEDBY:
 			if (not object.impl.conjunction) {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
 			}
 			break;
 		}

@@ -228,6 +228,14 @@ public:
 		target() << "Added lazy residual " << print(lg.residual) << ", acting as " << lg.watchedvalue << " delay trigger.\n";
 	}
 
+	void add(const TwoValuedRequirement& lg) {
+		target() << "Atoms ";
+		for(auto a:lg.atoms){
+			target()<<print(a) <<" ";
+		}
+		target() <<" should be two-valued in any model.\n";
+	}
+
 	virtual void add(const LazyGroundImpl& lg) {
 		target() << "Added lazy " << (lg.impl.conjunction ? "conjunctive" : "disjunctive") << " implication " << ": " << print(lg.impl.head) << " "
 				<< lg.impl.type;
