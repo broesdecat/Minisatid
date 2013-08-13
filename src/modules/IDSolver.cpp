@@ -218,7 +218,7 @@ void IDSolver::initialize() {
 		getPCSolver().backtrackTo(0);
 	}
 
-	stepsTillInitialize += 100;
+	stepsTillInitialize = groundingSteps+100;
 	oneInitDone = true;
 	MAssert(not getPCSolver().isUnsat());
 
@@ -1074,7 +1074,7 @@ rClause IDSolver::notifypropagate() {
 rClause IDSolver::notifyFullAssignmentFound() {
 	twovalueddef = true;
 	auto confl = notifypropagate();
-	MAssert(stepsTillInitialize<groundingSteps);
+	MAssert(stepsTillInitialize>groundingSteps);
 	if (confl == nullPtrClause) {
 		MAssert(not posloops || isCycleFree());
 		if (getSemantics() == DEF_WELLF) {
