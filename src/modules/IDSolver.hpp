@@ -165,8 +165,8 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	bool oneInitDone;
-	unsigned int groundingSteps, stepsTillInitialize; // Number of times rulesets have been added, and threshold after which initialization can be redone (not every time to reduce cost).
+	bool needInit;
+	DEFFINDCS defn_strategy;
 
 	Atom minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 

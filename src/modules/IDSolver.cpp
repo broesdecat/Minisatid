@@ -56,9 +56,7 @@ IDAgg::IDAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type, con
 IDSolver::IDSolver(PCSolver* s, int definitionID)
 		: 	Propagator( { }, s, "definition"),
 			definitionID(definitionID),
-			oneInitDone(false),
-			groundingSteps(0),
-			stepsTillInitialize(0),
+			needInit(true),
 			minvar(0),
 			nbvars(0),
 			conj(DefType::CONJ),
@@ -71,10 +69,17 @@ IDSolver::IDSolver(PCSolver* s, int definitionID)
 			posloops(true),
 			negloops(true),
 			backtracked(true),
-			adaption_total(0),
+			defn_strategy(getPCSolver().modes().defn_strategy),
+			adaption_total(100),
 			adaption_current(0),
 			savedloopf(DEFAULTCONSTRID, { }),
 			twovalueddef(false) {
+
+	if(getPCSolver().modes().lazy){
+		defn_strategy = adaptive;
+		adaption_total = 200;
+	}
+
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
@@ -185,7 +190,8 @@ void IDSolver::addRuleSet(const std::vector<TempRule*>& rules) {
 			addFinishedRule(**i);
 		}
 	}
-	groundingSteps++;
+	needInit = true;
+	adaption_current++;
 	getPCSolver().acceptForPropagation(this, PRIORITY::SLOW);
 }
 
@@ -212,14 +218,15 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::initialize() {
+	needInit = false;
 	// NOTE can only initialize unfounded sets at level 0
 	// FIXME improve this by only using root literals for simplification and to use a reverse trail
 	if (getPCSolver().getCurrentDecisionLevel() != 0) {
 		getPCSolver().backtrackTo(0);
 	}
 
-	stepsTillInitialize = groundingSteps+100;
-	oneInitDone = true;
+	//stepsTillInitialize = groundingSteps+100;
+	//oneInitDone = true;
 	MAssert(not getPCSolver().isUnsat());
 
 	if (verbosity() > 0) {
@@ -310,7 +317,7 @@ void IDSolver::initialize() {
 	if (!posloops && !negloops) {
 		if (not modes().lazy) {
 			notifyNotPresent();
-		}
+		}CHECKSEEN;
 		return;
 	}
 
@@ -990,7 +997,11 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
  */
 rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT;
-	if(not oneInitDone || groundingSteps>stepsTillInitialize){
+	if(not shouldCheckPropagation()){
+		CHECKNOTUNSAT; // NOTE: no seen guarantee, as initialization might not have been done
+		return nullPtrClause;
+	}
+	if(needInit) {
 		initialize();
 		if (getPCSolver().isUnsat()) {
 			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
@@ -1012,7 +1023,7 @@ rClause IDSolver::notifypropagate() {
 		savedufs.clear(); //none found
 	}
 
-	if (not posloops || not shouldCheckPropagation()) {
+	if (not posloops) {
 		CHECKSEEN;CHECKNOTUNSAT;
 		return nullPtrClause;
 	}
@@ -1074,7 +1085,7 @@ rClause IDSolver::notifypropagate() {
 rClause IDSolver::notifyFullAssignmentFound() {
 	twovalueddef = true;
 	auto confl = notifypropagate();
-	MAssert(stepsTillInitialize>groundingSteps);
+	MAssert(not needInit);
 	if (confl == nullPtrClause) {
 		MAssert(not posloops || isCycleFree());
 		if (getSemantics() == DEF_WELLF) {
