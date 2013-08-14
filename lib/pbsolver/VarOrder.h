@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-VarOrder.h -- (C) Niklas Een, Niklas Sörensson, 2004
+VarOrder.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
 
 ADT for maintaining the variable ordering. It will keep a list of all decision
 variables sorted on the current activity.
@@ -25,7 +25,6 @@ struct VarOrder_lt {
 
 class VarOrder {
     const vec<int>&     assigns;     // var->val. Pointer to external assignment table.
-    const vec<double>&  activity;    // var->act. Pointer to external activity table.
     Heap<VarOrder_lt>   heap;
     double              random_seed; // For the internal random number generator
 
@@ -33,7 +32,7 @@ public:
     vec<char>           dvars;
 
     VarOrder(const vec<int>& ass, const vec<double>& act) :
-        assigns(ass), activity(act), heap(VarOrder_lt(act)), random_seed(91648253)
+        assigns(ass), heap(VarOrder_lt(act)), random_seed(91648253)
         { }
 
     inline void newVar(bool dvar);

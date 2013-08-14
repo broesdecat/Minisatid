@@ -47,9 +47,7 @@ void deleteList(std::vector<T*>* list) {
 	delete (list);
 }
 
-class Identifier;
-class Expression;
-class ArrayLiteral;
+struct Expression;
 
 struct Identifier {
 	std::string* name;

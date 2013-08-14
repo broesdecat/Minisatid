@@ -592,7 +592,7 @@ void FlatZincRewriter<Stream>::addEquiv(const Implication& implication, CloseCon
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::add(const litlist& lits) {
+void FlatZincRewriter<Stream>::addLits(const litlist& lits) {
 	litlist pos, neg;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		if (isPositive(*i)) {
@@ -614,7 +614,7 @@ void FlatZincRewriter<Stream>::add(const litlist& lits) {
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::add(const Disjunction& sentence) {
-	add(sentence.literals);
+	addLits(sentence.literals);
 }
 
 template<typename Stream>

@@ -118,14 +118,6 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 		getPCSolver().notifyDecisionVar(var(litevent));
 	}
 	auto& list = lit2priority2propagators[toInt(litevent)][priority];
-#warning Doubles checking (dynamic watches!) is disabled
-	// TODO doubles are no longer checked because in lack of a cheap way to check it
-	// Below is the old (expensive) solution
-/*	for (auto i = list.cbegin(); i < list.cend(); ++i) {
-		if ((*i) == propagator) {
-			return;
-		}
-	}*/
 	list.push_back(propagator);
 	if (getPCSolver().value(litevent) == l_True && not propagator->isQueued()) {
 		propagator->notifyQueued();

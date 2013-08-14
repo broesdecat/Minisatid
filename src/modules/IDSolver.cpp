@@ -57,11 +57,9 @@ IDSolver::IDSolver(PCSolver* s, int definitionID)
 		: 	Propagator( { }, s, "definition"),
 			definitionID(definitionID),
 			needInit(true),
+			defn_strategy(getPCSolver().modes().defn_strategy),
 			minvar(0),
 			nbvars(0),
-			conj(DefType::CONJ),
-			disj(DefType::DISJ),
-			aggr(DefType::AGGR),
 			_seen(NULL),
 			sem(getPCSolver().modes().defsem),
 			posrecagg(false),
@@ -69,7 +67,6 @@ IDSolver::IDSolver(PCSolver* s, int definitionID)
 			posloops(true),
 			negloops(true),
 			backtracked(true),
-			defn_strategy(getPCSolver().modes().defn_strategy),
 			adaption_total(100),
 			adaption_current(0),
 			savedloopf(DEFAULTCONSTRID, { }),
@@ -2437,7 +2434,7 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
 		if (nonjstf.size() == 0) {
 			justified = true;
 		}
-	} else if (agg.hasLB()) {
+	} else { // LB
 		justified = false;
 		for (auto i = wl.crbegin(); i < wl.crend() && i->getWeight() >= agg.getBound(); ++i) {
 			if (isJustified(currentjust, *i, real)) {

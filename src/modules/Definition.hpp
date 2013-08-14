@@ -35,7 +35,7 @@ struct TempRule {
 				innerset(NULL),
 				onlyif(onlyif) {
 	}
-	TempRule(uint id, Aggregate* inneragg, WLSet* innerset)
+	TempRule(uint id, bool onlyif, Aggregate* inneragg, WLSet* innerset)
 			: 	id(id),
 				head(var(inneragg->head)),
 				conjunctive(false),

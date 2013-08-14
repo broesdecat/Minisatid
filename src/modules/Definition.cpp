@@ -30,7 +30,7 @@ void Definition::addToPropagators() {
 
 void Definition::addDefinedAggregate(uint id, const Aggregate& inneragg, const WLSet& innerset) {
 	auto& def = rules[inneragg.defID];
-	auto newrule = new TempRule(id, new Aggregate(inneragg), new WLSet(innerset));
+	auto newrule = new TempRule(id, inneragg.onlyif, new Aggregate(inneragg), new WLSet(innerset));
 	auto it = def.find(var(inneragg.head));
 	if (it == def.cend()) {
 		def[var(inneragg.head)] = newrule;

@@ -21,7 +21,7 @@
 namespace MinisatID{
 
 //Temporary structure to create pseudo booleans
-class PBAgg;
+struct PBAgg;
 
 class AggToCNFTransformer;
 SATVAL execute(AggToCNFTransformer& transformer);

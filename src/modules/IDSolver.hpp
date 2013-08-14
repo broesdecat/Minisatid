@@ -21,7 +21,7 @@
 
 namespace MinisatID {
 
-class TempRule;
+struct TempRule;
 
 /**
  * The different possible types of definitions.
@@ -147,11 +147,10 @@ struct IDStats{
 
 class NetworkHandling{
 private:
-	DefType type;
 	std::vector<varlist > _occurs;
 
 public:
-	NetworkHandling(DefType type): type(type){}
+	NetworkHandling(){}
 
 	const varlist&	occurs		(const Lit& l) const { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
 	varlist&		occurs		(const Lit& l) { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }

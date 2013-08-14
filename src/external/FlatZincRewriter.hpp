@@ -109,7 +109,7 @@ protected:
 
 	const WLSet& getSet(uint i) const;
 
-	void add(const litlist& lits);
+	void addLits(const litlist& lits);
 
 	void check(const Atom& Var);
 	void check(const Lit& lit);

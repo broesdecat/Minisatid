@@ -7,7 +7,7 @@
 namespace MiniSatPP {
 class Solver;
 class Linear;
-class PBOptions;
+struct PBOptions;
 //=================================================================================================
 
 
