@@ -295,7 +295,7 @@ void PCSolver::createVar(Atom v, TheoryID ) {
 	if (((uint64_t) v) >= nVars()) {
 		getEventQueue().notifyNbOfVars(v + 1); // IMPORTANT to do it before effectively creating vars in the solver (might trigger grounding)
 		while (((uint64_t) v) >= nVars()) {
-			getSolver().newVar(modes().polarity == Polarity::TRUE ? l_True : modes().polarity == Polarity::FALSE ? l_False : l_Undef, false);
+			getSolver().newVar(modes().polarity == Polarity::TRUE ? l_False: modes().polarity == Polarity::FALSE ? l_True : l_Undef, false);
 		}
 	}
 
