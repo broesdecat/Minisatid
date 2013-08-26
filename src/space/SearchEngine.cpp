@@ -127,6 +127,9 @@ void SearchEngine::accept(ConstraintVisitor& visitor) {
 }
 
 void SearchEngine::setAssumptions(const litlist& assumps) {
+	for(auto l: assumps){
+		createVar(var(l), getBaseTheoryID());
+	}
 	getSolver()->setAssumptions(assumps);
 }
 lbool SearchEngine::solve(bool search) {
