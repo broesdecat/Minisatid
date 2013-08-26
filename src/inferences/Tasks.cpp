@@ -114,7 +114,13 @@ bool ModelExpand::isUnsat() const {
 }
 
 litlist ModelExpand::getUnsatExplanation() const {
-	return getSolver().getUnsatExplanation();
+	vector<Lit> outmodel;
+	for (auto lit : getSolver().getUnsatExplanation()) {
+		if (getSpace()->getRemapper()->wasInput(lit)) {
+			outmodel.push_back(getSpace()->getRemapper()->getLiteral(lit));
+		}
+	}
+	return outmodel;
 }
 
 void ModelExpand::notifySolvingAborted() {
