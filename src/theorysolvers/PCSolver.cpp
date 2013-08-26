@@ -59,7 +59,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 		factory = propfactory;
 	}
 
-	if (verbosity() > 1) {
+	if (verbosity() > 5) {
 		modes.print(clog);
 	}
 
