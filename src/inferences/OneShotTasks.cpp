@@ -104,20 +104,42 @@ void OneShotUnsatCoreExtraction::innerExecute() {
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, { });
 	mx.setAssumptionsAsInternal(markerAssumptions);
+//	mx.saveState(); //TODO experimental code to minimize unsat core
 	mx.execute();
 	MAssert(mx.isUnsat());
 	auto explan = mx.getUnsatExplanation();
+
+// TODO experimental code to minimize unsat core
+/*	auto dropped = true;
+	while(dropped){
+		dropped = false;
+		for (auto expllit = explan.begin(); expllit < explan.end(); ++expllit) {
+			for(auto j=0; j<markerAssumptions.size(); ++j){
+				if(var(markerAssumptions[j])==var(*expllit)){
+					markerAssumptions[j] = ~markerAssumptions[j];
+					break;
+				}
+			}
+			mx.resetState();
+			mx.setAssumptionsAsInternal(markerAssumptions);
+			mx.execute();
+			if(mx.isUnsat()){
+				// Can permanently drop it from explan
+				explan.erase(expllit);
+				dropped = true;
+				break;
+			}
+		}
+	}*/
 	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog, true);
-	clog << "Unsat core: \n";
 	for (auto i = explan.cbegin(); i < explan.cend(); ++i) {
 		for (auto j = marker2ids[var(*i)].cbegin(); j < marker2ids[var(*i)].cend(); ++j) {
 			unsatcore.push_back(*j);
-			clog << "\t";
 			id2constr[*j]->accept(&printer);
 		}
 	}
-	// TODO minimization?
-	// TODO translation into some useful format
+
+	// TODO backtranslation and return
 }
 
 OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options)
