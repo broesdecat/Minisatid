@@ -636,7 +636,7 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 			}
 		}
 	} else {
-		auto explainheadtrue = not sign(ar.getPropLit());
+		auto explainheadtrue = ar.getPropLit()==head;
 		if(agg.getSem()==AggSem::OR){
 			explainheadtrue = not explainheadtrue;
 		}
