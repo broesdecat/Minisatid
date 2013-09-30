@@ -301,6 +301,16 @@ void doModelGeneration(Space* d) {
 	}
 	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
+	if(d->getOptions().flatzinc_a){
+		mxoptions.printmodels = Models::ALL;
+		if (d->isOptimizationProblem()) {
+			mxoptions.nbmodelstofind = 1;
+		}else{
+			mxoptions.nbmodelstofind = 0;
+		}
+		mxoptions.savemodels = Models::NONE;
+	}
+
 	mx = new ModelExpand(d, mxoptions, { });
 	mx->execute();
 }

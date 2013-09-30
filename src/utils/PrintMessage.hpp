@@ -111,6 +111,7 @@ void printOptimalModelFound(T& stream, OutputFormat outputformat,
 		if (outputformat == OutputFormat::OPB) {
 			stream << "s OPTIMUM FOUND\n";
 		} else if (outputformat == OutputFormat::FZ) {
+			// TODO flatzinc optimisation output will probably be revised next year
 			stream <<"==========\n";
 		} else if (outputformat == OutputFormat::ASP) {
 			stream << "OPTIMUM\n";

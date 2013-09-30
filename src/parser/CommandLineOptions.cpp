@@ -350,9 +350,7 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 		(*i)->parse();
 	}
 	
-	if(flatzincall->getValue()){
-		modes.nbmodels=0;
-	}
+	modes.flatzinc_a = flatzincall->getValue();
 
 	if(inputfilearg.isSet()){
 		inputfile = inputfilearg.getValue();

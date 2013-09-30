@@ -64,7 +64,8 @@ SolverOption::SolverOption():
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
 		fullmodelcheck(false),
 		usesimplifier(false),
-		userandomizedrestarts(false) {
+		userandomizedrestarts(false),
+		flatzinc_a(false){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
