@@ -111,7 +111,7 @@ void printOptimalModelFound(T& stream, OutputFormat outputformat,
 		if (outputformat == OutputFormat::OPB) {
 			stream << "s OPTIMUM FOUND\n";
 		} else if (outputformat == OutputFormat::FZ) {
-			// Print nothing
+			stream <<"==========\n";
 		} else if (outputformat == OutputFormat::ASP) {
 			stream << "OPTIMUM\n";
 		} else {
