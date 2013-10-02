@@ -101,14 +101,14 @@ void OneShotUnsatCoreExtraction::add(const Rule& rule) {
  */
 
 void OneShotUnsatCoreExtraction::innerExecute() {
-	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
+/*	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, { });
 	mx.setAssumptionsAsInternal(markerAssumptions);
 //	mx.saveState(); //TODO experimental code to minimize unsat core
 	mx.execute();
 	MAssert(mx.isUnsat());
 	auto explan = mx.getUnsatExplanation();
-
+*/
 // TODO experimental code to minimize unsat core
 /*	auto dropped = true;
 	while(dropped){
@@ -131,13 +131,13 @@ void OneShotUnsatCoreExtraction::innerExecute() {
 			}
 		}
 	}*/
-	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog, true);
+/*	auto printer = RealECNFPrinter<std::ostream>(mx.getSpace(), clog, true);
 	for (auto i = explan.cbegin(); i < explan.cend(); ++i) {
 		for (auto j = marker2ids[var(*i)].cbegin(); j < marker2ids[var(*i)].cend(); ++j) {
 			unsatcore.push_back(*j);
 			id2constr[*j]->accept(&printer);
 		}
-	}
+	}*/
 
 	// TODO backtranslation and return
 }

@@ -26,12 +26,20 @@
 using namespace std;
 using namespace MinisatID;
 
-Printer::Printer(ModelManager* modelmanager, Space* space, Models printoption,
-		const SolverOption& modes) :
-		printoption(printoption), modelmanager(modelmanager), space(space), modes(
-				modes), optimizing(false), solvingstate(SolvingState::STARTED), nomoremodels(
-				false), startfinish(0), endfinish(-1), startsimpl(0), endsimpl(
-				-1), startsolve(0), endsolve(-1) {
+Printer::Printer(ModelManager* modelmanager, Space* space, Models printoption, const SolverOption& modes)
+		: 	printoption(printoption),
+			modelmanager(modelmanager),
+			space(space),
+			modes(modes),
+			optimizing(false),
+			solvingstate(SolvingState::STARTED),
+			nomoremodels(false),
+			startfinish(0),
+			endfinish(-1),
+			startsimpl(0),
+			endsimpl(-1),
+			startsolve(0),
+			endsolve(-1) {
 	if (modes.outputfile == "") {
 		resman = std::shared_ptr<ResMan>(new StdMan(false));
 	} else {
@@ -59,13 +67,9 @@ void Printer::printStatistics() const {
 	if (startsimpl == 0) {
 		clog << getStatisticsMessage((endfinish - startfinish), 0, 0);
 	} else if (startsolve == 0) {
-		clog
-				<< getStatisticsMessage((endfinish - startfinish),
-						endsimpl - startsimpl, 0);
+		clog << getStatisticsMessage((endfinish - startfinish), endsimpl - startsimpl, 0);
 	} else {
-		clog
-				<< getStatisticsMessage((endfinish - startfinish),
-						endsimpl - startsimpl, endsolve - startsolve);
+		clog << getStatisticsMessage((endfinish - startfinish), endsimpl - startsimpl, endsolve - startsolve);
 	}
 }
 
@@ -82,8 +86,7 @@ void Printer::notifyCurrentOptimum(const Weight& value) const {
 void Printer::addModel(Model * const model) {
 	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
-	if (getPrintOption() == Models::ALL
-			|| (not optimizing && getPrintOption() == Models::BEST)) {
+	if (getPrintOption() == Models::ALL || (not optimizing && getPrintOption() == Models::BEST)) {
 		if (modelmanager->getNbModelsFound() == 1) {
 			if (not optimizing && modes.transformat != OutputFormat::ASP) {
 				printSatisfiable(output, modes.transformat);
@@ -109,17 +112,14 @@ void Printer::solvingFinished() {
 
 	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
-	if (solvingstate != SolvingState::ABORTED && modelmanager->isUnsat()
-			&& getPrintOption() != Models::NONE) {
+	if (solvingstate != SolvingState::ABORTED && modelmanager->isUnsat() && getPrintOption() != Models::NONE) {
 		printUnSatisfiable(output, modes.transformat);
 		printUnSatisfiable(clog, modes.transformat, modes.verbosity);
-	} else if (modelmanager->getNbModelsFound() == 0
-			&& getPrintOption() != Models::NONE) {
+	} else if (modelmanager->getNbModelsFound() == 0 && getPrintOption() != Models::NONE) {
 		printUnknown(output, modes.transformat);
 	} else { // not unsat and at least one model
 		if (optimizing && getPrintOption() == Models::BEST) {
-			if (modelmanager->hasOptimalModel()
-					&& modes.transformat != OutputFormat::ASP) {
+			if (modelmanager->hasOptimalModel() && modes.transformat != OutputFormat::ASP) {
 				printOptimalModelFound(output, modes.transformat);
 			}
 			if (modes.format == InputFormat::OPB) {
@@ -134,8 +134,7 @@ void Printer::solvingFinished() {
 				}
 				getTranslator()->printModel(output, **i);
 			}
-			if (modelmanager->hasOptimalModel()
-					&& modes.transformat == OutputFormat::ASP) {
+			if (modelmanager->hasOptimalModel() && modes.transformat == OutputFormat::ASP) {
 				printOptimalModelFound(output, modes.transformat);
 			}
 		}
@@ -163,8 +162,7 @@ void Printer::notifySolvingFinished() {
 	if (solvingstate == SolvingState::FINISHEDCLEANLY) {
 		return;
 	} else if (solvingstate == SolvingState::ABORTED) {
-		throw idpexception(
-				"System was notified of both ending cleanly and aborting.\n");
+		throw idpexception("System was notified of both ending cleanly and aborting.\n");
 	}
 	solvingstate = SolvingState::FINISHEDCLEANLY;
 	solvingFinished();
@@ -175,8 +173,7 @@ void Printer::notifySolvingAborted() {
 	if (solvingstate == SolvingState::ABORTED) {
 		return;
 	} else if (solvingstate == SolvingState::FINISHEDCLEANLY) {
-		throw idpexception(
-				"System was notified of both ending cleanly and aborting.\n");
+		throw idpexception("System was notified of both ending cleanly and aborting.\n");
 	}
 	solvingstate = SolvingState::ABORTED;
 	solvingFinished();

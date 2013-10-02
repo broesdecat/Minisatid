@@ -110,7 +110,8 @@ SATVAL PCSolver::findNextCPModel() {
 	return result;
 }
 
-void PCSolver::invalidate(litlist& clause) const {
+litlist PCSolver::getInvalidation() const {
+	litlist clause;
 	if(_outputvarsset){
 		for(auto var: _outputvars){
 			if(value(mkPosLit(var))==l_Undef){
@@ -126,6 +127,7 @@ void PCSolver::invalidate(litlist& clause) const {
 			clause.push_back(~(*i));
 		}
 	}
+	return clause;
 }
 bool PCSolver::moreModelsPossible() const {
 	return getCurrentDecisionLevel() != getSolver().getNbOfAssumptions();

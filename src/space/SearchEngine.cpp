@@ -69,8 +69,8 @@ std::string SearchEngine::toString(const Lit& lit) const {
 	return getSolver()->toString(lit);
 }
 
-void SearchEngine::invalidate(litlist& clause) const {
-	getSolver()->invalidate(clause);
+litlist SearchEngine::getInvalidation() const {
+	return getSolver()->getInvalidation();
 }
 
 void SearchEngine::finishParsing() {
@@ -86,6 +86,9 @@ bool SearchEngine::isAlwaysAtOptimum() const{
 }
 bool SearchEngine::hasNextOptimum() const {
 	return getSolver()->hasNextOptimum();
+}
+OptimStatement& SearchEngine::getCurrentOptimum() {
+	return getSolver()->getCurrentOptimum();
 }
 OptimStatement& SearchEngine::getNextOptimum() {
 	return getSolver()->getNextOptimum();

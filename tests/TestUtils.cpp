@@ -60,7 +60,7 @@ int runNoModelCheck(SolverOption options, const std::string& instancefile, int f
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	mxoptions.nbmodelstofind = s.getOptions().nbmodels;
 
-	auto mx = ModelExpand(&s, mxoptions, { });
+	auto mx = MxWrapper(&s, mxoptions, { });
 	mx.execute();
 	return mx.getNbModelsFound();
 }

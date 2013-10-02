@@ -4,8 +4,7 @@
  (c) K.U.Leuven
  ************************************/
 
-#ifndef DATAANDINFERENCE_HPP_
-#define DATAANDINFERENCE_HPP_
+#pragma once
 
 #include <vector>
 
@@ -72,31 +71,24 @@ protected:
 	SearchEngine& getSolver() const;
 };
 
+struct OptimStatement;
+
 enum class MXState {
 	MODEL, UNSAT, UNKNOWN
 };
 
-struct OptimStatement;
-
-class MXTask: public SpaceTask{
-public:
-	MXTask(Space* space): SpaceTask(space){}
-	virtual bool isSat() const = 0;
-	virtual bool isUnsat() const = 0;
-	virtual void notifySolvingAborted() = 0;
-	MXStatistics getStats() const;
-};
-
-class ModelExpand: public MXTask {
+class MxWrapper: public SpaceTask {
 private:
 	ModelExpandOptions _options;
-	litlist assumptions; // Note: internal literals
 	ModelManager* _solutions;
 	Printer* printer;
+	litlist assumptions; // TODO remove
 
 public:
-	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
-	~ModelExpand();
+	MxWrapper(Space* space, ModelExpandOptions options, const litlist& assumptions);
+	~MxWrapper();
+
+	MXStatistics getStats() const;
 
 	/**
 	 * NOTE: Returns 0 if an optimization problem where no proven minimal model has been found yet!
@@ -104,8 +96,6 @@ public:
 	int getNbModelsFound() const;
 
 	// Note: do not call unless the models are being saved!
-	const modellist& getSolutions() const;
-	modellist getBestSolutionsFound() const;
 	Weight getBestValueFound() const;
 
 	bool isSat() const;
@@ -116,25 +106,11 @@ public:
 private:
 	void innerExecute();
 
-	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
-	void invalidate(litlist& clause);
-	SATVAL invalidateModel(const litlist& clause);
-
-	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
-	litlist savedinvalidation;
-
-	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
-	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
-	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
-	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
 	void notifyCurrentOptimum(const Weight& value) const;
 
-	void addModel(std::shared_ptr<Model> model);
+	void addModel(Model* model);
 
 	friend class OneShotUnsatCoreExtraction;
-	void setAssumptionsAsInternal(const litlist& assmpt){
-		assumptions = assmpt;
-	}
 };
 
 class UnitPropagate: public SpaceTask {
@@ -170,5 +146,3 @@ private:
 };
 
 }
-
-#endif /* DATAANDINFERENCE_HPP_ */

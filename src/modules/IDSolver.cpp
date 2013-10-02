@@ -2010,8 +2010,7 @@ rClause IDSolver::isWellFoundedModel() {
 	}
 
 	//Returns the found assignment (TODO might be optimized to just return the loop)
-	Disjunction invalidation(DEFAULTCONSTRID, { });
-	getPCSolver().invalidate(invalidation.literals);
+	Disjunction invalidation(DEFAULTCONSTRID, getPCSolver().getInvalidation());
 	auto confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addConflictClause(confl);
 

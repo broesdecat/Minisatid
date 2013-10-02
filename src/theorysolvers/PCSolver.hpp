@@ -91,7 +91,7 @@ public:
 	void notifyDecisionVar(Atom var);
 	bool isDecided(Atom var);
 	std::vector<Lit> getDecisions() const;
-	void invalidate(litlist& clause) const;
+	litlist getInvalidation() const;
 	bool moreModelsPossible() const;
 	bool isTwoValued() const;
 
@@ -113,6 +113,9 @@ public:
 		if(parsingfinished){
 			throw idpexception("Cannot add additional optimizations after finishParsing has been called.");
 		}
+		if(not optimization.empty()){
+			throw notYetImplemented("Currently, multi-level optimization is not supported");
+		}
 		optimization.push_back(optim);
 		notifyOptimizationProblem();
 	}
@@ -133,6 +136,9 @@ public:
 	bool hasNextOptimum() const {
 		MAssert(isOptimizationProblem());
 		return currentoptim < optimization.size();
+	}
+	OptimStatement& getCurrentOptimum() {
+		return optimization[currentoptim];
 	}
 	OptimStatement& getNextOptimum() {
 		return optimization[currentoptim++];

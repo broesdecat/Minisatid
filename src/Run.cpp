@@ -61,7 +61,7 @@ void handleSignals();
 
 void doModelGeneration(Space* d);
 
-MXTask* mx = NULL;
+MxWrapper* mx = NULL;
 
 int MinisatID::run(const std::string& inputfile, SolverOption modes) {
 	jumpback = 1;
@@ -301,7 +301,7 @@ void doModelGeneration(Space* d) {
 	}
 	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
-	mx = new ModelExpand(d, mxoptions, { });
+	mx = new MxWrapper(d, mxoptions, { });
 	mx->execute();
 }
 

@@ -55,12 +55,13 @@ public:
 	std::string toString(VarID id) const;
 	std::string toString(const Lit& lit) const;
 
-	void invalidate(litlist& clause) const;
+	litlist getInvalidation() const;
 
 	void finishParsing();
 	bool isOptimizationProblem() const;
 	bool isAlwaysAtOptimum() const;
 	bool hasNextOptimum() const;
+	OptimStatement& getCurrentOptimum();
 	OptimStatement& getNextOptimum();
 
 	bool hasCPSolver() const;

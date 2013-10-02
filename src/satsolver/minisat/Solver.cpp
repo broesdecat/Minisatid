@@ -1528,7 +1528,7 @@ lbool Solver::solve(bool nosearch) {
 		notifyUnsat();
 	}
 
-	if(verbosity>0){
+	if(verbosity>1){
 		printStatistics();
 	}
 

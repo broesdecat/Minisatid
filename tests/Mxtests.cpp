@@ -23,13 +23,13 @@ TEST(MXTest, MultiAssumpSolve) {
 	auto space = new Space(options);
 	extAdd(*space, Disjunction(DEFAULTCONSTRID, { mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
 	ModelExpandOptions mxopts(0, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxopts, { mkNegLit(2) });
+	auto mx = MxWrapper(space, mxopts, { mkNegLit(2) });
 	mx.execute();
 	ASSERT_EQ(mx.getNbModelsFound(), 3);
-	auto mx2 = ModelExpand(space, mxopts, { mkNegLit(1) });
+	auto mx2 = MxWrapper(space, mxopts, { mkNegLit(1) });
 	mx2.execute();
 	ASSERT_EQ(mx2.getNbModelsFound(), 3);
-	auto mx3 = ModelExpand(space, mxopts, { });
+	auto mx3 = MxWrapper(space, mxopts, { });
 	mx3.execute();
 	ASSERT_EQ(mx3.getNbModelsFound(), 7);
 }
