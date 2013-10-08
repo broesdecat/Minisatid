@@ -10,7 +10,7 @@ private:
 	TParser parser;
 public:
 	Parser(std::istream* input, Values... values)
-			: scanner(TScanner(input)), parser(TParser(scanner, values...)) {
+			: scanner(TScanner(input)), parser(scanner, values...) {
 	}
 
 	int parse() {
