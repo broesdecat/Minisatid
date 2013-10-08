@@ -29,6 +29,7 @@
 #include <sstream>
 #include <cstdarg>
 #include <algorithm>
+#include <ctime>
 
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"

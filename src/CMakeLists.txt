@@ -7,6 +7,7 @@ include_directories (
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/"
+	"${FLEX_INCLUDE_DIR}"
 )
 
 addToCXX("-Wall -pedantic -std=c++0x")
