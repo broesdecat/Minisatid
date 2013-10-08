@@ -1927,7 +1927,7 @@ rClause IDSolver::isWellFoundedModel() {
 	}
 
 	if (mixedrecagg) {
-		throw idpexception("For recursive aggregates, only stable semantics is currently supported! Wellfoundedness is not checked\n");
+		throw notYetImplemented("Checking wellfoundedness for recursively defined aggregates.\n");
 	}
 
 	// Initialize scc of full dependency graph
