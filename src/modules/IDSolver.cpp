@@ -216,6 +216,7 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
  */
 void IDSolver::initialize() {
 	needInit = false;
+	adaption_current=0;
 	// NOTE can only initialize unfounded sets at level 0
 	// FIXME improve this by only using root literals for simplification and to use a reverse trail
 	if (getPCSolver().getCurrentDecisionLevel() != 0) {
@@ -1050,7 +1051,7 @@ rClause IDSolver::notifypropagate() {
 				}
 				++stats.cycles;
 				stats.cycle_sizes += ufs.size();
-				if (getPCSolver().modes().defn_strategy == adaptive) {
+				if (defn_strategy == adaptive) {
 					++adaption_current; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 				}
 				confl = assertUnfoundedSet(ufs);
@@ -1062,7 +1063,7 @@ rClause IDSolver::notifypropagate() {
 	stats.succesful_justify_calls += (stats.justify_calls - old_justify_calls);
 
 	if (confl == nullPtrClause) { // Found a witness justification.
-		if (getPCSolver().modes().defn_strategy == adaptive) {
+		if (defn_strategy == adaptive) {
 			if (adaption_current == adaption_total) {
 				++adaption_total; // Next time, skip one decision level extra.
 			} else {
@@ -1077,6 +1078,22 @@ rClause IDSolver::notifypropagate() {
 
 	CHECKSEEN;
 	return confl;
+}
+
+// Return true if indirectpropagation is necessary. This is certainly necessary if the state is two-valued or if the strategy is always.
+bool IDSolver::shouldCheckPropagation() {
+	bool propagate = true;
+	// if not always and state is three-valued.
+	if (defn_strategy != always && not definitionIsTwovalued()) {
+		if (getPCSolver().modes().defn_strategy == lazy) {
+			propagate = false;
+		}
+		if (defn_strategy == adaptive && adaption_current < adaption_total) {
+			++adaption_current;
+			propagate = false;
+		}
+	}
+	return propagate;
 }
 
 rClause IDSolver::notifyFullAssignmentFound() {
@@ -1094,7 +1111,7 @@ rClause IDSolver::notifyFullAssignmentFound() {
 }
 
 void IDSolver::notifyNewDecisionLevel() {
-	if (posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
+	if (posloops && defn_strategy != adaptive && !isCycleFree()) {
 		throw idpexception("Positive justification graph is not cycle free!\n");
 	}
 }
@@ -1112,7 +1129,7 @@ void IDSolver::notifyBacktrack(int untillevel, const Lit& decision) {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (not backtracked || getPCSolver().modes().defn_strategy == always) {
+	if (not backtracked || defn_strategy == always) {
 		while (hasNextProp()) {
 			Lit l = getNextProp(); //l has become true, so find occurrences of not l
 			MAssert(value(not l)==l_False);
@@ -1212,24 +1229,6 @@ void IDSolver::findJustificationDisj(Atom v, litlist& jstf) {
 	}
 	MAssert(pos>=0);
 	jstf.push_back(c[pos]);
-}
-
-/*
- * Return true if indirectpropagation is necessary. This is certainly necessary if the state is two-valued or if the strategy is always.
- */
-bool IDSolver::shouldCheckPropagation() {
-	bool propagate = true;
-	// if not always and state is three-valued.
-	if (getPCSolver().modes().defn_strategy != always && not definitionIsTwovalued()) {
-		if (getPCSolver().modes().defn_strategy == lazy) {
-			propagate = false;
-		}
-		if (getPCSolver().modes().defn_strategy == adaptive && adaption_current < adaption_total) {
-			++adaption_current;
-			propagate = false;
-		}
-	}
-	return propagate;
 }
 
 /**
