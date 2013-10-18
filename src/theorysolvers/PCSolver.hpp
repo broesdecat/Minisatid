@@ -105,8 +105,10 @@ private:
 	bool hasMonitors() const;
 	Monitor* monitor;
 
+	bool parsingfinished, needNewFinishCall;
+
 	// Optimization
-	bool parsingfinished, optimproblem;
+	bool optimproblem;
 	std::vector<OptimStatement> optimization;
 public:
 	void addOptimization(OptimStatement optim) {

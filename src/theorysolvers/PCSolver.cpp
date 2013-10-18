@@ -35,8 +35,10 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot)
-		: theoryID(theoryID), _modes(modes), varcreator(varcreator), _outputvarsset(false), monitor(monitor), parsingfinished(false), optimproblem(false), currentoptim(0),
-			searchengine(NULL),
+		: theoryID(theoryID), _modes(modes), varcreator(varcreator), _outputvarsset(false), monitor(monitor),
+		  parsingfinished(false), needNewFinishCall(false),
+		  optimproblem(false), currentoptim(0),
+		  searchengine(NULL),
 #ifdef CPSUPPORT
 			cpsolver(NULL),
 #endif
@@ -412,6 +414,7 @@ void PCSolver::notifyFinishParsingNeed(){
 	if(isUnsat()){
 		return;
 	}
+	needNewFinishCall = true;
 	if(parsingfinished){
 		finishParsing();
 	}
@@ -425,10 +428,18 @@ void PCSolver::finishParsing() {
 		}
 	}
 
-	auto val = getFactory().finish();
-	if (val == SATVAL::UNSAT) {
-		notifyUnsat();
+	while(true){
+		needNewFinishCall = false;
+		auto val = getFactory().finish();
+		if (val == SATVAL::UNSAT) {
+			notifyUnsat();
+			needNewFinishCall = false;
+		}
+		if(not needNewFinishCall){
+			break;
+		}
 	}
+	needNewFinishCall = false;
 	parsingfinished = true;
 }
 
