@@ -28,11 +28,16 @@ using namespace MinisatID;
 // TODO set nbofmodels of subsolvers to 1 or All!
 // TODO set their verbosity to 0 if not debugging
 ModSolver::ModSolver(Atom head, PCSolver* parent, PCSolver* subsolver, const std::vector<Atom>& rigidatoms)
-		: Propagator(DEFAULTCONSTRID, parent, "modal solver"), searching(false), head(head), child(subsolver) {
+		: Propagator(DEFAULTCONSTRID, parent, "modal solver"), searching(false), rigidatoms(rigidatoms), head(head), child(subsolver) {
 	trail.push_back(vector<Lit>());
+}
 
-	getParent().accept(this, mkLit(head, true), SLOW);
-	getParent().accept(this, mkLit(head, false), SLOW);
+ModSolver::~ModSolver() {
+}
+
+void ModSolver::finishParsing(){
+	getParent().accept(this, mkLit(head.atom, true), SLOW);
+	getParent().accept(this, mkLit(head.atom, false), SLOW);
 	for (auto atom : rigidatoms) {
 		atoms.push_back(atom);
 		getParent().accept(this, mkLit(atom, true), SLOW);
@@ -44,9 +49,6 @@ ModSolver::ModSolver(Atom head, PCSolver* parent, PCSolver* subsolver, const std
 	getParent().accept(this);
 	getParent().accept(this, EV_DECISIONLEVEL);
 	getParent().accept(this, EV_BACKTRACK);
-}
-
-ModSolver::~ModSolver() {
 }
 
 void ModSolver::notifyNewDecisionLevel() {

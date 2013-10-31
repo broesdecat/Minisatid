@@ -74,7 +74,7 @@ struct AV {
 class ModSolver: public Propagator {
 private:
 	bool searching;
-	std::vector<Atom> registeredvars;
+	std::vector<Atom> rigidatoms;
 
 	AV head;
 	std::vector<Atom> atoms; //atoms which are rigid within this solver
@@ -91,6 +91,8 @@ private:
 public:
 	ModSolver(Atom head, PCSolver* parent, PCSolver* child, const std::vector<Atom>& rigidatoms);
 	virtual ~ModSolver();
+
+	void finishParsing();
 
 	//Propagator methods
 	void accept(MinisatID::ConstraintVisitor& ){ } // TODO

@@ -17,12 +17,14 @@
 namespace MinisatID {
 
 class PCSolver;
+class ModSolver;
 class Factory;
 struct OptimStatement;
 
 class SearchEngine: public LiteralPrinter {
 private:
 	std::map<TheoryID, PCSolver*> solvers; // Earlier in list is higher in hierarchy
+	std::set<ModSolver*> modsolvers; // Earlier in list is higher in hierarchy
 public:
 	// NOTE: ownership is passed in
 	SearchEngine(PCSolver* solver) {

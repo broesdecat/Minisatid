@@ -77,6 +77,9 @@ void SearchEngine::finishParsing() {
 	for(auto solver: solvers){
 		solver.second->finishParsing();
 	}
+	for(auto solver: modsolvers){
+		solver->finishParsing();
+	}
 }
 bool SearchEngine::isOptimizationProblem() const {
 	return getSolver()->isOptimizationProblem();
@@ -182,7 +185,7 @@ void SearchEngine::add(const SubTheory& subtheory){
 	}
 	solvers[subtheory.childid] = new PCSolver(subtheory.childid, modes(), NULL, getSolver()->getVarCreator(), this, false);
 	MAssert(solvers[subtheory.childid]->getTheoryID()==subtheory.childid);
-	new ModSolver(subtheory.head, getSolver(subtheory.theoryid), getSolver(subtheory.childid), subtheory.rigidatoms);
+	modsolvers.insert(new ModSolver(subtheory.head, getSolver(subtheory.theoryid), getSolver(subtheory.childid), subtheory.rigidatoms));
 }
 
 
