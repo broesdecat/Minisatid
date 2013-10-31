@@ -18,6 +18,12 @@ if(CMAKE_COMPILER_IS_CLANG)
 	addToCXX("-Wno-overloaded-virtual")
 endif()
 
+if(CMAKE_COMPILER_IS_MINGW)
+	message(STATUS "Mingw compiler")
+	addToCXX("-static-libgcc -static-libstdc++ ")
+	addToCXX("-Wl,--stack,4194304")
+endif()
+
 addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}-${MinisatID_VERSION_PATCH}\\\"")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"\"")
