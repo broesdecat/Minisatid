@@ -325,6 +325,8 @@ void PCSolver::notifyBoundsChanged(IntVar* var) {
 
 /**
  * Returns OWNING pointer (faster).
+ * TODO this could should NOT be used to externally get an explanation.
+ * 		It might malfunction as it is not stored if the SAT-solver was the last one to propagate a literal.
  */
 rClause PCSolver::getExplanation(const Lit& l) {
 	MAssert(value(l)!=l_Undef);
