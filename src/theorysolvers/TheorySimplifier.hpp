@@ -8,6 +8,53 @@
 
 namespace MinisatID {
 
+// POTENTIAL ALTERNATIVE CODE
+//void find(VarID varid, int value, Lit& result, bool& found, const std::map<VarID, std::map<Weight, Lit>>& container){
+//	auto varit = container.find(varid);
+//	if(varit!=container.cend()){
+//		auto litit = varit->second.find(value);
+//		if(litit!=varit->second.cend()){
+//			found = true;
+//			result = *litit;
+//		}
+//	}
+//}
+//
+//Lit getLitToRepresent(VarID varid, EqType rel, int value){
+//	auto found = false, negate = false;
+//	auto lit = factory->getEngine().getFalseLit();
+//	switch(rel){
+//	case EqType::NEQ:
+//		negate = true; // fall through
+//	case EqType::EQ:
+//		find(varid, value, lit, found, presentEQcomps);
+//		break;
+//	case EqType::GEQ:
+//		negate = true; // fall through
+//	case EqType::L:
+//		if(value == getMinElem<int>()){
+//			found = true; // false literal!
+//		}else{
+//			find(varid, value-1, lit, found, presentLEQcomps);
+//		}
+//		break;
+//	case EqType::G:
+//		negate = true; // fall through
+//	case EqType::LEQ:
+//		find(varid, value, lit, found, presentLEQcomps);
+//		break;
+//	}
+//	if(found && negate){
+//		lit = ~lit;
+//	}
+//	if(not found){
+//		// TODO override name
+//		lit = mkPosLit(factory->getEngine().newAtom());
+//	}
+//	return lit;
+//}
+// END POTENTIAL ALTERNATIVE CODE
+
 /**
  * Current code:
  * 		stores all constraints
@@ -30,33 +77,7 @@ private:
 	std::map<VarID, std::map<Weight, Lit>> presentLEQcomps;
 	std::map<VarID, std::map<Weight, Lit>> presentEQcomps;
 
-	CPBinaryRel canonify(CPBinaryRel incomp) {
-		auto temp = incomp;
-		switch (incomp.rel) {
-		case EqType::EQ:
-			break;
-		case EqType::NEQ:
-			temp.head = ~temp.head;
-			temp.rel = EqType::EQ;
-			break;
-		case EqType::LEQ:
-			break;
-		case EqType::GEQ:
-			temp.head = ~temp.head;
-			temp.bound -= 1;
-			temp.rel = EqType::LEQ;
-			break;
-		case EqType::G:
-			temp.head = ~temp.head;
-			temp.rel = EqType::LEQ;
-			break;
-		case EqType::L:
-			temp.bound -= 1;
-			temp.rel = EqType::LEQ;
-			break;
-		}
-		return temp;
-	}
+	CPBinaryRel canonify(const CPBinaryRel& incomp) const;
 
 public:
 
@@ -65,32 +86,7 @@ public:
 	}
 
 	// Return literal 0 if it does not exist yet.
-	Lit exists(CPBinaryRel comp) {
-		auto canoncomp = canonify(comp);
-		if (canoncomp.rel == EqType::EQ) {
-			auto it = presentEQcomps.find(canoncomp.varID);
-			if (it == presentEQcomps.cend()) {
-				return comp.head;
-			}
-			auto litit = it->second.find(canoncomp.bound);
-			if (litit == it->second.cend()) {
-				return comp.head;
-			} else {
-				return litit->second;
-			}
-		} else { // Leq
-			auto it = presentLEQcomps.find(canoncomp.varID);
-			if (it == presentLEQcomps.cend()) {
-				return comp.head;
-			}
-			auto litit = it->second.find(canoncomp.bound);
-			if (litit == it->second.cend()) {
-				return comp.head;
-			} else {
-				return litit->second;
-			}
-		}
-	}
+	Lit exists(const CPBinaryRel& comp) const override;
 
 	/**
 	 * Internally created cp variables

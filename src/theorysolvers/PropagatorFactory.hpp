@@ -129,7 +129,7 @@ public:
 	}
 	virtual SATVAL finish() = 0;
 	virtual void includeCPModel(std::vector<VariableEqValue>& varassignments) = 0;
-	virtual Lit exists(CPBinaryRel){
+	virtual Lit exists(const CPBinaryRel&) const {
 		return mkPosLit(0);
 	}
 };

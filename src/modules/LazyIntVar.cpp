@@ -23,6 +23,7 @@ LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
 		: IntVar(id, solver, varid), halve(true){
 	setOrigMax(max);
 	setOrigMin(min);
+	//clog <<"Created lazy variable " <<toString(varid) <<" = [" <<min <<", " <<max <<"]\n";
 }
 
 void LazyIntVar::finish(){

@@ -327,7 +327,7 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 	options.push_back(new Option<bool, string>	("","lazy", 	yesnovals, lazydesc,
 			modes.lazy, cmd, "Choose whether to use lazy grounding of formulas"));
 	options.push_back(new Option<bool, string>	("","simplifier", 	yesnovals, simplifydesc,
-			modes.lazy, cmd, "Choose whether to use a preprocessor before search"));
+			modes.usesimplifier, cmd, "Choose whether to use a preprocessor before search"));
 	options.push_back(new Option<bool, string>	("","lazy-heur", 	yesnovals, lazyheurdesc,
 			modes.lazyheur, cmd, "Choose whether to use a special search heuristic optimized for lazily adding constraints"));
 #ifdef CPSUPPORT
