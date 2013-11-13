@@ -86,7 +86,7 @@ public:
 	}
 
 	// Return literal 0 if it does not exist yet.
-	Lit exists(const CPBinaryRel& comp) const override;
+	Lit exists(const CPBinaryRel& comp) const;
 
 	/**
 	 * Internally created cp variables
