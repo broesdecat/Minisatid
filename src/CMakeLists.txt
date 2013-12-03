@@ -7,8 +7,11 @@ include_directories (
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" 
 	"${PROJECT_SOURCE_DIR}/lib/pbsolver/"
-	"${FLEX_INCLUDE_DIR}"
+	
 )
+if(DEFINED FLEX_INCLUDE_DIR)
+    include_directories("${FLEX_INCLUDE_DIR}")
+endif()
 
 addToCXX("-Wall -pedantic -std=c++0x")
 if(CMAKE_COMPILER_IS_GNUCXX)
