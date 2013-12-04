@@ -63,13 +63,23 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 //=================================================================================================
 // Constructor/Destructor:
 
-Solver::Solver(PCSolver* s, bool oneshot)
+
+Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
+/*
 		: Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
 			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
+>>>>>>> renaming of ClassicHeuristic to MinisatHeuristic
+		: Propagator(DEFAULTCONSTRID, s, "satsolver"), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
+			max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
+>>>>>>> Extracted heuristic from Minisat
+*/
+		: Propagator(s, "satsolver"), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
+					max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
+
 			needsimplify(true), backtracked(true),
 
 			clause_decay(opt_clause_decay),
-			luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_init_act(opt_rnd_init_act),
+			luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode),
 			garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
 
 			// Parameters (the rest):
@@ -88,13 +98,19 @@ Solver::Solver(PCSolver* s, bool oneshot)
 					,
 			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0),
 			max_literals(0), tot_literals(0), time_of_first_decision(0),
-			ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
-			order_heap(VarOrderLt(activity)), remove_satisfied(true), max_learnts(0) {
+			ok(true), cla_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
+			remove_satisfied(true), max_learnts(0), heuristic(heur) {
+	getHeuristic().setSolver(this);
+	getHeuristic().rnd_init_act=opt_rnd_init_act; // TODO: fix: this option should be provided at construction of the heuristic
+	getHeuristic().phase_saving=opt_phase_saving; // TODO: fix: this option should be provided at construction of the heuristic
+	getHeuristic().random_var_freq=opt_random_var_freq; // TODO: fix: this option should be provided at construction of the heuristic
+	getHeuristic().var_decay=opt_var_decay; // TODO: fix: this option should be provided at construction of the heuristic
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
 
 Solver::~Solver() {
+	delete heuristic;
 }
 
 void Solver::notifyUnsat() {
@@ -117,7 +133,7 @@ void Solver::setDecidable(Atom v, bool decide) { // NOTE: no-op if already a dec
 	}
 
 	decision[v] = decide;
-	insertVarOrder(v);
+	getHeuristic().initialSetDecidable(v);
 
 	if (newdecidable) {
 		getPCSolver().notifyBecameDecidable(v);
@@ -132,17 +148,10 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	watches.init(mkLit(v, true));
 	assigns.push(l_Undef);
 	vardata.push(mkVarData(CRef_Undef, 0));
-	//activity .push(0);
-	activity.push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
+
 	seen.push(0);
+	getHeuristic().addAtom(v, upol);
 
-	if(getPCSolver().modes().lazyheur){
-		polarity.push(((float)rand()/ RAND_MAX)>0.2);
-	}else{
-		polarity.push(true);
-	}
-
-	user_pol.push(upol);
 	decision.push();
 	trail.capacity(v + 1);
 	setDecidable(v, dvar);
@@ -152,16 +161,6 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	twovalued = false;
 
 	return v;
-}
-
-double Solver::getActivity(Atom var) const {
-	MAssert(var>=0 && activity.size()>var);
-	return activity[var];
-}
-
-void Solver::setActivity(Atom var, double act){
-	MAssert(var>=0 && activity.size()>var);
-	varBumpActivity(var, act-activity[var]);
 }
 
 inline void Solver::createNewDecisionLevel() {
@@ -352,10 +351,6 @@ void swap(Clause& c, int from, int to) {
 	c[to] = temp;
 }
 
-void Solver::setInitialPolarity(Atom var, bool initiallyMakeTrue) {
-	polarity[var] = not initiallyMakeTrue; // Do NOT give it a sign if initiallyMakeTrue is true
-}
-
 void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
 	rootunitlits.push_back(elem);
 }
@@ -458,6 +453,7 @@ void Solver::attachClause(CRef cr, bool conflict) {
 }
 
 void Solver::addToClauses(CRef cr, bool learnt) {
+	getHeuristic().notifyNewClause(ca[cr]);
 	if (learnt) {
 		newlearnts.insert(cr);
 		learnts.push(cr);
@@ -535,7 +531,7 @@ void Solver::saveState() {
 	removeSatisfied(learnts);
 	removeSatisfied(clauses);
 	checkGarbage();
-	rebuildOrderHeap();
+	getHeuristic().notifySimplification();
 	remove_satisfied = false;
 }
 
@@ -581,6 +577,7 @@ void Solver::resetState() {
 
 void Solver::removeClause(CRef cr) {
 	auto& c = ca[cr];
+	getHeuristic().notifyRemoveClause(c);
 	detachClause(cr);
 	// Don't leave pointers to free'd memory!
 	if (locked(c)) {
@@ -614,15 +611,11 @@ void Solver::randomizedRestart(){
 //	if(not modes().lazyheur){
 //		return;
 //	}
+	vector<Atom> affectedVars;
 	for(int i=0; i<trail_lim.size(); ++i){
-		auto decvar = var(trail[trail_lim[i]]);
-		if(drand(random_seed)>0.5){
-			user_pol[decvar] = drand(random_seed)>=0.5?l_True:l_False;
-		}
-		if(drand(random_seed)<0.4){
-			varReduceActivity(decvar);
-		}
+			affectedVars.push_back(var(trail[trail_lim[i]]));
 	}
+	getHeuristic().notifyRandomizedRestart(affectedVars);
 	getPCSolver().backtrackTo(0);
 }
 
@@ -635,10 +628,7 @@ void Solver::uncheckedBacktrack(int level) {
 	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
 		Atom x = var(trail[c]);
 		assigns[x] = l_Undef;
-		if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) {
-			polarity[x] = sign(trail[c]);
-		}
-		insertVarOrder(x);
+		getHeuristic().notifyBacktrack(trail[c],c > trail_lim.last());
 	}
 	qhead = trail_lim[level];
 	trail.shrinkByNb(trail.size() - trail_lim[level]);
@@ -666,47 +656,8 @@ Lit Solver::pickBranchLit() {
 	}
 	decisions++;
 
-	Atom next = var_Undef;
-
-	// Random decision:
-	if (drand(random_seed) < random_var_freq && !order_heap.empty()) {
-		next = order_heap[irand(random_seed, order_heap.size())];
-		if (value(mkPosLit(next)) == l_Undef && decision[next]) {
-			rnd_decisions++;
-		}
-	}
-
-	// Activity based decision:
-	bool start = true;
-	while (next == var_Undef || value(mkPosLit(next)) != l_Undef || !decision[next]) {
-		if (!start) { // So then remove it if it proved redundant
-			order_heap.removeMin();
-		}
-		start = false;
-
-		if (order_heap.empty()) {
-			next = var_Undef;
-			break;
-		} else {
-			//next = order_heap.removeMin(); //REMOVES the next choice from the heap
-			next = order_heap.peek(); //Does NOT remove this
-		}
-	}
-
-	if (!start && next != var_Undef) {
-		order_heap.removeMin();
-	}
-
-	// Choose polarity based on different polarity modes (global or per-variable):
-	if (next == var_Undef) {
-		return lit_Undef;
-	} else if (user_pol[next] != l_Undef) {
-		return mkLit(next, user_pol[next] == l_True);
-	} else if (rnd_pol) {
-		return mkLit(next, drand(random_seed) < 0.5);
-	} else {
-		return mkLit(next, polarity[next]);
-	}
+	Atom next = getHeuristic().getNextVariable();
+	return getHeuristic().choosePolarity(next);
 }
 
 /*_________________________________________________________________________________________________
@@ -767,12 +718,13 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		if (c.learnt()){
 			claBumpActivity(c);
 		}
-
+		std::vector<Lit> ersatzConflictClause;
+		ersatzConflictClause.reserve(c.size());
 		for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
 			Lit q = c[j];
 
 			if (!seen[var(q)] && getLevel(var(q)) > 0) {
-				varBumpActivity(var(q));
+				ersatzConflictClause.push_back(q);
 				seen[var(q)] = 1;
 				if (getLevel(var(q)) >= decisionLevel()){
 					pathC++;
@@ -781,6 +733,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 				}
 			}
 		}
+		getHeuristic().notifyConflict(ersatzConflictClause); // Jo: I'm pretty sure ersatzCC is the learned clause at some point in this method, but I'll use this hack for now...
 
 		/*AB*/
 
@@ -1192,15 +1145,6 @@ void Solver::removeSatisfied(vec<CRef>& cs) {
 	cs.shrinkByNb(i - j);
 }
 
-void Solver::rebuildOrderHeap() {
-	vec<Atom> vs;
-	for (Atom v = 0; v < nVars(); v++) {
-		if (decision[v] && value(mkPosLit(v)) == l_Undef)
-			vs.push(v);
-	}
-	order_heap.build(vs);
-}
-
 /*_________________________________________________________________________________________________
  |
  |  simplify : [void]  ->  [bool]
@@ -1228,7 +1172,7 @@ bool Solver::simplify() {
 	}
 
 	checkGarbage();
-	rebuildOrderHeap();
+	getHeuristic().notifySimplification();
 
 	simpDB_assigns = nAssigns();
 	simpDB_props = clauses_literals + learnts_literals; // (shouldn't depend on stats really, but it will do for now)
@@ -1258,6 +1202,8 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 	MAssert(ok);
 	int backtrack_level;
 	vec<Lit> learnt_clause;
+	getHeuristic().notifyRestart();
+
 	starts++;
 	needsimplify = true;
 
@@ -1315,6 +1261,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 			learnt_clause.clear();
 			analyze(confl, learnt_clause, backtrack_level);
+			// TODO: investigate whether this would not be a better place to notify the heuristic of a learnt clause?
 
 			getPCSolver().backtrackTo(backtrack_level);
 
@@ -1326,7 +1273,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				uncheckedEnqueue(learnt_clause[0], cr);
 			}
 
-			varDecayActivity();
+			getHeuristic().decayActivity(); // TODO: investigate whether this can be merged in the notification of a conflict clause of the heuristic
 			claDecayActivity();
 
 			if (--learntsize_adjust_cnt == 0) {

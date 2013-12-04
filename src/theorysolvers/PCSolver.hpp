@@ -32,6 +32,7 @@ class IntView;
 class VarCreation;
 class ConstraintVisitor;
 class Printer;
+class MinisatHeuristic;
 
 class Monitor;
 
@@ -66,15 +67,14 @@ public:
 	void createVar(Atom v, TheoryID theoryID);
 	IntView* getIntView(VarID id, Weight bound);
 
-	double getActivity(Atom var) const;
-	void setActivity(Atom var, double act);
+	MinisatHeuristic& getHeuristic();
+	void notifyHeuristicOfLazyAtom(Atom v, Atom v1, Atom v2);
+
 
 	// NOTE: do not pass around indiscriminately! Does not pass on ownership
 	VarCreation* getVarCreator() const { return varcreator; }
 
 public:
-	void varBumpActivity(Atom v);
-	void varReduceActivity(Atom v);
 	lbool value(Lit p) const; // The current value of a literal.
 	lbool rootValue(Lit p) const; // The current value of a literal if it is known at level 0, otherwise l_Undef
 	uint64_t nVars() const; // The current number of variables.

@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
@@ -66,10 +66,10 @@ Lit LazyIntVar::addVariable(Weight value){
 	}
 
 	auto var = engine().getLit(getVarID(), EqType::LEQ, value);
-	auto firstact = i>0?engine().getActivity((leqlits.begin()+i-1)->lit.getAtom()):0;
-	auto secondact = i+1<leqlits.size()?engine().getActivity((leqlits.begin()+i+1)->lit.getAtom()):0;
-	auto act = (firstact + secondact) / 2;
-	engine().setActivity(var.getAtom(), act);
+
+	auto firstat = i>0?(leqlits.begin()+i-1)->lit.getAtom():Minisat::var_Undef;
+	auto secondat = i+1<leqlits.size()?(leqlits.begin()+i+1)->lit.getAtom():Minisat::var_Undef;
+	engine().notifyHeuristicOfLazyAtom(var.getAtom(), firstat, secondat); // TODO: ask broes what this actually means...
 
 	leqlits.insert(leqlits.begin()+i, IntVarValue(this, var, value));
 

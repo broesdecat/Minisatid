@@ -169,7 +169,7 @@ void PropagatorFactory::add(const Aggregate& origagg) {
 
 	verifyAggregate(set.set, set.type, newagg.head, newagg.type, getEngine());
 
-	getEngine().varBumpActivity(var(newagg.head)); // NOTE heuristic! (TODO move)
+	getEngine().getHeuristic().notifyAggregate(var(newagg.head));
 
 	auto newsem = newagg.sem;
 	if (newagg.sem == AggSem::DEF) {
@@ -703,7 +703,7 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 		clog << toString(object.residual, getEngine()) << " is delayed on " << object.watchedvalue << "\n";
 	}
 	if(getEngine().modes().lazyheur){
-		getEngine().getSATSolver()->setInitialPolarity(object.residual, object.watchedvalue != Value::True);
+		getEngine().getHeuristic().setPolarity(object.residual, object.watchedvalue != Value::True);
 	}
 	new LazyResidual(getEnginep(), object.residual, object.watchedvalue, object.monitor);
 
@@ -719,19 +719,19 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 		switch (object.impl.type) {
 		case ImplicationType::EQUIVALENT:
 			if (object.impl.conjunction) {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+				getEngine().getHeuristic().setPolarity(var(object.impl.head), headtruesign);
 			} else {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+				getEngine().getHeuristic().setPolarity(var(object.impl.head), not headtruesign);
 			}
 			break;
 		case ImplicationType::IMPLIES:
 			if (object.impl.conjunction) {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), headtruesign);
+				getEngine().getHeuristic().setPolarity(var(object.impl.head), headtruesign);
 			}
 			break;
 		case ImplicationType::IMPLIEDBY:
 			if (not object.impl.conjunction) {
-				getEngine().getSATSolver()->setInitialPolarity(var(object.impl.head), not headtruesign);
+				getEngine().getHeuristic().setPolarity(var(object.impl.head), not headtruesign);
 			}
 			break;
 		}
@@ -748,7 +748,7 @@ void PropagatorFactory::add(const LazyAddition& object) {
 
 	MAssert(object.ref>=0 && grounder2clause.size()>(uint)object.ref);
 	for (auto lit : object.list) {
-		getEngine().getSATSolver()->setInitialPolarity(var(lit), not sign(lit));
+		getEngine().getHeuristic().setPolarity(var(lit), not sign(lit));
 	}
 	grounder2clause[object.ref]->addGrounding(object.list);
 

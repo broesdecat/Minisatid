@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include "satsolver/SATSolver.hpp"
+#include "satsolver/heuristics/Heuristics.hpp"
 #include "modules/cpsolver/CPSolver.hpp"
 #include "modules/IntVar.hpp"
 
@@ -243,14 +244,6 @@ bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const {
 	return getSolver().isAlreadyUsedInAnalyze(lit);
 }
 
-void PCSolver::varBumpActivity(Atom v) {
-	getSolver().varBumpActivity(v);
-}
-
-void PCSolver::varReduceActivity(Atom v) {
-	getSolver().varReduceActivity(v);
-}
-
 void PCSolver::accept(Propagator* propagator) {
 	getEventQueue().accept(propagator);
 }
@@ -315,11 +308,12 @@ void PCSolver::createVar(Atom v, TheoryID ) {
 	}
 }
 
-double PCSolver::getActivity(Atom var) const{
-	return getSolver().getActivity(var);
+void PCSolver::notifyHeuristicOfLazyAtom(Atom v, Atom v1, Atom v2){
+	getHeuristic().notifyOfLazyAtom(v, v1, v2);
 }
-void PCSolver::setActivity(Atom var, double act){
-	getSolver().setActivity(var, act);
+
+MinisatHeuristic& PCSolver::getHeuristic(){
+	return getSATSolver()->getHeuristic();
 }
 
 void PCSolver::notifyBoundsChanged(IntVar* var) {
@@ -605,7 +599,7 @@ Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
 	auto lit = getFactory().exists(CPBinaryRel(mkPosLit(0), var, eq, bound));
 	if(lit.x==0){
 		auto atom = newAtom();
-		getSATSolver()->setInitialPolarity(atom, getSATSolver()->getRandNumber()<0.5);
+		getHeuristic().setPolarity(atom, getSATSolver()->getRandNumber()<0.5); // FIXME not included in random seed!
 		stringstream ss;
 		if(eq==EqType::LEQ){
 			ss<< toString(var) << "=<" << bound;

@@ -14,6 +14,8 @@
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
+#include "satsolver/heuristics/Heuristics.hpp"
+
 using namespace std;
 using namespace MinisatID;
 
@@ -433,7 +435,7 @@ void AggPropagator::initialize(bool& unsat, bool& sat) {
 			getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
 		}
 		// TODO check the effect on performance of addheadImpl, card2Equiv and bumpVar of agg heads in AggPropagator::initialize
-		getSet().getPCSolver().varBumpActivity(var((*i)->getHead()));
+		getSet().getPCSolver().getHeuristic().notifyAggPropInit(var((*i)->getHead()));
 	}
 }
 

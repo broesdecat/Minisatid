@@ -13,16 +13,18 @@
 using namespace MinisatID;
 
 Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver, bool oneshot){
-	auto s = new Minisat::Solver(pcsolver, oneshot);
 	auto options = pcsolver->modes();
-	s->random_var_freq = options.rand_var_freq;
-	s->var_decay = options.var_decay;
+	MinisatHeuristic* heur;
+	if(false){
+		heur = new MinisatHeuristic(options.polarity==Polarity::RAND);
+	}else{
+		heur = new VarMTF(8);
+	}
+
+	auto s = new Minisat::Solver(pcsolver, oneshot, heur);
 	s->verbosity = options.verbosity;
 	s->random_seed = options.randomseed;
 	s->fullmodelcheck = options.fullmodelcheck;
 	s->max_learned_clauses = options.maxNbOfLearnedClauses;
-	if(options.polarity==Polarity::RAND){
-		s->rnd_pol=true;
-	}
 	return s;
 }

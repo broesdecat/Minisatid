@@ -7,6 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/IDSolver.hpp"
+#include "satsolver/heuristics/Heuristics.hpp"
 
 #include "utils/Print.hpp"
 #include "external/utils/ContainerUtils.hpp"
@@ -716,7 +717,7 @@ void IDSolver::bumpHeadHeuristic() {
 		if (isDefined(v) && type(v) == DefType::DISJ) {
 			const PropRule& r = *definition(v);
 			for (uint j = 0; j < r.size(); ++j) {
-				getPCSolver().varBumpActivity(var(r[j]));
+				getPCSolver().getHeuristic().notifyHead(var(r[j]));
 			}
 		}
 	}
