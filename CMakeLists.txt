@@ -4,7 +4,7 @@ project (minisatid)
 # The version number.
 set (MinisatID_VERSION_MAJOR 3)
 set (MinisatID_VERSION_MINOR 9)
-set (MinisatID_VERSION_PATCH 2)
+set (MinisatID_VERSION_PATCH 3)
 set (MinisatID_VERSION "${MinisatID_VERSION_MAJOR}.${MinisatID_VERSION_MINOR}.${MinisatID_VERSION_PATCH}")
 
 ENABLE_TESTING()
