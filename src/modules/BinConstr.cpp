@@ -23,6 +23,9 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()));
 		head_ = lefthead;
@@ -36,6 +39,9 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
 		head_ = lefthead;
@@ -122,7 +128,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto one = left()->getLEQLit(rightmax());
 		auto lit = right()->getLEQLit(rightmax());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path A.");
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
@@ -131,7 +137,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto two = right()->getGEQLit(leftmin());
 		lit = left()->getGEQLit(leftmin());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path B.");
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
@@ -141,7 +147,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto one = left()->getGEQLit(rightmin() + 1);
 		auto lit = right()->getGEQLit(rightmin());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path C.");
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
@@ -150,7 +156,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto two = right()->getLEQLit(leftmax() - 1);
 		lit = left()->getLEQLit(leftmax());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path D.");
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
@@ -160,22 +166,22 @@ rClause BinaryConstraint::notifypropagate() {
 		if (rightmax() < leftmin()) {
 			auto lit = right()->getLEQLit(rightmax());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path E.");
 			}
 			lit = left()->getGEQLit(leftmin());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path F.");
 			}
 			propagations.push_back(~head());
 			reasons[~head()] = BinReason(NULL, false, left()->minValue(), right()->maxValue());
 		} else if (leftmax() <= rightmin()) {
 			auto lit = right()->getGEQLit(rightmin());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path G.");
 			}
 			lit = left()->getLEQLit(leftmax());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path H.");
 			}
 			propagations.push_back(head());
 			reasons[head()] = BinReason(NULL, false, left()->maxValue(), right()->minValue());

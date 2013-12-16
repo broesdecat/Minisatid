@@ -308,10 +308,11 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 			throw idpexception(ss.str());
 		}
 		IntVar* intvar = NULL;
-		if (abs(((double) obj.maxvalue) - obj.minvalue) < 100) { // FIXME duplicate heuristic in FDAggConstraint
-			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue));
+		// FIXME overflow check for int
+		if (abs(obj.maxvalue - obj.minvalue) < 100) { // FIXME duplicate heuristic in FDAggConstraint
+			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue);
 		} else {
-			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue)); // TODO also for enum variables
+			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue); // TODO also for enum variables
 		}
 		intvars.insert( { obj.varID, intvar });
 		intvar->finish();
@@ -344,25 +345,24 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 	} else {
 		Implication eq(obj.getID(), obj.head, ImplicationType::EQUIVALENT, { }, true);
 		auto left = getIntVar(obj.varID);
-		auto intbound = toInt(obj.bound);
 		switch (obj.rel) {
 		case EqType::EQ:
-			eq.body.push_back(left->getEQLit(intbound));
+			eq.body.push_back(left->getEQLit(obj.bound));
 			break;
 		case EqType::NEQ:
-			eq.body.push_back(~left->getEQLit(intbound));
+			eq.body.push_back(~left->getEQLit(obj.bound));
 			break;
 		case EqType::GEQ:
-			eq.body.push_back(left->getGEQLit(intbound));
+			eq.body.push_back(left->getGEQLit(obj.bound));
 			break;
 		case EqType::G:
-			eq.body.push_back(left->getGEQLit(intbound + 1));
+			eq.body.push_back(left->getGEQLit(obj.bound + 1));
 			break;
 		case EqType::LEQ:
-			eq.body.push_back(left->getLEQLit(intbound));
+			eq.body.push_back(left->getLEQLit(obj.bound));
 			break;
 		case EqType::L:
-			eq.body.push_back(left->getLEQLit(intbound - 1));
+			eq.body.push_back(left->getLEQLit(obj.bound - 1));
 			break;
 		}
 		add(eq);
@@ -639,7 +639,7 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 			throw idpexception("Current interpretation is a not a model.");
 		}
 		vareq.variable = ivar->getVarID();
-		vareq.value = ivar->minValue();
+		vareq.value = (int)ivar->minValue(); // TODO
 		varassignments.push_back(vareq);
 	}
 }

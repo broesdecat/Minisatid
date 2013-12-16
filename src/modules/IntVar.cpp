@@ -34,7 +34,7 @@ void IntVar::accept(ConstraintVisitor& ) {
 }
 
 rClause IntVar::notifypropagate() {
-	int lastmin = currentmin, lastmax = currentmax;
+	Weight lastmin = currentmin, lastmax = currentmax;
 	updateBounds();
 	if (lastmin != currentmin || lastmax != currentmax) {
 		if (verbosity() > 7) {
@@ -46,7 +46,7 @@ rClause IntVar::notifypropagate() {
 	return nullPtrClause;
 }
 
-Lit IntVar::getEQLit(int bound) {
+Lit IntVar::getEQLit(Weight bound) {
 	auto it = eqlits.find(bound);
 	if(it!=eqlits.cend()){
 		return it->second;
@@ -136,19 +136,22 @@ void BasicIntVar::updateBounds() {
 	// clog <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
-RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
+RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max)
 		: BasicIntVar(id, solver, varid) {
 	if (min > max) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
 		return;
 	}
+	if(isNegInfinity(min) || isPosInfinity(max)){
+		throw idpexception("Values of rangevar cannot be infinite");
+	}
 	setOrigMax(max);
 	setOrigMin(min);
 }
 
 void RangeIntVar::finish() {
-	for (int i = origMinValue(); i <= origMaxValue(); ++i) {
+	for (Weight i = origMinValue(); i <= origMaxValue(); ++i) {
 		auto var = engine().getLit(getVarID(), EqType::LEQ, i);
 		leqlits.push_back(IntVarValue(this, var, i));
 		engine().accept(this, var, FASTEST);
@@ -156,6 +159,13 @@ void RangeIntVar::finish() {
 		if(origMaxValue()==getMaxElem<Weight>()){ // TODO very ugly overflow check, necessary for min and max aggregates (empty set is infinity)
 			break;
 		}
+	}
+
+	for (Weight i = origMinValue(); i < origMaxValue() + 1; ++i) {
+		getPCSolver().varBumpActivity(var(getEQLit(i)));
+		getPCSolver().varBumpActivity(var(getEQLit(i)));
+		getPCSolver().varBumpActivity(var(getEQLit(i)));
+		getPCSolver().varBumpActivity(var(getEQLit(i)));
 	}
 
 	getPCSolver().accept(this);
@@ -166,7 +176,7 @@ void RangeIntVar::finish() {
 	engine().notifyBoundsChanged(this);
 }
 
-Lit RangeIntVar::getLEQLit(int bound) {
+Lit RangeIntVar::getLEQLit(Weight bound) {
 	if(verbosity()>5){
 		clog <<"Requesting var" <<toString(getVarID()) <<"[" <<minValue() <<"," <<maxValue() <<"]" <<"=<" <<bound <<" (orig bounds" <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]"  <<")\n";
 	}
@@ -176,7 +186,9 @@ Lit RangeIntVar::getLEQLit(int bound) {
 	if(origMinValue()<0 && posInfinity()+origMinValue()<bound){
 		return getPCSolver().getTrueLit();
 	}
-	auto index = bound - origMinValue();
+	auto ti = bound - origMinValue();
+	MAssert(ti>=Weight(0) && ti<=Weight(getMaxElem<int>()));
+	int index = (int)ti;
 	if (index < 0) {
 		return getPCSolver().getFalseLit();
 	}
@@ -186,15 +198,20 @@ Lit RangeIntVar::getLEQLit(int bound) {
 	return leqlits[index].lit;
 }
 
-Lit RangeIntVar::getGEQLit(int bound) {
+Lit RangeIntVar::getGEQLit(Weight bound) {
 	if(bound==negInfinity()){
 		return getPCSolver().getTrueLit();
 	}
 	return not getLEQLit(bound - 1);
 }
 
-EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<int>& values)
+EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values)
 		: BasicIntVar(id, solver, varid), _values(values) {
+	for(auto w: values){
+		if(isPosInfinity(w) || isNegInfinity(w)){
+			throw idpexception("Values of enumvar cannot be infinite");
+		}
+	}
 	if (values.empty()) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent();
@@ -221,7 +238,7 @@ void EnumIntVar::finish(){
 	engine().notifyBoundsChanged(this);
 }
 
-Lit EnumIntVar::getLEQLit(int bound) {
+Lit EnumIntVar::getLEQLit(Weight bound) {
 	if(verbosity()>5){
 		clog <<"Requesting var" <<toString(getVarID()) <<"{" <<minValue() <<",...," <<maxValue() <<"}" <<"=<" <<bound <<" (orig bounds" <<"{" <<origMinValue() <<",...)," <<origMaxValue() <<"}"  <<")\n";
 	}
@@ -239,7 +256,7 @@ Lit EnumIntVar::getLEQLit(int bound) {
 	}
 }
 
-Lit EnumIntVar::getGEQLit(int bound) {
+Lit EnumIntVar::getGEQLit(Weight bound) {
 	if(verbosity()>5){
 		clog <<"Requesting var" <<toString(getVarID()) <<"{" <<minValue() <<",...," <<maxValue() <<"}" <<">=" <<bound <<" (orig bounds" <<"{" <<origMinValue() <<",...," <<origMaxValue() <<"}"  <<")\n";
 	}

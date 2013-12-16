@@ -8,6 +8,7 @@
  */
 
 #include "external/Weight.hpp"
+#include "utils/NumericLimits.hpp"
 
 #include <string>
 #include <sstream>
@@ -34,6 +35,13 @@ std::string Weight::get_str() const {
 	}
 }
 
+bool MinisatID::isPosInfinity(const Weight& w){
+	return w.isPosInfinity();
+}
+bool MinisatID::isNegInfinity(const Weight& w){
+	return w.isNegInfinity();
+}
+
 ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
 	output << p.get_str();
 	return output;
@@ -54,6 +62,24 @@ Weight MinisatID::abs(const Weight& w) {return w<0?-w:w;}
 Weight MinisatID::posInfinity() {return Weight(true);}
 Weight MinisatID::negInfinity() {return Weight(false);}
 
+Weight MinisatID::ceildiv(const Weight& l, const Weight& r){
+	return l.ceildiv(r);
+}
+
+Weight MinisatID::floordiv(const Weight& l, const Weight& r){
+	return l.floordiv(r);
+}
+
+int MinisatID::getClosestInt(const Weight& w){
+	if(w>=Weight(getMaxElem<int>())){
+		return getMaxElem<int>();
+	}else if(w <= getMinElem<int>()){
+		return getMinElem<int>();
+	}else{
+		return toInt(w);
+	}
+}
+
 int MinisatID::toInt(const Weight& weight) {return weight.toInt();}
 #else //USING FINITE PRECISION WEIGHTS
 string MinisatID::toString(const Weight& w) {
@@ -69,5 +95,20 @@ Weight MinisatID::negInfinity() {
 }
 int MinisatID::toInt(const Weight& weight) {
 	return weight;
+}
+Weight MinisatID::ceildiv(const Weight& l, const Weight& r){
+	return ceil(l/r);
+}
+Weight MinisatID::floordiv(const Weight& l, const Weight& r){
+	return floor(l/r);
+}
+bool MinisatID::isPosInfinity(const Weight& w){
+	return w==posInfinity();
+}
+bool MinisatID::isNegInfinity(const Weight& w){
+	return w==negInfinity();
+}
+int MinisatID::getClosestInt(const Weight& w){
+	return w;
 }
 #endif

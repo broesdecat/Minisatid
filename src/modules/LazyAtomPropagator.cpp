@@ -21,11 +21,12 @@ LazyAtomPropagator::LazyAtomPropagator(uint id, PCSolver* engine, const Lit& hea
 			grounder(grounder),
 			maxsize(0) {
 
-	double size = 2;
+	// TODO overflow checks
+	Weight size = 2;
 	for (auto arg : args) {
 		size *= (arg->origMaxValue() - arg->origMinValue()) + 1;
 	}
-	if (size > (double) getMaxElem<int>()) {
+	if (size > Weight(getMaxElem<int>())) {
 		maxsize = getMaxElem<int>();
 	} else {
 		maxsize = (int) size;
@@ -58,7 +59,7 @@ rClause LazyAtomPropagator::notifypropagate() {
 		if (not v->isKnown()) {
 			return confl;
 		} else {
-			argvalues.push_back(v->minValue());
+			argvalues.push_back((int)v->minValue()); // TODO overflow check
 		}
 	}
 	//if(grounder->isFunction()){

@@ -470,11 +470,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 			continue;
 		}
 
-		vector<Weight> weights;
-		weights.push_back(1);
-		weights.push_back(weight);
-
-		auto varID = newCpVar(weights);
+		auto varID = newCpVar({1,weight});
 		constraints << "constraint int_eq_reif(" << getIntVarName(varID) << ", " << weight << ", " << getVarName(set.wl[i].getLit()) << ");\n";
 
 		Weight prevmin = min;
@@ -512,7 +508,7 @@ void FlatZincRewriter<Stream>::innerExecute() {
 		// NOTE: Duplicate code with PropagatorFactory
 		std::vector<VarID> newvars;
 		for(auto i=0; i<sum.varIDs.size(); ++i){
-			auto newvar = newCpVar(min(0,getMin(sum.varIDs[i])), max(0,getMax(sum.varIDs[i]))); // TODO: better make it an enum if 0 is far from the other values?
+			auto newvar = newCpVar(min(Weight(0),getMin(sum.varIDs[i])), max(Weight(0),getMax(sum.varIDs[i]))); // TODO: better make it an enum if 0 if far from the other values?
 			newvars.push_back(newvar);
 			auto tseitin0 = newAtom();
 			auto tseitineq = newAtom();

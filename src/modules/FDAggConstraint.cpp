@@ -55,7 +55,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		const std::vector<Weight>& weights, EqType rel, IntView* bound) {
 	//FIXME .. PASS THE ID
 	if (set.size() == 0) {
-		int neutral = 0;
+		Weight neutral = 0;
 		if (getType() == AggType::PROD) {
 			MAssert(weights.size() == 1);
 			neutral = weights[0];
@@ -133,13 +133,15 @@ void FDAggConstraint::watchRelevantVars() {
 	// TODO remove trivially true aggregates
 }
 
-bool additionOverflow(int x, int y) {
-	if (((double) x) + y > getMaxElem<int>()) {
+bool additionOverflow(Weight x, Weight y) {
+#ifdef NOARBITPREC
+	if (((double) x) + y > getMaxElem<Weight>()) {
 		return true;
 	}
-	if (((double) x) + y < getMinElem<int>()) {
+	if (((double) x) + y < getMinElem<Weight>()) {
 		return true;
 	}
+#endif
 	return false;
 }
 
@@ -148,6 +150,7 @@ bool additionOverflow(int x, int y) {
  */
 rClause FDAggConstraint::addClause(litlist& lits, bool conflict) {
 	auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
+	//getPCSolver().printClause(c);
 	if (conflict) { // Conflict
 		getPCSolver().addConflictClause(c);
 		return c;
@@ -220,6 +223,7 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		}
 	}
 
+#ifdef NOARBITPREC
 	double absmax(0);
 	for (uint i = 0; i < newset.size(); ++i) {
 		double sumterm = newweights[i];
@@ -229,8 +233,37 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 	if(absmax>getMaxElem<Weight>()){
 		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
 	}
+#endif
 	sharedInitialization(head, newConditions, newset, newweights, rel, bound);
 	watchRelevantVars();
+
+	vector<int> index(_vars.size(), 0);
+	for (uint i = 0 ; i != index.size() ; i++) {
+	    index[i] = i;
+	}
+	sort(index.begin(), index.end(),
+	    [&](const int& a, const int& b) {
+	        return (abs(_vars[a]->maxValue()-_vars[a]->minValue()) > abs(_vars[b]->maxValue()-_vars[b]->minValue()));
+	    }
+	);
+	auto v=_vars; auto w=_weights; auto c=_conditions;
+	for(uint i=0; i<index.size(); ++i){
+		_vars[i]=v[index[i]];
+		_weights[i]=w[index[i]];
+		_conditions[i]=c[index[i]];
+	}
+
+	_absmax = 0; _absmin = 0;
+	for(uint i=0; i<_vars.size(); ++i){
+		//cerr <<_vars[i]->toString() <<"=[" <<_vars[i]->minValue() <<"," <<_vars[i]->maxValue() <<"]\n";
+		if(_weights[i]<0){
+			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMinValue());
+			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMaxValue());
+		}else{
+			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMaxValue());
+			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMinValue());
+		}
+	}
 }
 
 FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
@@ -250,8 +283,8 @@ FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, con
 	initialize(head, conditions, set, weights, rel, bound);
 }
 
-std::pair<int, int> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const {
-	int min = 0, max = 0;
+std::pair<Weight, Weight> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const {
+	Weight min = 0, max = 0;
 	//clog <<"Set\n";
 	for (uint i = 0; i < _vars.size(); ++i) {
 		//clog <<"\t" <<_vars[i]->toString() <<"[" <<_vars[i]->minValue() <<".." <<_vars[i]->maxValue() <<"]*" <<_weights[i] <<" if " <<toString(_conditions[i]) <<"\n";
@@ -290,10 +323,19 @@ std::pair<int, int> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(size_t e
  * But excludes the excludedVar'th variable
  *
  * The returned list only contains literals CURRENTLY FALSE!
+ *
+ * Return lits such that absmax + sum of max-origmax values < bound
  */
-litlist FDSumConstraint::varsContributingToMax(size_t excludedVar) const {
+litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound) const {
+	//cerr <<"Bound = " <<bound <<", absmax = " <<_absmax <<"\n";
 	litlist lits;
+	Weight val = _absmax;
 	for (uint j = 0; j < _vars.size(); ++j) {
+		//cerr <<_vars[j]->toString() <<"=[" <<_vars[j]->minValue() <<"," <<_vars[j]->maxValue() <<"]\n";
+		if(val<bound){
+			//cerr <<"Stop\n";
+			break;
+		}
 		if (j == excludedVar) {
 			continue;
 		}
@@ -305,6 +347,7 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar) const {
 			if (_weights[j] > 0 && _vars[j]->origMaxValue() <= 0) {
 				continue;
 			}
+			val -= _weights[j]*_vars[j]->origMaxValue();
 			lits.push_back(_conditions[j]);
 		} else { // TODO in fact stop if we have enough?
 			if (condval == l_True) {
@@ -315,6 +358,7 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar) const {
 			} else {
 				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 			}
+			val += _weights[j]*(_vars[j]->maxValue()-_vars[j]->origMaxValue());
 		}
 	}
 #ifdef DEBUG
@@ -328,10 +372,19 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar) const {
 }
 /*
  * The returned list only contains literals CURRENTLY FALSE!
+ *
+ * Return lits such that absmin + sum of min-origmin values >= bound
  */
-litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
+litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound) const {
+	//cerr <<"Bound = " <<bound <<", absmin = " <<_absmin <<"\n";
 	litlist lits;
+	Weight val = _absmin;
 	for (uint j = 0; j < _vars.size(); ++j) {
+		//cerr <<_vars[j]->toString() <<"\n";
+		if(val>=bound){
+		//	cerr <<"Stop\n";
+			break;
+		}
 		if (j == excludedVar) {
 			continue;
 		}
@@ -343,6 +396,7 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
 			if (_weights[j] <= 0 && _vars[j]->origMaxValue() <= 0) {
 				continue;
 			}
+			val -= _weights[j]*_vars[j]->origMinValue();
 			lits.push_back(_conditions[j]);
 		} else {
 			if (condval == l_True) {
@@ -353,6 +407,7 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
 			} else {
 				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 			}
+			val += _weights[j]*(_vars[j]->minValue()-_vars[j]->origMinValue());
 		}
 	}
 #ifdef DEBUG
@@ -365,7 +420,7 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
 	return lits;
 }
 
-rClause FDSumConstraint::createClause(Contrib use, bool conflict, const std::vector<Lit>& extralits) {
+rClause FDSumConstraint::createClause(Contrib use, bool conflict, const std::vector<Lit>& extralits, Weight bound) {
 	/*	auto someunknown = false;
 	 for(auto lit: extralits){
 	 if(value(lit)==l_Undef){
@@ -376,20 +431,20 @@ rClause FDSumConstraint::createClause(Contrib use, bool conflict, const std::vec
 	 return nullPtrClause;
 	 }*/
 	if (use == Contrib::MIN) {
-		auto minlits = varsContributingToMin();
+		auto minlits = varsContributingToMin(bound);
 		for (auto lit : extralits) {
 			minlits.push_back(lit);
 		}
 		return addClause(minlits, conflict);
 	} else {
-		auto maxlits = varsContributingToMax();
+		auto maxlits = varsContributingToMax(bound);
 		for (auto lit : extralits) {
 			maxlits.push_back(lit);
 		}
 		return addClause(maxlits, conflict);
 	}
 }
-rClause FDSumConstraint::createClauseExcl(Contrib use, size_t varindex, bool conflict, const std::vector<Lit>& extralits) {
+rClause FDSumConstraint::createClauseExcl(Contrib use, size_t varindex, bool conflict, const std::vector<Lit>& extralits, Weight bound) {
 	/*	auto someunknown = false;
 	 for(auto lit: extralits){
 	 if(value(lit)==l_Undef){
@@ -400,13 +455,13 @@ rClause FDSumConstraint::createClauseExcl(Contrib use, size_t varindex, bool con
 	 return nullPtrClause;
 	 }*/
 	if (use == Contrib::MIN) {
-		auto minlits = varsContributingToMin(varindex);
+		auto minlits = varsContributingToMin(varindex, bound);
 		for (auto lit : extralits) {
 			minlits.push_back(lit);
 		}
 		return addClause(minlits, conflict);
 	} else {
-		auto maxlits = varsContributingToMax(varindex);
+		auto maxlits = varsContributingToMax(varindex, bound);
 		for (auto lit : extralits) {
 			maxlits.push_back(lit);
 		}
@@ -433,10 +488,10 @@ rClause FDSumConstraint::notifypropagate() {
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
 		if (min >= bound) {
-			conflCheck(createClause(Contrib::MIN, false, {_head}));
+			conflCheck(createClause(Contrib::MIN, false, {_head}, bound)); // Enough such that sum of min values >= bound
 			// Note: no conflict as head is unknown
 		} else if (max < bound) {
-			conflCheck(createClause(Contrib::MAX, false, {not _head}));
+			conflCheck(createClause(Contrib::MAX, false, {not _head}, bound)); // Enough such that sum of max values < bound
 			// Note: no conflict as head is unknown
 		}
 		return nullPtrClause;
@@ -448,27 +503,24 @@ rClause FDSumConstraint::notifypropagate() {
 	}
 
 	for (uint i = 0; i < _vars.size(); ++i) {
-		auto condval = value(_conditions[i]);
 		auto var = _vars[i];
 		auto weight = _weights[i];
 
-		if (condval == l_False) { //In this case, we can only derive a possible conflict
+		if (value(_conditions[i]) == l_False) { //In this case, we can only derive a possible conflict.
 			if (_headval == l_True && max < bound) {
-				conflCheck(createClauseExcl(Contrib::MAX, i, true, {not _head, _conditions[i]}));
+				conflCheck(createClauseExcl(Contrib::MAX, i, true, {not _head, _conditions[i]}, bound)); // Enough such that sum of max values without i < bound
 			} else if (_headval == l_False && min >= bound) {
-				conflCheck(createClauseExcl(Contrib::MIN, i, true, {_head, _conditions[i]}));
+				conflCheck(createClauseExcl(Contrib::MIN, i, true, {_head, _conditions[i]}, bound)); // Enough such that sum of min values without i >= bound
 			}
 			continue;
 		}
+		MAssert(value(_conditions[i])!=l_False);
 
 		// Compute max and min without this var more efficiently than going over all vars again
-		auto maxWithoutThisVar = max;
-		auto minWithoutThisVar = min;
-		if (condval != l_False) { // If condition was false, it would not have been included in min/max anyway
-			auto minval = var->minValue();
-			auto maxval = var->maxValue();
-			if (condval != l_True) {
-				//condition i is possibly false
+		auto maxWithoutThisVar = max, minWithoutThisVar = min;
+		auto minval = var->minValue(), maxval = var->maxValue();
+		if (value(_conditions[i]) != l_True) {
+			// condition i is possibly false
 				minval = minval < 0 ? minval : 0;
 				maxval = maxval > 0 ? maxval : 0;
 			}
@@ -479,7 +531,6 @@ rClause FDSumConstraint::notifypropagate() {
 				minWithoutThisVar -= minval * weight;
 				maxWithoutThisVar -= maxval * weight;
 			}
-		}
 
 		// In these cases, more precise bounds reasoning is possible:
 		// If excluding the value of the variable from the minimum/maximum, would it violate the bound?
@@ -487,50 +538,48 @@ rClause FDSumConstraint::notifypropagate() {
 		bool notBeingZeroIsRelevant = false;
 		if (_headval == l_True) {
 			// We know: w_i*v_i >= (b-minWithout(i))
-			int maxIfConditionIsTrue = 0;
+			Weight maxIfConditionIsTrue = 0;
 			if (weight > 0) {
-				auto val = ceil((bound - maxWithoutThisVar) / (double) weight);
+				auto val = ceildiv((bound - maxWithoutThisVar), weight);
 				lit = var->getGEQLit(val);
 				notBeingZeroIsRelevant = (val > 0);
 				maxIfConditionIsTrue = maxWithoutThisVar + (var->maxValue() * weight);
 			} else {
-				auto val = floor((bound - maxWithoutThisVar) / (double) weight);
+				auto val = floordiv((bound - maxWithoutThisVar), weight);
 				lit = var->getLEQLit(val);
 				notBeingZeroIsRelevant = (val < 0);
 				maxIfConditionIsTrue = maxWithoutThisVar + (var->minValue() * weight);
 			}
 
 			if (maxIfConditionIsTrue < bound && value(_conditions[i]) != l_False) {
-				conflCheck(createClauseExcl(Contrib::MAX, i, value(_conditions[i]) == l_True, {lit, not _head, not _conditions[i]}));
-				continue;
+				conflCheck(createClauseExcl(Contrib::MAX, i, value(_conditions[i]) == l_True, {lit, not _head, not _conditions[i]}, bound - var->maxValue()));
+				continue; // enough such that sum of max values without i < bound - max value i
 			}
-			if (condval == l_Undef && notBeingZeroIsRelevant) { // Never conflict (condition is unknown)
-				conflCheck(createClauseExcl(Contrib::MAX, i, false, {not _head, _conditions[i]}));
+			if (value(_conditions[i]) == l_Undef && notBeingZeroIsRelevant) { // Never conflict (condition is unknown)
+				conflCheck(createClauseExcl(Contrib::MAX, i, false, {not _head, _conditions[i]}, bound));
+					// enough such that sum of max values without i < bound
 			}
 			//We can only propagate something about the value of term i if its condition is true (or propagated to be true)
 			auto propagateValue = notBeingZeroIsRelevant || value(_conditions[i]) == l_True;
 			if (propagateValue && value(lit) != l_True) { //Some values not yet excluded
-				conflCheck(createClauseExcl(Contrib::MAX, i, value(_conditions[i]) == l_True && value(lit) == l_False, {not _head, not _conditions[i], lit}));
+				conflCheck(createClauseExcl(Contrib::MAX, i, value(_conditions[i]) == l_True && value(lit) == l_False, {not _head, not _conditions[i], lit}, bound));
+					// enough such that sum of max values without i < bound
 			}
 		} else { // _head is false
 			// We know: w_i*v_i < (b-minWithout(i))
-			int minIfConditionIsTrue = 0;
+			Weight minIfConditionIsTrue = 0;
 			if (weight > 0) {
-				auto val = (bound - minWithoutThisVar) / (double) weight;
-				if (val == floor(val)) {
-					val--;
-				} else {
-					val = floor(val);
+				auto val = floordiv(bound - minWithoutThisVar, weight);
+				if (weight*val == bound - minWithoutThisVar) {
+					val-=1;
 				}
 				lit = var->getLEQLit(val);
 				notBeingZeroIsRelevant = (val < 0);
 				minIfConditionIsTrue = minWithoutThisVar + (var->minValue() * weight);
 			} else {
-				auto val = (bound - minWithoutThisVar) / (double) weight;
-				if (val == ceil(val)) {
-					val++;
-				} else {
-					val = ceil(val);
+				auto val = ceildiv(bound - minWithoutThisVar, weight);
+				if (val*weight == bound - minWithoutThisVar) {
+					val+=1;
 				}
 				lit = var->getGEQLit(val);
 				notBeingZeroIsRelevant = (val > 0);
@@ -538,16 +587,19 @@ rClause FDSumConstraint::notifypropagate() {
 			}
 
 			if (minIfConditionIsTrue > bound && value(_conditions[i]) != l_False) {
-				conflCheck(createClauseExcl(Contrib::MIN, i, value(_conditions[i]) == l_True, {lit, _head, not _conditions[i]}));
+				conflCheck(createClauseExcl(Contrib::MIN, i, value(_conditions[i]) == l_True, {lit, _head, not _conditions[i]}, bound-var->minValue()));
+				// enough such that sum of min values without i >= bound - min value i
 				continue;
 			}
-			if (condval == l_Undef && notBeingZeroIsRelevant) { // Never conflict (condition is unknown)
-				conflCheck(createClauseExcl(Contrib::MIN, i, false, {_head, _conditions[i]}));
+			if (value(_conditions[i]) == l_Undef && notBeingZeroIsRelevant) { // Never conflict (condition is unknown)
+				conflCheck(createClauseExcl(Contrib::MIN, i, false, {_head, _conditions[i]}, bound));
+				// enough such that sum of max values without i =< bound
 			}
 			//We can only propagate something about the value of term i if its condition is true (or propagated to be true)
 			auto propagateValue = notBeingZeroIsRelevant || value(_conditions[i]) == l_True;
 			if (propagateValue && value(lit) != l_True) {
-				conflCheck(createClauseExcl(Contrib::MIN, i, value(_conditions[i]) == l_True && value(lit)==l_False, {_head, not _conditions[i], lit}));
+				conflCheck(createClauseExcl(Contrib::MIN, i, value(_conditions[i]) == l_True && value(lit)==l_False, {_head, not _conditions[i], lit}, bound));
+				// enough such that sum of max values without i =< bound
 			}
 		}
 	}
@@ -615,13 +667,15 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		return;
 	}
 
+#ifdef NOARBITPREC
 	double absmax(abs(newweight)); //note that s == 0 unless set
-	for (auto var : newset) {
+		for (auto var : newset) {
 		absmax *= max(abs(var->maxValue()), abs(var->minValue()));
 	}
 	if(absmax>getMaxElem<Weight>()) {
 		throw idpexception("Overflow possible for a product of a set of variables in limited integer precision.");
 	}
+#endif
 
 	sharedInitialization(head, newconditions, newset, { newweight }, rel, bound);
 	if (not isPresent()) {
@@ -751,10 +805,10 @@ litlist FDProdConstraint::varsContributingToMin(size_t excludedVar, bool canBeNe
 
 //NOTE: for products, this does not include the weight!!! and also... This is an estimate.
 // varloc might not exist!
-std::pair<int, int> FDProdConstraint::getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const {
+std::pair<Weight, Weight> FDProdConstraint::getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const {
 	if (canContainNegatives()) {
-		int absmax = 1;
-		int decidedval = 1;
+		Weight absmax = 1;
+		Weight decidedval = 1;
 		bool decided = true;
 		for (uint i = 0; i < _vars.size(); ++i) {
 			if (i == excludedVar) {
@@ -781,7 +835,7 @@ std::pair<int, int> FDProdConstraint::getMinAndMaxPossibleAggValsWithout(size_t 
 		}
 		return {-absmax,absmax};
 	} else {
-		int min = 1, max = 1;
+		Weight min = 1, max = 1;
 		for (uint i = 0; i < _vars.size(); ++i) {
 			if (i != excludedVar && value(_conditions[i]) != l_False) {
 				auto minval = _vars[i]->minValue();
@@ -800,10 +854,10 @@ std::pair<int, int> FDProdConstraint::getMinAndMaxPossibleAggValsWithout(size_t 
 
 rClause FDProdConstraint::notifypropagate() {
 	auto minmax = getMinAndMaxPossibleAggVals();
-	int min = minmax.first;
-	int max = minmax.second;
-	int minbound = _bound->minValue();
-	int maxbound = _bound->maxValue();
+	Weight min = minmax.first;
+	Weight max = minmax.second;
+	Weight minbound = _bound->minValue();
+	Weight maxbound = _bound->maxValue();
 	bool boundKnown = (minbound == maxbound);
 
 	if (min == max && boundKnown) {
@@ -815,7 +869,7 @@ rClause FDProdConstraint::notifypropagate() {
 	return notifypropagateWithoutNeg(min, max, minbound, maxbound);
 }
 
-rClause FDProdConstraint::check(int val, int boundvalue) {
+rClause FDProdConstraint::check(Weight val, Weight boundvalue) {
 	auto headval = value(_head);
 	litlist lits;
 	bool conflict = false;
@@ -851,7 +905,7 @@ rClause FDProdConstraint::check(int val, int boundvalue) {
 	return addClause(lits, conflict);
 }
 
-rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minbound, int maxbound) {
+rClause FDProdConstraint::notifypropagateWithoutNeg(Weight mini, Weight maxi, Weight minbound, Weight maxbound) {
 	auto headval = value(_head);
 	MAssert(not canContainNegatives());
 	MAssert(value(_definitelyPositive) == l_True);
@@ -859,8 +913,8 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 	MAssert(_weight != 0);
 	//Constructor should guarantee this.
 
-	int realmax = max(mini * _weight, maxi * _weight);
-	int realmin = min(mini * _weight, maxi * _weight);
+	Weight realmax = max(mini * _weight, maxi * _weight);
+	Weight realmin = min(mini * _weight, maxi * _weight);
 	bool reverted = (_weight < 0); //whether or not the min and max values have changed place
 
 	//First propagation: Aggregate and bound -> head
@@ -932,30 +986,30 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 			if (value(_conditions[i]) == l_False) {
 				varusedval = 1;
 			}
-			double maxWithoutThisVar;
+			Weight maxWithoutThisVar;
 			if (varusedval == 0) {
 				MAssert(realmax == 0);
 				auto minmaxnovar = getMinAndMaxPossibleAggValsWithout(i);
 				maxWithoutThisVar = max(minmaxnovar.first * _weight, minmaxnovar.second * _weight);
-			} else {
-				maxWithoutThisVar = realmax / (double) varusedval;
+			}else{
+				maxWithoutThisVar = realmax / varusedval;
 			}
 			if (maxWithoutThisVar == 0) {
 				//no propagation, this var cannot change anything.
 				continue;
 			}
 
-			int factormissing;
+			Weight factormissing;
 			if (not reverted) {
-				factormissing = ceil(minbound / maxWithoutThisVar);
+				factormissing = ceildiv(minbound, maxWithoutThisVar);
 			} else {
-				factormissing = floor(minbound / maxWithoutThisVar);
+				factormissing = floordiv(minbound, maxWithoutThisVar);
 			}
 			Lit lit;
 			bool conditionRelevant = false;
 			bool beingNotInSetIsRelevant = false;
 			if (value(_conditions[i]) != l_False) {
-				double maxIfConditionIsTrue = maxWithoutThisVar * (reverted ? var->minValue() : var->maxValue());
+				auto maxIfConditionIsTrue = maxWithoutThisVar * (reverted ? var->minValue() : var->maxValue());
 				beingNotInSetIsRelevant = (maxIfConditionIsTrue < minbound);
 			}
 
@@ -1032,39 +1086,37 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 				minval = minval < 1 ? minval : 1;
 				maxval = maxval > 1 ? maxval : 1;
 			}
-			auto varusedval = reverted ? maxval : minval; //The value that has been used for var to calculate realmmin
+			auto varusedval = reverted ? maxval : minval; //The value that has been used for var to calculate realmin
 			if (value(_conditions[i]) == l_False) {
 				varusedval = 1;
 			}
-			double minWithoutThisVar;
+			Weight minWithoutThisVar;
 			if (varusedval == 0) {
 				MAssert(realmin == 0);
 				auto minmaxnovar = getMinAndMaxPossibleAggValsWithout(i);
 				minWithoutThisVar = min(minmaxnovar.first * _weight, minmaxnovar.second * _weight);
 			} else {
-				minWithoutThisVar = realmin / (double) varusedval;
+				minWithoutThisVar = realmin / varusedval; // TODO can this be not an integer?
 			}
 			if (minWithoutThisVar == 0) {
 				//no propagation, this var cannot change anything.
 				continue;
 			}
-			double maxFactorThisVar = maxbound / minWithoutThisVar;
+			Weight maxFactorThisVar(0);
 			if (not reverted) {
-				if (maxFactorThisVar == floor(maxFactorThisVar)) {
-					maxFactorThisVar--; //Because we can only get LEQlit
-				} else {
-					maxFactorThisVar = floor(maxFactorThisVar);
+				maxFactorThisVar = floordiv(maxbound, minWithoutThisVar);
+				if (maxFactorThisVar*minWithoutThisVar == maxbound) {
+					maxFactorThisVar-=1; //Because we can only get LEQlit
 				}
 			} else {
-				if (maxFactorThisVar == ceil(maxFactorThisVar)) {
-					maxFactorThisVar++; //Because we can only get GEQlit
-				} else {
-					maxFactorThisVar = ceil(maxFactorThisVar);
+				maxFactorThisVar = ceildiv(maxbound, minWithoutThisVar);
+				if (maxFactorThisVar*minWithoutThisVar == maxbound) {
+					maxFactorThisVar+=1; //Because we can only get GEQlit
 				}
 			}
 			bool beingNotInSetIsRelevant = false;
 			if (value(_conditions[i]) != l_False) {
-				double minIfConditionIsTrue = minWithoutThisVar * (reverted ? var->maxValue() : var->minValue());
+				auto minIfConditionIsTrue = minWithoutThisVar * (reverted ? var->maxValue() : var->minValue());
 				beingNotInSetIsRelevant = (minIfConditionIsTrue >= maxbound);
 			}
 
@@ -1110,11 +1162,11 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(int mini, int maxi, int minb
 	return nullPtrClause;
 }
 
-rClause FDProdConstraint::notifypropagateWithNeg(int minval, int maxval, int minbound, int maxbound) {
+rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, Weight minbound, Weight maxbound) {
 	auto headval = value(_head);
 
-	int realmax = abs(max(minval * _weight, maxval * _weight));
-	int realmin = -realmax;
+	Weight realmax = abs(max(minval * _weight, maxval * _weight));
+	Weight realmin = -realmax;
 
 	//PROPAGATION 1: from agg and bound to head
 	if (headval == l_Undef) {
@@ -1173,7 +1225,7 @@ rClause FDProdConstraint::notifypropagateWithNeg(int minval, int maxval, int min
 		attemptPropagation3 = true;
 		// We can handle PROD { x_1.. x_n } < maxbound with a negative bound
 		// by propagating ABS(PROD { x_1.. x_n }) >= ABS(maxbound)+1
-		propagationbound = Weight((-1 * maxbound) + 1);
+		propagationbound = (Weight(-1) * maxbound) + Weight(1);
 		propagationlit = not _bound->getLEQLit(maxbound);
 	}
 
@@ -1191,12 +1243,11 @@ rClause FDProdConstraint::notifypropagateWithNeg(int minval, int maxval, int min
 				//TODO Can be optimized: we will want to do a derivation towards _condition[i] here, probably should be false unless bound can be zero...
 				continue;
 			}
-			auto maxWithoutThisVar = abs(realmax / absvarmax);
-			if (maxWithoutThisVar == 0) {
+			if (realmax==0) {
 				//TODO Can be optimized. Should be thought about...
 				continue;
 			}
-			auto stillNeeded = ceil(abs(propagationbound / maxWithoutThisVar));
+			auto stillNeeded = abs(ceildiv(propagationbound, realmax * absvarmax)); // TODO moved abs out of ceil, is this correct???
 
 			bool propagate = false;
 			bool conflict = false;

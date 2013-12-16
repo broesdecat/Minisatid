@@ -45,11 +45,11 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
 	vector<VarID> elemx;
-	uint n = 100;
+	auto n = 100;
 	for(uint i=0; i<n; ++i){
-		mult.push_back(Weight(i-1));
+		mult.push_back(Weight(((int)i)-1));
 		VarID x = {i};
-		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, 0, n));
+		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, Weight(0), Weight(n)));
 		elemx.push_back(x);
 	}
 
@@ -57,7 +57,7 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	weights.resize(elemx.size(),Weight(1));
 
 	for(uint i=0; i<n; ++i){
-		extAdd(*space, CPCount(DEFAULTCONSTRID,elemx, i, EqType::EQ, elemx[i]));
+		extAdd(*space, CPCount(DEFAULTCONSTRID,elemx, Weight((int)i), EqType::EQ, elemx[i]));
 	}
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(4)}));
 	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(4), vector<Lit>(elemx.size(), mkPosLit(42)), elemx, weights, EqType::EQ, n));
@@ -68,8 +68,8 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	int literalcount = 6;
 	for(uint i=0; i<n; ++i){
 		for(uint j=0; j<n; ++j){
-			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::EQ, Weight(j)));
-			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::GEQ, Weight(j)));
+			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::EQ, Weight((int)j)));
+			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::GEQ, Weight((int)j)));
 		}
 	}
 

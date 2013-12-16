@@ -390,7 +390,11 @@ public:
 		if (var.range) {
 			extAdd(*store, IntVarRange(maxid++, VarID { var.var }, var.begin, var.end));
 		} else {
-			extAdd(*store, IntVarEnum(maxid++, VarID { var.var }, var.values));
+			std::vector<Weight> weights; // TODO var.values should be Weight
+			for(auto w: var.values){
+				weights.push_back(Weight(w));
+			}
+			extAdd(*store, IntVarEnum(maxid++, VarID { var.var }, weights));
 		}
 	}
 
