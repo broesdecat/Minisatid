@@ -64,7 +64,7 @@ SolverOption::SolverOption():
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
 		fullmodelcheck(false),
 		usesimplifier(false),
-		userandomizedrestarts(false),
+		userandomizedrestarts(true),
 		flatzinc_a(false){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";

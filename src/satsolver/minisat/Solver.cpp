@@ -612,13 +612,13 @@ lbool operator not(lbool orig){
 }
 
 void Solver::randomizedRestart(){
-	if(not modes().lazyheur){
-		return;
-	}
+//	if(not modes().lazyheur){
+//		return;
+//	}
 	for(int i=0; i<trail_lim.size(); ++i){
 		auto decvar = var(trail[trail_lim[i]]);
-		if(drand(random_seed)>0.6){
-			polarity[decvar] = drand(random_seed)>0.7?true:false;
+		if(drand(random_seed)>0.5){
+			user_pol[decvar] = drand(random_seed)>=0.5?l_True:l_False;
 		}
 		if(drand(random_seed)<0.4){
 			varReduceActivity(decvar);

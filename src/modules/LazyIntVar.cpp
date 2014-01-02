@@ -138,7 +138,7 @@ void LazyIntVar::updateBounds() {
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
 	if(not unknown && not checkAndAddVariable(currentmin) && not checkAndAddVariable(currentmax)){
 		if(halve){
-			checkAndAddVariable((currentmin+currentmax)/2, true);
+			checkAndAddVariable((currentmin+currentmax)/2, false);
 		}else{
 			checkAndAddVariable(currentmax-1, false);
 		}
@@ -175,6 +175,7 @@ bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns
 	if(i!=leqlits.end()){
 		return false;
 	}else{
+		getPCSolver().notifyGroundingCall();
 		auto lit = addVariable(value);
 		auto solver = getPCSolver().getSATSolver();
 		if(defaulttruepol){
