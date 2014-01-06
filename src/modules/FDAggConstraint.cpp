@@ -14,7 +14,6 @@
 #include <cmath>
 #include "utils/NumericLimits.hpp"
 #include "IntVar.hpp"
-#include "utils/SafeInt.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -221,14 +220,15 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		}
 	}
 
-	SafeInt<Weight> absmax(0); //note that s == 0 unless set
-	try {
-		for (uint i = 0; i < newset.size(); ++i) {
-			SafeInt<Weight> sumterm(newweights[i]);
-			sumterm *= max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
-			absmax += sumterm;
-		}
-	} catch (const SafeIntException& err) {
+	double absmax(0), absmin(0);
+	for (uint i = 0; i < newset.size(); ++i) {
+		double sumterm = newweights[i];
+		double maxterm = sumterm*max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
+		double minterm = sumterm*min(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
+		absmax += maxterm;
+		absmin += minterm;
+	}
+	if(absmax<getMaxElem<Weight>() || absmin<getMinElem<Weight>()){
 		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
 	}
 	sharedInitialization(head, newConditions, newset, newweights, rel, bound);
@@ -429,6 +429,8 @@ rClause FDSumConstraint::notifypropagate() {
 	auto max = minmax.second;
 
 	auto bound = getBound();
+
+	//cerr <<"Min = " <<min <<", max = " <<max <<"\n";
 
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
