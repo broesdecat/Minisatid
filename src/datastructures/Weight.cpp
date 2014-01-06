@@ -11,8 +11,10 @@
 #include "utils/NumericLimits.hpp"
 
 #include <string>
+#include <iostream>
 #include <sstream>
 #include <limits>
+#include <cmath>
 
 using namespace std;
 using namespace MinisatID;
@@ -21,7 +23,7 @@ typedef numeric_limits<int> lim;
 
 #ifdef GMP
 int Weight::toInt() const {
-	if(inf || w>=std::numeric_limits<int>::max() || w<=std::numeric_limits<int>::min()) {
+	if(inf || w>getMaxElem<int>() || w<getMinElem<int>()) {
 		throw idpexception("Invalid conversion of an arbitrary size number to int.");
 	}
 	return w.get_si();

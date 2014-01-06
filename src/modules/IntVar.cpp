@@ -188,14 +188,13 @@ Lit RangeIntVar::getLEQLit(Weight bound) {
 	}
 	auto ti = bound - origMinValue();
 	MAssert(ti>=Weight(0) && ti<=Weight(getMaxElem<int>()));
-	int index = (int)ti;
-	if (index < 0) {
+	if (ti < Weight(0)) {
 		return getPCSolver().getFalseLit();
 	}
-	if ((int) leqlits.size() <= index) {
+	if (Weight((int)leqlits.size()) <= ti) {
 		return getPCSolver().getTrueLit();
 	}
-	return leqlits[index].lit;
+	return leqlits[(int)ti].lit;
 }
 
 Lit RangeIntVar::getGEQLit(Weight bound) {

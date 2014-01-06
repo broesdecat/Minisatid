@@ -157,6 +157,9 @@ void LazyIntVar::updateBounds() {
 		}
 		halve = not halve;
 	}
+	if(verbosity()>5){
+		clog <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
+	}
 }
 
 struct CompareVarValue{
@@ -201,10 +204,12 @@ bool LazyIntVar::checkAndAddVariable(Weight value, bool defaulttruepol){ // Retu
 }
 
 Lit LazyIntVar::getLEQLit(Weight bound) {
-	//cerr <<"Requesting var" <<getVarID().id <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
+	if(verbosity()>5){
+		clog <<"Requesting var" <<getVarID().id <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<"=<" <<bound <<"\n";
+	}
 	if (origMaxValue() <= bound) {
 		return getPCSolver().getTrueLit();
-	} else if (bound <= origMinValue()) {
+	} else if (bound < origMinValue()) {
 		return getPCSolver().getFalseLit();
 	} else {
 		auto i = findVariable(bound, leqlits);
