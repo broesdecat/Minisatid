@@ -577,12 +577,11 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		return;
 	}
 
-	SafeInt<Weight> absmax(abs(weight)); //note that s == 0 unless set
-	try {
-		for (auto var : set) {
-			absmax *= max(abs(var->maxValue()), abs(var->minValue()));
-		}
-	} catch (const SafeIntException& err) {
+	double absmax(abs(weight)); //note that s == 0 unless set
+	for (auto var : set) {
+		absmax *= max(abs(var->maxValue()), abs(var->minValue()));
+	}
+	if(absmax>getMaxElem<Weight>()) {
 		throw idpexception("Overflow possible for a product of a set of variables in limited integer precision.");
 	}
 
