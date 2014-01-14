@@ -220,15 +220,13 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		}
 	}
 
-	double absmax(0), absmin(0);
+	double absmax(0);
 	for (uint i = 0; i < newset.size(); ++i) {
 		double sumterm = newweights[i];
-		double maxterm = sumterm*max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
-		double minterm = sumterm*min(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
+		double maxterm = abs(sumterm)*max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
 		absmax += maxterm;
-		absmin += minterm;
 	}
-	if(absmax<getMaxElem<Weight>() || absmin<getMinElem<Weight>()){
+	if(absmax>getMaxElem<Weight>()){
 		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
 	}
 	sharedInitialization(head, newConditions, newset, newweights, rel, bound);
