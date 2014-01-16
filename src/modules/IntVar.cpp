@@ -148,11 +148,14 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int ma
 }
 
 void RangeIntVar::finish() {
-	for (int i = origMinValue(); i < origMaxValue() + 1; ++i) {
+	for (int i = origMinValue(); i <= origMaxValue(); ++i) {
 		auto var = engine().getLit(getVarID(), EqType::LEQ, i);
 		leqlits.push_back(IntVarValue(this, var, i));
 		engine().accept(this, var, FASTEST);
 		engine().accept(this, ~var, FASTEST);
+		if(origMaxValue()==getMaxElem<Weight>()){ // TODO very ugly overflow check, necessary for min and max aggregates (empty set is infinity)
+			break;
+		}
 	}
 
 	getPCSolver().accept(this);
