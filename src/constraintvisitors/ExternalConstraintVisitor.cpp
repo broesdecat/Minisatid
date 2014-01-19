@@ -43,7 +43,7 @@ void ExternalConstraintVisitor::setString(const Atom& atom, const std::string& n
 }
 bool ExternalConstraintVisitor::isTseitin(const Atom& atom) const {
 	if(getRemapper()->wasInput(atom)){
-		return getTranslator()->isTseitin(getRemapper()->getVar(atom));
+		return getTranslator()->isTseitin(getRemapper()->getLiteral(mkPosLit(atom)).getAtom());
 	}else{
 		return true;
 	}
