@@ -53,6 +53,8 @@ public:
 	bool oneshot;
 	bool fullmodelcheck; // If true, check whether all clauses are satisfied when a model is found.
 
+	void setInitialPolarity(Atom var, bool initiallyMakeTrue);
+
 private:
 	bool needsimplify;
 

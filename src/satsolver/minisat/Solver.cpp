@@ -345,6 +345,12 @@ void swap(Clause& c, int from, int to) {
 	c[to] = temp;
 }
 
+void Solver::setInitialPolarity(Atom var, bool initiallyMakeTrue) {
+//	if(getPCSolver().isTseitin(var)){
+//		polarity[var] = true;
+//	}
+}
+
 void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
 	rootunitlits.push_back(elem);
 }
