@@ -545,6 +545,9 @@ void PCSolver::setString(const Atom& lit, const std::string& name){
 	printer->setString(lit, name);
 }
 
+bool PCSolver::isTseitin(const Atom& atom) const {
+	return printer->isTseitin(atom);
+}
 std::string PCSolver::toString(VarID id) const {
 	return printer->toString(id);
 }

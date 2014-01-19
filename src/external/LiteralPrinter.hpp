@@ -28,5 +28,7 @@ public:
 	}
 
 	virtual void setString(const Atom&, const std::string&){};
+
+	virtual bool isTseitin(const Atom&) const { return false; }
 };
 }

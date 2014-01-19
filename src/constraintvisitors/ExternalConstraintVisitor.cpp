@@ -41,6 +41,13 @@ std::string ExternalConstraintVisitor::toString(VarID id) const {
 void ExternalConstraintVisitor::setString(const Atom& atom, const std::string& name){
 	atom2string[atom]=name;
 }
+bool ExternalConstraintVisitor::isTseitin(const Atom& atom) const {
+	if(getRemapper()->wasInput(atom)){
+		return getTranslator()->isTseitin(getRemapper()->getVar(atom));
+	}else{
+		return true;
+	}
+}
 std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 	auto overriddenit = atom2string.find(l.getAtom());
 	if(overriddenit!=atom2string.cend()){
