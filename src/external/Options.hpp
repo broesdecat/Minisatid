@@ -86,6 +86,7 @@ public:
 	bool subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
 	bool lazy; // If false, guarantees the solver that no constraints will be lazily added afterwards (not internal stuff such as decomposition or lazy learning)
 	bool lazyheur, watchedrelevance;
+	bool defaultmaketrue;
 	bool expandimmediately; // Debug option to test lazy grounding overhead by expanding everything asap
 	std::string outputfile;
 	int maxNbOfLearnedClauses;

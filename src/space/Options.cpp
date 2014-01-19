@@ -65,6 +65,7 @@ SolverOption::SolverOption():
 		fullmodelcheck(false),
 		usesimplifier(true),
 		userandomizedrestarts(true),
+		defaultmaketrue(false),
 		flatzinc_a(false){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";

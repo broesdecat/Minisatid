@@ -142,7 +142,11 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	vardata.push(mkVarData(CRef_Undef, 0));
 
 	seen.push(0);
-	getHeuristic().addAtom(v, upol);
+	if(getPCSolver().modes().defaultmaketrue){
+		getHeuristic().addAtom(v, l_False);
+	}else{
+		getHeuristic().addAtom(v, upol);
+	}
 
 	decision.push();
 	trail.capacity(v + 1);
