@@ -20,11 +20,11 @@ namespace MinisatID {
 class ECNFScanner: public ecnfFlexLexer {
 public:
 	ECNFScanner(std::istream* input)
-			: ecnfFlexLexer(input), ecnflval(NULL) {
+			: ecnfFlexLexer(input), ecnflval(NULL), ecnfloc(NULL) {
 	}
 
 	// save the pointer to yylval so we can change it, and invoke scanner
-	int ecnflex(ECNFParser::semantic_type * lval);
+	int ecnflex(ECNFParser::semantic_type * lval, ECNFParser::location_type * loc);
 
 private:
 	// Scanning function created by Flex; make this private to force usage
@@ -33,5 +33,6 @@ private:
 
 	// point to yylval (provided by Bison in overloaded yylex)
 	ECNFParser::semantic_type * ecnflval;
+	ECNFParser::location_type * ecnfloc;
 };
 }

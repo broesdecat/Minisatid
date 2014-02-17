@@ -21,6 +21,7 @@
 %skeleton "lalr1.cc"
 %defines
 //%debug
+%locations
 %error-verbose
 %name-prefix="fz"
 %define namespace "FZ"
@@ -51,7 +52,7 @@
 
 %code{
 	// Prototype for the yylex function
-	static int fzlex(FZ::FZParser::semantic_type * yylval, FZ::FZScanner &scanner);
+	static int fzlex(FZ::FZParser::semantic_type * yylval, FZ::FZParser::location_type * yyloc, FZ::FZScanner &scanner);
 }
 
  
@@ -110,7 +111,7 @@
 model			: pred_decl_items var_decl_items constraint_items model_end
 
 pred_decl_items : pred_decl_items pred_decl_item ';'
-				| pred_decl_items error ';' { error(yyloc, "Not implemented"); }
+				| pred_decl_items error ';' { error(@1, "Not implemented"); }
 				| /* empty */
 
 var_decl_items	: var_decl_items var_decl_item ';'		{ wrapper.add($2); delete($2); }
@@ -142,7 +143,7 @@ array_decl_tail
   
 ident_anns:
     IDENT annotations 		{ $$ = new Identifier($1, $2); }
-    | UNDERSCORE_IDENT annotations { error(yyloc, "Not implemented"); }
+    | UNDERSCORE_IDENT annotations { error(@1, "Not implemented"); }
 
 constraint_item:
     CONSTRAINT constraint_elem annotations { $$ = $2; $$->annotations = $3;}
@@ -213,7 +214,7 @@ expr:
   | array_literal 			{ $$ = new Expression(); $$->type = EXPR_ARRAY; $$->arraylit = $1; }
   | array_access_expr 		{ $$ = new Expression(); $$->type = EXPR_ARRAYACCESS; $$->arrayaccesslit = $1; }
   | IDENT 					{ $$ = new Expression(); $$->type = EXPR_IDENT; $$->ident = new Identifier($1, new vector<Expression*>()); }
-  | UNDERSCORE_IDENT		{ error(yyloc, "Not implemented"); }
+  | UNDERSCORE_IDENT		{ error(@1, "Not implemented"); }
   | IDENT '(' exprs ')'		{ $$ = new Expression(); $$->type = EXPR_IDENT; $$->ident = new Identifier($1, $3); }
 
 bool_literal
@@ -230,7 +231,7 @@ array_literal:
   | '[' ']'					{ $$ = new ArrayLiteral();}
 
 array_access_expr: IDENT '[' INT_LITERAL ']' { $$ = new ArrayAccess($1, $3); }
-  | UNDERSCORE_IDENT '[' INT_LITERAL ']' { error(yyloc, "Not implemented"); }
+  | UNDERSCORE_IDENT '[' INT_LITERAL ']' { error(@1, "Not implemented"); }
 
 //---------------------------------------------------------------------------
 // Annotations
@@ -276,6 +277,6 @@ void FZ::FZParser::error(const FZ::FZParser::location_type&, const std::string &
 // Now that we have the Parser declared, we can declare the Scanner and implement
 // the yylex function
 #include "parser/FZScanner.hpp"
-static int fzlex(FZ::FZParser::semantic_type * yylval, FZ::FZScanner &scanner) {
-	return scanner.fzlex(yylval);
+static int fzlex(FZ::FZParser::semantic_type * yylval, FZ::FZParser::location_type* yyloc, FZ::FZScanner &scanner) {
+	return scanner.fzlex(yylval, yyloc);
 }

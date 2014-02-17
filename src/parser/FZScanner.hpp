@@ -20,11 +20,11 @@ namespace FZ {
 class FZScanner: public fzFlexLexer {
 public:
 	FZScanner(std::istream* input)
-			: fzFlexLexer(input), fzlval(NULL) {
+			: fzFlexLexer(input), fzlval(NULL), fzloc(NULL) {
 	}
 
 	// save the pointer to yylval so we can change it, and invoke scanner
-	int fzlex(FZ::FZParser::semantic_type * lval);
+	int fzlex(FZ::FZParser::semantic_type * lval, FZ::FZParser::location_type * loc);
 
 private:
 	// Scanning function created by Flex; make this private to force usage
@@ -33,5 +33,6 @@ private:
 
 	// point to yylval (provided by Bison in overloaded yylex)
 	FZ::FZParser::semantic_type * fzlval;
+	FZ::FZParser::location_type * fzloc;
 };
 }
