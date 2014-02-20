@@ -27,6 +27,7 @@ namespace MinisatID {
 		Weight(): w(0), inf(false), pos(false) {}
 		Weight(int i): w(i), inf(false), pos(false) {}
 		Weight(long i): w(i), inf(false), pos(false) {}
+		Weight(double i): w(i), inf(false), pos(false) {}
 		Weight(mpz_class w): w(w), inf(false), pos(false) {}
 		Weight(bool posinf): w(0), inf(true), pos(posinf) {}
 
@@ -191,6 +192,7 @@ namespace MinisatID {
 #else
 namespace MinisatID {
 #define NOARBITPREC
+
 typedef int Weight;
 //FAST, NO OVERFLOW SUPPORT
 }

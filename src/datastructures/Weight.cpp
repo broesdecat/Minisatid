@@ -10,6 +10,7 @@
 #include "external/Weight.hpp"
 #include "utils/NumericLimits.hpp"
 
+
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -73,16 +74,18 @@ Weight MinisatID::floordiv(const Weight& l, const Weight& r){
 }
 
 int MinisatID::getClosestInt(const Weight& w){
+	return toInt(w);
+}
+
+int MinisatID::toInt(const Weight& w) {
 	if(w>=Weight(getMaxElem<int>())){
 		return getMaxElem<int>();
 	}else if(w <= getMinElem<int>()){
 		return getMinElem<int>();
 	}else{
-		return toInt(w);
+		return w.toInt();
 	}
 }
-
-int MinisatID::toInt(const Weight& weight) {return weight.toInt();}
 #else //USING FINITE PRECISION WEIGHTS
 string MinisatID::toString(const Weight& w) {
 	stringstream s;
