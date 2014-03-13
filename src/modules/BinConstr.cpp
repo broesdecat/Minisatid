@@ -46,6 +46,11 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
 		head_ = lefthead;
 		left_ = new IntView(_left, 0);
+		if(_right->minValue()==getMinElem<int>()){
+			add(Disjunction(DEFAULTCONSTRID, {head_}));
+			notifyNotPresent();
+			return;
+		}
 		right_ = new IntView(_right, -1);
 		break;
 	}
@@ -57,6 +62,11 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	case EqType::L:
 		head_ = h;
 		left_ = new IntView(_left, 0);
+		if(_right->minValue()==getMinElem<int>()){
+			add(Disjunction(DEFAULTCONSTRID, {not head_}));
+			notifyNotPresent();
+			return;
+		}
 		right_ = new IntView(_right, -1);
 		break;
 	case EqType::GEQ:
@@ -67,6 +77,11 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 	case EqType::G:
 		head_ = h;
 		left_ = new IntView(_right, 0);
+		if(_left->minValue()==getMinElem<int>()){
+			add(Disjunction(DEFAULTCONSTRID, {not head_}));
+			notifyNotPresent();
+			return;
+		}
 		right_ = new IntView(_left, -1);
 		break;
 	}

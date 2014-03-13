@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef ECNFPRINTER_HPP_
-#define ECNFPRINTER_HPP_
+#pragma once
 
 #include <vector>
 #include <sstream>
@@ -266,10 +265,8 @@ public:
 			begin = false;
 			target() << print(v);
 		}
-		target() << ").\n";
+		target() << ").\n"; // TODO known arguments are not printed here
 	}
 };
 
 }
-
-#endif /* ECNFPRINTER_HPP_ */
