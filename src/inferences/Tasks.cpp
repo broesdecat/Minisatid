@@ -564,7 +564,7 @@ void UnitPropagate::writeOutEntailedLiterals() {
 			output << " ";
 		}
 		begin = false;
-		output << getSpace()->toString(*i);
+		output << getSpace()->getTranslator()->toString(*i);
 	}
 	output << "\n";
 	resman->close();
