@@ -48,7 +48,6 @@ public:
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause getExplanation(const Lit&){ throw idpexception("Error: incorrect execution path.");}
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
-	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
 	// NOTE: required because intvars are both data and propagator, and the data is required earlier then propagation is allowed (when lazy grounding)
 	virtual void finish() = 0;

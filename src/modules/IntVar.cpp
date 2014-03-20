@@ -23,7 +23,7 @@ BasicIntVar::BasicIntVar(uint id, PCSolver* solver, VarID varid)
 		: IntVar(id, solver, varid) {
 }
 
-void IntVar::notifyBacktrack(int, const Lit&) {
+void IntVar::notifyBacktrack(int, const Lit& l) {
 	updateBounds();
 }
 
@@ -123,7 +123,8 @@ void BasicIntVar::updateBounds() {
 	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
 		if (not isTrue(i->lit)) { // First non true => previous is highest remaining value (LEQ!)
 			if(i==leqlits.crbegin()){
-				return; // Conflict, will be resolved by unit propagation anyway
+				currentmax = origMaxValue();
+				return; // Conflict or late unit propagation
 			}
 			currentmax = (--i)->value;
 			found = true;
