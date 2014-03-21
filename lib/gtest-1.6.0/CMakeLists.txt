@@ -44,6 +44,10 @@ cmake_minimum_required(VERSION 2.6.2)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STRICT_ANSI__")
+endif()
+
 if (COMMAND set_up_hermetic_build)
   set_up_hermetic_build()
 endif()

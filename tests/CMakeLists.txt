@@ -18,6 +18,10 @@ if(${BUILDTESTS})
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x") #necessary for gtest!
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D TESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests\\\" ")
 	addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
+	
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STRICT_ANSI__")
+    endif()
 		
 	add_executable(mtests 
 		TestUtils.cpp
