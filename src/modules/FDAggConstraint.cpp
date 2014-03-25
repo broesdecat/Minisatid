@@ -592,6 +592,14 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		return;
 	}
 
+	if(newset.size() == 1 && value(newconditions[0])==l_True){
+		//Transform _head <=> PROD set[0]  >= _bound to
+		//set[0] - bound >= 0
+		new FDSumConstraint(getID(), &getPCSolver(), head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0],bound}, {newweight, -1}, rel,  0);
+		notifyNotPresent();
+		return;
+	}
+
 	double absmax(abs(newweight)); //note that s == 0 unless set
 	for (auto var : newset) {
 		absmax *= max(abs(var->maxValue()), abs(var->minValue()));
