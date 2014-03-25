@@ -568,22 +568,39 @@ bool FDProdConstraint::canContainNegatives() const {
 
 void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		IntView* bound) {
-	if (weight == 0) {
+	std::vector<IntView*> newset;
+	std::vector<Lit> newconditions;
+	Weight newweight(weight);
+	for (uint i = 0; i < set.size(); ++i) {
+		if(value(conditions[i])==l_False){
+			continue;
+		}
+		if(value(conditions[i])==l_True && set[i]->isKnown()){
+			newweight *= set[i]->minValue();
+			continue;
+		}
+
+		newset.push_back(set[i]);
+		newconditions.push_back(conditions[i]);
+
+	}
+
+	if (newweight == 0) {
 		// clog <<"Created new sum because bound 0\n";
-		new FDSumConstraint(getID(), &getPCSolver(), head, conditions, { bound }, { 1 }, invertEqType(rel), weight);
+		new FDSumConstraint(getID(), &getPCSolver(), head, newconditions, { bound }, { 1 }, invertEqType(rel), newweight);
 		notifyNotPresent();
 		return;
 	}
 
-	double absmax(abs(weight)); //note that s == 0 unless set
-	for (auto var : set) {
+	double absmax(abs(newweight)); //note that s == 0 unless set
+	for (auto var : newset) {
 		absmax *= max(abs(var->maxValue()), abs(var->minValue()));
 	}
 	if(absmax>getMaxElem<Weight>()) {
 		throw idpexception("Overflow possible for a product of a set of variables in limited integer precision.");
 	}
 
-	sharedInitialization(head, conditions, set, { weight }, rel, bound);
+	sharedInitialization(head, newconditions, newset, { newweight }, rel, bound);
 	if (not isPresent()) {
 		return;
 	}
