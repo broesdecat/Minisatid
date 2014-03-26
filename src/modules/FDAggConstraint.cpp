@@ -573,10 +573,25 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	Weight newweight(weight);
 	for (uint i = 0; i < set.size(); ++i) {
 		if (getPCSolver().rootValue(conditions[i]) == l_False) {
+			//Irrelevant for this aggregate
 			continue;
 		}
 		if (getPCSolver().rootValue(conditions[i]) == l_True && (set[i]->origMinValue() == set[i]->origMaxValue())) {
+			//value of this term is known, hence we can include it in the weight
 			newweight *= set[i]->origMinValue();
+			continue;
+		}
+		if (getPCSolver().rootValue(conditions[i]) == l_True && (set[i]->origMinValue() < 0) && (set[i]->origMaxValue() <= 0)) {
+			//Variable is guaranteed to be negative. Can be optimised by including "-1" in the weight and keeping monotonicity of product
+			//Can only be done in case this variable is known to be certainly in the set.
+			auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), -set[i]->origMaxValue(), -set[i]->origMinValue());
+			auto newview = new IntView(newvar, 0);
+			auto truelit = getPCSolver().getTrueLit();
+
+			new FDSumConstraint(getID(), &getPCSolver(), truelit, { truelit, truelit }, { set[i], newview }, { Weight(1), Weight(1) }, EqType::EQ, Weight(0));
+			newweight *= -1;
+			newset.push_back(newview);
+			newconditions.push_back(conditions[i]);
 			continue;
 		}
 
