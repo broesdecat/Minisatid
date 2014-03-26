@@ -209,7 +209,7 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 	auto ci = newConditions.begin();
 
 	for (; si < newset.end();) {
-		if ((*wi) == Weight(0) || value(*ci) == l_False) {
+		if ((*wi) == Weight(0) || getPCSolver().rootValue(*ci) == l_False) {
 			si = newset.erase(si);
 			wi = newweights.erase(wi);
 			ci = newConditions.erase(ci);
@@ -568,22 +568,62 @@ bool FDProdConstraint::canContainNegatives() const {
 
 void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel,
 		IntView* bound) {
-	if (weight == 0) {
+	std::vector<IntView*> newset;
+	std::vector<Lit> newconditions;
+	Weight newweight(weight);
+	for (uint i = 0; i < set.size(); ++i) {
+		if (getPCSolver().rootValue(conditions[i]) == l_False) {
+			//Irrelevant for this aggregate
+			continue;
+		}
+		if (getPCSolver().rootValue(conditions[i]) == l_True && (set[i]->origMinValue() == set[i]->origMaxValue())) {
+			//value of this term is known, hence we can include it in the weight
+			newweight *= set[i]->origMinValue();
+			continue;
+		}
+		if (getPCSolver().rootValue(conditions[i]) == l_True && (set[i]->origMinValue() < 0) && (set[i]->origMaxValue() <= 0)) {
+			//Variable is guaranteed to be negative. Can be optimised by including "-1" in the weight and keeping monotonicity of product
+			//Can only be done in case this variable is known to be certainly in the set.
+			auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), -set[i]->origMaxValue(), -set[i]->origMinValue());
+			auto newview = new IntView(newvar, 0);
+			auto truelit = getPCSolver().getTrueLit();
+
+			new FDSumConstraint(getID(), &getPCSolver(), truelit, { truelit, truelit }, { set[i], newview }, { Weight(1), Weight(1) }, EqType::EQ, Weight(0));
+			newweight *= -1;
+			newset.push_back(newview);
+			newconditions.push_back(conditions[i]);
+			continue;
+		}
+
+		newset.push_back(set[i]);
+		newconditions.push_back(conditions[i]);
+
+	}
+
+	if (newweight == 0) {
 		// clog <<"Created new sum because bound 0\n";
-		new FDSumConstraint(getID(), &getPCSolver(), head, conditions, { bound }, { 1 }, invertEqType(rel), weight);
+		new FDSumConstraint(getID(), &getPCSolver(), head, newconditions, { bound }, { 1 }, invertEqType(rel), newweight);
 		notifyNotPresent();
 		return;
 	}
 
-	double absmax(abs(weight)); //note that s == 0 unless set
-	for (auto var : set) {
+	if(newset.size() == 1 && getPCSolver().rootValue(newconditions[0])==l_True){
+		//Transform _head <=> PROD set[0]  >= _bound to
+		//set[0] - bound >= 0
+		new FDSumConstraint(getID(), &getPCSolver(), head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0],bound}, {newweight, -1}, rel,  0);
+		notifyNotPresent();
+		return;
+	}
+
+	double absmax(abs(newweight)); //note that s == 0 unless set
+	for (auto var : newset) {
 		absmax *= max(abs(var->maxValue()), abs(var->minValue()));
 	}
 	if(absmax>getMaxElem<Weight>()) {
 		throw idpexception("Overflow possible for a product of a set of variables in limited integer precision.");
 	}
 
-	sharedInitialization(head, conditions, set, { weight }, rel, bound);
+	sharedInitialization(head, newconditions, newset, { newweight }, rel, bound);
 	if (not isPresent()) {
 		return;
 	}
