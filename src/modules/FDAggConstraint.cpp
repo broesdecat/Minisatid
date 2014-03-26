@@ -209,7 +209,7 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 	auto ci = newConditions.begin();
 
 	for (; si < newset.end();) {
-		if ((*wi) == Weight(0) || value(*ci) == l_False) {
+		if ((*wi) == Weight(0) || getPCSolver().rootValue(*ci) == l_False) {
 			si = newset.erase(si);
 			wi = newweights.erase(wi);
 			ci = newConditions.erase(ci);
@@ -572,11 +572,11 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	std::vector<Lit> newconditions;
 	Weight newweight(weight);
 	for (uint i = 0; i < set.size(); ++i) {
-		if(value(conditions[i])==l_False){
+		if (getPCSolver().rootValue(conditions[i]) == l_False) {
 			continue;
 		}
-		if(value(conditions[i])==l_True && set[i]->isKnown()){
-			newweight *= set[i]->minValue();
+		if (getPCSolver().rootValue(conditions[i]) == l_True && (set[i]->origMinValue() == set[i]->origMaxValue())) {
+			newweight *= set[i]->origMinValue();
 			continue;
 		}
 
@@ -592,7 +592,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		return;
 	}
 
-	if(newset.size() == 1 && value(newconditions[0])==l_True){
+	if(newset.size() == 1 && getPCSolver().rootValue(newconditions[0])==l_True){
 		//Transform _head <=> PROD set[0]  >= _bound to
 		//set[0] - bound >= 0
 		new FDSumConstraint(getID(), &getPCSolver(), head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0],bound}, {newweight, -1}, rel,  0);
