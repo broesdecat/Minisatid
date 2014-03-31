@@ -63,6 +63,7 @@ public:
 	InputFormat format;
 	OutputFormat transformat;
 	int verbosity;
+	bool solvingstats;
 	int randomseed;
 	int nbmodels;
 	DEFSEM defsem;

@@ -31,6 +31,7 @@ SolverOption::SolverOption():
 		format(InputFormat::FODOT),
 		transformat(OutputFormat::DEFAULT),
 		verbosity(1),
+		solvingstats(false),
 		randomseed(91648253),
 		nbmodels(1),
 		defsem(DEF_WELLF),
