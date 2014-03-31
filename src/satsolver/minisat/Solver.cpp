@@ -1532,7 +1532,7 @@ lbool Solver::solve(bool nosearch) {
 		notifyUnsat();
 	}
 
-	if(verbosity>0){
+	if(verbosity>0 or getPCSolver().modes().solvingstats){
 		printStatistics();
 	}
 
