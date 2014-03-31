@@ -31,7 +31,7 @@ Building and installing is then achieved by executing the following commands:
   cd <builddir>
   cmake <minisatiddir> -DCMAKE_INSTALL_PREFIX=<installdir> -DCMAKE_BUILD_TYPE="Release"
   make -j 4
-  make check
+  make test
   make install
 
 Alternatively, cmake-gui can be used as a graphical way to set cmake options.
