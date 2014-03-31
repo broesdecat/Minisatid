@@ -531,7 +531,7 @@ void Solver::saveState() {
 	savedrootlits.clear();
 
 	savedok = ok;
-	remove_satisfied = false;
+	//remove_satisfied = false;
 }
 
 void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
@@ -577,7 +577,7 @@ void Solver::resetState() {
 		}
 	}
 
-	remove_satisfied = true;
+	//remove_satisfied = true;
 }
 
 void Solver::removeClause(CRef cr) {
@@ -1062,7 +1062,11 @@ CRef Solver::notifypropagate() {
 					return i->explan;
 				}
 				checkedEnqueue(i->lit, i->explan);
-				++i;
+				if(level==0){
+					i = rootunitlits.erase(i);
+				}else{
+					++i;
+				}
 			} else {
 				i = rootunitlits.erase(i);
 			}
@@ -1239,6 +1243,7 @@ bool Solver::simplify() {
 	if (remove_satisfied) { // Can be turned off.
 		removeSatisfied(clauses);
 	}
+
 	checkGarbage();
 	rebuildOrderHeap();
 
