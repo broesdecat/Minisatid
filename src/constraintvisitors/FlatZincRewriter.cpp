@@ -269,7 +269,7 @@ void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string&
 
 template<typename Stream>
 Atom FlatZincRewriter<Stream>::newAtom() {
-	Atom lit = Atom(maxatomnumber + 1);
+	Atom lit = Atom(++maxatomnumber);
 	check(lit);
 	return lit;
 }
@@ -439,7 +439,10 @@ VarID FlatZincRewriter<Stream>::addOptimization() {
 		}
 	} else {
 		MAssert(savedvar.size()>0);
-		throw notYetImplemented("Optimization of a CP variable is not yet implemented.\n");
+		if(savedvar.size()>1){
+			throw notYetImplemented("Optimization of multiple CP variables is not yet implemented.\n");
+		}
+		optimvar = savedvar.front().varID;
 	}
 	return optimvar;
 }
@@ -503,22 +506,28 @@ void FlatZincRewriter<Stream>::innerExecute() {
 	for (auto binrel : savedbinrels) {
 		addBinRel(binrel.left, binrel.right, binrel.head, binrel.rel);
 	}
+	savedbinrels.clear();
 
 	for (auto sum : savedcpsums) {
 		// NOTE: Duplicate code with PropagatorFactory
 		std::vector<VarID> newvars;
 		for(auto i=0; i<sum.varIDs.size(); ++i){
-			auto newvar = newCpVar(min(0,getMin(sum.varIDs[i])), max(0,getMax(sum.varIDs[i]))); // TODO: better make it an enum if 0 if far from the other values?
+			auto newvar = newCpVar(min(0,getMin(sum.varIDs[i])), max(0,getMax(sum.varIDs[i]))); // TODO: better make it an enum if 0 is far from the other values?
 			newvars.push_back(newvar);
 			auto tseitin0 = newAtom();
 			auto tseitineq = newAtom();
+			check(mkPosLit(tseitin0));
 			add(Disjunction(sum.getID(), {sum.conditions[i], mkPosLit(tseitin0)}));
-			add(CPBinaryRel(sum.getID(), mkPosLit(tseitin0), newvar, EqType::EQ, Weight(0)));
+			stringstream ss;
+			ss <<0;
+			addBinRel(getIntVarName(newvar), ss.str(), mkPosLit(tseitin0), EqType::EQ);
 			add(Disjunction(sum.getID(), {~sum.conditions[i], mkPosLit(tseitineq)}));
-			add(CPBinaryRelVar(sum.getID(), mkPosLit(tseitineq), newvar, EqType::EQ, sum.varIDs[i]));
+			check(mkPosLit(tseitineq));
+			addBinRel(getIntVarName(newvar), getIntVarName(sum.varIDs[i]), mkPosLit(tseitineq), EqType::EQ);
 		}
 		addSum(sum.weights, newvars, sum.head, sum.rel, sum.bound);
 	}
+	savedcpsums.clear();
 
 	for (auto agg : savedaggs) {
 		if (agg.type == AggType::PROD) {
@@ -528,6 +537,7 @@ void FlatZincRewriter<Stream>::innerExecute() {
 			addSum(agg, getSet(agg.setID));
 		}
 	}
+	savedaggs.clear();
 
 	getOutput() << definitions.str();
 	getOutput() << constraints.str();
@@ -538,6 +548,10 @@ void FlatZincRewriter<Stream>::innerExecute() {
 		getOutput() << "solve satisfy;\n";
 	}
 	getOutput().flush();
+
+	if(not savedbinrels.empty() || not savedcpsums.empty() || not savedaggs.empty()){
+		throw idpexception("Invalid code path");
+	}
 }
 
 // ADDITION METHODS
@@ -804,6 +818,9 @@ void FlatZincRewriter<Stream>::add(const CPSumWeighted& sum) {
 	MAssert(isParsing());
 
 	check(sum.head);
+	for(auto l: sum.conditions){
+		check(l);
+	}
 	savedcpsums.push_back(sum);
 }
 
