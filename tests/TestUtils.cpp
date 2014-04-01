@@ -23,28 +23,46 @@ std::string getTestDirectory() {
 }
 
 namespace Tests {
-void runWithModelCheck(SolverOption options, const string& instancefile) {
+
+int getExpectedNb(const string& instancefile){
 	auto dirlist = split(instancefile, "/");
 	auto list = split(dirlist.back(), "SAT");
-	ASSERT_EQ((uint)2, list.size());
+	//ASSERT_EQ((uint)2, list.size());
 	auto expectednbmodels = 0;
 	auto prefix = list.front();
-	bool satcheck = false;
 	if(prefix.size()==2 && tolower(prefix[0])=='u' && tolower(prefix[1])=='n'){
 		expectednbmodels = 0;
 	}else{
 		if(list.front().size()==0){
-			satcheck = true;
 			expectednbmodels = 1;
 		}else{
 			expectednbmodels = atoi(list.front().c_str());
 		}
 	}
+	return expectednbmodels;
+}
+
+bool needsSatCheck(const string& instancefile){
+	auto dirlist = split(instancefile, "/");
+	auto list = split(dirlist.back(), "SAT");
+	//ASSERT_EQ((uint)2, list.size());
+	auto prefix = list.front();
+	if(prefix.size()==2 && tolower(prefix[0])=='u' && tolower(prefix[1])=='n'){
+	}else{
+		if(list.front().size()==0){
+			return true;
+		}
+	}
+	return false;
+}
+
+void runWithModelCheck(SolverOption options, const string& instancefile) {
+	auto expectednbmodels = getExpectedNb(instancefile);
 
 //	cerr <<"Expecting " <<(satcheck?"at least ":"exactly ") <<expectednbmodels <<" models.\n";
 	auto modelsfound = runNoModelCheck(options, instancefile, expectednbmodels+1);
 //	cerr <<"Found " <<modelsfound <<" models.\n";
-	if(satcheck){
+	if(needsSatCheck(instancefile)){
 		ASSERT_LT(0, modelsfound);
 	}else{
 		ASSERT_EQ(expectednbmodels, modelsfound);

@@ -11,6 +11,9 @@
 
 #include "TestUtils.hpp"
 #include "external/Constraints.hpp"
+#include "external/utils/ResourceManager.hpp"
+#include "external/FlatZincRewriter.hpp"
+#include "Run.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
 using namespace std;
@@ -96,9 +99,29 @@ TEST_P(MXFileTests, ECNFPreprocessing) {
 }
 
 TEST_P(MXFileTests, ECNFToCNF) {
+//	auto options = createMXOptions(InputFormat::FODOT);
+//	options.tocnf = true;
+//	runWithModelCheck(options, GetParam());
+}
+
+TEST_P(MXFileTests, ECNFtoFZtoSolve) {
+	cerr <<"Running instance " <<GetParam() <<"\n";
+	stringstream ss;
+	if(needsSatCheck(GetParam())){
+		ss <<"/tmp/SAToutput";
+	}else{
+		auto expectednbmodels = getExpectedNb(GetParam());
+		ss <<"/tmp/" <<expectednbmodels <<"SAToutput";
+	}
 	auto options = createMXOptions(InputFormat::FODOT);
-	options.tocnf = true;
-	runWithModelCheck(options, GetParam());
+	auto resfile = createResMan(ss.str());
+	ostream output(resfile->getBuffer());
+	FlatZincRewriter<ostream> t(options, output);
+	parseAndInitializeTheory(GetParam(), &t);
+	t.execute();
+
+	auto options2 = createMXOptions(InputFormat::FLATZINC);
+	runWithModelCheck(options2, ss.str());
 }
 
 TEST_P(MXFileTests, ECNFFullWatches) {

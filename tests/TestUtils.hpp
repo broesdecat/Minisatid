@@ -23,6 +23,8 @@ std::string getTestDirectory();
 
 namespace Tests {
 
+int getExpectedNb(const std::string& instancefile);
+bool needsSatCheck(const std::string& instancefile);
 void runWithModelCheck(MinisatID::SolverOption options, const std::string& instancefile);
 
 /**
