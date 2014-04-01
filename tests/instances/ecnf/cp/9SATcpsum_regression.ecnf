@@ -1,0 +1,6 @@
+p ecnf
+30 20 0
+40 0
+INTVAR 1 1 1 0
+INTVAR 5 0 2 0
+CPSUM 60 30 40 | 1 5 | 1 -1 = 0 0

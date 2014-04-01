@@ -337,10 +337,10 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar) const {
 		}
 		auto condval = value(_conditions[j]);
 		if (condval == l_False) {
-			if (_weights[j] <= 0 && _vars[j]->origMinValue() >= 0) {
+			if (_weights[j] > 0 && _vars[j]->origMinValue() >= 0) {
 				continue;
 			}
-			if (_weights[j] > 0 && _vars[j]->origMaxValue() <= 0) {
+			if (_weights[j] <= 0 && _vars[j]->origMaxValue() <= 0) {
 				continue;
 			}
 			lits.push_back(_conditions[j]);
@@ -428,7 +428,7 @@ rClause FDSumConstraint::notifypropagate() {
 
 	auto bound = getBound();
 
-	//cerr <<"Min = " <<min <<", max = " <<max <<"\n";
+	// cerr <<"Min = " <<min <<", max = " <<max <<"\n";
 
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
