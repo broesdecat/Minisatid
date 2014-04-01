@@ -515,7 +515,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 // NOTE: never call directly from within!
-void Solver::saveState() {
+void Solver::saveState() {	
 	if (verbosity > 3) {
 		clog << ">>> Saving the state.\n";
 	}
@@ -531,7 +531,9 @@ void Solver::saveState() {
 	savedrootlits.clear();
 
 	savedok = ok;
-	//remove_satisfied = false;
+	
+	removeSatisfied(clauses);
+	remove_satisfied = false;
 }
 
 void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
@@ -577,7 +579,7 @@ void Solver::resetState() {
 		}
 	}
 
-	//remove_satisfied = true;
+	remove_satisfied = true;
 }
 
 void Solver::removeClause(CRef cr) {
