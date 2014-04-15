@@ -532,7 +532,9 @@ void Solver::saveState() {
 
 	savedok = ok;
 	
-	removeSatisfied(clauses);
+	if(remove_satisfied){
+		removeSatisfied(clauses);
+	}
 	remove_satisfied = false;
 }
 
