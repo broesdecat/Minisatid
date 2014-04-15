@@ -309,7 +309,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 		}
 		IntVar* intvar = NULL;
 		// FIXME overflow check for int
-		if (abs(obj.maxvalue - obj.minvalue) < 100) { // FIXME duplicate heuristic in FDAggConstraint
+		if (not isNegInfinity(obj.minvalue) && not isPosInfinity(obj.maxvalue) && abs(obj.maxvalue - obj.minvalue) < 100) { // FIXME duplicate heuristic in FDAggConstraint
 			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue);
 		} else {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue); // TODO also for enum variables

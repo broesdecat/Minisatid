@@ -143,9 +143,9 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Wei
 		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
 		return;
 	}
-	if(isNegInfinity(min) || isPosInfinity(max)){
+/*	if(isNegInfinity(min) || isPosInfinity(max)){
 		throw idpexception("Values of rangevar cannot be infinite");
-	}
+	}*/
 	setOrigMax(max);
 	setOrigMin(min);
 }
