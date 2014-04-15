@@ -133,17 +133,22 @@ void FDAggConstraint::watchRelevantVars() {
 	// TODO remove trivially true aggregates
 }
 
-bool additionOverflow(Weight x, Weight y) {
+
 #ifdef NOARBITPREC
+bool additionOverflow(Weight x, Weight y) {
 	if (((double) x) + y > getMaxElem<Weight>()) {
 		return true;
 	}
 	if (((double) x) + y < getMinElem<Weight>()) {
 		return true;
 	}
-#endif
 	return false;
 }
+#else
+bool additionOverflow(Weight, Weight) {
+	return false;
+}
+#endif
 
 /**
  * Adds the disjunction of lits to the solver and returns the clause

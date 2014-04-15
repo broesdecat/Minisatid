@@ -39,6 +39,8 @@ namespace MinisatID {
 
 		std::string get_str() const;
 
+		explicit operator int() const { return toInt(); }
+
 		bool isPosInfinity() const {
 			return pos and inf;
 		}
@@ -52,8 +54,6 @@ namespace MinisatID {
 			w2.pos=!w2.pos;
 			return w2;
 		}
-
-		explicit operator int() const { return toInt(); }
 
 		const Weight operator-(const Weight &other) const {
 			return Weight(*this) -= other;
@@ -183,19 +183,17 @@ namespace MinisatID {
 	Weight abs(const Weight& w);
 	std::istream& operator>>(std::istream& input, Weight& obj);
 	std::ostream& operator<<(std::ostream& output, const Weight& p);
-	Weight ceildiv(const Weight& l, const Weight& r);
-	Weight floordiv(const Weight& l, const Weight& r);
-	bool isPosInfinity(const Weight& w);
-	bool isNegInfinity(const Weight& w);
-	int getClosestInt(const Weight& w);
 }
+
 #else
+
 namespace MinisatID {
 #define NOARBITPREC
 
 typedef int Weight;
 //FAST, NO OVERFLOW SUPPORT
 }
+
 #endif
 
 namespace MinisatID {
@@ -203,10 +201,9 @@ namespace MinisatID {
 	Weight negInfinity();
 
 	std::string toString(const Weight& w);
-	int toInt(const Weight& weight);
+	int toInt(const Weight& weight); // Throws if it was not an int
 	Weight ceildiv(const Weight& l, const Weight& r);
 	Weight floordiv(const Weight& l, const Weight& r);
 	bool isPosInfinity(const Weight& w);
 	bool isNegInfinity(const Weight& w);
-	int getClosestInt(const Weight& w);
 }

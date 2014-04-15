@@ -83,6 +83,7 @@ public:
 
 private:
 	friend class FDAggConstraint;
+	friend class FDProdConstraint;
 	// NOTE: bound has to have a KNOWN value!
 	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 

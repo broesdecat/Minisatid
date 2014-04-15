@@ -10,7 +10,6 @@
 #include "external/Weight.hpp"
 #include "utils/NumericLimits.hpp"
 
-
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -28,6 +27,15 @@ int Weight::toInt() const {
 		throw idpexception("Invalid conversion of an arbitrary size number to int.");
 	}
 	return w.get_si();
+}
+int MinisatID::toInt(const Weight& w) {
+	if(w>=Weight(getMaxElem<int>())){
+		throw idpexception("Invalid conversion of an arbitrary size number to int.");
+	}else if(w <= getMinElem<int>()){
+		throw idpexception("Invalid conversion of an arbitrary size number to int.");
+	}else{
+		return w.toInt();
+	}
 }
 
 std::string Weight::get_str() const {
@@ -72,20 +80,6 @@ Weight MinisatID::ceildiv(const Weight& l, const Weight& r){
 Weight MinisatID::floordiv(const Weight& l, const Weight& r){
 	return l.floordiv(r);
 }
-
-int MinisatID::getClosestInt(const Weight& w){
-	return toInt(w);
-}
-
-int MinisatID::toInt(const Weight& w) {
-	if(w>=Weight(getMaxElem<int>())){
-		return getMaxElem<int>();
-	}else if(w <= getMinElem<int>()){
-		return getMinElem<int>();
-	}else{
-		return w.toInt();
-	}
-}
 #else //USING FINITE PRECISION WEIGHTS
 string MinisatID::toString(const Weight& w) {
 	stringstream s;
@@ -112,8 +106,5 @@ bool MinisatID::isPosInfinity(const Weight& w){
 }
 bool MinisatID::isNegInfinity(const Weight& w){
 	return w==negInfinity();
-}
-int MinisatID::getClosestInt(const Weight& w){
-	return w;
 }
 #endif
