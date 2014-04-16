@@ -14,12 +14,12 @@
 using namespace MinisatID;
 using namespace std;
 
-BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, const Lit& h)
+BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, EqType comp, IntView* _right, const Lit& h)
 		: Propagator(id, engine, "binary constraint") {
 	switch (comp) {
 	case EqType::EQ: {
 		stringstream ss;
-		ss <<_left->getVarID().id << " = " << _right->getVarID().id;
+		ss <<_left->toString() << " = " << _right->toString();
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
@@ -27,15 +27,15 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		engine->varBumpActivity(var(h));
 		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
-		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()));
+		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::GEQ, _right->getID()));
 		head_ = lefthead;
-		left_ = new IntView(_left, 0);
-		right_ = new IntView(_right, 0);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
+		right_ = getPCSolver().getIntView(_right->getID(), 0);
 		break;
 	}
 	case EqType::NEQ: {
 		stringstream ss;
-		ss <<_left->getVarID().id << " != " << _right->getVarID().id;
+		ss <<_left->toString() << " != " << _right->toString();
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
@@ -43,46 +43,46 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqT
 		engine->varBumpActivity(var(h));
 		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
-		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
+		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::G, _right->getID()));
 		head_ = lefthead;
-		left_ = new IntView(_left, 0);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
 		if(_right->minValue()==getMinElem<int>()){
 			add(Disjunction(DEFAULTCONSTRID, {head_}));
 			notifyNotPresent();
 			return;
 		}
-		right_ = new IntView(_right, -1);
+		right_ = getPCSolver().getIntView(_right->getID(), -1);
 		break;
 	}
 	case EqType::LEQ:
 		head_ = h;
-		left_ = new IntView(_left, 0);
-		right_ = new IntView(_right, 0);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
+		right_ = getPCSolver().getIntView(_right->getID(), 0);
 		break;
 	case EqType::L:
 		head_ = h;
-		left_ = new IntView(_left, 0);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
 		if(_right->minValue()==getMinElem<int>()){
 			add(Disjunction(DEFAULTCONSTRID, {not head_}));
 			notifyNotPresent();
 			return;
 		}
-		right_ = new IntView(_right, -1);
+		right_ = getPCSolver().getIntView(_right->getID(), -1);
 		break;
 	case EqType::GEQ:
 		head_ = h;
-		left_ = new IntView(_right, 0);
-		right_ = new IntView(_left, 0);
+		left_ = getPCSolver().getIntView(_right->getID(), 0);
+		right_ = getPCSolver().getIntView(_left->getID(), 0);
 		break;
 	case EqType::G:
 		head_ = h;
-		left_ = new IntView(_right, 0);
+		left_ = getPCSolver().getIntView(_right->getID(), 0);
 		if(_left->minValue()==getMinElem<int>()){
 			add(Disjunction(DEFAULTCONSTRID, {not head_}));
 			notifyNotPresent();
 			return;
 		}
-		right_ = new IntView(_left, -1);
+		right_ = getPCSolver().getIntView(_left->getID(), -1);
 		break;
 	}
 	getPCSolver().accept(this);

@@ -278,6 +278,9 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 VarID PCSolver::newID(){
 	return varcreator->createID();
 }
+IntView* PCSolver::getIntView(VarID id, Weight bound){
+	return getFactory().getIntView(id, bound);
+}
 Atom PCSolver::newAtom() {
 	auto var = varcreator->createVar();
 	if ((uint64_t) var >= nVars()) {
@@ -574,7 +577,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::VAR:
-			visitor.add(MinimizeVar((*i).priority, (*i).var->getVarID()));
+			visitor.add(MinimizeVar((*i).priority, (*i).var->getID()));
 			break;
 		}
 	}

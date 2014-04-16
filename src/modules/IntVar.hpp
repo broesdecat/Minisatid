@@ -6,6 +6,8 @@
 
 namespace MinisatID{
 
+class PropagatorFactory;
+
 enum BinComp { BIN_EQ, BIN_LEQ};
 
 class IntVar;
@@ -40,9 +42,9 @@ protected:
 
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
-public:
 	IntVar(uint id, PCSolver* solver, VarID varid);
 
+public:
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
@@ -87,17 +89,19 @@ protected:
 
 	void addConstraints();
 
-public:
 	BasicIntVar(uint id, PCSolver* solver, VarID varid);
 
+public:
 	virtual void updateBounds();
 };
 
 class RangeIntVar: public BasicIntVar{
-public:
+private:
+	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
 	RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
 
+public:
 	virtual void finish();
 
 	virtual int getNbOfFormulas() const { return 1; }
@@ -110,10 +114,11 @@ class EnumIntVar: public BasicIntVar{
 private:
 	std::vector<Weight> _values; // SORTED low to high!
 
-public:
+	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
 	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values);
 
+public:
 	virtual void finish();
 
 	virtual int getNbOfFormulas() const { return 1; }
@@ -131,9 +136,10 @@ private:
 	Lit addVariable(Weight value);
 	bool checkAndAddVariable(Weight value, bool defaulttruepol = false);
 
-public:
+	friend class PropagatorFactory;
 	LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
 
+public:
 	virtual void finish();
 
 	virtual void updateBounds();
@@ -146,74 +152,80 @@ public:
 	virtual Lit getGEQLit(Weight bound);
 };
 
+class EventQueue;
+
 class IntView{
 private:
-	IntVar* var_;
+	IntVar* var_; // orig var
 	Weight constdiff_;
 
-	Weight constdiff() const { return constdiff_; }
+	friend class EventQueue;
+	friend class PropagatorFactory;
+
+	VarID id; // additional id
+	IntVar* var() const { return var_; }
+	VarID getVarID() const { return var()->getVarID(); }
 
 public:
-	IntView(IntVar* var, Weight constdiff): var_(var), constdiff_(constdiff){ }
+	IntView(IntVar* var, VarID id, Weight constdiff): var_(var), constdiff_(constdiff), id(id) { }
 
-	IntVar* var() const { return var_; }
-
-	VarID getVarID() const { return var()->getVarID(); }
+	VarID getID() const { return id; }
+	Weight getFixedDiff() const { return constdiff_; }
 
 	Weight origMinValue() const {
 #ifdef NOARBITPREC
-		MAssert(getMaxElem<int>()-constdiff()>var()->origMinValue());
+		MAssert(getMaxElem<int>()-getFixedDiff()>var()->origMinValue());
 #endif
-		return var()->origMinValue()+constdiff();
+		return var()->origMinValue()+getFixedDiff();
 	}
 
 	Weight origMaxValue() const {
 #ifdef NOARBITPREC
-		MAssert(getMaxElem<int>()-constdiff()>var()->origMaxValue());
+		MAssert(getMaxElem<int>()-getFixedDiff()>var()->origMaxValue());
 #endif
-		return var()->origMaxValue()+constdiff();
+		return var()->origMaxValue()+getFixedDiff();
 	}
 
 	Weight minValue() const {
 		auto minval = var()->minValue();
-		if(constdiff()>0 && minval+constdiff()<minval){
+		if(getFixedDiff()>0 && minval+getFixedDiff()<minval){
 			return negInfinity();
 		}
-		if(constdiff()<0 && minval-constdiff()<minval){
+		if(getFixedDiff()<0 && minval-getFixedDiff()<minval){
 			return posInfinity();
 		}
-		return minval+constdiff();
+		return minval+getFixedDiff();
 	}
 
 	Weight maxValue() const {
 		auto maxval = var()->maxValue();
-		if(constdiff()>0 && maxval+constdiff()<maxval){
+		if(getFixedDiff()>0 && maxval+getFixedDiff()<maxval){
 			return posInfinity();
 		}
-		if(constdiff()<0 && maxval-constdiff()<maxval){
+		if(getFixedDiff()<0 && maxval-getFixedDiff()<maxval){
 			return negInfinity();
 		}
-		return maxval+constdiff();
+		return maxval+getFixedDiff();
 	}
 
 	Lit getLEQLit(Weight bound) const {
-		if(constdiff()>0 && bound-constdiff()>bound){
+		if(getFixedDiff()>0 && bound-getFixedDiff()>bound){
 			return var()->getPCSolver().getFalseLit();
 		}
-		if(constdiff()<0 && bound-constdiff()<bound){
+		if(getFixedDiff()<0 && bound-getFixedDiff()<bound){
 			return var()->getPCSolver().getTrueLit();
 		}
-		return var()->getLEQLit(bound-constdiff());
+		return var()->getLEQLit(bound-getFixedDiff());
 	}
 
 	Lit getGEQLit(Weight bound) const {
-		if(constdiff()>0 && bound-constdiff()>bound){
+		if(getFixedDiff()>0 && bound-getFixedDiff()>bound){
 			return var()->getPCSolver().getTrueLit();
 		}
-		if(constdiff()<0 && bound-constdiff()<bound){
+		if(getFixedDiff()<0 && bound-getFixedDiff()<bound){
 			return var()->getPCSolver().getFalseLit();
 		}
-		return var()->getGEQLit(bound-constdiff());
+		return var()->getGEQLit(bound-getFixedDiff());
 	}
 
 	Lit getEQLit(Weight bound) const{
@@ -245,7 +257,7 @@ public:
 
 	std::string toString() const {
 		std::stringstream ss;
-		ss <<var()->toString(getVarID());
+		ss <<var()->toString(var()->getVarID());
 		if(constdiff_!=0){
 			if(constdiff_>0){
 				ss <<"+";

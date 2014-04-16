@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef PROPAGATORFACTORY_HPP_
-#define PROPAGATORFACTORY_HPP_
+#pragma once
 
 #include <map>
 #include <vector>
@@ -40,6 +39,8 @@ class AggToCNFTransformer;
 
 class LazyTseitinClause;
 class LazyGrounder;
+
+class IntView;
 
 #ifdef CPSUPPORT
 class CPSolver;
@@ -132,6 +133,8 @@ public:
 	virtual Lit exists(const CPBinaryRel&) const {
 		return mkPosLit(0);
 	}
+
+	virtual IntView* getIntView(VarID varID, Weight bound) = 0;
 };
 
 class PropagatorFactory:
@@ -147,7 +150,7 @@ private:
 
 	Definition* definitions;
 
-	std::map<VarID, IntVar*> intvars;
+	std::map<VarID, IntView*> intvars;
 
 	// Parsing support
 	std::map<int, SetWithAggs> parsedsets;
@@ -198,15 +201,15 @@ public:
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 
 	template<typename T>
-	void 		notifyMonitorsOfAdding(const T& obj) const;
+	void notifyMonitorsOfAdding(const T& obj) const;
+
+	virtual IntView* getIntView(VarID varID, Weight bound);
 
 private:
 	template<class T>
 	void addCP			(const T& formula);
 
 	void internalAdd(const Disjunction& sentence);
-
-	IntVar*		getIntVar(VarID varID) const;
 
 	bool finishedparsing;
 	bool finishedParsing() const {
@@ -223,5 +226,3 @@ private:
 };
 
 }
-
-#endif /* PROPAGATORFACTORY_HPP_ */

@@ -29,10 +29,10 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 	auto t = getPCSolver().getTrueLit();
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
 	const int& zero = 0; //doing this here, to make the disambiguation.
-	new FDSumConstraint(getID(), &getPCSolver(), headIsTrue, { t, t }, { bound, result }, { 1, 1 }, EqType::GEQ, zero);
-	new FDSumConstraint(getID(), &getPCSolver(), headIsTrue, { t, t }, { bound, result }, { -1, -1 }, EqType::GEQ, zero);
+	add(CPSumWeighted(DEFAULTCONSTRID, headIsTrue, { t, t }, { bound->getID(), result->getID() }, { 1, 1 }, EqType::GEQ, zero));
+	add(CPSumWeighted(DEFAULTCONSTRID, headIsTrue, { t, t }, { bound->getID(), result->getID() }, { -1, -1 }, EqType::GEQ, zero));
 	if (verbosity() > 5) {
-		clog << toString(head) << " <=> var" << toString(result->getVarID()) << " + var" << toString(bound->getVarID()) << " = 0" << endl;
+		clog << toString(head) << " <=> var" << result->toString() << " + var" << bound->toString() << " = 0" << endl;
 	}
 	//We cannot use equality here, since that would cause loops...
 	return result;
@@ -40,15 +40,8 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 
 IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
 	auto id = getPCSolver().newID();
-	IntVar* newvar = NULL;
-	if (abs(max - min) < 100) { // FIXME duplicate heuristic in Propagatorfactory
-		newvar = new RangeIntVar(getID(), &getPCSolver(), id, min, max);
-	} else {
-		newvar = new LazyIntVar(getID(), &getPCSolver(), id, min, max);
-	}
-	newvar->finish();
-	// clog <<"Created new var " <<toString(id) <<"[" <<min <<"," <<max <<"]\n";
-	return new IntView(newvar, 0);
+	add(IntVarRange(DEFAULTCONSTRID, id, min, max));
+	return getPCSolver().getIntView(id, 0);
 }
 
 void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
@@ -88,10 +81,23 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		}
 		_head = one;
 		if (getType() == AggType::PROD) {
-			new FDProdConstraint(getID(), &getPCSolver(), two, conditions, _vars, weights.front(), EqType::LEQ, bound);
+			std::vector<VarID> varids;
+			for(auto v: _vars){
+				varids.push_back(v->getID());
+			}
+			add(CPProdWeighted(DEFAULTCONSTRID, two, conditions, varids, weights.front(), EqType::LEQ, bound->getID()));
 		} else {
 			MAssert(getType() == AggType::SUM);
-			new FDSumConstraint(getID(), &getPCSolver(), two, conditions, _vars, weights, EqType::LEQ, bound);
+			std::vector<VarID> varids;
+			for(auto v: _vars){
+				varids.push_back(v->getID());
+			}
+			varids.push_back(bound->getID());
+			auto newweights = weights;
+			newweights.push_back(Weight(-1));
+			auto newconditions = conditions;
+			newconditions.push_back(getPCSolver().getTrueLit());
+			add(CPSumWeighted(DEFAULTCONSTRID, two, newconditions, varids, newweights, EqType::LEQ, Weight(0)));
 		}
 	}
 	if (rel == EqType::L || rel == EqType::G) {
@@ -189,7 +195,7 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 	for (uint i = 0; i < set.size(); ++i) {
 		bool found = false;
 		for (uint j = 0; j < newset.size(); ++j) {
-			if (set[i]->getVarID() == newset[j]->getVarID()) {
+			if (set[i]->getID() == newset[j]->getID()) {
 				if (conditions[i].x == newConditions[j].x) {
 					Weight weightToAdd = weights[i];
 					if (conditions[i].hasSign() == newConditions[j].hasSign()) {
@@ -641,13 +647,12 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		if (getPCSolver().rootValue(conditions[i]) == l_True && (set[i]->origMinValue() < 0) && (set[i]->origMaxValue() <= 0)) {
 			//Variable is guaranteed to be negative. Can be optimised by including "-1" in the weight and keeping monotonicity of product
 			//Can only be done in case this variable is known to be certainly in the set.
-			auto newvar = new RangeIntVar(getID(), &getPCSolver(), getPCSolver().newID(), -set[i]->origMaxValue(), -set[i]->origMinValue());
-			auto newview = new IntView(newvar, 0);
+			auto varid = getPCSolver().newID();
+			add(IntVarRange(DEFAULTCONSTRID, varid, -set[i]->origMaxValue(), -set[i]->origMinValue()));
 			auto truelit = getPCSolver().getTrueLit();
-
-			new FDSumConstraint(getID(), &getPCSolver(), truelit, { truelit, truelit }, { set[i], newview }, { Weight(1), Weight(1) }, EqType::EQ, Weight(0));
+			add(CPSumWeighted(DEFAULTCONSTRID, truelit, { truelit, truelit }, { set[i]->getID(), varid }, { Weight(1), Weight(1) }, EqType::EQ, Weight(0)));
 			newweight *= -1;
-			newset.push_back(newview);
+			newset.push_back(getPCSolver().getIntView(varid, Weight(0)));
 			newconditions.push_back(conditions[i]);
 			continue;
 		}
@@ -658,8 +663,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	}
 
 	if (newweight == 0) {
-		// clog <<"Created new sum because bound 0\n";
-		new FDSumConstraint(getID(), &getPCSolver(), head, newconditions, { bound }, { 1 }, invertEqType(rel), newweight);
+		add(CPSumWeighted(DEFAULTCONSTRID, head, newconditions, { bound->getID() }, { 1 }, invertEqType(rel), newweight));
 		notifyNotPresent();
 		return;
 	}
@@ -667,7 +671,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	if(newset.size() == 1 && getPCSolver().rootValue(newconditions[0])==l_True){
 		//Transform _head <=> PROD set[0]  >= _bound to
 		//set[0] - bound >= 0
-		new FDSumConstraint(getID(), &getPCSolver(), head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0],bound}, {newweight, -1}, rel,  0);
+		add(CPSumWeighted(DEFAULTCONSTRID, head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0]->getID(),bound->getID()}, {newweight, -1}, rel,  0));
 		notifyNotPresent();
 		return;
 	}

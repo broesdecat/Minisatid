@@ -23,7 +23,7 @@ BasicIntVar::BasicIntVar(uint id, PCSolver* solver, VarID varid)
 		: IntVar(id, solver, varid) {
 }
 
-void IntVar::notifyBacktrack(int, const Lit& l) {
+void IntVar::notifyBacktrack(int, const Lit&) {
 	updateBounds();
 }
 
@@ -171,7 +171,7 @@ void RangeIntVar::finish() {
 
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().acceptBounds(new IntView(this, 0), this);
+	getPCSolver().acceptBounds(getPCSolver().getIntView(this->getVarID(), 0), this);
 
 	addConstraints();
 	engine().notifyBoundsChanged(this);
@@ -232,7 +232,7 @@ void EnumIntVar::finish(){
 
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().acceptBounds(new IntView(this, 0), this);
+	getPCSolver().acceptBounds(getPCSolver().getIntView(this->getVarID(), 0), this);
 
 	addConstraints();
 	engine().notifyBoundsChanged(this);

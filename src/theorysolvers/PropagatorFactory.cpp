@@ -290,13 +290,6 @@ void PropagatorFactory::addCP(const T&
 #endif
 }
 
-IntVar* PropagatorFactory::getIntVar(VarID varID) const {
-	if (intvars.find(varID) == intvars.cend()) {
-		throw idpexception("Integer variable was not declared before use.\n");
-	}
-	return intvars.at(varID);
-}
-
 void PropagatorFactory::add(const IntVarRange& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
@@ -314,7 +307,7 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 		} else {
 			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue); // TODO also for enum variables
 		}
-		intvars.insert( { obj.varID, intvar });
+		intvars.insert({ obj.varID, new IntView(intvar, intvar->getVarID(), Weight(0)) });
 		intvar->finish();
 	}
 }
@@ -333,7 +326,7 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 			throw idpexception(ss.str());
 		}
 		auto intvar = new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values);
-		intvars.insert( { obj.varID, intvar });
+		intvars.insert( { obj.varID, new IntView(intvar, obj.varID, Weight(0)) });
 		intvar->finish();
 	}
 }
@@ -344,7 +337,7 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 		addCP(obj);
 	} else {
 		Implication eq(obj.getID(), obj.head, ImplicationType::EQUIVALENT, { }, true);
-		auto left = getIntVar(obj.varID);
+		auto left = getIntView(obj.varID, Weight(0));
 		switch (obj.rel) {
 		case EqType::EQ:
 			eq.body.push_back(left->getEQLit(obj.bound));
@@ -374,7 +367,7 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		new BinaryConstraint(obj.getID(), getEnginep(), getIntVar(obj.lhsvarID), obj.rel, getIntVar(obj.rhsvarID), obj.head);
+		new BinaryConstraint(obj.getID(), getEnginep(), getIntView(obj.lhsvarID, Weight(0)), obj.rel, getIntView(obj.rhsvarID, Weight(0)), obj.head);
 	}
 }
 
@@ -384,7 +377,7 @@ Elem PropagatorFactory::createUnconditional(const Elem& obj, Weight neutral){
 	Elem newsum(obj);
 	newsum.conditions.clear();
 	for(uint i=0; i<newsum.varIDs.size(); ++i){
-		auto origintvar = getIntVar(newsum.varIDs[i]);
+		auto origintvar = getIntView(newsum.varIDs[i], Weight(0));
 		auto newcpvarid = getEngine().newID();
 		add(IntVarRange(obj.getID(), newcpvarid, min(neutral,origintvar->origMinValue()), max(neutral,origintvar->origMaxValue())));
 				// TODO: better make it an enum if 0 if far from the other values?
@@ -400,6 +393,18 @@ Elem PropagatorFactory::createUnconditional(const Elem& obj, Weight neutral){
 	return newsum;
 }
 
+IntView* PropagatorFactory::getIntView(VarID varID, Weight bound){
+	if (intvars.find(varID) == intvars.cend()) {
+		throw idpexception("Integer variable was not declared before use.\n");
+	}
+	auto var = intvars.at(varID);
+	if(bound==var->getFixedDiff()){
+		return var;
+	}
+	auto id = getEngine().newID();
+	return new IntView(var->var(), id, var->getFixedDiff()+bound);
+}
+
 void PropagatorFactory::add(const CPSumWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
 	if (getEngine().modes().usegecode) {
@@ -407,7 +412,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 	} else {
 		auto allknown = true;
 		for(auto varid : obj.varIDs){
-			auto var = getIntVar(varid);
+			auto var = getIntView(varid, Weight(0));
 			if(var->origMinValue()!=var->origMaxValue()){
 				allknown = false;
 				break;
@@ -416,7 +421,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 		if(allknown){
 			WLSet set(getEngine().newSetID());
 			for(uint i=0; i<obj.varIDs.size(); ++i){
-				set.wl.push_back({obj.conditions[i], getIntVar(obj.varIDs[i])->origMinValue() * obj.weights[i]});
+				set.wl.push_back({obj.conditions[i], getIntView(obj.varIDs[i], Weight(0))->origMinValue() * obj.weights[i]});
 			}
 			add(set);
 			switch(obj.rel){
@@ -448,7 +453,7 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 		}else{
 			vector<IntView*> vars;
 			for (auto varid : obj.varIDs) {
-				vars.push_back(new IntView(getIntVar(varid), 0));
+				vars.push_back(getIntView(varid, 0));
 			}
 			new FDSumConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.weights, obj.rel, obj.bound);
 		}
@@ -462,9 +467,9 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
 	} else {
 		vector<IntView*> vars;
 		for (auto varid : obj.varIDs) {
-			vars.push_back(new IntView(getIntVar(varid), 0));
+			vars.push_back(getIntView(varid, 0));
 		}
-		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.prodWeight, obj.rel, new IntView(getIntVar(obj.boundID), 0));
+		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, obj.conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
 	}
 }
 
@@ -635,7 +640,7 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 		VariableEqValue vareq;
 		auto ivar = (*i).second;
 		if (ivar->minValue() != ivar->maxValue()) {
-			cerr << "Variable " << ivar->toString(ivar->getVarID()) << "[" << ivar->minValue() << "," << ivar->maxValue() << "]" << " is not assigned.\n";
+			cerr << "Variable " << ivar->toString() << "[" << ivar->minValue() << "," << ivar->maxValue() << "]" << " is not assigned.\n";
 			throw idpexception("Current interpretation is a not a model.");
 		}
 		vareq.variable = ivar->getVarID();
@@ -733,7 +738,7 @@ void PropagatorFactory::add(const LazyAtom& object) {
 	}
 	std::vector<IntView*> argvars;
 	for (auto arg : object.args) {
-		argvars.push_back(new IntView(getIntVar(arg), 0));
+		argvars.push_back(getIntView(arg, 0));
 	}
 	new LazyAtomPropagator(object.getID(), getEnginep(), object.head, argvars, object.grounder);
 
