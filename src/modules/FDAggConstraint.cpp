@@ -366,8 +366,10 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
 			} else {
 				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 			}
-			if (condval == l_True || _weights[j]*_vars[j]->origMaxValue()>0) {
+			if (condval == l_True) {
 				val += _weights[j]*(_vars[j]->maxValue()-_vars[j]->origMaxValue());
+			}else if(_weights[j]*_vars[j]->origMaxValue()>0){
+				val += _weights[j]*(max(Weight(0),_vars[j]->maxValue())-_vars[j]->origMaxValue());
 			}
 		}
 	}
@@ -414,8 +416,10 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound)
 			} else {
 				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 			}
-			if (condval == l_True || _weights[j]*_vars[j]->origMaxValue()<0) {
-				val += _weights[j]*(min(0,_vars[j]->minValue())-_vars[j]->origMinValue());
+			if (condval == l_True) {
+				val += _weights[j]*(_vars[j]->minValue()-_vars[j]->origMinValue());
+			}else if(_weights[j]*_vars[j]->origMaxValue()<0){
+				val += _weights[j]*(min(Weight(0),_vars[j]->minValue())-_vars[j]->origMinValue());
 			}
 		}
 	}

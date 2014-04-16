@@ -10,6 +10,7 @@
 
 #include <string>
 #include <limits>
+#include <iostream>
 #include "MAssert.hpp"
 #include "Idpexception.hpp"
 
@@ -51,7 +52,9 @@ namespace MinisatID {
 		const Weight operator-() const {
 			Weight w2(*this);
 			w2.w = -w2.w;
-			w2.pos=!w2.pos;
+			if(inf){
+				w2.pos=!w2.pos;
+			}
 			return w2;
 		}
 
@@ -117,6 +120,7 @@ namespace MinisatID {
 				} else {
 					w = 0;
 					inf = false;
+					pos = false;
 				}
 			} else {
 				w /= rhs.w;

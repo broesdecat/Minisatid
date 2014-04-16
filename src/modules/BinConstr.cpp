@@ -130,6 +130,14 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	}
 }
 
+int BinaryConstraint::getNbOfFormulas() const {
+	auto nb = ((abs(leftmax() - leftmin())) + (abs(rightmax() - rightmin()))) / 2;
+	if(nb>=getMaxElem<int>()){
+		return getMaxElem<int>();
+	}
+	return toInt(nb);
+}
+
 void BinaryConstraint::accept(ConstraintVisitor&) {
 	// FIXME
 	//		which id to use

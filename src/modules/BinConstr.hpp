@@ -47,9 +47,7 @@ public:
 	virtual rClause getExplanation(const Lit& lit);
 	virtual rClause notifypropagate();
 	virtual void accept(ConstraintVisitor& visitor);
-	virtual int getNbOfFormulas() const {
-		return (toInt((abs(leftmax() - leftmin())) + (abs(rightmax() - rightmin()))) / 2);
-	}
+	virtual int getNbOfFormulas() const;
 	virtual void notifyNewDecisionLevel() {
 		throw idpexception("Invalid code path.");
 	}

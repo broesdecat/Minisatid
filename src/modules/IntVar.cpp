@@ -144,9 +144,9 @@ RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Wei
 		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
 		return;
 	}
-/*	if(isNegInfinity(min) || isPosInfinity(max)){
+	if(isNegInfinity(min) || isPosInfinity(max)){
 		throw idpexception("Values of rangevar cannot be infinite");
-	}*/
+	}
 	setOrigMax(max);
 	setOrigMin(min);
 }
@@ -157,7 +157,7 @@ void RangeIntVar::finish() {
 		leqlits.push_back(IntVarValue(this, var, i));
 		engine().accept(this, var, FASTEST);
 		engine().accept(this, ~var, FASTEST);
-		if(origMaxValue()==getMaxElem<Weight>()){ // TODO very ugly overflow check, necessary for min and max aggregates (empty set is infinity)
+		if(isPosInfinity(origMaxValue())){ // TODO ugly overflow check, necessary for min and max aggregates (empty set is infinity)
 			break;
 		}
 	}
