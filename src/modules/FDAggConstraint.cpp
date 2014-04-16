@@ -338,13 +338,10 @@ std::pair<Weight, Weight> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(si
  * Return lits such that absmax + sum of max-origmax values < bound
  */
 litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound) const {
-	//cerr <<"Bound = " <<bound <<", absmax = " <<_absmax <<"\n";
 	litlist lits;
 	Weight val = _absmax;
 	for (uint j = 0; j < _vars.size(); ++j) {
-		//cerr <<_vars[j]->toString() <<"=[" <<_vars[j]->minValue() <<"," <<_vars[j]->maxValue() <<"]\n";
 		if(val<bound){
-			//cerr <<"Stop\n";
 			break;
 		}
 		if (j == excludedVar) {
@@ -369,7 +366,9 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
 			} else {
 				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 			}
-			val += _weights[j]*(_vars[j]->maxValue()-_vars[j]->origMaxValue());
+			if (condval == l_True || _weights[j]*_vars[j]->origMaxValue()>0) {
+				val += _weights[j]*(_vars[j]->maxValue()-_vars[j]->origMaxValue());
+			}
 		}
 	}
 #ifdef DEBUG
@@ -387,13 +386,10 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
  * Return lits such that absmin + sum of min-origmin values >= bound
  */
 litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound) const {
-	//cerr <<"Bound = " <<bound <<", absmin = " <<_absmin <<"\n";
 	litlist lits;
 	Weight val = _absmin;
 	for (uint j = 0; j < _vars.size(); ++j) {
-		//cerr <<_vars[j]->toString() <<"\n";
 		if(val>=bound){
-		//	cerr <<"Stop\n";
 			break;
 		}
 		if (j == excludedVar) {
@@ -418,7 +414,9 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound)
 			} else {
 				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 			}
-			val += _weights[j]*(_vars[j]->minValue()-_vars[j]->origMinValue());
+			if (condval == l_True || _weights[j]*_vars[j]->origMaxValue()<0) {
+				val += _weights[j]*(min(0,_vars[j]->minValue())-_vars[j]->origMinValue());
+			}
 		}
 	}
 #ifdef DEBUG
