@@ -171,9 +171,9 @@ void RangeIntVar::finish() {
 }
 
 Lit RangeIntVar::getLEQLit(Weight bound) {
-	//if(verbosity()>5){
+	if(verbosity()>5){
 		clog <<"Requesting var" <<toString(getVarID()) <<"[" <<minValue() <<"," <<maxValue() <<"]" <<"=<" <<bound <<" (orig bounds" <<"[" <<origMinValue() <<"," <<origMaxValue() <<"]"  <<")\n";
-	//}
+	}
 	if(origMinValue()>0 && negInfinity()+origMinValue()>bound){
 		return getPCSolver().getFalseLit();
 	}
