@@ -532,9 +532,11 @@ void Solver::saveState() {
 
 	savedok = ok;
 	
-	if(remove_satisfied){
-		removeSatisfied(clauses);
-	}
+	// Remove satisfied clauses:
+	removeSatisfied(learnts);
+	removeSatisfied(clauses);
+	checkGarbage();
+	rebuildOrderHeap();
 	remove_satisfied = false;
 }
 
@@ -597,7 +599,7 @@ void Solver::removeClause(CRef cr) {
 
 bool Solver::satisfied(const Clause& c) const {
 	for (int i = 0; i < c.size(); i++) {
-		if (value(c[i]) == l_True)
+		if (rootValue(c[i]) == l_True)
 			return true;
 	}
 	return false;
