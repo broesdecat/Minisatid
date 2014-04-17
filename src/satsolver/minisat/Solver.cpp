@@ -358,7 +358,6 @@ void Solver::setInitialPolarity(Atom var, bool initiallyMakeTrue) {
 
 void Solver::addRootUnitLit(const ReverseTrailElem& elem) {
 	rootunitlits.push_back(elem);
-	savedrootlits.insert(elem.lit);
 }
 
 /*
@@ -528,7 +527,7 @@ void Solver::saveState() {
 	newvars.clear();
 	newclauses.clear();
 	newlearnts.clear();
-	savedrootlits.clear();
+	savedrootlits = rootunitlits;
 
 	savedok = ok;
 	
@@ -575,13 +574,7 @@ void Solver::resetState() {
 		setDecidable(*i, false);
 	}
 
-	for (auto i = rootunitlits.begin(); i != rootunitlits.end();) {
-		if (savedrootlits.find(i->lit) != savedrootlits.cend()) { // NOTE: the explanation can change during search, so only check on the literal!
-			i = rootunitlits.erase(i);
-		} else {
-			++i;
-		}
-	}
+	rootunitlits = savedrootlits;
 
 	remove_satisfied = true;
 }

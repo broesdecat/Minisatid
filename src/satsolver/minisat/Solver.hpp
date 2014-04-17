@@ -107,8 +107,7 @@ private:
 
 	// ******* END VAR STORING VARIABLES
 
-	std::list<ReverseTrailElem> rootunitlits;
-	std::set<Lit> savedrootlits;
+	std::list<ReverseTrailElem> rootunitlits, savedrootlits;
 	std::vector<Atom> newvars;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
