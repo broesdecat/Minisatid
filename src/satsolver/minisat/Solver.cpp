@@ -841,6 +841,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 					if(value(test[i])==l_Undef){
 						throw idpexception("Invalid code path.");
 					}
+					if(var(test[i])==var(test[0])){
+						continue;
+					}
 					if(not getPCSolver().assertedBefore(var(test[i]), var(test[0]))){
 						if (verbosity > 1) {
 							clog <<"Lastest decision level: \n";
