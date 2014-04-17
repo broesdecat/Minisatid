@@ -200,11 +200,6 @@ Lit RangeIntVar::getGEQLit(Weight bound) {
 
 EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values)
 		: BasicIntVar(id, solver, varid), _values(values) {
-	for(auto w: values){
-		if(isPosInfinity(w) || isNegInfinity(w)){
-			throw idpexception("Values of enumvar cannot be infinite");
-		}
-	}
 	if (values.empty()) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent();
