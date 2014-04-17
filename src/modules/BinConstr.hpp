@@ -6,12 +6,14 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef BINCONSTR_HPP
-#define BINCONSTR_HPP
+#pragma once
+
 #include "modules/IntVar.hpp"
 #include "modules/DPLLTmodule.hpp"
 
 namespace MinisatID {
+
+class PropagatorFactory;
 
 /**
  * head EQUIV left =< right
@@ -24,18 +26,19 @@ private:
 	struct BinReason {
 		IntView* var;
 		bool geq;
-		int bound, rightbound; // first is leftbound is headreason, otherwise second bound is irrelevant
+		Weight bound, rightbound; // first is leftbound is headreason, otherwise second bound is irrelevant
 
 		BinReason(): var(NULL), geq(false), bound(0), rightbound(0){}
-		BinReason(IntView* var, bool geq, int bound, int rightbound = 0)
+		BinReason(IntView* var, bool geq, Weight bound, Weight rightbound = 0)
 				: var(var), geq(geq), bound(bound), rightbound(rightbound) {
 		}
 	};
 	std::map<Lit, BinReason> reasons; // Maps a literal to the propagated intvar (NULL if head) and to the one value necessary for explaining it.
 
-public:
-	BinaryConstraint(uint id, PCSolver* engine, IntVar* left, EqType comp, IntVar* right, const Lit& h);
+	friend class PropagatorFactory;
+	BinaryConstraint(uint id, PCSolver* engine, IntView* left, EqType comp, IntView* right, const Lit& h);
 
+public:
 	const Lit& head() const {
 		return head_;
 	}
@@ -44,9 +47,7 @@ public:
 	virtual rClause getExplanation(const Lit& lit);
 	virtual rClause notifypropagate();
 	virtual void accept(ConstraintVisitor& visitor);
-	virtual int getNbOfFormulas() const {
-		return (abs(leftmax() - leftmin())) + (abs(rightmax() - rightmin())) / 2;
-	}
+	virtual int getNbOfFormulas() const;
 	virtual void notifyNewDecisionLevel() {
 		throw idpexception("Invalid code path.");
 	}
@@ -61,20 +62,18 @@ public:
 		return right_;
 	}
 
-	int leftmin() const {
+	Weight leftmin() const {
 		return left_->minValue();
 	}
-	int leftmax() const {
+	Weight leftmax() const {
 		return left_->maxValue();
 	}
-	int rightmin() const {
+	Weight rightmin() const {
 		return right_->minValue();
 	}
-	int rightmax() const {
+	Weight rightmax() const {
 		return right_->maxValue();
 	}
 };
 
 }
-
-#endif //BINCONSTR_HPP

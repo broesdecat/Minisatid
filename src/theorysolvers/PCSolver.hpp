@@ -64,6 +64,7 @@ public:
 	VarID newID();
 	Atom newAtom();
 	void createVar(Atom v, TheoryID theoryID);
+	IntView* getIntView(VarID id, Weight bound);
 
 	double getActivity(Atom var) const;
 	void setActivity(Atom var, double act);

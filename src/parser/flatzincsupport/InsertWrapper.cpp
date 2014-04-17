@@ -251,8 +251,11 @@ void createDiv(uint varx, uint vary, uint varz, Storage* storage){
 
 void addReifSet(int head, uint var, bool range, int start, int end, const std::vector<int>& values, Storage* storage){
 	if (range) {
-		storage->addBinI(head, var, EqType::GEQ, start);
-		storage->addBinI(head, var, EqType::LEQ, end);
+		auto b1 = storage->createOneShotLit();
+		storage->addBinI(b1, var, EqType::GEQ, start);
+		auto b2 = storage->createOneShotLit();
+		storage->addBinI(b2, var, EqType::LEQ, end);
+		storage->writeEquiv(head, {b1,b2}, true);
 	} else {
 		std::vector<int> boolvars;
 		for (auto j : values) {
@@ -460,7 +463,7 @@ void InsertWrapper::add(Constraint* var) {
 			} else {
 				values = parseParValueSet(*storage, setarg);
 			}
-			addReifSet(storage->getTrue(), arg1, isRangeSet(setarg), start, end, values, storage);
+			addReifSet(head, arg1, isRangeSet(setarg), start, end, values, storage);
 		} else if (setarg.type == EXPR_TYPE::EXPR_IDENT) {
 			auto setvar = parseSet(*storage, *setarg.ident);
 			addReifSet(head, arg1, setvar->isrange, setvar->start, setvar->end, setvar->values, storage);

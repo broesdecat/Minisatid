@@ -6,15 +6,14 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef OPTIMSTATEMENT_HPP_
-#define OPTIMSTATEMENT_HPP_
+#pragma once
 
 #include "external/ExternalUtils.hpp"
 
 namespace MinisatID{
 
 class Agg;
-class IntVar;
+class IntView;
 
 enum class Optim {
 	LIST, SUBSET, AGG, VAR
@@ -25,7 +24,7 @@ struct OptimStatement {
 	Optim optim;
 	std::vector<Lit> to_minimize;
 	Agg* agg_to_minimize;
-	IntVar* var;
+	IntView* var;
 	bool atoptimum;
 
 	OptimStatement(uint priority, Optim optim, litlist minim) :
@@ -36,12 +35,10 @@ struct OptimStatement {
 			priority(priority), optim(Optim::AGG), agg_to_minimize(agg), var(NULL), atoptimum(false) {
 
 	}
-	OptimStatement(uint priority, IntVar* var) :
+	OptimStatement(uint priority, IntView* var) :
 			priority(priority), optim(Optim::VAR), agg_to_minimize(NULL), var(var), atoptimum(false) {
 
 	}
 };
 
 }
-
-#endif /* OPTIMSTATEMENT_HPP_ */

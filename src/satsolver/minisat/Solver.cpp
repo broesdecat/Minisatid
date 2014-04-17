@@ -515,7 +515,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 // NOTE: never call directly from within!
-void Solver::saveState() {
+void Solver::saveState() {	
 	if (verbosity > 3) {
 		clog << ">>> Saving the state.\n";
 	}
@@ -531,6 +531,12 @@ void Solver::saveState() {
 	savedrootlits.clear();
 
 	savedok = ok;
+	
+	// Remove satisfied clauses:
+	removeSatisfied(learnts);
+	removeSatisfied(clauses);
+	checkGarbage();
+	rebuildOrderHeap();
 	remove_satisfied = false;
 }
 
@@ -593,7 +599,7 @@ void Solver::removeClause(CRef cr) {
 
 bool Solver::satisfied(const Clause& c) const {
 	for (int i = 0; i < c.size(); i++) {
-		if (value(c[i]) == l_True)
+		if (rootValue(c[i]) == l_True)
 			return true;
 	}
 	return false;
@@ -1062,7 +1068,11 @@ CRef Solver::notifypropagate() {
 					return i->explan;
 				}
 				checkedEnqueue(i->lit, i->explan);
-				++i;
+				if(level==0){
+					i = rootunitlits.erase(i);
+				}else{
+					++i;
+				}
 			} else {
 				i = rootunitlits.erase(i);
 			}
@@ -1239,6 +1249,7 @@ bool Solver::simplify() {
 	if (remove_satisfied) { // Can be turned off.
 		removeSatisfied(clauses);
 	}
+
 	checkGarbage();
 	rebuildOrderHeap();
 

@@ -19,7 +19,7 @@ using namespace std;
 // NOTE: currently always grounds at least log(max-min) elements.
 // TODO Could be changed to be able to only ground at least 2 elements.
 
-LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max)
+LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max)
 		: IntVar(id, solver, varid), halve(true){
 	setOrigMax(max);
 	setOrigMin(min);
@@ -30,14 +30,25 @@ void LazyIntVar::finish(){
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_STATEFUL);
-	getPCSolver().acceptBounds(new IntView(this, 0), this);
+	getPCSolver().acceptBounds(getPCSolver().getIntView(this->getVarID(), 0), this);
 
-	checkAndAddVariable((origMinValue()+origMaxValue())/2);
+	Weight val(0);
+#ifdef NOARBITPREC
+	val = (origMinValue()+origMaxValue())/2;
+#else
+	if(isNegInfinity(origMinValue()) || isPosInfinity(origMaxValue())){
+		val = 0;
+	}else{
+		val = (origMinValue()+origMaxValue())/2;
+	}
+#endif
+
+	checkAndAddVariable(val);
 	engine().notifyBoundsChanged(this);
 }
 
 //Add a variable for var =< value
-Lit LazyIntVar::addVariable(int value){
+Lit LazyIntVar::addVariable(Weight value){
 	if(value>origMaxValue()){
 		return getPCSolver().getTrueLit();
 	}
@@ -135,14 +146,19 @@ void LazyIntVar::updateBounds() {
 	}
 	currentmax = next;
 
+	// TODO infinite case
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
 	if(not unknown && not checkAndAddVariable(currentmin) && not checkAndAddVariable(currentmax)){
 		if(halve){
 			checkAndAddVariable((currentmin+currentmax)/2, false);
 		}else{
 			checkAndAddVariable(currentmax-1, false);
+			checkAndAddVariable(currentmin+1, false);
 		}
 		halve = not halve;
+	}
+	if(verbosity()>5){
+		clog <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 	}
 }
 
@@ -153,7 +169,7 @@ struct CompareVarValue{
 };
 
 template<class List>
-typename List::const_iterator findVariable(int value, const List& list){
+typename List::const_iterator findVariable(Weight value, const List& list){
 	auto i = lower_bound(list.cbegin(), list.cend(), IntVarValue(NULL, mkPosLit(1),value), CompareVarValue());
 	if(i!=list.cend() && i->value==value){
 		return i;
@@ -162,7 +178,7 @@ typename List::const_iterator findVariable(int value, const List& list){
 	}
 }
 
-bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns true if it was newly created
+bool LazyIntVar::checkAndAddVariable(Weight value, bool defaulttruepol){ // Returns true if it was newly created
 	auto i = findVariable(value, leqlits);
 #ifdef DEBUG
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
@@ -187,9 +203,11 @@ bool LazyIntVar::checkAndAddVariable(int value, bool defaulttruepol){ // Returns
 	}
 }
 
-Lit LazyIntVar::getLEQLit(int bound) {
-	//cerr <<"Requesting var" <<getVarID().id <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<">=" <<bound <<"\n";
-	if (origMaxValue() < bound) {
+Lit LazyIntVar::getLEQLit(Weight bound) {
+	if(verbosity()>5){
+		clog <<"Requesting var" <<getVarID().id <<"{" <<origMinValue() <<",()," <<origMaxValue() <<"}" <<"=<" <<bound <<"\n";
+	}
+	if (origMaxValue() <= bound) {
 		return getPCSolver().getTrueLit();
 	} else if (bound < origMinValue()) {
 		return getPCSolver().getFalseLit();
@@ -203,7 +221,7 @@ Lit LazyIntVar::getLEQLit(int bound) {
 	}
 }
 
-Lit LazyIntVar::getGEQLit(int bound) {
+Lit LazyIntVar::getGEQLit(Weight bound) {
 	if(bound==getMinElem<int>()){
 		return getPCSolver().getTrueLit();
 	}

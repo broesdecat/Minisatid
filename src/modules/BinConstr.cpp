@@ -14,54 +14,75 @@
 using namespace MinisatID;
 using namespace std;
 
-BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntVar* _left, EqType comp, IntVar* _right, const Lit& h)
+BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, EqType comp, IntView* _right, const Lit& h)
 		: Propagator(id, engine, "binary constraint") {
 	switch (comp) {
 	case EqType::EQ: {
 		stringstream ss;
-		ss <<_left->getVarID().id << " = " << _right->getVarID().id;
+		ss <<_left->toString() << " = " << _right->toString();
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
-		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::GEQ, _right->getVarID()));
+		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::GEQ, _right->getID()));
 		head_ = lefthead;
-		left_ = new IntView(_left, 0);
-		right_ = new IntView(_right, 0);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
+		right_ = getPCSolver().getIntView(_right->getID(), 0);
 		break;
 	}
 	case EqType::NEQ: {
 		stringstream ss;
-		ss <<_left->getVarID().id << " != " << _right->getVarID().id;
+		ss <<_left->toString() << " != " << _right->toString();
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
+		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
-		add(CPBinaryRelVar(getID(), righthead, _left->getVarID(), EqType::G, _right->getVarID()));
+		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::G, _right->getID()));
 		head_ = lefthead;
-		left_ = new IntView(_left, 0);
-		right_ = new IntView(_right, -1);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
+		if(_right->minValue()==getMinElem<int>()){
+			add(Disjunction(DEFAULTCONSTRID, {head_}));
+			notifyNotPresent();
+			return;
+		}
+		right_ = getPCSolver().getIntView(_right->getID(), -1);
 		break;
 	}
 	case EqType::LEQ:
 		head_ = h;
-		left_ = new IntView(_left, 0);
-		right_ = new IntView(_right, 0);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
+		right_ = getPCSolver().getIntView(_right->getID(), 0);
 		break;
 	case EqType::L:
 		head_ = h;
-		left_ = new IntView(_left, 0);
-		right_ = new IntView(_right, -1);
+		left_ = getPCSolver().getIntView(_left->getID(), 0);
+		if(_right->minValue()==getMinElem<int>()){
+			add(Disjunction(DEFAULTCONSTRID, {not head_}));
+			notifyNotPresent();
+			return;
+		}
+		right_ = getPCSolver().getIntView(_right->getID(), -1);
 		break;
 	case EqType::GEQ:
 		head_ = h;
-		left_ = new IntView(_right, 0);
-		right_ = new IntView(_left, 0);
+		left_ = getPCSolver().getIntView(_right->getID(), 0);
+		right_ = getPCSolver().getIntView(_left->getID(), 0);
 		break;
 	case EqType::G:
 		head_ = h;
-		left_ = new IntView(_right, 0);
-		right_ = new IntView(_left, -1);
+		left_ = getPCSolver().getIntView(_right->getID(), 0);
+		if(_left->minValue()==getMinElem<int>()){
+			add(Disjunction(DEFAULTCONSTRID, {not head_}));
+			notifyNotPresent();
+			return;
+		}
+		right_ = getPCSolver().getIntView(_left->getID(), -1);
 		break;
 	}
 	getPCSolver().accept(this);
@@ -109,6 +130,14 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	}
 }
 
+int BinaryConstraint::getNbOfFormulas() const {
+	auto nb = ((abs(leftmax() - leftmin())) + (abs(rightmax() - rightmin()))) / 2;
+	if(nb>=getMaxElem<int>()){
+		return getMaxElem<int>();
+	}
+	return toInt(nb);
+}
+
 void BinaryConstraint::accept(ConstraintVisitor&) {
 	// FIXME
 	//		which id to use
@@ -122,7 +151,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto one = left()->getLEQLit(rightmax());
 		auto lit = right()->getLEQLit(rightmax());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path A.");
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
@@ -131,7 +160,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto two = right()->getGEQLit(leftmin());
 		lit = left()->getGEQLit(leftmin());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path B.");
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
@@ -141,7 +170,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto one = left()->getGEQLit(rightmin() + 1);
 		auto lit = right()->getGEQLit(rightmin());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path C.");
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
@@ -150,7 +179,7 @@ rClause BinaryConstraint::notifypropagate() {
 		auto two = right()->getLEQLit(leftmax() - 1);
 		lit = left()->getLEQLit(leftmax());
 		if (value(lit) != l_True) {
-			throw idpexception("Invalid bin constr path.");
+			throw idpexception("Invalid bin constr path D.");
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
@@ -160,22 +189,22 @@ rClause BinaryConstraint::notifypropagate() {
 		if (rightmax() < leftmin()) {
 			auto lit = right()->getLEQLit(rightmax());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path E.");
 			}
 			lit = left()->getGEQLit(leftmin());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path F.");
 			}
 			propagations.push_back(~head());
 			reasons[~head()] = BinReason(NULL, false, left()->minValue(), right()->maxValue());
 		} else if (leftmax() <= rightmin()) {
 			auto lit = right()->getGEQLit(rightmin());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path G.");
 			}
 			lit = left()->getLEQLit(leftmax());
 			if (value(lit) != l_True) {
-				throw idpexception("Invalid bin constr path.");
+				throw idpexception("Invalid bin constr path H.");
 			}
 			propagations.push_back(head());
 			reasons[head()] = BinReason(NULL, false, left()->maxValue(), right()->minValue());

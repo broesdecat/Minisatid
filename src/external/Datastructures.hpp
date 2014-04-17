@@ -435,6 +435,14 @@ struct IntVarRange: public ID {
 
 	DATASTRUCTURE_DECLAREACCEPT
 
+#ifndef NOARBITPREC
+	IntVarRange(uint id, VarID varID)
+			: 	ID(id),
+				varID(varID),
+				minvalue(Weight(false)),
+				maxvalue(Weight(true)) {
+	}
+#endif
 	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
 			: 	ID(id),
 				varID(varID),

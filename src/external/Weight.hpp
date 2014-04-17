@@ -6,11 +6,11 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef WEIGHT_HPP_
-#define WEIGHT_HPP_
+#pragma once
 
 #include <string>
 #include <limits>
+#include <iostream>
 #include "MAssert.hpp"
 #include "Idpexception.hpp"
 
@@ -28,6 +28,7 @@ namespace MinisatID {
 		Weight(): w(0), inf(false), pos(false) {}
 		Weight(int i): w(i), inf(false), pos(false) {}
 		Weight(long i): w(i), inf(false), pos(false) {}
+		Weight(double i): w(i), inf(false), pos(false) {}
 		Weight(mpz_class w): w(w), inf(false), pos(false) {}
 		Weight(bool posinf): w(0), inf(true), pos(posinf) {}
 
@@ -39,10 +40,21 @@ namespace MinisatID {
 
 		std::string get_str() const;
 
+		explicit operator int() const { return toInt(); }
+
+		bool isPosInfinity() const {
+			return pos and inf;
+		}
+		bool isNegInfinity() const {
+			return not pos and inf;
+		}
+
 		const Weight operator-() const {
 			Weight w2(*this);
 			w2.w = -w2.w;
-			w2.pos=!w2.pos;
+			if(inf){
+				w2.pos=!w2.pos;
+			}
 			return w2;
 		}
 
@@ -108,10 +120,33 @@ namespace MinisatID {
 				} else {
 					w = 0;
 					inf = false;
+					pos = false;
 				}
 			} else {
 				w /= rhs.w;
 			}
+			return *this;
+		}
+
+		Weight ceildiv(const Weight& rhs) const {
+			mpz_class q;
+			mpz_cdiv_q(q.get_mpz_t(),w.get_mpz_t(),rhs.w.get_mpz_t());
+			return Weight(q);
+		}
+
+		Weight floordiv(const Weight& rhs) const {
+			mpz_class q;
+			mpz_fdiv_q(q.get_mpz_t(),w.get_mpz_t(),rhs.w.get_mpz_t());
+			return Weight(q);
+		}
+
+		Weight& operator++() {
+			operator+=(1);
+			return *this;
+		}
+
+		Weight& operator--() {
+			operator-=(1);
 			return *this;
 		}
 
@@ -153,20 +188,26 @@ namespace MinisatID {
 	std::istream& operator>>(std::istream& input, Weight& obj);
 	std::ostream& operator<<(std::ostream& output, const Weight& p);
 }
+
 #else
+
 namespace MinisatID {
 #define NOARBITPREC
+
 typedef int Weight;
 //FAST, NO OVERFLOW SUPPORT
 }
+
 #endif
 
 namespace MinisatID {
-Weight posInfinity();
-Weight negInfinity();
+	Weight posInfinity();
+	Weight negInfinity();
 
-std::string toString(const Weight& w);
-int toInt(const Weight& weight);
+	std::string toString(const Weight& w);
+	int toInt(const Weight& weight); // Throws if it was not an int
+	Weight ceildiv(const Weight& l, const Weight& r);
+	Weight floordiv(const Weight& l, const Weight& r);
+	bool isPosInfinity(const Weight& w);
+	bool isNegInfinity(const Weight& w);
 }
-
-#endif /* WEIGHT_HPP_ */

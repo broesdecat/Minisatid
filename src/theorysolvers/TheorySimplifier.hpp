@@ -88,6 +88,10 @@ public:
 	// Return literal 0 if it does not exist yet.
 	Lit exists(const CPBinaryRel& comp) const;
 
+	virtual IntView* getIntView(VarID varID, Weight bound){
+		return factory->getIntView(varID, bound);
+	}
+
 	/**
 	 * Internally created cp variables
 	 * Equalities

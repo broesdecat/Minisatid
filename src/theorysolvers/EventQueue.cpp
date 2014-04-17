@@ -103,6 +103,10 @@ void EventQueue::acceptBounds(IntView* var, Propagator* propagator) {
 void EventQueue::notifyBoundsChanged(IntVar* var) {
 	auto id = var->getVarID().id;
 	for (auto i = intvarid2propagators[id].cbegin(); i < intvarid2propagators[id].cend(); ++i) {
+		if(getPCSolver().terminateRequested()){
+			_propagating = false;
+			return;
+		}
 		if (!(*i)->isPresent()) {
 			continue;
 		}
@@ -231,6 +235,10 @@ rClause EventQueue::notifyPropagate() {
 //	while (_requestedmore && confl==nullPtrClause) {
 		_requestedmore = false;
 		for (auto i = propagatewatchesasap.cbegin(); i < propagatewatchesasap.cend() && confl == nullPtrClause; ++i) {
+			if(getPCSolver().terminateRequested()){
+				_propagating = false;
+				return confl;
+			}
 			(*i)->propagate();
 		}
 		propagatewatchesasap.clear();
@@ -244,6 +252,10 @@ rClause EventQueue::notifyPropagate() {
 
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 		while (queuesNotEmpty() && confl == nullPtrClause) {
+			if(getPCSolver().terminateRequested()){
+				_propagating = false;
+				return confl;
+			}
 			auto p = getAndRemoveFirstPropagator();
 			p->notifyDeQueued();
 			if (p->isPresent()) {
@@ -265,6 +277,10 @@ rClause EventQueue::runEternalPropagators() {
 	auto confl = nullPtrClause;
 	auto& props = event2propagator.at(EV_PROPAGATE);
 	for (uint i = 0; i < props.size() && confl == nullPtrClause; ++i) {
+		if(getPCSolver().terminateRequested()){
+			_propagating = false;
+			return confl;
+		}
 		confl = props[i]->notifypropagate();
 	}
 	return confl;

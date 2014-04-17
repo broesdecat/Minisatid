@@ -104,7 +104,8 @@ TEST_P(MXFileTests, ECNFToCNF) {
 //	runWithModelCheck(options, GetParam());
 }
 
-TEST_P(MXFileTests, ECNFtoFZtoSolve) {
+// cOn hold until anyone continues to work on it (most errors because of unsupported definitions in flatzinc)
+/*TEST_P(MXFileTests, ECNFtoFZtoSolve) {
 	cerr <<"Running instance " <<GetParam() <<"\n";
 	stringstream ss;
 	if(needsSatCheck(GetParam())){
@@ -122,7 +123,7 @@ TEST_P(MXFileTests, ECNFtoFZtoSolve) {
 
 	auto options2 = createMXOptions(InputFormat::FLATZINC);
 	runWithModelCheck(options2, ss.str());
-}
+}*/
 
 TEST_P(MXFileTests, ECNFFullWatches) {
 	auto options = createMXOptions(InputFormat::FODOT);

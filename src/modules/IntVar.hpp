@@ -6,6 +6,8 @@
 
 namespace MinisatID{
 
+class PropagatorFactory;
+
 enum BinComp { BIN_EQ, BIN_LEQ};
 
 class IntVar;
@@ -13,42 +15,41 @@ class IntVar;
 struct IntVarValue{
 	IntVar* intvar;
 	Lit lit;
-	int value;
+	Weight value;
 
-	IntVarValue(IntVar* intvar, Lit lit, int value): intvar(intvar), lit(lit), value(value){}
+	IntVarValue(IntVar* intvar, Lit lit, Weight value): intvar(intvar), lit(lit), value(value){}
 };
 
 class IntVar: public Propagator{
 private:
 	VarID varid_;
 	PCSolver& engine_;
-	int minvalue, maxvalue;
+	Weight minvalue, maxvalue;
 
 protected:
-	int currentmin, currentmax;
+	Weight currentmin, currentmax;
 
 	virtual void updateBounds() = 0;
 
-	void setOrigMin(int min) {
+	void setOrigMin(Weight min) {
 		minvalue = min;
 		currentmin = min;
 	}
-	void setOrigMax(int max) {
+	void setOrigMax(Weight max) {
 		maxvalue = max;
 		currentmax = max;
 	}
 
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
-public:
 	IntVar(uint id, PCSolver* solver, VarID varid);
 
+public:
 	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause	notifypropagate();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause getExplanation(const Lit&){ throw idpexception("Error: incorrect execution path.");}
 	virtual void notifyNewDecisionLevel(){ throw idpexception("Error: incorrect execution path."); }
-	virtual void notifyBacktrackDecisionLevel(int, const Lit&){ throw idpexception("Error: incorrect execution path."); }
 
 	// NOTE: required because intvars are both data and propagator, and the data is required earlier then propagation is allowed (when lazy grounding)
 	virtual void finish() = 0;
@@ -56,30 +57,30 @@ public:
 	VarID getVarID() const { return varid_; }
 	PCSolver& engine() { return engine_; }
 
-	int origMinValue() const {
+	Weight origMinValue() const {
 		return minvalue;
 	}
 
-	int origMaxValue() const {
+	Weight origMaxValue() const {
 		return maxvalue;
 	}
 
-	int minValue() const {
+	Weight minValue() const {
 		return currentmin;
 	}
 
-	int maxValue() const {
+	Weight maxValue() const {
 		return currentmax;
 	}
 
-	virtual Lit getLEQLit(int bound) = 0;
-	virtual Lit getGEQLit(int bound) = 0;
+	virtual Lit getLEQLit(Weight bound) = 0;
+	virtual Lit getGEQLit(Weight bound) = 0;
 
 private:
-	std::map<int, Lit> eqlits;
+	std::map<Weight, Lit> eqlits;
 public:
 
-	Lit getEQLit(int bound);
+	Lit getEQLit(Weight bound);
 };
 
 class BasicIntVar: public IntVar{
@@ -88,39 +89,42 @@ protected:
 
 	void addConstraints();
 
-public:
 	BasicIntVar(uint id, PCSolver* solver, VarID varid);
 
+public:
 	virtual void updateBounds();
 };
 
 class RangeIntVar: public BasicIntVar{
-public:
+private:
+	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
-	RangeIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
+	RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
 
+public:
 	virtual void finish();
 
 	virtual int getNbOfFormulas() const { return 1; }
 
-	virtual Lit getLEQLit(int bound);
-	virtual Lit getGEQLit(int bound);
+	virtual Lit getLEQLit(Weight bound);
+	virtual Lit getGEQLit(Weight bound);
 };
 
 class EnumIntVar: public BasicIntVar{
 private:
-	std::vector<int> _values; // SORTED low to high!
+	std::vector<Weight> _values; // SORTED low to high!
+
+	friend class PropagatorFactory;
+	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
+	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values);
 
 public:
-	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
-	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<int>& values);
-
 	virtual void finish();
 
 	virtual int getNbOfFormulas() const { return 1; }
 
-	virtual Lit getLEQLit(int bound);
-	virtual Lit getGEQLit(int bound);
+	virtual Lit getLEQLit(Weight bound);
+	virtual Lit getGEQLit(Weight bound);
 };
 
 class LazyIntVar: public IntVar{
@@ -129,12 +133,13 @@ private:
 
 	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
 
-	Lit addVariable(int value);
-	bool checkAndAddVariable(int value, bool defaulttruepol = false);
+	Lit addVariable(Weight value);
+	bool checkAndAddVariable(Weight value, bool defaulttruepol = false);
+
+	friend class PropagatorFactory;
+	LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
 
 public:
-	LazyIntVar(uint id, PCSolver* solver, VarID varid, int min, int max);
-
 	virtual void finish();
 
 	virtual void updateBounds();
@@ -143,81 +148,91 @@ public:
 	virtual void resetState();
 	virtual int getNbOfFormulas() const { return 1; }
 
-	virtual Lit getLEQLit(int bound);
-	virtual Lit getGEQLit(int bound);
+	virtual Lit getLEQLit(Weight bound);
+	virtual Lit getGEQLit(Weight bound);
 };
+
+class EventQueue;
 
 class IntView{
 private:
-	IntVar* var_;
-	int constdiff_;
+	IntVar* var_; // orig var
+	Weight constdiff_;
 
-	int constdiff() const { return constdiff_; }
+	friend class EventQueue;
+	friend class PropagatorFactory;
 
-public:
-	IntView(IntVar* var, int constdiff): var_(var), constdiff_(constdiff){ }
-
+	VarID id; // additional id
 	IntVar* var() const { return var_; }
-
 	VarID getVarID() const { return var()->getVarID(); }
 
-	int origMinValue() const {
-		MAssert(getMaxElem<int>()-constdiff()>var()->origMinValue());
-		return var()->origMinValue()+constdiff();
+public:
+	IntView(IntVar* var, VarID id, Weight constdiff): var_(var), constdiff_(constdiff), id(id) { }
+
+	VarID getID() const { return id; }
+	Weight getFixedDiff() const { return constdiff_; }
+
+	Weight origMinValue() const {
+#ifdef NOARBITPREC
+		MAssert(getMaxElem<int>()-getFixedDiff()>var()->origMinValue());
+#endif
+		return var()->origMinValue()+getFixedDiff();
 	}
 
-	int origMaxValue() const {
-		MAssert(getMaxElem<int>()-constdiff()>var()->origMaxValue());
-		return var()->origMaxValue()+constdiff();
+	Weight origMaxValue() const {
+#ifdef NOARBITPREC
+		MAssert(getMaxElem<int>()-getFixedDiff()>var()->origMaxValue());
+#endif
+		return var()->origMaxValue()+getFixedDiff();
 	}
 
-	int minValue() const {
+	Weight minValue() const {
 		auto minval = var()->minValue();
-		if(constdiff()>0 && minval+constdiff()<minval){
+		if(getFixedDiff()>0 && minval+getFixedDiff()<minval){
 			return negInfinity();
 		}
-		if(constdiff()<0 && minval-constdiff()<minval){
+		if(getFixedDiff()<0 && minval-getFixedDiff()<minval){
 			return posInfinity();
 		}
-		return minval+constdiff();
+		return minval+getFixedDiff();
 	}
 
-	int maxValue() const {
+	Weight maxValue() const {
 		auto maxval = var()->maxValue();
-		if(constdiff()>0 && maxval+constdiff()<maxval){
+		if(getFixedDiff()>0 && maxval+getFixedDiff()<maxval){
 			return posInfinity();
 		}
-		if(constdiff()<0 && maxval-constdiff()<maxval){
+		if(getFixedDiff()<0 && maxval-getFixedDiff()<maxval){
 			return negInfinity();
 		}
-		return maxval+constdiff();
+		return maxval+getFixedDiff();
 	}
 
-	Lit getLEQLit(int bound) const {
-		if(constdiff()>0 && bound-constdiff()>bound){
+	Lit getLEQLit(Weight bound) const {
+		if(getFixedDiff()>0 && bound-getFixedDiff()>bound){
 			return var()->getPCSolver().getFalseLit();
 		}
-		if(constdiff()<0 && bound-constdiff()<bound){
+		if(getFixedDiff()<0 && bound-getFixedDiff()<bound){
 			return var()->getPCSolver().getTrueLit();
 		}
-		return var()->getLEQLit(bound-constdiff());
+		return var()->getLEQLit(bound-getFixedDiff());
 	}
 
-	Lit getGEQLit(int bound) const {
-		if(constdiff()>0 && bound-constdiff()>bound){
+	Lit getGEQLit(Weight bound) const {
+		if(getFixedDiff()>0 && bound-getFixedDiff()>bound){
 			return var()->getPCSolver().getTrueLit();
 		}
-		if(constdiff()<0 && bound-constdiff()<bound){
+		if(getFixedDiff()<0 && bound-getFixedDiff()<bound){
 			return var()->getPCSolver().getFalseLit();
 		}
-		return var()->getGEQLit(bound-constdiff());
+		return var()->getGEQLit(bound-getFixedDiff());
 	}
 
-	Lit getEQLit(int bound) const{
+	Lit getEQLit(Weight bound) const{
 		return var()->getEQLit(bound);
 	}
 
-	Lit getCompareLit(int bound, EqType comparison) const {
+	Lit getCompareLit(Weight bound, EqType comparison) const {
 		switch (comparison) {
 		case EqType::LEQ:
 			return getLEQLit(bound);
@@ -242,7 +257,7 @@ public:
 
 	std::string toString() const {
 		std::stringstream ss;
-		ss <<var()->toString(getVarID());
+		ss <<var()->toString(var()->getVarID());
 		if(constdiff_!=0){
 			if(constdiff_>0){
 				ss <<"+";

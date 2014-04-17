@@ -8,10 +8,13 @@
  */
 
 #include "external/Weight.hpp"
+#include "utils/NumericLimits.hpp"
 
 #include <string>
+#include <iostream>
 #include <sstream>
 #include <limits>
+#include <cmath>
 
 using namespace std;
 using namespace MinisatID;
@@ -20,10 +23,19 @@ typedef numeric_limits<int> lim;
 
 #ifdef GMP
 int Weight::toInt() const {
-	if(inf || w>=std::numeric_limits<int>::max() || w<=std::numeric_limits<int>::min()) {
+	if(inf || w>getMaxElem<int>() || w<getMinElem<int>()) {
 		throw idpexception("Invalid conversion of an arbitrary size number to int.");
 	}
 	return w.get_si();
+}
+int MinisatID::toInt(const Weight& w) {
+	if(w>=Weight(getMaxElem<int>())){
+		throw idpexception("Invalid conversion of an arbitrary size number to int.");
+	}else if(w <= getMinElem<int>()){
+		throw idpexception("Invalid conversion of an arbitrary size number to int.");
+	}else{
+		return w.toInt();
+	}
 }
 
 std::string Weight::get_str() const {
@@ -32,6 +44,13 @@ std::string Weight::get_str() const {
 	} else {
 		return pos?"+oo":"-oo";
 	}
+}
+
+bool MinisatID::isPosInfinity(const Weight& w){
+	return w.isPosInfinity();
+}
+bool MinisatID::isNegInfinity(const Weight& w){
+	return w.isNegInfinity();
 }
 
 ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
@@ -54,7 +73,13 @@ Weight MinisatID::abs(const Weight& w) {return w<0?-w:w;}
 Weight MinisatID::posInfinity() {return Weight(true);}
 Weight MinisatID::negInfinity() {return Weight(false);}
 
-int MinisatID::toInt(const Weight& weight) {return weight.toInt();}
+Weight MinisatID::ceildiv(const Weight& l, const Weight& r){
+	return l.ceildiv(r);
+}
+
+Weight MinisatID::floordiv(const Weight& l, const Weight& r){
+	return l.floordiv(r);
+}
 #else //USING FINITE PRECISION WEIGHTS
 string MinisatID::toString(const Weight& w) {
 	stringstream s;
@@ -69,5 +94,17 @@ Weight MinisatID::negInfinity() {
 }
 int MinisatID::toInt(const Weight& weight) {
 	return weight;
+}
+Weight MinisatID::ceildiv(const Weight& l, const Weight& r){
+	return ceil(l/r);
+}
+Weight MinisatID::floordiv(const Weight& l, const Weight& r){
+	return floor(l/r);
+}
+bool MinisatID::isPosInfinity(const Weight& w){
+	return w==posInfinity();
+}
+bool MinisatID::isNegInfinity(const Weight& w){
+	return w==negInfinity();
 }
 #endif

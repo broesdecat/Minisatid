@@ -68,7 +68,8 @@ protected:
 
 class FDSumConstraint: public FDAggConstraint {
 private:
-	std::vector<Weight> _weights;
+	Weight _absmax, _absmin;
+	std::vector<Weight> _weights; // TODO weights can be dropped? TODO weights not infinite!
 	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
 	// Sum only works on KNOWN bounds
@@ -78,10 +79,11 @@ private:
 
 public:
 	// Sum constraint: one weight for each var, where bound is an int.
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, const int& bound);
+	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, const Weight& bound);
 
 private:
 	friend class FDAggConstraint;
+	friend class FDProdConstraint;
 	// NOTE: bound has to have a KNOWN value!
 	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
@@ -96,31 +98,31 @@ private:
 	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
-	inline std::pair<int, int> getMinAndMaxPossibleAggVals() const {
+	inline std::pair<Weight, Weight> getMinAndMaxPossibleAggVals() const {
 		return getMinAndMaxPossibleAggValsWithout(_vars.size());
 	}
-	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
+	std::pair<Weight, Weight> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
 
 	/**
 	 * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
 	 * But excludes the excludedVar'th variable
 	 */
-	inline litlist varsContributingToMax() const {
-		return varsContributingToMax(_vars.size());
+	inline litlist varsContributingToMax(Weight bound) const {
+		return varsContributingToMax(_vars.size(), bound);
 	}
-	inline litlist varsContributingToMin() const {
-		return varsContributingToMin(_vars.size());
+	inline litlist varsContributingToMin(Weight bound) const {
+		return varsContributingToMin(_vars.size(), bound);
 	}
-	litlist varsContributingToMax(size_t excludedVar) const;
-	litlist varsContributingToMin(size_t excludedVar) const;
+	litlist varsContributingToMax(size_t excludedVar, Weight bound) const;
+	litlist varsContributingToMin(size_t excludedVar, Weight bound) const;
 
 	virtual AggType getType() const {
 		return AggType::SUM;
 	}
 
 	enum class Contrib { MIN, MAX };
-	rClause createClause(Contrib use, bool conflict, const std::vector<Lit>& extralits);
-	rClause createClauseExcl(Contrib use, size_t varindex, bool conflict, const std::vector<Lit>& extralits);
+	rClause createClause(Contrib use, bool conflict, const std::vector<Lit>& extralits, Weight bound);
+	rClause createClauseExcl(Contrib use, size_t varindex, bool conflict, const std::vector<Lit>& extralits, Weight bound);
 };
 
 class FDProdConstraint: public FDAggConstraint {
@@ -155,7 +157,7 @@ private:
 	 * @param boundvalue
 	 * The exact value of the bound
 	 */
-	virtual rClause check(int value, int boundvalue);
+	virtual rClause check(Weight value, Weight boundvalue);
 
 	/**
 	 * Propagation module for products where all variables are positive.
@@ -168,7 +170,7 @@ private:
 	 * @param maxbound
 	 * The maximum value for the bound
 	 */
-	virtual rClause notifypropagateWithNeg(int min, int max, int minbound, int maxbound);
+	virtual rClause notifypropagateWithNeg(Weight min, Weight max, Weight minbound, Weight maxbound);
 
 	/**
 	 * Propagation for products where some variables can still take negative values.
@@ -182,17 +184,17 @@ private:
 	 * @param maxbound
 	 * The maximum value for the bound
 	 */
-	virtual rClause notifypropagateWithoutNeg(int min, int max, int minbound, int maxbound);
+	virtual rClause notifypropagateWithoutNeg(Weight min, Weight max, Weight minbound, Weight maxbound);
 
 	/**
 	 * Similar to getMinAndMaxPossibleAggVals(), but without taking the excludedVar'th var into account.
 	 * Hence returns a lower and upperbound of the aggregate with one variable excluded.
 	 * If excludedVar is not in the range [0.._vars.size()[, returns a lower and upper bound for the entire aggregate
 	 */
-	std::pair<int, int> getMinAndMaxPossibleAggVals() const {
+	std::pair<Weight, Weight> getMinAndMaxPossibleAggVals() const {
 		return getMinAndMaxPossibleAggValsWithout(_vars.size());
 	}
-	std::pair<int, int> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
+	std::pair<Weight, Weight> getMinAndMaxPossibleAggValsWithout(size_t excludedVar) const;
 	/**
 	 * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
 	 * But excludes the excludedVar'th variable
