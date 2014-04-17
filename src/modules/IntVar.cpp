@@ -162,13 +162,6 @@ void RangeIntVar::finish() {
 		}
 	}
 
-	for (Weight i = origMinValue(); i < origMaxValue() + 1; ++i) {
-		getPCSolver().varBumpActivity(var(getEQLit(i)));
-		getPCSolver().varBumpActivity(var(getEQLit(i)));
-		getPCSolver().varBumpActivity(var(getEQLit(i)));
-		getPCSolver().varBumpActivity(var(getEQLit(i)));
-	}
-
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().acceptBounds(getPCSolver().getIntView(this->getVarID(), 0), this);
