@@ -16,6 +16,7 @@ using namespace std;
 
 BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, EqType comp, IntView* _right, const Lit& h)
 		: Propagator(id, engine, "binary constraint") {
+	// FIXME optimize if left and right are the same variable!
 	switch (comp) {
 	case EqType::EQ: {
 		stringstream ss;
@@ -114,7 +115,7 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 			return getPCSolver().createClause(Disjunction(getID(), { lit, ~left()->getGEQLit(bound), ~right()->getLEQLit(reason->second.rightbound) }), true);
 		}
 	} else {
-		if (reason->second.var == left()) {
+		if (reason->second.left) {
 			if (reason->second.geq) { // left GEQ bound was propagated
 				return getPCSolver().createClause(Disjunction(getID(), { lit, head(), ~right()->getGEQLit(bound - 1) }), true);
 			} else { // left LEQ bound
@@ -155,7 +156,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
-			reasons[one] = BinReason(left(), false, rightmax());
+			reasons[one] = BinReason(true, false, rightmax());
 		}
 		auto two = right()->getGEQLit(leftmin());
 		lit = left()->getGEQLit(leftmin());
@@ -164,7 +165,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
-			reasons[two] = BinReason(right(), true, leftmin());
+			reasons[two] = BinReason(false, true, leftmin());
 		}
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
@@ -174,7 +175,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
-			reasons[one] = BinReason(left(), true, rightmin() + 1);
+			reasons[one] = BinReason(true, true, rightmin() + 1);
 		}
 		auto two = right()->getLEQLit(leftmax() - 1);
 		lit = left()->getLEQLit(leftmax());
@@ -183,7 +184,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
-			reasons[two] = BinReason(right(), false, leftmax() - 1);
+			reasons[two] = BinReason(false, false, leftmax() - 1);
 		}
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
@@ -196,7 +197,7 @@ rClause BinaryConstraint::notifypropagate() {
 				throw idpexception("Invalid bin constr path F.");
 			}
 			propagations.push_back(~head());
-			reasons[~head()] = BinReason(NULL, false, left()->minValue(), right()->maxValue());
+			reasons[~head()] = BinReason(false, false, left()->minValue(), right()->maxValue());
 		} else if (leftmax() <= rightmin()) {
 			auto lit = right()->getGEQLit(rightmin());
 			if (value(lit) != l_True) {
@@ -207,7 +208,7 @@ rClause BinaryConstraint::notifypropagate() {
 				throw idpexception("Invalid bin constr path H.");
 			}
 			propagations.push_back(head());
-			reasons[head()] = BinReason(NULL, false, left()->maxValue(), right()->minValue());
+			reasons[head()] = BinReason(false, false, left()->maxValue(), right()->minValue());
 		}
 	}
 
