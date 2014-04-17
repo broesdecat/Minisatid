@@ -241,7 +241,7 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		double maxterm = abs(sumterm)*max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
 		absmax += maxterm;
 	}
-	if(absmax>getMaxElem<Weight>()){
+	if(absmax>=getMaxElem<Weight>()){
 		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
 	}
 #endif
