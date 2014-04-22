@@ -348,28 +348,36 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
 			continue;
 		}
 		auto condval = value(_conditions[j]);
+		auto w = _weights[j];
+		auto omin = _vars[j]->origMinValue(), omax = _vars[j]->origMaxValue();
+		auto cmin = _vars[j]->minValue(), cmax = _vars[j]->maxValue();
 		if (condval == l_False) {
-			if (_weights[j] <= 0 && _vars[j]->origMinValue() >= 0) {
+			if (w <= 0 && omin >= 0) { // neg value
 				continue;
 			}
-			if (_weights[j] > 0 && _vars[j]->origMaxValue() <= 0) {
+			if (w > 0 && omax <= 0) { // neg value
 				continue;
 			}
-			val -= _weights[j]*_vars[j]->origMaxValue();
+			val -= w * (w <= 0?omin:omax);
 			lits.push_back(_conditions[j]);
-		} else { // TODO in fact stop if we have enough?
+		} else {
 			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
+			auto vv = 0;
 			if (_weights[j] < 0) {
-				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
+				lits.push_back(not _vars[j]->getGEQLit(cmin));
+				vv = cmin - omin;
 			} else {
-				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
+				lits.push_back(not _vars[j]->getLEQLit(cmax));
+				vv = cmax - omax;
 			}
 			if (condval == l_True) {
-				val += _weights[j]*(_vars[j]->maxValue()-_vars[j]->origMaxValue());
-			}else if(_weights[j]*_vars[j]->origMaxValue()>0){
-				val += _weights[j]*(max(Weight(0),_vars[j]->maxValue())-_vars[j]->origMaxValue());
+				val += w*vv;
+			}else if(w>0 && w*omax>0){
+				val += w*max(Weight(0),vv);
+			}else if(w<0 && w*omin>0){
+				val += w*min(Weight(0),vv);
 			}
 		}
 	}
@@ -398,28 +406,36 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound)
 			continue;
 		}
 		auto condval = value(_conditions[j]);
+		auto w = _weights[j];
+		auto omin = _vars[j]->origMinValue(), omax = _vars[j]->origMaxValue();
+		auto cmin = _vars[j]->minValue(), cmax = _vars[j]->maxValue();
 		if (condval == l_False) {
-			if (_weights[j] > 0 && _vars[j]->origMinValue() >= 0) {
+			if (_weights[j] > 0 && omin >= 0) {
 				continue;
 			}
-			if (_weights[j] <= 0 && _vars[j]->origMaxValue() <= 0) {
+			if (_weights[j] <= 0 && omax <= 0) {
 				continue;
 			}
-			val -= _weights[j]*_vars[j]->origMinValue();
+			val -= w * (w > 0?omin:omax);
 			lits.push_back(_conditions[j]);
 		} else {
 			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
+			auto vv = 0;
 			if (_weights[j] < 0) {
-				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
+				lits.push_back(not _vars[j]->getLEQLit(cmax));
+				vv = cmax - omax;
 			} else {
-				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
+				lits.push_back(not _vars[j]->getGEQLit(cmin));
+				vv = cmin - omin;
 			}
 			if (condval == l_True) {
-				val += _weights[j]*(_vars[j]->minValue()-_vars[j]->origMinValue());
-			}else if(_weights[j]*_vars[j]->origMaxValue()<0){
-				val += _weights[j]*(min(Weight(0),_vars[j]->minValue())-_vars[j]->origMinValue());
+				val += w*vv;
+			}else if(w<0 && w*omax>0){
+				val += w*max(Weight(0),vv);
+			}else if(w>0 && w*omin<0){
+				val += w*min(Weight(0),vv);
 			}
 		}
 	}
