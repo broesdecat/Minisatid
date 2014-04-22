@@ -44,7 +44,7 @@ void ExternalConstraintVisitor::setString(const Atom& atom, const std::string& n
 std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 	auto overriddenit = atom2string.find(l.getAtom());
 	if(overriddenit!=atom2string.cend()){
-		return sign(l)?"-"+overriddenit->second:overriddenit->second;
+		return sign(l)?"~"+overriddenit->second:overriddenit->second;
 	}
 	std::stringstream ss;
 	if (getRemapper()->wasInput(l)) {
@@ -54,7 +54,7 @@ std::string ExternalConstraintVisitor::toString(const Lit& l) const {
 			return ss.str();
 		}
 	}
-	ss << (sign(l) ? "-" : "") << "i_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+	ss << (sign(l) ? "~" : "") << "i_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	return ss.str();
 }
 std::string ExternalConstraintVisitor::toString(const litlist& literals) const {

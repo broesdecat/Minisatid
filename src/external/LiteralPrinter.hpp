@@ -23,7 +23,7 @@ public:
 	}
 	virtual std::string toString(const Lit& lit) const{
 		std::stringstream ss;
-		ss <<(sign(lit)?"-":"") <<var(lit);
+		ss <<(sign(lit)?"~":"") <<var(lit);
 		return ss.str();
 	}
 
