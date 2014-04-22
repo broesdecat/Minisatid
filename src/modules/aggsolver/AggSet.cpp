@@ -204,7 +204,7 @@ void TypedSet::addExplanation(AggReason& ar) const {
 
 void TypedSet::notifypropagate(Watch* w) {
 	getProp()->propagate(w);
-	getPCSolver().acceptForPropagation(this);
+	getPCSolver().acceptForPropagation(this, PRIORITY::FAST);
 }
 
 rClause TypedSet::notifypropagate() {
