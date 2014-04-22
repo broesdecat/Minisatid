@@ -150,10 +150,10 @@ void LazyIntVar::updateBounds() {
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
 	if(not unknown && not checkAndAddVariable(currentmin) && not checkAndAddVariable(currentmax)){
 		if(halve){
-			checkAndAddVariable((currentmin+currentmax)/2, false);
+			checkAndAddVariable((currentmin+currentmax)/2);
 		}else{
-			checkAndAddVariable(currentmax-1, false);
-			checkAndAddVariable(currentmin+1, false);
+			checkAndAddVariable(currentmax-1);
+			checkAndAddVariable(currentmin+1);
 		}
 		halve = not halve;
 	}
@@ -178,7 +178,7 @@ typename List::const_iterator findVariable(Weight value, const List& list){
 	}
 }
 
-bool LazyIntVar::checkAndAddVariable(Weight value, bool defaulttruepol){ // Returns true if it was newly created
+bool LazyIntVar::checkAndAddVariable(Weight value){ // Returns true if it was newly created
 	auto i = findVariable(value, leqlits);
 #ifdef DEBUG
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
@@ -192,13 +192,7 @@ bool LazyIntVar::checkAndAddVariable(Weight value, bool defaulttruepol){ // Retu
 		return false;
 	}else{
 		getPCSolver().notifyGroundingCall();
-		auto lit = addVariable(value);
-		auto solver = getPCSolver().getSATSolver();
-		if(defaulttruepol){
-			solver->setInitialPolarity(var(lit), true);
-		}else{
-			solver->setInitialPolarity(var(lit), solver->getRandNumber()<0.2); // FIXME not included in random seed!
-		}
+		addVariable(value);
 		return true;
 	}
 }

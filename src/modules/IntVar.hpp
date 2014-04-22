@@ -134,7 +134,7 @@ private:
 	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
 
 	Lit addVariable(Weight value);
-	bool checkAndAddVariable(Weight value, bool defaulttruepol = false);
+	bool checkAndAddVariable(Weight value);
 
 	friend class PropagatorFactory;
 	LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
