@@ -1,0 +1,5 @@
+p ecnf
+PARTIAL INTVAR 1 6 0 1 0
+INTVAR 2 0 1 0
+BINTRT 3 1 = 2 0
+-3 0
