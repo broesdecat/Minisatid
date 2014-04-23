@@ -154,7 +154,6 @@ rClause BinaryConstraint::notifypropagate() {
 	if(not left_->certainlyHasImage() || not right_->certainlyHasImage()){
 		return nullPtrClause;
 	}
-	cerr <<"PROPAGATING\n";
 
 	auto headvalue = getPCSolver().value(head());
 	litlist propagations;

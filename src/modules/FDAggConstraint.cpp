@@ -279,17 +279,6 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		_weights[i]=w[index[i]];
 		_conditions[i]=c[index[i]];
 	}
-
-	_absmax = 0; _absmin = 0;
-	for(uint i=0; i<_vars.size(); ++i){
-		if(_weights[i]<0){
-			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMinValue());
-			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMaxValue());
-		}else{
-			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMaxValue());
-			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMinValue());
-		}
-	}
 }
 
 FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
@@ -344,6 +333,13 @@ std::pair<Weight, Weight> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(si
 	return {min,max};
 }
 
+// TODO print code:
+/*cerr <<toString(_head) <<" <=> ";
+for(uint i = 0; i<_vars.size(); ++i){
+	cerr <<_weights[i] <<"*" <<_vars[i]->toString() <<"[" <<_vars[i]->minValue() <<"," <<_vars[i]->maxValue() <<"|" <<_vars[i]->origMinValue() <<"," <<_vars[i]->origMaxValue() <<"]" << " if " <<toString(_conditions[i]) <<" + ";
+}
+cerr <<" >= " <<getBound() <<"\n";*/
+
 /**
  * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
  * But excludes the excludedVar'th variable
@@ -354,45 +350,28 @@ std::pair<Weight, Weight> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(si
  */
 litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound) const {
 	litlist lits;
-	Weight val = _absmax;
+	stringstream ss;
 	for (uint j = 0; j < _vars.size(); ++j) {
-		if(val<bound){
-			break;
-		}
 		if (j == excludedVar) {
 			continue;
 		}
 		auto condval = value(_conditions[j]);
-		auto w = _weights[j];
-		auto omin = _vars[j]->origMinValue(), omax = _vars[j]->origMaxValue();
-		auto cmin = _vars[j]->minValue(), cmax = _vars[j]->maxValue();
 		if (condval == l_False) {
-			if (w <= 0 && omin >= 0) { // neg value
+			if (_weights[j] <= 0 && _vars[j]->origMinValue() >= 0) { // neg value
 				continue;
 			}
-			if (w > 0 && omax <= 0) { // neg value
+			if (_weights[j] > 0 && _vars[j]->origMaxValue() <= 0) { // neg value
 				continue;
 			}
-			val -= w * (w <= 0?omin:omax);
 			lits.push_back(_conditions[j]);
 		} else {
 			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
-			auto vv = 0;
 			if (_weights[j] < 0) {
-				lits.push_back(not _vars[j]->getGEQLit(cmin));
-				vv = cmin - omin;
+				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 			} else {
-				lits.push_back(not _vars[j]->getLEQLit(cmax));
-				vv = cmax - omax;
-			}
-			if (condval == l_True) {
-				val += w*vv;
-			}else if(w>0 && w*omax>0){
-				val += w*max(Weight(0),vv);
-			}else if(w<0 && w*omin>0){
-				val += w*min(Weight(0),vv);
+				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 			}
 		}
 	}
@@ -403,6 +382,10 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
 	}
 	MAssert(not sometrue);
 #endif
+	for(auto i:lits){
+		cerr <<toString(i) <<" ";
+	}
+	cerr <<"\n";
 	return lits;
 }
 /*
@@ -412,45 +395,27 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
  */
 litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound) const {
 	litlist lits;
-	Weight val = _absmin;
 	for (uint j = 0; j < _vars.size(); ++j) {
-		if(val>=bound){
-			break;
-		}
 		if (j == excludedVar) {
 			continue;
 		}
 		auto condval = value(_conditions[j]);
-		auto w = _weights[j];
-		auto omin = _vars[j]->origMinValue(), omax = _vars[j]->origMaxValue();
-		auto cmin = _vars[j]->minValue(), cmax = _vars[j]->maxValue();
 		if (condval == l_False) {
-			if (_weights[j] > 0 && omin >= 0) {
+			if (_weights[j] > 0 && _vars[j]->origMinValue() >= 0) {
 				continue;
 			}
-			if (_weights[j] <= 0 && omax <= 0) {
+			if (_weights[j] <= 0 && _vars[j]->origMaxValue() <= 0) {
 				continue;
 			}
-			val -= w * (w > 0?omin:omax);
 			lits.push_back(_conditions[j]);
 		} else {
 			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
-			auto vv = 0;
 			if (_weights[j] < 0) {
-				lits.push_back(not _vars[j]->getLEQLit(cmax));
-				vv = cmax - omax;
+				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 			} else {
-				lits.push_back(not _vars[j]->getGEQLit(cmin));
-				vv = cmin - omin;
-			}
-			if (condval == l_True) {
-				val += w*vv;
-			}else if(w<0 && w*omax>0){
-				val += w*max(Weight(0),vv);
-			}else if(w>0 && w*omin<0){
-				val += w*min(Weight(0),vv);
+				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 			}
 		}
 	}

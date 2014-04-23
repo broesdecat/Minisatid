@@ -68,7 +68,6 @@ protected:
 
 class FDSumConstraint: public FDAggConstraint {
 private:
-	Weight _absmax, _absmin;
 	std::vector<Weight> _weights; // TODO weights can be dropped? TODO weights not infinite!
 	void initialize(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
