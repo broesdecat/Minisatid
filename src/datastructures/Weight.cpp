@@ -95,11 +95,11 @@ Weight MinisatID::negInfinity() {
 int MinisatID::toInt(const Weight& weight) {
 	return weight;
 }
-Weight MinisatID::ceildiv(const Weight& l, const Weight& r){
-	return ceil(l/r);
+Weight MinisatID::ceildiv(const Weight& l, const Weight& r) {
+	return ceil(((double) l) / r);
 }
-Weight MinisatID::floordiv(const Weight& l, const Weight& r){
-	return floor(l/r);
+Weight MinisatID::floordiv(const Weight& l, const Weight& r) {
+	return floor(((double) l) / r);
 }
 bool MinisatID::isPosInfinity(const Weight& w){
 	return w==posInfinity();
