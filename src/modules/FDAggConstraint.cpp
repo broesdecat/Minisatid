@@ -266,7 +266,6 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 
 	_absmax = 0; _absmin = 0;
 	for(uint i=0; i<_vars.size(); ++i){
-		//cerr <<_vars[i]->toString() <<"=[" <<_vars[i]->minValue() <<"," <<_vars[i]->maxValue() <<"]\n";
 		if(_weights[i]<0){
 			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMinValue());
 			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMaxValue());
@@ -499,8 +498,9 @@ rClause FDSumConstraint::createClauseExcl(Contrib use, size_t varindex, bool con
 }
 
 #define conflCheck(c) \
-		if (c != nullPtrClause) { \
-			return c; \
+		auto cl = c; \
+		if (cl != nullPtrClause) { \
+			return cl; \
 		}\
 
 
@@ -511,8 +511,6 @@ rClause FDSumConstraint::notifypropagate() {
 	auto max = minmax.second;
 
 	auto bound = getBound();
-
-	// cerr <<"Min = " <<min <<", max = " <<max <<"\n";
 
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
