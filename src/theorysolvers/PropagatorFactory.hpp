@@ -177,7 +177,7 @@ public:
 	void add(const Aggregate& sentence);
 	void add(const MinimizeSubset& sentence);
 	void add(const MinimizeOrderedList& sentence);
-	void add(const MinimizeVar& sentence);
+	void add(const OptimizeVar& sentence);
 	void add(const MinimizeAgg& sentence);
 	void add(const Symmetry& sentence);
 	void add(const BoolVar& object);

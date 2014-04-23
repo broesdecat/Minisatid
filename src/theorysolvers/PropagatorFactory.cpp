@@ -246,7 +246,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 	finishSet(set, aggs, true, formula.priority);
 }
 
-void PropagatorFactory::add(const MinimizeVar& formula) {
+void PropagatorFactory::add(const OptimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	if (getEngine().modes().usegecode) {
@@ -263,7 +263,7 @@ void PropagatorFactory::add(const MinimizeVar& formula) {
 		ss << "The CP var " << toString(formula.varID, getEngine()) << " has not been declared yet, but is used in an optimization statement.";
 		throw idpexception(ss.str());
 	}
-	OptimStatement optim(formula.priority, it->second);
+	OptimStatement optim(formula.priority, it->second, formula.minimize);
 	getEngine().addOptimization(optim);
 }
 

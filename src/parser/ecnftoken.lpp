@@ -74,6 +74,7 @@ WHITESPACE	[\t\r ]*
 <theory>^"Mnmsubset"	{return ET::SUBSETMINDEFN;}
 <theory>^"Mnmlist"		{return ET::MNMZDEFN;}
 <theory>^"Mnmvar"		{return ET::VARMINDEFN;}
+<theory>^"Mxmvar"		{return ET::VARMAXDEFN;}
 <theory>^"Mnmagg"		{return ET::AGGMINDEFN;}
 
 <theory>" "		{/* disregard whitespaces */}

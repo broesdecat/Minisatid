@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef INTERFACEIMPL_HPP_
-#define INTERFACEIMPL_HPP_
+#pragma once
 
 #include <set>
 #include <sstream>
@@ -56,7 +55,7 @@ private:
 	std::map<int, WLSet>	sets; //index is setID
 
 	bool hasoptim;
-	std::vector<MinimizeVar> 			savedvar; // To be added AFTER initialization
+	std::vector<OptimizeVar> 			savedvar; // To be added AFTER initialization
 	std::vector<MinimizeAgg>			savedagg; // To be added AFTER initialization
 	std::vector<MinimizeOrderedList> 	savedlistmnmz; // To be added AFTER initialization
 
@@ -93,7 +92,7 @@ public:
 	virtual void add(const WLSet&);
 	virtual void add(const Aggregate&);
 	virtual void add(const MinimizeOrderedList&);
-	virtual void add(const MinimizeVar&);
+	virtual void add(const OptimizeVar&);
 	virtual void add(const MinimizeAgg&);
 	virtual void add(const IntVarEnum&);
 	virtual void add(const IntVarRange&);
@@ -138,9 +137,7 @@ protected:
 	void addSum(const Aggregate& agg, const WLSet& set);
 	void addEquiv(const Implication& impl, CloseConstraint close);
 
-	VarID addOptimization();
+	VarID addOptimization(bool& minimize);
 };
 
 }
-
-#endif /* INTERFACEIMPL_HPP_ */

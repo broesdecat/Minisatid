@@ -684,12 +684,7 @@ void InsertWrapper::addOptim(Expression& expr, bool maxim) {
 		throw fzexception("Unexpected type in adding optimization statement.\n");
 	}
 
-	if (maxim) {
-		auto newvar = createNegation(*var);
-		var = newvar;
-	}
-
-	storage->addMinim(*var);
+	storage->addOptim(*var, not maxim);
 }
 
 void InsertWrapper::add(Search* search) {

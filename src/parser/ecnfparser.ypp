@@ -130,7 +130,7 @@
 }
 
 %token DEFOP
-%token SUBSETMINDEFN MNMZDEFN VARMINDEFN AGGMINDEFN
+%token SUBSETMINDEFN MNMZDEFN VARMINDEFN VARMAXDEFN AGGMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
 %token <str> NUMBER
@@ -245,6 +245,7 @@ ecnftheory	:	/* empty */
 			|	ecnftheory mnmz
 			|	ecnftheory subsetmnmz
 			|	ecnftheory varmnmz
+			|	ecnftheory varmxmz
 			|	ecnftheory summnmz
 			|	ecnftheory aggmnmz
 			|	ecnftheory intvar
@@ -286,7 +287,13 @@ subsetmnmz: SUBSETMINDEFN body ZERO
 			}
 varmnmz :	VARMINDEFN NUMBER ZERO
 			{ 
-				MinimizeVar mnm(1, cVarID($2));
+				OptimizeVar mnm(1, cVarID($2), true);
+				CR(wrapper, mnm, theoryid);
+			}
+
+varmxmz :	VARMAXDEFN NUMBER ZERO
+			{ 
+				OptimizeVar mnm(1, cVarID($2), false);
 				CR(wrapper, mnm, theoryid);
 			}
 			

@@ -130,8 +130,8 @@ public:
 		target() << " }\n";
 	}
 
-	void add(const MinimizeVar& mnm) {
-		target() << "Searching model with minimal value for variable " << print(mnm.varID) << "\n";
+	void add(const OptimizeVar& mnm) {
+		target() << "Searching model with " <<(mnm.minimize?"minimal":"maximal") <<" value for variable " << print(mnm.varID) << "\n";
 	}
 
 	void add(const MinimizeAgg& mnm) {

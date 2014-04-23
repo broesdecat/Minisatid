@@ -12,6 +12,7 @@
 #define SUBMNMSTR "Mnmsubset"
 #define LISTMNMSTR "Mnmlist"
 #define VARMNMSTR "Mnmvar"
+#define VARMXMSTR "Mxmvar"
 #define DELIMSTR "|"
 #define INTVARRANGESTR "INTVAR"
 #define INTVARENUMSTR "INTVARDOM"

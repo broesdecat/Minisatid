@@ -388,11 +388,17 @@ bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
 		clog << "> Current optimal value " << bestvalue << "\n";
 	}
 
-	if (var->origMinValue() == bestvalue) {
-		return true;
+	if(optim.minimize){
+		if (var->origMinValue() == bestvalue) {
+			return true;
+		}
+		invalidation.push_back(var->getLEQLit(bestvalue - 1));
+	}else{
+		if (var->origMaxValue() == bestvalue) {
+			return true;
+		}
+		invalidation.push_back(var->getGEQLit(bestvalue + 1));
 	}
-
-	invalidation.push_back(var->getLEQLit(bestvalue - 1));
 	return false;
 }
 

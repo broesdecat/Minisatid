@@ -394,7 +394,8 @@ VarID FlatZincRewriter<Stream>::newCpVar(const std::vector<Weight>& values) {
 }
 
 template<typename Stream>
-VarID FlatZincRewriter<Stream>::addOptimization() {
+VarID FlatZincRewriter<Stream>::addOptimization(bool& minimize) {
+	minimize = true;
 	if (savedvar.size() + savedlistmnmz.size() + savedagg.size() > 1) {
 		throw idpexception("Transformation to flatzinc does not support prioritized optimization.");
 	}
@@ -442,6 +443,7 @@ VarID FlatZincRewriter<Stream>::addOptimization() {
 		if(savedvar.size()>1){
 			throw notYetImplemented("Optimization of multiple CP variables is not yet implemented.\n");
 		}
+		minimize = savedvar.front().minimize;
 		optimvar = savedvar.front().varID;
 	}
 	return optimvar;
@@ -538,8 +540,13 @@ void FlatZincRewriter<Stream>::innerExecute() {
 	getOutput() << definitions.str();
 	getOutput() << constraints.str();
 	if (hasoptim) {
-		auto optimvar = addOptimization();
-		getOutput() << "solve minimize " << getIntVarName(optimvar) << ";\n";
+		bool minimize = false;
+		auto optimvar = addOptimization(minimize);
+		if(minimize){
+			getOutput() << "solve minimize " << getIntVarName(optimvar) << ";\n";
+		}else{
+			getOutput() << "solve maximize " << getIntVarName(optimvar) << ";\n";
+		}
 	} else {
 		getOutput() << "solve satisfy;\n";
 	}
@@ -742,7 +749,7 @@ void FlatZincRewriter<Stream>::add(const MinimizeOrderedList& sentence) {
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::add(const MinimizeVar& mnm) {
+void FlatZincRewriter<Stream>::add(const OptimizeVar& mnm) {
 	MAssert(isParsing());
 	hasoptim = true;
 	savedvar.push_back(mnm);

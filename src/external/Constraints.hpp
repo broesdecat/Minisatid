@@ -105,10 +105,10 @@ public:
 	}
 };
 template<typename Remapper>
-class ExtAdd<MinimizeVar, Remapper> {
+class ExtAdd<OptimizeVar, Remapper> {
 public:
-	MinimizeVar extAdd(Remapper& r, const MinimizeVar& obj) {
-		return MinimizeVar( obj.priority, map(obj.varID, r));
+	OptimizeVar extAdd(Remapper& r, const OptimizeVar& obj) {
+		return OptimizeVar( obj.priority, map(obj.varID, r), obj.minimize);
 	}
 };
 template<typename Remapper>

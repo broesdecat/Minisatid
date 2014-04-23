@@ -126,8 +126,12 @@ public:
 		target() << AGGMNMSTR << " " << mnm.type << " " << mnm.setid << " 0\n";
 	}
 
-	void add(const MinimizeVar& mnm) {
-		target() << VARMNMSTR << " " << toString(mnm.varID) << " 0\n";
+	void add(const OptimizeVar& mnm) {
+		if(mnm.minimize){
+			target() << VARMNMSTR << " " << toString(mnm.varID) << " 0\n";
+		}else{
+			target() << VARMXMSTR << " " << toString(mnm.varID) << " 0\n";
+		}
 	}
 
 	void add(const Symmetry& symm) {

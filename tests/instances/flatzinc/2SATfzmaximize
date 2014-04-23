@@ -1,3 +1,5 @@
 var -3..3: a ::output_var;
 var bool : b ::output_var;
+var 0..4: c ::output_var;
+constraint int_lt(a,c);
 solve maximize a;

@@ -577,7 +577,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::VAR:
-			visitor.add(MinimizeVar((*i).priority, (*i).var->getID()));
+			visitor.add(OptimizeVar((*i).priority, (*i).var->getID(), (*i).minimize));
 			break;
 		}
 	}

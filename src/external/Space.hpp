@@ -80,7 +80,7 @@ public:
 	virtual void add(const Aggregate&);
 	virtual void add(const MinimizeOrderedList&);
 	virtual void add(const MinimizeSubset&);
-	virtual void add(const MinimizeVar&);
+	virtual void add(const OptimizeVar&);
 	virtual void add(const MinimizeAgg&);
 	virtual void add(const Symmetry&);
 	virtual void add(const BoolVar&);

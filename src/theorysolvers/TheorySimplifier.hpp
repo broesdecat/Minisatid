@@ -174,7 +174,7 @@ public:
 	virtual void add(const MinimizeSubset& obj) {
 		internalAdd(obj);
 	}
-	virtual void add(const MinimizeVar& obj) {
+	virtual void add(const OptimizeVar& obj) {
 		internalAdd(obj);
 	}
 	virtual void add(const MinimizeAgg& obj) {

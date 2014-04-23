@@ -47,8 +47,8 @@ public:
 	virtual void add(const MinimizeSubset&) {
 		UNHANDLED("subsetminimization", getName())
 	}
-	virtual void add(const MinimizeVar&) {
-		UNHANDLED("variable minimization", getName())
+	virtual void add(const OptimizeVar&) {
+		UNHANDLED("variable optimization", getName())
 	}
 	virtual void add(const MinimizeAgg&) {
 		UNHANDLED("aggregate minimization", getName())

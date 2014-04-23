@@ -399,14 +399,16 @@ public:
 	}
 };
 
-class MinimizeVar: public Constraint {
+class OptimizeVar: public Constraint {
 public:
 	uint priority;
 	VarID varID;
+	bool minimize; // false = maximize
 
-	MinimizeVar(uint priority, VarID varID)
+	OptimizeVar(uint priority, VarID varID, bool minimize)
 			: 	priority(priority),
-				varID(varID) {
+				varID(varID),
+				minimize(minimize) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT

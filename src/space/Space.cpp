@@ -69,7 +69,7 @@ void Space::add(const MinimizeOrderedList& o){
 void Space::add(const MinimizeSubset& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
-void Space::add(const MinimizeVar& o){
+void Space::add(const OptimizeVar& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeAgg& o){

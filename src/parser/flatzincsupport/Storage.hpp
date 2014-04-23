@@ -507,8 +507,8 @@ public:
 		extAdd(*store, d);
 	}
 
-	void addMinim(const MIntVar& var) {
-		extAdd(*store, MinimizeVar(1, VarID { var.var }));
+	void addOptim(const MIntVar& var, bool minimize) {
+		extAdd(*store, OptimizeVar(1, VarID { var.var }, minimize));
 	}
 };
 
