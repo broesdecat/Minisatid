@@ -382,10 +382,6 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
 	}
 	MAssert(not sometrue);
 #endif
-	for(auto i:lits){
-		cerr <<toString(i) <<" ";
-	}
-	cerr <<"\n";
 	return lits;
 }
 /*
@@ -528,17 +524,17 @@ rClause FDSumConstraint::notifypropagate() {
 		auto maxWithoutThisVar = max, minWithoutThisVar = min;
 		auto minval = var->minValue(), maxval = var->maxValue();
 		if (value(_conditions[i]) != l_True) {
-			// condition i is possibly false
-				minval = minval < 0 ? minval : 0;
-				maxval = maxval > 0 ? maxval : 0;
-			}
-			if (weight < 0) {
-				minWithoutThisVar -= maxval * weight;
-				maxWithoutThisVar -= minval * weight;
-			} else {
-				minWithoutThisVar -= minval * weight;
-				maxWithoutThisVar -= maxval * weight;
-			}
+		// condition i is possibly false
+			minval = minval < 0 ? minval : 0;
+			maxval = maxval > 0 ? maxval : 0;
+		}
+		if (weight < 0) {
+			minWithoutThisVar -= maxval * weight;
+			maxWithoutThisVar -= minval * weight;
+		} else {
+			minWithoutThisVar -= minval * weight;
+			maxWithoutThisVar -= maxval * weight;
+		}
 
 		// In these cases, more precise bounds reasoning is possible:
 		// If excluding the value of the variable from the minimum/maximum, would it violate the bound?
