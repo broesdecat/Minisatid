@@ -16,6 +16,7 @@ using namespace std;
 
 BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, EqType comp, IntView* _right, const Lit& h)
 		: Propagator(id, engine, "binary constraint") {
+	// FIXME optimize if left and right are the same variable!
 	switch (comp) {
 	case EqType::EQ: {
 		stringstream ss;
@@ -23,9 +24,6 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
 		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::GEQ, _right->getID()));
 		head_ = lefthead;
@@ -39,9 +37,6 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
-		engine->varBumpActivity(var(h));
 		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
 		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::G, _right->getID()));
 		head_ = lefthead;
@@ -85,9 +80,20 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		right_ = getPCSolver().getIntView(_left->getID(), -1);
 		break;
 	}
+
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
+	if(left_->isPartial()){
+		add(Implication(getID(), not head(), ImplicationType::IMPLIEDBY, {left_->getNoImageLit()}, true));
+		getPCSolver().accept(this, left_->getNoImageLit(), FAST);
+		getPCSolver().accept(this, not left_->getNoImageLit(), FAST);
+	}
+	if(right_->isPartial()){
+		add(Implication(getID(), not head(), ImplicationType::IMPLIEDBY, {right_->getNoImageLit()}, true));
+		getPCSolver().accept(this, right_->getNoImageLit(), FAST);
+		getPCSolver().accept(this, not right_->getNoImageLit(), FAST);
+	}
 	getPCSolver().acceptBounds(left(), this);
 	getPCSolver().acceptBounds(right(), this);
 	getPCSolver().acceptForPropagation(this);
@@ -114,7 +120,7 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 			return getPCSolver().createClause(Disjunction(getID(), { lit, ~left()->getGEQLit(bound), ~right()->getLEQLit(reason->second.rightbound) }), true);
 		}
 	} else {
-		if (reason->second.var == left()) {
+		if (reason->second.left) {
 			if (reason->second.geq) { // left GEQ bound was propagated
 				return getPCSolver().createClause(Disjunction(getID(), { lit, head(), ~right()->getGEQLit(bound - 1) }), true);
 			} else { // left LEQ bound
@@ -145,6 +151,10 @@ void BinaryConstraint::accept(ConstraintVisitor&) {
 }
 
 rClause BinaryConstraint::notifypropagate() {
+	if(not left_->certainlyHasImage() || not right_->certainlyHasImage()){
+		return nullPtrClause;
+	}
+
 	auto headvalue = getPCSolver().value(head());
 	litlist propagations;
 	if (headvalue == l_True) {
@@ -155,7 +165,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
-			reasons[one] = BinReason(left(), false, rightmax());
+			reasons[one] = BinReason(true, false, rightmax());
 		}
 		auto two = right()->getGEQLit(leftmin());
 		lit = left()->getGEQLit(leftmin());
@@ -164,7 +174,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
-			reasons[two] = BinReason(right(), true, leftmin());
+			reasons[two] = BinReason(false, true, leftmin());
 		}
 	} else if (headvalue == l_False) {
 		auto one = left()->getGEQLit(rightmin() + 1);
@@ -174,7 +184,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(one) != l_True) {
 			propagations.push_back(one);
-			reasons[one] = BinReason(left(), true, rightmin() + 1);
+			reasons[one] = BinReason(true, true, rightmin() + 1);
 		}
 		auto two = right()->getLEQLit(leftmax() - 1);
 		lit = left()->getLEQLit(leftmax());
@@ -183,7 +193,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (value(two) != l_True) {
 			propagations.push_back(two);
-			reasons[two] = BinReason(right(), false, leftmax() - 1);
+			reasons[two] = BinReason(false, false, leftmax() - 1);
 		}
 	} else { // head is unknown: can only propagate head
 		if (rightmax() < leftmin()) {
@@ -196,7 +206,7 @@ rClause BinaryConstraint::notifypropagate() {
 				throw idpexception("Invalid bin constr path F.");
 			}
 			propagations.push_back(~head());
-			reasons[~head()] = BinReason(NULL, false, left()->minValue(), right()->maxValue());
+			reasons[~head()] = BinReason(false, false, left()->minValue(), right()->maxValue());
 		} else if (leftmax() <= rightmin()) {
 			auto lit = right()->getGEQLit(rightmin());
 			if (value(lit) != l_True) {
@@ -207,7 +217,7 @@ rClause BinaryConstraint::notifypropagate() {
 				throw idpexception("Invalid bin constr path H.");
 			}
 			propagations.push_back(head());
-			reasons[head()] = BinReason(NULL, false, left()->maxValue(), right()->minValue());
+			reasons[head()] = BinReason(false, false, left()->maxValue(), right()->minValue());
 		}
 	}
 

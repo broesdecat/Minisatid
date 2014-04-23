@@ -757,6 +757,9 @@ void FlatZincRewriter<Stream>::add(const MinimizeAgg& mnm) {
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::add(const IntVarEnum& var) {
+	if(var.partial){
+		throw idpexception("Cannot use partial constants in flatzinc.");
+	}
 	stringstream ss;
 	ss << "{";
 	bool begin = true;
@@ -784,6 +787,9 @@ void FlatZincRewriter<Stream>::add(const IntVarEnum& var) {
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::add(const IntVarRange& var) {
+	if(var.partial){
+		throw idpexception("Cannot use partial constants in flatzinc.");
+	}
 	stringstream ss;
 	ss << var.minvalue << ".." << var.maxvalue;
 	addIntegerVar(var.varID, ss.str(), var.minvalue, var.maxvalue);

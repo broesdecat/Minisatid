@@ -33,6 +33,8 @@ LazyAtomPropagator::LazyAtomPropagator(uint id, PCSolver* engine, const Lit& hea
 	}
 	MAssert(maxsize>=0);
 
+	addPartialChecks(this, args, head);
+
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, getHead(), FAST);
 	getPCSolver().accept(this, not getHead(), FAST);

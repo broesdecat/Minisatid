@@ -45,7 +45,7 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
 	vector<VarID> elemx;
-	auto n = 100;
+	uint n = 100;
 	for(uint i=0; i<n; ++i){
 		mult.push_back(Weight(((int)i)-1));
 		VarID x = {i};

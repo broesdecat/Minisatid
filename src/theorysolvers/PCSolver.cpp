@@ -605,6 +605,7 @@ Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
 	auto lit = getFactory().exists(CPBinaryRel(0, mkPosLit(0), var, eq, bound));
 	if(lit.x==0){
 		auto atom = newAtom();
+		getSATSolver()->setInitialPolarity(atom, getSATSolver()->getRandNumber()<0.5);
 		stringstream ss;
 		if(eq==EqType::LEQ){
 			ss<< toString(var) << "=<" << bound;

@@ -167,14 +167,22 @@ template<typename Remapper>
 class ExtAdd<IntVarEnum, Remapper> {
 public:
 	IntVarEnum extAdd(Remapper& r, const IntVarEnum& obj) {
-		return IntVarEnum(obj.getID(), map(obj.varID, r), obj.values);
+		if(obj.partial){
+			return IntVarEnum(obj.getID(), map(obj.varID, r), obj.values, map(obj.possiblynondenoting, r));
+		}else{
+			return IntVarEnum(obj.getID(), map(obj.varID, r), obj.values);
+		}
 	}
 };
 template<typename Remapper>
 class ExtAdd<IntVarRange, Remapper> {
 public:
 	IntVarRange extAdd(Remapper& r, const IntVarRange& obj) {
-		return IntVarRange(obj.getID(), map(obj.varID, r), obj.minvalue, obj.maxvalue);
+		if(obj.partial){
+			return IntVarRange(obj.getID(), map(obj.varID, r), obj.minvalue, obj.maxvalue, map(obj.possiblynondenoting, r));
+		}else{
+			return IntVarRange(obj.getID(), map(obj.varID, r), obj.minvalue, obj.maxvalue);
+		}
 	}
 };
 template<typename Remapper>

@@ -10,6 +10,7 @@ class PropagatorFactory;
 
 enum BinComp { BIN_EQ, BIN_LEQ};
 
+class PCSolver;
 class IntVar;
 
 struct IntVarValue{
@@ -24,6 +25,9 @@ class IntVar: public Propagator{
 private:
 	VarID varid_;
 	PCSolver& engine_;
+
+	Lit noimagelit; // If true, make all leqlits true (arbitrary choice, to prevent spurious models)
+
 	Weight minvalue, maxvalue;
 
 protected:
@@ -42,7 +46,7 @@ protected:
 
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
-	IntVar(uint id, PCSolver* solver, VarID varid);
+	IntVar(uint id, PCSolver* solver, VarID varid, Lit partial);
 
 public:
 	virtual void accept(ConstraintVisitor& visitor);
@@ -65,6 +69,9 @@ public:
 		return maxvalue;
 	}
 
+	bool certainlyHasImage() const;
+	bool possiblyHasImage() const;
+
 	Weight minValue() const {
 		return currentmin;
 	}
@@ -79,9 +86,15 @@ public:
 private:
 	std::map<Weight, Lit> eqlits;
 public:
-
+	Lit getNoImageLit() const{
+		return noimagelit;
+	}
 	Lit getEQLit(Weight bound);
+
+	bool possiblyNondenoting() const;
 };
+
+void addPartialChecks(Propagator* origin, std::vector<IntView*> views, const Lit& head);
 
 class BasicIntVar: public IntVar{
 protected:
@@ -89,7 +102,7 @@ protected:
 
 	void addConstraints();
 
-	BasicIntVar(uint id, PCSolver* solver, VarID varid);
+	BasicIntVar(uint id, PCSolver* solver, VarID varid, Lit partial);
 
 public:
 	virtual void updateBounds();
@@ -99,7 +112,7 @@ class RangeIntVar: public BasicIntVar{
 private:
 	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
-	RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
+	RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial);
 
 public:
 	virtual void finish();
@@ -116,7 +129,7 @@ private:
 
 	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
-	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values);
+	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values, Lit partial);
 
 public:
 	virtual void finish();
@@ -134,10 +147,10 @@ private:
 	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
 
 	Lit addVariable(Weight value);
-	bool checkAndAddVariable(Weight value, bool defaulttruepol = false);
+	bool checkAndAddVariable(Weight value);
 
 	friend class PropagatorFactory;
-	LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max);
+	LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial);
 
 public:
 	virtual void finish();
@@ -252,7 +265,20 @@ public:
 	}
 
 	bool isKnown() const{
-		return minValue()==maxValue();
+		return not possiblyHasImage() || minValue()==maxValue();
+	}
+
+	Lit getNoImageLit() const {
+		return var()->getNoImageLit();
+	}
+	bool certainlyHasImage() const{
+		return var()->certainlyHasImage();
+	}
+	bool possiblyHasImage() const{
+		return var()->possiblyHasImage();
+	}
+	bool isPartial() const{
+		return var()->possiblyNondenoting();
 	}
 
 	std::string toString() const {

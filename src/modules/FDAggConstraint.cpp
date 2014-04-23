@@ -46,6 +46,17 @@ IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
 
 void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
 		const std::vector<Weight>& weights, EqType rel, IntView* bound) {
+
+	auto conditionswithpartial = conditions;
+	for(uint i=0; i<conditions.size();++i){
+		if(set[i]->isPartial()){
+			auto condandnotpart = getPCSolver().newAtom();
+			// TODO improve algorithm instead of doing this recoding that introduces an additiona tseitin?
+			add(Implication(DEFAULTCONSTRID, mkPosLit(condandnotpart), ImplicationType::EQUIVALENT, {conditions[i], not set[i]->getNoImageLit()}, true));
+			conditionswithpartial[i] = mkPosLit(condandnotpart);
+		}
+	}
+
 	//FIXME .. PASS THE ID
 	if (set.size() == 0) {
 		Weight neutral = 0;
@@ -85,7 +96,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			for(auto v: _vars){
 				varids.push_back(v->getID());
 			}
-			add(CPProdWeighted(DEFAULTCONSTRID, two, conditions, varids, weights.front(), EqType::LEQ, bound->getID()));
+			add(CPProdWeighted(DEFAULTCONSTRID, two, conditionswithpartial, varids, weights.front(), EqType::LEQ, bound->getID()));
 		} else {
 			MAssert(getType() == AggType::SUM);
 			std::vector<VarID> varids;
@@ -95,7 +106,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			varids.push_back(bound->getID());
 			auto newweights = weights;
 			newweights.push_back(Weight(-1));
-			auto newconditions = conditions;
+			auto newconditions = conditionswithpartial;
 			newconditions.push_back(getPCSolver().getTrueLit());
 			add(CPSumWeighted(DEFAULTCONSTRID, two, newconditions, varids, newweights, EqType::LEQ, Weight(0)));
 		}
@@ -117,7 +128,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		_bound = bound;
 	}
 
-	_conditions = conditions;
+	_conditions = conditionswithpartial;
 }
 
 void FDAggConstraint::watchRelevantVars() {
@@ -125,10 +136,15 @@ void FDAggConstraint::watchRelevantVars() {
 		//we only go watching vars if the initialisation did not allready decide taht this aggregate is useless.
 		return;
 	}
+
 	getPCSolver().accept(this, _head, FAST);
 	getPCSolver().accept(this, not _head, FAST);
 	for (auto var : _vars) {
 		getPCSolver().acceptBounds(var, this);
+		if(var->isPartial()){
+			getPCSolver().accept(this, var->getNoImageLit(), FAST);
+			getPCSolver().accept(this, not var->getNoImageLit(), FAST);
+		}
 	}
 	for (auto c : _conditions) {
 		getPCSolver().accept(this, c, FAST);
@@ -263,18 +279,6 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 		_weights[i]=w[index[i]];
 		_conditions[i]=c[index[i]];
 	}
-
-	_absmax = 0; _absmin = 0;
-	for(uint i=0; i<_vars.size(); ++i){
-		//cerr <<_vars[i]->toString() <<"=[" <<_vars[i]->minValue() <<"," <<_vars[i]->maxValue() <<"]\n";
-		if(_weights[i]<0){
-			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMinValue());
-			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMaxValue());
-		}else{
-			_absmax += max(Weight(0),_weights[i]*_vars[i]->origMaxValue());
-			_absmin += min(Weight(0),_weights[i]*_vars[i]->origMinValue());
-		}
-	}
 }
 
 FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
@@ -329,6 +333,13 @@ std::pair<Weight, Weight> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(si
 	return {min,max};
 }
 
+// TODO print code:
+/*cerr <<toString(_head) <<" <=> ";
+for(uint i = 0; i<_vars.size(); ++i){
+	cerr <<_weights[i] <<"*" <<_vars[i]->toString() <<"[" <<_vars[i]->minValue() <<"," <<_vars[i]->maxValue() <<"|" <<_vars[i]->origMinValue() <<"," <<_vars[i]->origMaxValue() <<"]" << " if " <<toString(_conditions[i]) <<" + ";
+}
+cerr <<" >= " <<getBound() <<"\n";*/
+
 /**
  * Returns a list of all NEGATIONS OF variables contributing to the current maximum/minimum
  * But excludes the excludedVar'th variable
@@ -339,25 +350,21 @@ std::pair<Weight, Weight> FDSumConstraint::getMinAndMaxPossibleAggValsWithout(si
  */
 litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound) const {
 	litlist lits;
-	Weight val = _absmax;
+	stringstream ss;
 	for (uint j = 0; j < _vars.size(); ++j) {
-		if(val<bound){
-			break;
-		}
 		if (j == excludedVar) {
 			continue;
 		}
 		auto condval = value(_conditions[j]);
 		if (condval == l_False) {
-			if (_weights[j] <= 0 && _vars[j]->origMinValue() >= 0) {
+			if (_weights[j] <= 0 && _vars[j]->origMinValue() >= 0) { // neg value
 				continue;
 			}
-			if (_weights[j] > 0 && _vars[j]->origMaxValue() <= 0) {
+			if (_weights[j] > 0 && _vars[j]->origMaxValue() <= 0) { // neg value
 				continue;
 			}
-			val -= _weights[j]*_vars[j]->origMaxValue();
 			lits.push_back(_conditions[j]);
-		} else { // TODO in fact stop if we have enough?
+		} else {
 			if (condval == l_True) {
 				lits.push_back(not _conditions[j]);
 			}
@@ -365,11 +372,6 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
 				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
 			} else {
 				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
-			}
-			if (condval == l_True) {
-				val += _weights[j]*(_vars[j]->maxValue()-_vars[j]->origMaxValue());
-			}else if(_weights[j]*_vars[j]->origMaxValue()>0){
-				val += _weights[j]*(max(Weight(0),_vars[j]->maxValue())-_vars[j]->origMaxValue());
 			}
 		}
 	}
@@ -389,11 +391,7 @@ litlist FDSumConstraint::varsContributingToMax(size_t excludedVar, Weight bound)
  */
 litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound) const {
 	litlist lits;
-	Weight val = _absmin;
 	for (uint j = 0; j < _vars.size(); ++j) {
-		if(val>=bound){
-			break;
-		}
 		if (j == excludedVar) {
 			continue;
 		}
@@ -405,7 +403,6 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound)
 			if (_weights[j] <= 0 && _vars[j]->origMaxValue() <= 0) {
 				continue;
 			}
-			val -= _weights[j]*_vars[j]->origMinValue();
 			lits.push_back(_conditions[j]);
 		} else {
 			if (condval == l_True) {
@@ -415,11 +412,6 @@ litlist FDSumConstraint::varsContributingToMin(size_t excludedVar, Weight bound)
 				lits.push_back(not _vars[j]->getLEQLit(_vars[j]->maxValue()));
 			} else {
 				lits.push_back(not _vars[j]->getGEQLit(_vars[j]->minValue()));
-			}
-			if (condval == l_True) {
-				val += _weights[j]*(_vars[j]->minValue()-_vars[j]->origMinValue());
-			}else if(_weights[j]*_vars[j]->origMaxValue()<0){
-				val += _weights[j]*(min(Weight(0),_vars[j]->minValue())-_vars[j]->origMinValue());
 			}
 		}
 	}
@@ -483,8 +475,9 @@ rClause FDSumConstraint::createClauseExcl(Contrib use, size_t varindex, bool con
 }
 
 #define conflCheck(c) \
-		if (c != nullPtrClause) { \
-			return c; \
+		auto cl = c; \
+		if (cl != nullPtrClause) { \
+			return cl; \
 		}\
 
 
@@ -495,8 +488,6 @@ rClause FDSumConstraint::notifypropagate() {
 	auto max = minmax.second;
 
 	auto bound = getBound();
-
-	// cerr <<"Min = " <<min <<", max = " <<max <<"\n";
 
 	//Propagation AGG =>  head
 	if (_headval == l_Undef) {
@@ -533,7 +524,7 @@ rClause FDSumConstraint::notifypropagate() {
 		auto maxWithoutThisVar = max, minWithoutThisVar = min;
 		auto minval = var->minValue(), maxval = var->maxValue();
 		if (value(_conditions[i]) != l_True) {
-			// condition i is possibly false
+		// condition i is possibly false
 			minval = minval < 0 ? minval : 0;
 			maxval = maxval > 0 ? maxval : 0;
 		}

@@ -19,8 +19,8 @@ using namespace std;
 // NOTE: currently always grounds at least log(max-min) elements.
 // TODO Could be changed to be able to only ground at least 2 elements.
 
-LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max)
-		: IntVar(id, solver, varid), halve(true){
+LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial)
+		: IntVar(id, solver, varid, partial), halve(true){
 	setOrigMax(max);
 	setOrigMin(min);
 	//clog <<"Created lazy variable " <<toString(varid) <<" = [" <<min <<", " <<max <<"]\n";
@@ -122,6 +122,9 @@ void LazyIntVar::resetState(){
 void LazyIntVar::updateBounds() {
 	auto prev = origMinValue();
 	auto unknown = false;
+	if(not possiblyHasImage()){
+		return;
+	}
 	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
 		if (not isFalse(i->lit)) { // First non-false: then previous one +1 is lowest remaining value
 			if(isUnknown(i->lit)){
@@ -150,10 +153,10 @@ void LazyIntVar::updateBounds() {
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
 	if(not unknown && not checkAndAddVariable(currentmin) && not checkAndAddVariable(currentmax)){
 		if(halve){
-			checkAndAddVariable((currentmin+currentmax)/2, false);
+			checkAndAddVariable((currentmin+currentmax)/2);
 		}else{
-			checkAndAddVariable(currentmax-1, false);
-			checkAndAddVariable(currentmin+1, false);
+			checkAndAddVariable(currentmax-1);
+			checkAndAddVariable(currentmin+1);
 		}
 		halve = not halve;
 	}
@@ -178,7 +181,7 @@ typename List::const_iterator findVariable(Weight value, const List& list){
 	}
 }
 
-bool LazyIntVar::checkAndAddVariable(Weight value, bool defaulttruepol){ // Returns true if it was newly created
+bool LazyIntVar::checkAndAddVariable(Weight value){ // Returns true if it was newly created
 	auto i = findVariable(value, leqlits);
 #ifdef DEBUG
 	for(auto j=leqlits.cbegin(); j<leqlits.cend(); ++j) {
@@ -192,13 +195,7 @@ bool LazyIntVar::checkAndAddVariable(Weight value, bool defaulttruepol){ // Retu
 		return false;
 	}else{
 		getPCSolver().notifyGroundingCall();
-		auto lit = addVariable(value);
-		auto solver = getPCSolver().getSATSolver();
-		if(defaulttruepol){
-			solver->setInitialPolarity(var(lit), true);
-		}else{
-			solver->setInitialPolarity(var(lit), solver->getRandNumber()<0.2); // FIXME not included in random seed!
-		}
+		addVariable(value);
 		return true;
 	}
 }

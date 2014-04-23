@@ -141,7 +141,8 @@
 %token <aggr> AGGDEFN
 %token CNF ECNF DEFPRESENT AGGPRESENT MINIMPRESENT
 %token ORSEM
-%token INTVAR INTVARDOM CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT IMPLICATION LEVEL
+%token INTVAR INTVARDOM PARTIAL 
+%token CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT IMPLICATION LEVEL
 %token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM SUBTHEORY
 
 %token <boolean> QUANTe
@@ -436,9 +437,21 @@ intvar	:	INTVAR varid weight weight ZERO
 			}
 		|	INTVARDOM varid weightbody DELIM ZERO 
 			{
-				IntVarEnum var(id++, $2,*$3);
+				IntVarEnum var(id++, $2, *$3);
 				CR(wrapper, var, theoryid);
 				delete $3;
+			}
+		|	PARTIAL INTVAR varid NUMBER weight weight ZERO 
+			{
+				IntVarRange var(id++, $3, cWeight($5), cWeight($6), cLiteral($4));
+				CR(wrapper, var, theoryid);
+				delete $4; delete $5;
+			}
+		|	PARTIAL INTVARDOM varid NUMBER weightbody DELIM ZERO 
+			{
+				IntVarEnum var(id++, $3, *$5, cLiteral($4));
+				CR(wrapper, var, theoryid);
+				delete $4;
 			}
 		;
 

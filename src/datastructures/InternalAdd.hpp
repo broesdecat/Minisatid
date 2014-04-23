@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef INTERNALADD_HPP_
-#define INTERNALADD_HPP_
+#pragma once
 
 // NOTE: do NOT use for external applications, use Constraints.hpp instead!
 
@@ -38,5 +37,3 @@ void internalAdd(const SubTheory& obj, TheoryID id, ConstraintDB& engine){
 }
 
 }
-
-#endif /* INTERNALADD_HPP_ */
