@@ -734,29 +734,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 	int pathC = 0;
 	Lit p = lit_Undef;
 
-	/*AB VERY IMPORTANT*/
-	int lvl = 0;
-	auto& c = ca[confl];
-	for (int i = 0; i < c.size(); i++) {
-		int litlevel = getLevel(var(c[i]));
-		if (litlevel > lvl) {
-			lvl = litlevel;
-		}
-	}
-
-	if(lvl>decisionLevel()){
-		throw idpexception("Invalid code path.");
-	}
-
-	if(lvl<decisionLevel()){
-		uncheckedBacktrack(lvl);
-	}
-
-	if(confl==CRef_Undef || lvl!=decisionLevel()){
-		throw idpexception("Invalid code path.");
-	}
-	/*AE*/
-
 	// Generate conflict clause:
 	//
 	out_learnt.push(); // (leave room for the asserting literal)
@@ -1315,8 +1292,28 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				return l_Undef;
 			}
 
-			learnt_clause.clear();
+			int lvl = 0;
+			auto& c = ca[confl];
+			for (int i = 0; i < c.size(); i++) {
+				int litlevel = getLevel(var(c[i]));
+				if (litlevel > lvl) {
+					lvl = litlevel;
+				}
+			}
 
+			if(lvl>decisionLevel()){
+				throw idpexception("Invalid code path.");
+			}
+
+			if(lvl<decisionLevel()){
+				uncheckedBacktrack(lvl);
+			}
+
+			if (decisionLevel() == 0) {
+				return l_False;
+			}
+
+			learnt_clause.clear();
 			analyze(confl, learnt_clause, backtrack_level);
 
 			getPCSolver().backtrackTo(backtrack_level);
