@@ -112,28 +112,40 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	if (reason == reasons.cend()) {
 		throw idpexception("Invalid code path in binconstraint getexplan.");
 	}
+	litlist lits;
+	lits.push_back(lit);
 	auto bound = reason->second.bound;
 	if (var(lit) == var(head())) {
 		if (lit == head()) {
-			return getPCSolver().createClause(Disjunction(getID(), { lit, ~left()->getLEQLit(bound), ~right()->getGEQLit(reason->second.rightbound) }), true);
+
+			lits.push_back(~left()->getLEQLit(bound));
+			lits.push_back(~right()->getGEQLit(reason->second.rightbound));
 		} else { // head false
-			return getPCSolver().createClause(Disjunction(getID(), { lit, ~left()->getGEQLit(bound), ~right()->getLEQLit(reason->second.rightbound) }), true);
+			lits.push_back(~left()->getGEQLit(bound));
+			lits.push_back(~right()->getLEQLit(reason->second.rightbound));
 		}
 	} else {
 		if (reason->second.left) {
 			if (reason->second.geq) { // left GEQ bound was propagated
-				return getPCSolver().createClause(Disjunction(getID(), { lit, head(), ~right()->getGEQLit(bound - 1) }), true);
+				lits.push_back(head());
+				lits.push_back(~right()->getGEQLit(bound - 1));
 			} else { // left LEQ bound
-				return getPCSolver().createClause(Disjunction(getID(), { lit, ~head(), ~right()->getLEQLit(bound) }), true);
+				lits.push_back(~head());
+				lits.push_back(~right()->getLEQLit(bound));
 			}
 		} else { // right var explanation
 			if (reason->second.geq) {
-				return getPCSolver().createClause(Disjunction(getID(), { lit, ~head(), ~left()->getGEQLit(bound) }), true);
+				lits.push_back(~head());
+				lits.push_back(~left()->getGEQLit(bound));
 			} else {
-				return getPCSolver().createClause(Disjunction(getID(), { lit, head(), ~left()->getLEQLit(bound + 1) }), true);
+				lits.push_back(head());
+				lits.push_back(~left()->getLEQLit(bound + 1));
 			}
 		}
 	}
+	lits.push_back(left()->getNoImageLit());
+	lits.push_back(right()->getNoImageLit());
+	return getPCSolver().createClause(Disjunction(getID(), lits), true);
 }
 
 int BinaryConstraint::getNbOfFormulas() const {
