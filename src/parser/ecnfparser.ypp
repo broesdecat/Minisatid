@@ -17,7 +17,6 @@
 %define parser_class_name "ECNFParser"
 %parse-param { MinisatID::ECNFScanner &scanner }
 %parse-param { MinisatID::ExternalConstraintVisitor* wrapper }
-%parse-param { uint id }
 %parse-param { TheoryID theoryid }
 %parse-param { bool negatemod }
 %parse-param { int maxatom }
@@ -214,7 +213,7 @@ cnftheory:	/*empty*/
 			
 cnfclause: 	body ZERO	
 				{	
-					Disjunction clause(id++, *$1);
+					Disjunction clause(*$1);
 					CR(wrapper, clause, theoryid);
 					delete $1;
 				}
@@ -267,7 +266,7 @@ subtheory :	SUBTHEORY number NUMBER body ZERO
 				for(auto lit:*$4){
 					atoms.push_back(lit.getAtom());
 				}
-				SubTheory sub(1, cAtom($3), TheoryID((uint)$2), atoms);
+				SubTheory sub(cAtom($3), TheoryID((uint)$2), atoms);
 				CR(wrapper, sub, theoryid);
 				delete $4;
 			}
@@ -314,7 +313,7 @@ summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO
 		
 clause	:	body ZERO	
 			{
-				Disjunction clause(id++, *$1);
+				Disjunction clause(*$1);
 				CR(wrapper, clause, theoryid);
 				delete $1;
 			}
@@ -326,7 +325,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 				if($1==AggSem::OR){
 					error(@1, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(id++, cAtom($2), *$3, $1==AggSem::COMP, defaultdefID, false); //AggSem is bit of a hack, to be fixed
+				Rule rule(cAtom($2), *$3, $1==AggSem::COMP, defaultdefID, false); //AggSem is bit of a hack, to be fixed
 				delete $2; delete $3;
 				CR(wrapper, rule, theoryid);
 			}
@@ -338,7 +337,7 @@ rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 				if($1==AggSem::OR){
 					error(@1, "Incorrect rule type specification \"O\", should be either \"D\" or \"C\".");
 				}
-				Rule rule(id++, cAtom($4), *$6, $1==AggSem::COMP, cID($2), false);//AggSem is bit of a hack, to be fixed
+				Rule rule(cAtom($4), *$6, $1==AggSem::COMP, cID($2), false);//AggSem is bit of a hack, to be fixed
 				delete $2; delete $4; delete $6;
 				CR(wrapper, rule, theoryid);
 			}
@@ -346,7 +345,7 @@ rule	:	SEMDEFN NUMBER DELIM NUMBER DEFOP body ZERO
 		
 implication: IMPLICATION SEMDEFN NUMBER IMPL body ZERO
 			{ 	
-				Implication implic(id++, cLiteral($3), $4, *$5, $2==AggSem::COMP);
+				Implication implic(cLiteral($3), $4, *$5, $2==AggSem::COMP);
 				delete $3; delete $5;
 				CR(wrapper, implic, theoryid);
 			}
@@ -358,13 +357,13 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 					checkVersion(VERSION_OLD);
 				}
 	
-				Aggregate agg(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID, false);
+				Aggregate agg(cLiteral($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID, false);
 				CR(wrapper, agg, theoryid);
 				delete $4; delete $5; delete $6;
 			}
 		|	AGGDEFN ORSEM SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
-				Aggregate agg(id++, cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID, false);
+				Aggregate agg(cLiteral($4), cID($5), cWeight($6), $1, $3, AggSem::OR, defaultdefID, false);
 				CR(wrapper, agg, theoryid);
 				delete $4; delete $5; delete $6;
 			}
@@ -372,7 +371,7 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 			{	
 				checkVersion(VERSION_NEW);
 
-				Aggregate agg(id++, mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3), false);
+				Aggregate agg(mkPosLit(cAtom($5)), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3), false);
 				CR(wrapper, agg, theoryid);
 				delete $5; delete $6; delete $7;
 			}
@@ -438,25 +437,25 @@ cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete(
 
 intvar	:	INTVAR varid weight weight ZERO 
 			{
-				IntVarRange var(id++, $2, cWeight($3), cWeight($4));
+				IntVarRange var($2, cWeight($3), cWeight($4));
 				CR(wrapper, var, theoryid);
 				delete $3; delete $4;
 			}
 		|	INTVARDOM varid weightbody DELIM ZERO 
 			{
-				IntVarEnum var(id++, $2, *$3);
+				IntVarEnum var($2, *$3);
 				CR(wrapper, var, theoryid);
 				delete $3;
 			}
 		|	PARTIAL INTVAR varid NUMBER weight weight ZERO 
 			{
-				IntVarRange var(id++, $3, cWeight($5), cWeight($6), cLiteral($4));
+				IntVarRange var($3, cWeight($5), cWeight($6), cLiteral($4));
 				CR(wrapper, var, theoryid);
 				delete $4; delete $5;
 			}
 		|	PARTIAL INTVARDOM varid NUMBER weightbody DELIM ZERO 
 			{
-				IntVarEnum var(id++, $3, *$5, cLiteral($4));
+				IntVarEnum var($3, *$5, cLiteral($4));
 				CR(wrapper, var, theoryid);
 				delete $4;
 			}
@@ -472,45 +471,45 @@ intvar	:	INTVAR varid weight weight ZERO
 cpconstraint
 		:	BINTRI NUMBER varid REL weight ZERO 
 			{ 	
-				CPBinaryRel binrel(id++, mkPosLit(cAtom($2)), $3, $4, cWeight($5));
+				CPBinaryRel binrel(mkPosLit(cAtom($2)), $3, $4, cWeight($5));
 				CR(wrapper, binrel, theoryid);
 				delete $2; delete $5;
 			}
 		|	BINTRT NUMBER varid REL varid ZERO 
 			{ 	
-				CPBinaryRelVar binrel(id++, mkPosLit(cAtom($2)), $3, $4, $5);
+				CPBinaryRelVar binrel(mkPosLit(cAtom($2)), $3, $4, $5);
 				CR(wrapper, binrel, theoryid);
 				delete $2;
 			}
 		|	CPSUM NUMBER body DELIM possiblyemptyvaridbody DELIM weightbody REL weight ZERO   
 			{ 	
-				CPSumWeighted sum(id++, mkPosLit(cAtom($2)), *$3, *$5, *$7, $8, cWeight($9));
+				CPSumWeighted sum(mkPosLit(cAtom($2)), *$3, *$5, *$7, $8, cWeight($9));
 				CR(wrapper, sum, theoryid);
 				delete $2; delete $3; delete $5; delete $7; delete $9;
 			}
 		|	CPPROD NUMBER body DELIM possiblyemptyvaridbody DELIM weight REL varid ZERO   
 			{ 	
-				CPProdWeighted prod(id++, mkPosLit(cAtom($2)), *$3, *$5, cWeight($7), $8, $9);
+				CPProdWeighted prod(mkPosLit(cAtom($2)), *$3, *$5, cWeight($7), $8, $9);
 				CR(wrapper, prod, theoryid);
 				delete $2; delete $3; delete $5; delete $7;
 			}
 		|	ELEMENT varidbody DELIM varid varid ZERO 
 			{ 	
-				CPElement elem(id++, *$2, $4, $5);
+				CPElement elem(*$2, $4, $5);
 				CR(wrapper, elem, theoryid);
 				delete $2;
 			}
 			//only global card at the moment! 
 		|	COUNT varidbody DELIM weight REL varid ZERO   
 			{ 	
-				CPCount count(id++, *$2, cWeight($4), $5, $6);
+				CPCount count(*$2, cWeight($4), $5, $6);
 				CR(wrapper, count, theoryid);
 				delete $2; delete $4;
 			}
 			//only global alldiff at the moment!
 		|	DISTINCT varidbody DELIM ZERO //DELIM to remove shift-reduce conflict 
 			{ 	
-				CPAllDiff alldiff(id++, *$2);
+				CPAllDiff alldiff(*$2);
 				CR(wrapper, alldiff, theoryid);
 				delete $2;
 			}
@@ -794,18 +793,18 @@ void readCNFModalHierLevel(Wrapper* wrapper, bool existential, const vector<Lit>
 	
 	auto head = ++maxatom;
 	if(writeexists){
-		Disjunction disj(1, {mkPosLit(head)});
+		Disjunction disj({mkPosLit(head)});
 		CR(wrapper, disj, lastlevel);
 		head = ~head;
 	}else{
-		Disjunction disj(1, {mkNegLit(head)});
+		Disjunction disj({mkNegLit(head)});
 		CR(wrapper, disj, lastlevel);
 	}
 	std::vector<Atom> atoms;
 	for(auto lit:rigidlits){
 		atoms.push_back(lit.getAtom());
 	}
-	SubTheory sub(1, head, level, atoms);
+	SubTheory sub(head, level, atoms);
 	CR(wrapper, sub, lastlevel);
 	level = TheoryID(level.id+1);
 }

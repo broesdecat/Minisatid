@@ -42,9 +42,8 @@ using namespace MinisatID;
 #define CHECKSEEN
 #endif
 
-IDAgg::IDAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& origwls)
-		: 	id(id),
-			bound(b),
+IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& origwls)
+		: 	bound(b),
 			head(head),
 			sem(sem),
 			index(-1),
@@ -54,7 +53,7 @@ IDAgg::IDAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type, con
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID)
-		: 	Propagator( { }, s, "definition"),
+		: 	Propagator(s, "definition"),
 			definitionID(definitionID),
 			needInit(true),
 			defn_strategy(getPCSolver().modes().defn_strategy),
@@ -69,7 +68,7 @@ IDSolver::IDSolver(PCSolver* s, int definitionID)
 			backtracked(true),
 			adaption_total(100),
 			adaption_current(0),
-			savedloopf(DEFAULTCONSTRID, { }),
+			savedloopf({ }),
 			twovalueddef(false) {
 
 	if(getPCSolver().modes().lazy){
@@ -155,7 +154,7 @@ void IDSolver::addFinishedRule(const TempRule& rule) {
 	//clog <<"Added rule on " <<toString(head) <<"\n";
 
 	conj = conj || rule.body.size() == 1; //rules with only one body atom are treated as conjunctive
-	auto r = new PropRule(rule.id, mkLit(head), rule.body);
+	auto r = new PropRule(mkLit(head), rule.body);
 	createDefinition(head, r, conj ? DefType::CONJ : DefType::DISJ);
 }
 
@@ -171,7 +170,7 @@ void IDSolver::addFinishedDefinedAggregate(const TempRule& rule) {
 	}
 
 	AggBound b(rule.inneragg->sign, rule.inneragg->bound);
-	auto agg = new IDAgg(rule.id, mkLit(head), b, rule.inneragg->sem, rule.inneragg->type, rule.innerset->getWL());
+	auto agg = new IDAgg(mkLit(head), b, rule.inneragg->sem, rule.inneragg->type, rule.innerset->getWL());
 	if (isInitiallyJustified(*agg)) {
 		delete (agg);
 		return;
@@ -202,10 +201,10 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
 				visitor.add(WLSet(setid, rule->getWL()));
 				// TODO: leads to duplicate aggregates!
 				visitor.add(
-						Aggregate(rule->getID(), rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID(), true));
+						Aggregate(rule->getHead(), setid, rule->getBound(), rule->getType(), rule->getSign(), AggSem::DEF, getDefinitionID(), true));
 			} else {
 				auto rule = defvar->definition();
-				visitor.add(Rule(rule->getID(), var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID(), true));
+				visitor.add(Rule(var(rule->getHead()), rule->getBody(), defvar->type() == DefType::CONJ, getDefinitionID(), true));
 			}
 		}
 	}
@@ -756,7 +755,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 					openbodylits.push_back(*bodylit);
 				}
 			}
-			auto rule = new toCNF::Rule(proprule->getID(), isDisjunctive(head), head, defbodylits, openbodylits);
+			auto rule = new toCNF::Rule(isDisjunctive(head), head, defbodylits, openbodylits);
 			rules.push_back(rule);
 		}
 		unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
@@ -1002,7 +1001,7 @@ rClause IDSolver::notifypropagate() {
 	if(needInit) {
 		initialize();
 		if (getPCSolver().isUnsat()) {
-			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
+			return getPCSolver().createClause(Disjunction({ }), true);
 		}
 	}
 	CHECKSEEN;CHECKNOTUNSAT;
@@ -1562,7 +1561,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 	MAssert(!ufs.empty());
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
-	Disjunction loopf(DEFAULTCONSTRID, { placeholderlit });
+	Disjunction loopf({ placeholderlit });
 	addExternalDisjuncts(ufs, loopf.literals);
 
 	// Check if any of the literals in the set are already true, which leads to a conflict.
@@ -1604,7 +1603,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Atom>& ufs) {
 
 			// \forall d \in \extdisj{L}: not d \vee v
 			// UNSAT core extraction correct because of rule rewriting earlier on.
-			Disjunction binaryclause(DEFAULTCONSTRID, { placeholderlit, mkPosLit(v) });
+			Disjunction binaryclause({ placeholderlit, mkPosLit(v) });
 			for (uint i = 1; i < loopf.literals.size(); ++i) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
@@ -1678,7 +1677,7 @@ void IDSolver::addLoopfClause(Lit l, Disjunction& lits) {
 
 rClause IDSolver::getExplanation(const Lit& l) {
 	MAssert(getPCSolver().modes().idclausesaving>0);
-	Disjunction clause(DEFAULTCONSTRID, reason(var(l)));
+	Disjunction clause(reason(var(l)));
 	return getPCSolver().createClause(clause, true);
 }
 
@@ -2009,7 +2008,7 @@ rClause IDSolver::isWellFoundedModel() {
 	}
 
 	//Returns the found assignment (TODO might be optimized to just return the loop)
-	Disjunction invalidation(DEFAULTCONSTRID, { });
+	Disjunction invalidation({ });
 	getPCSolver().invalidate(invalidation.literals);
 	auto confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addConflictClause(confl);

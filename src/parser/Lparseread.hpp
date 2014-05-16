@@ -24,8 +24,7 @@
 // MA 02111-1307, USA.
 //
 // Patrik.Simons@hut.fi
-#ifndef READ_H
-#define READ_H
+#pragma once
 
 #include "external/Translator.hpp"
 #include "utils/Utils.hpp"
@@ -71,7 +70,6 @@ struct ChoiceRule{
 template<class T>
 class Read{
 private:
-	uint maxid;
 	bool endedparsing;
 	int maxatomnumber;
 	int setcount;
@@ -96,7 +94,6 @@ private:
 
 public:
 	Read(T& solver, LParseTranslator* trans):
-		maxid(1),
 		endedparsing(false),
 		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
 		solver(solver), optim(false),
@@ -130,5 +127,3 @@ private:
 };
 
 }
-
-#endif

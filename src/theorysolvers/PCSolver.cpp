@@ -67,9 +67,9 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 
 	dummy1 = newAtom();
 	dummy2 = newAtom();
-	Disjunction disj(DEFAULTCONSTRID, { mkPosLit(dummy1) });
+	Disjunction disj({ mkPosLit(dummy1) });
 	disj.theoryid = getTheoryID();
-	Disjunction disj2(DEFAULTCONSTRID, { mkPosLit(dummy2) });
+	Disjunction disj2({ mkPosLit(dummy2) });
 	disj2.theoryid = getTheoryID();
 	internalAdd(disj, getTheoryID(), *this);
 	internalAdd(disj2, getTheoryID(), *this);
@@ -602,7 +602,7 @@ int PCSolver::getNbOfFormulas() const {
 
 Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
 	MAssert(eq==EqType::EQ || eq==EqType::LEQ);
-	auto lit = getFactory().exists(CPBinaryRel(0, mkPosLit(0), var, eq, bound));
+	auto lit = getFactory().exists(CPBinaryRel(mkPosLit(0), var, eq, bound));
 	if(lit.x==0){
 		auto atom = newAtom();
 		getSATSolver()->setInitialPolarity(atom, getSATSolver()->getRandNumber()<0.5);

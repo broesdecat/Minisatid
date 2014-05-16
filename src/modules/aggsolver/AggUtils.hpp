@@ -91,7 +91,7 @@ private:
 	bool 		hasclause;
 
 public:
-	AggReason(): explanation(DEFAULTCONSTRID, {}), hasclause(false){ }
+	AggReason(): explanation({}), hasclause(false){ }
 	virtual ~AggReason() {}
 
 	virtual const Agg&	getAgg			() 	const = 0;

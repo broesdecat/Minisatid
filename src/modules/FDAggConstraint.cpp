@@ -18,8 +18,8 @@
 using namespace std;
 using namespace MinisatID;
 
-FDAggConstraint::FDAggConstraint(uint id, PCSolver* s, const std::string& name)
-		: Propagator(id, s, name) {
+FDAggConstraint::FDAggConstraint(PCSolver* s, const std::string& name)
+		: Propagator(s, name) {
 }
 
 IntView* FDAggConstraint::negation(IntView* bound) {
@@ -29,8 +29,8 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 	auto t = getPCSolver().getTrueLit();
 	getPCSolver().setTrue(headIsTrue, this); //FIXME: explanation
 	const int& zero = 0; //doing this here, to make the disambiguation.
-	add(CPSumWeighted(DEFAULTCONSTRID, headIsTrue, { t, t }, { bound->getID(), result->getID() }, { 1, 1 }, EqType::GEQ, zero));
-	add(CPSumWeighted(DEFAULTCONSTRID, headIsTrue, { t, t }, { bound->getID(), result->getID() }, { -1, -1 }, EqType::GEQ, zero));
+	add(CPSumWeighted(headIsTrue, { t, t }, { bound->getID(), result->getID() }, { 1, 1 }, EqType::GEQ, zero));
+	add(CPSumWeighted(headIsTrue, { t, t }, { bound->getID(), result->getID() }, { -1, -1 }, EqType::GEQ, zero));
 	if (verbosity() > 5) {
 		clog << toString(head) << " <=> var" << result->toString() << " + var" << bound->toString() << " = 0" << endl;
 	}
@@ -40,7 +40,7 @@ IntView* FDAggConstraint::negation(IntView* bound) {
 
 IntView* FDAggConstraint::createBound(const Weight& min, const Weight& max) {
 	auto id = getPCSolver().newID();
-	add(IntVarRange(DEFAULTCONSTRID, id, min, max));
+	add(IntVarRange(id, min, max));
 	return getPCSolver().getIntView(id, 0);
 }
 
@@ -52,7 +52,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		if(set[i]->isPartial()){
 			auto condandnotpart = getPCSolver().newAtom();
 			// TODO improve algorithm instead of doing this recoding that introduces an additiona tseitin?
-			add(Implication(DEFAULTCONSTRID, mkPosLit(condandnotpart), ImplicationType::EQUIVALENT, {conditions[i], not set[i]->getNoImageLit()}, true));
+			add(Implication(mkPosLit(condandnotpart), ImplicationType::EQUIVALENT, {conditions[i], not set[i]->getNoImageLit()}, true));
 			conditionswithpartial[i] = mkPosLit(condandnotpart);
 		}
 	}
@@ -70,7 +70,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		if (rel != EqType::EQ && rel != EqType::NEQ) {
 			condition = !condition;
 		}
-		add(Implication(getID(), head, ImplicationType::EQUIVALENT, { condition }, true));
+		add(Implication(head, ImplicationType::EQUIVALENT, { condition }, true));
 		if (verbosity() > 5) {
 			clog << "Set was empty, FDAGGConstraint simplified to:";
 			clog << toString(head) << " <=> " << toString(condition) << endl;
@@ -84,7 +84,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 		auto eq = (rel == EqType::EQ);
 		auto one = mkPosLit(getPCSolver().newAtom());
 		auto two = mkPosLit(getPCSolver().newAtom());
-		add(Implication(getID(), eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true));
+		add(Implication(eq ? head : not head, ImplicationType::EQUIVALENT, { one, two }, true));
 		if (verbosity() > 5) {
 			clog << "split FDAggConstraint with head " << toString(head) << " into GEQ with head " << toString(one) << " and LEQ with head " << toString(two)
 					<< endl;
@@ -96,7 +96,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			for(auto v: _vars){
 				varids.push_back(v->getID());
 			}
-			add(CPProdWeighted(DEFAULTCONSTRID, two, conditionswithpartial, varids, weights.front(), EqType::LEQ, bound->getID()));
+			add(CPProdWeighted(two, conditionswithpartial, varids, weights.front(), EqType::LEQ, bound->getID()));
 		} else {
 			MAssert(getType() == AggType::SUM);
 			std::vector<VarID> varids;
@@ -108,7 +108,7 @@ void FDAggConstraint::sharedInitialization(const Lit& head, const std::vector<Li
 			newweights.push_back(Weight(-1));
 			auto newconditions = conditionswithpartial;
 			newconditions.push_back(getPCSolver().getTrueLit());
-			add(CPSumWeighted(DEFAULTCONSTRID, two, newconditions, varids, newweights, EqType::LEQ, Weight(0)));
+			add(CPSumWeighted(two, newconditions, varids, newweights, EqType::LEQ, Weight(0)));
 		}
 	}
 	if (rel == EqType::L || rel == EqType::G) {
@@ -176,7 +176,7 @@ bool additionOverflow(Weight, Weight) {
  * Adds the disjunction of lits to the solver and returns the clause
  */
 rClause FDAggConstraint::addClause(litlist& lits, bool conflict) {
-	auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
+	auto c = getPCSolver().createClause(Disjunction(lits), true);
 	//getPCSolver().printClause(c);
 	if (conflict) { // Conflict
 		getPCSolver().addConflictClause(c);
@@ -281,17 +281,17 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 	}
 }
 
-FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
+FDSumConstraint::FDSumConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
 		const std::vector<Weight>& weights, EqType rel, const Weight& bound)
-		: FDAggConstraint(id, engine, "fdsumconstr") {
+		: FDAggConstraint(engine, "fdsumconstr") {
 	MAssert(weights.size() == set.size());
 	MAssert(conditions.size() == set.size());
 	initialize(head, conditions, set, weights, rel, createBound(bound, bound));
 }
 
-FDSumConstraint::FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
+FDSumConstraint::FDSumConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
 		const std::vector<Weight>& weights, EqType rel, IntView* bound)
-		: FDAggConstraint(id, engine, "fdsumconstr") {
+		: FDAggConstraint(engine, "fdsumconstr") {
 	MAssert(weights.size() == set.size());
 	MAssert(conditions.size() == set.size());
 	MAssert(bound->minValue() == bound->maxValue());
@@ -641,9 +641,9 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 			//Variable is guaranteed to be negative. Can be optimised by including "-1" in the weight and keeping monotonicity of product
 			//Can only be done in case this variable is known to be certainly in the set.
 			auto varid = getPCSolver().newID();
-			add(IntVarRange(DEFAULTCONSTRID, varid, -set[i]->origMaxValue(), -set[i]->origMinValue()));
+			add(IntVarRange(varid, -set[i]->origMaxValue(), -set[i]->origMinValue()));
 			auto truelit = getPCSolver().getTrueLit();
-			add(CPSumWeighted(DEFAULTCONSTRID, truelit, { truelit, truelit }, { set[i]->getID(), varid }, { Weight(1), Weight(1) }, EqType::EQ, Weight(0)));
+			add(CPSumWeighted(truelit, { truelit, truelit }, { set[i]->getID(), varid }, { Weight(1), Weight(1) }, EqType::EQ, Weight(0)));
 			newweight *= -1;
 			newset.push_back(getPCSolver().getIntView(varid, Weight(0)));
 			newconditions.push_back(conditions[i]);
@@ -656,7 +656,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	}
 
 	if (newweight == 0) {
-		add(CPSumWeighted(DEFAULTCONSTRID, head, newconditions, { bound->getID() }, { 1 }, invertEqType(rel), newweight));
+		add(CPSumWeighted(head, newconditions, { bound->getID() }, { 1 }, invertEqType(rel), newweight));
 		notifyNotPresent();
 		return;
 	}
@@ -664,7 +664,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	if(newset.size() == 1 && getPCSolver().rootValue(newconditions[0])==l_True){
 		//Transform _head <=> PROD set[0]  >= _bound to
 		//set[0] - bound >= 0
-		add(CPSumWeighted(DEFAULTCONSTRID, head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0]->getID(),bound->getID()}, {newweight, -1}, rel,  0));
+		add(CPSumWeighted(head, {newconditions[0],getPCSolver().getTrueLit()}, {newset[0]->getID(),bound->getID()}, {newweight, -1}, rel,  0));
 		notifyNotPresent();
 		return;
 	}
@@ -690,7 +690,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 			auto poslit = mkPosLit(getPCSolver().newAtom());
 			auto notpresent = !_conditions[i];
 			auto positive = _vars[i]->getGEQLit(0);
-			add(Implication(getID(), poslit, ImplicationType::EQUIVALENT, { notpresent, positive }, false));
+			add(Implication(poslit, ImplicationType::EQUIVALENT, { notpresent, positive }, false));
 			poslits.push_back(poslit);
 		}
 	}
@@ -700,21 +700,21 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 		_definitelyPositive = poslits[0];
 	} else {
 		_definitelyPositive = mkPosLit(getPCSolver().newAtom());
-		add(Implication(getID(), _definitelyPositive, ImplicationType::EQUIVALENT, poslits, true));
+		add(Implication(_definitelyPositive, ImplicationType::EQUIVALENT, poslits, true));
 	}
 	watchRelevantVars();
 
 }
 
-FDProdConstraint::FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
+FDProdConstraint::FDProdConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
 		const Weight& weight, EqType rel, const Weight& bound)
-		: FDAggConstraint(id, engine, "fdprodconstr") {
+		: FDAggConstraint(engine, "fdprodconstr") {
 	initialize(head, conditions, set, weight, rel, createBound(bound, bound));
 }
 
-FDProdConstraint::FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
+FDProdConstraint::FDProdConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set,
 		const Weight& weight, EqType rel, IntView* bound)
-		: FDAggConstraint(id, engine, "fdprodconstr") {
+		: FDAggConstraint(engine, "fdprodconstr") {
 	initialize(head, conditions, set, weight, rel, bound);
 }
 
@@ -938,7 +938,7 @@ rClause FDProdConstraint::notifypropagateWithoutNeg(Weight mini, Weight maxi, We
 		}
 		if (propagate) {
 			lits.push_back(!_definitelyPositive);
-			auto c = getPCSolver().createClause(Disjunction(getID(), lits), true);
+			auto c = getPCSolver().createClause(Disjunction(lits), true);
 			getPCSolver().addLearnedClause(c);
 		}
 		return nullPtrClause;

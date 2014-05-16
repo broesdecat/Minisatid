@@ -50,7 +50,7 @@ template<typename Remapper>
 class ExtAdd<Disjunction, Remapper> {
 public:
 	Disjunction extAdd(Remapper& r, const Disjunction& obj) {
-		return Disjunction(obj.getID(), map(obj.literals, r));
+		return Disjunction(map(obj.literals, r));
 	}
 };
 
@@ -58,7 +58,7 @@ template<typename Remapper>
 class ExtAdd<Implication, Remapper> {
 public:
 	Implication extAdd(Remapper& r, const Implication& obj) {
-		return Implication(obj.getID(), map(obj.head, r), obj.type, map(obj.body, r), obj.conjunction);
+		return Implication(map(obj.head, r), obj.type, map(obj.body, r), obj.conjunction);
 	}
 };
 
@@ -66,7 +66,7 @@ template<typename Remapper>
 class ExtAdd<Rule, Remapper> {
 public:
 	Rule extAdd(Remapper& r, const Rule& obj) {
-		return Rule(obj.getID(), map(obj.head, r), map(obj.body, r), obj.conjunctive, obj.definitionID, obj.onlyif);
+		return Rule(map(obj.head, r), map(obj.body, r), obj.conjunctive, obj.definitionID, obj.onlyif);
 	}
 };
 template<typename Remapper>
@@ -87,7 +87,7 @@ template<typename Remapper>
 class ExtAdd<Aggregate, Remapper> {
 public:
 	Aggregate extAdd(Remapper& r, const Aggregate& obj) {
-		return Aggregate(obj.getID(), map(obj.head, r), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID, obj.onlyif);
+		return Aggregate(map(obj.head, r), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID, obj.onlyif);
 	}
 };
 template<typename Remapper>
@@ -136,10 +136,7 @@ template<typename Remapper>
 class ExtAdd<LazyGroundImpl, Remapper> {
 public:
 	LazyGroundImpl extAdd(Remapper& r, const LazyGroundImpl& obj) {
-		return
-				LazyGroundImpl(obj.getID(),
-						Implication(obj.impl.getID(), map(obj.impl.head, r), obj.impl.type, map(obj.impl.body, r), obj.impl.conjunction),
-						obj.monitor);
+		return LazyGroundImpl(Implication(map(obj.impl.head, r), obj.impl.type, map(obj.impl.body, r), obj.impl.conjunction), obj.monitor);
 	}
 };
 template<typename Remapper>
@@ -160,7 +157,7 @@ template<typename Remapper>
 class ExtAdd<BoolVar, Remapper> {
 public:
 	BoolVar extAdd(Remapper& r, const BoolVar& obj) {
-		return BoolVar(obj.getID(), map(obj.atom, r));
+		return BoolVar(map(obj.atom, r));
 	}
 };
 template<typename Remapper>
@@ -168,9 +165,9 @@ class ExtAdd<IntVarEnum, Remapper> {
 public:
 	IntVarEnum extAdd(Remapper& r, const IntVarEnum& obj) {
 		if(obj.partial){
-			return IntVarEnum(obj.getID(), map(obj.varID, r), obj.values, map(obj.possiblynondenoting, r));
+			return IntVarEnum(map(obj.varID, r), obj.values, map(obj.possiblynondenoting, r));
 		}else{
-			return IntVarEnum(obj.getID(), map(obj.varID, r), obj.values);
+			return IntVarEnum(map(obj.varID, r), obj.values);
 		}
 	}
 };
@@ -179,9 +176,9 @@ class ExtAdd<IntVarRange, Remapper> {
 public:
 	IntVarRange extAdd(Remapper& r, const IntVarRange& obj) {
 		if(obj.partial){
-			return IntVarRange(obj.getID(), map(obj.varID, r), obj.minvalue, obj.maxvalue, map(obj.possiblynondenoting, r));
+			return IntVarRange(map(obj.varID, r), obj.minvalue, obj.maxvalue, map(obj.possiblynondenoting, r));
 		}else{
-			return IntVarRange(obj.getID(), map(obj.varID, r), obj.minvalue, obj.maxvalue);
+			return IntVarRange(map(obj.varID, r), obj.minvalue, obj.maxvalue);
 		}
 	}
 };
@@ -189,63 +186,63 @@ template<typename Remapper>
 class ExtAdd<CPBinaryRel, Remapper> {
 public:
 	CPBinaryRel extAdd(Remapper& r, const CPBinaryRel& obj) {
-		return CPBinaryRel(obj.getID(), map(obj.head, r), map(obj.varID, r), obj.rel, obj.bound);
+		return CPBinaryRel(map(obj.head, r), map(obj.varID, r), obj.rel, obj.bound);
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPBinaryRelVar, Remapper> {
 public:
 	CPBinaryRelVar extAdd(Remapper& r, const CPBinaryRelVar& obj) {
-		return CPBinaryRelVar(obj.getID(), map(obj.head, r), map(obj.lhsvarID, r), obj.rel, map(obj.rhsvarID, r));
+		return CPBinaryRelVar(map(obj.head, r), map(obj.lhsvarID, r), obj.rel, map(obj.rhsvarID, r));
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPSumWeighted, Remapper> {
 public:
 	CPSumWeighted extAdd(Remapper& r, const CPSumWeighted& obj) {
-		return CPSumWeighted(obj.getID(), map(obj.head, r), map(obj.conditions, r), map(obj.varIDs, r), obj.weights, obj.rel, obj.bound);
+		return CPSumWeighted(map(obj.head, r), map(obj.conditions, r), map(obj.varIDs, r), obj.weights, obj.rel, obj.bound);
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPProdWeighted, Remapper> {
 public:
 	CPProdWeighted extAdd(Remapper& r, const CPProdWeighted& obj) {
-		return CPProdWeighted(obj.getID(), map(obj.head, r), map(obj.conditions, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, map(obj.boundID,r));
+		return CPProdWeighted(map(obj.head, r), map(obj.conditions, r), map(obj.varIDs, r), obj.prodWeight, obj.rel, map(obj.boundID,r));
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPCount, Remapper> {
 public:
 	CPCount extAdd(Remapper& r, const CPCount& obj) {
-		return CPCount(obj.getID(), map(obj.varIDs, r), obj.eqbound, obj.rel, map(obj.rhsvar, r));
+		return CPCount(map(obj.varIDs, r), obj.eqbound, obj.rel, map(obj.rhsvar, r));
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPElement, Remapper> {
 public:
 	CPElement extAdd(Remapper& r, const CPElement& obj) {
-		return CPElement(obj.getID(), map(obj.varIDs, r), map(obj.index, r), map(obj.rhs, r));
+		return CPElement(map(obj.varIDs, r), map(obj.index, r), map(obj.rhs, r));
 	}
 };
 template<typename Remapper>
 class ExtAdd<CPAllDiff, Remapper> {
 public:
 	CPAllDiff extAdd(Remapper& r, const CPAllDiff& obj) {
-		return CPAllDiff(obj.getID(), map(obj.varIDs, r));
+		return CPAllDiff(map(obj.varIDs, r));
 	}
 };
 template<typename Remapper>
 class ExtAdd<SubTheory, Remapper> {
 public:
 	SubTheory extAdd(Remapper& r, const SubTheory& obj) {
-		return SubTheory(obj.getID(), map(obj.head, r),obj.childid, map(obj.rigidatoms, r));
+		return SubTheory(map(obj.head, r),obj.childid, map(obj.rigidatoms, r));
 	}
 };
 template<typename Remapper>
 class ExtAdd<LazyAtom, Remapper> {
 public:
 	LazyAtom extAdd(Remapper& r, const LazyAtom& obj) {
-		return LazyAtom(obj.getID(), map(obj.head, r), map(obj.args, r), obj.grounder);
+		return LazyAtom(map(obj.head, r), map(obj.args, r), obj.grounder);
 	}
 };
 

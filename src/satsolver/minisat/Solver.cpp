@@ -64,7 +64,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 // Constructor/Destructor:
 
 Solver::Solver(PCSolver* s, bool oneshot)
-		: Propagator(DEFAULTCONSTRID, s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
+		: Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
 			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
 			needsimplify(true), backtracked(true),
 
@@ -286,7 +286,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 				getPCSolver().backtrackTo(getLevel(var(ps[0])) - 1); // NOTE: Certainly not root level, would have found out otherwise
 			}
 			MAssert(value(ps[0])!=l_False);
-			auto clause = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { ps[0] }), false);
+			auto clause = getPCSolver().createClause(Disjunction({ ps[0] }), false);
 			addRootUnitLit(ReverseTrailElem(ps[0], 0, clause));
 			checkedEnqueue(ps[0], clause);
 		} else {
@@ -1058,7 +1058,7 @@ CRef Solver::notifypropagate() {
 	}
 	if (decisionLevel() == 0 && needsimplify) {
 		if (not simplify()) {
-			return getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
+			return getPCSolver().createClause(Disjunction({ }), true);
 		}
 	}
 
@@ -1676,12 +1676,12 @@ int Solver::printECNF(std::ostream& stream, std::set<Atom>& printedvars) {
 
 void Solver::accept(ConstraintVisitor& visitor) {
 	if (isUnsat()) {
-		visitor.add(Disjunction(DEFAULTCONSTRID, { mkPosLit(1) }));
-		visitor.add(Disjunction(DEFAULTCONSTRID, { mkNegLit(1) }));
+		visitor.add(Disjunction({ mkPosLit(1) }));
+		visitor.add(Disjunction({ mkNegLit(1) }));
 		return;
 	}
 	for (int i = 0; i < trail.size(); ++i) {
-		visitor.add(Disjunction(DEFAULTCONSTRID, { trail[i] }));
+		visitor.add(Disjunction({ trail[i] }));
 	}
 	acceptClauseList(visitor, clauses);
 	acceptClauseList(visitor, learnts);
@@ -1689,7 +1689,7 @@ void Solver::accept(ConstraintVisitor& visitor) {
 
 void Solver::acceptClauseList(ConstraintVisitor& visitor, const vec<CRef>& list) {
 	for (int i = 0; i < list.size(); ++i) {
-		Disjunction d(DEFAULTCONSTRID, { });
+		Disjunction d({ });
 		auto& c = ca[list[i]];
 		bool istrue = false;
 		for (auto j = 0; j < c.size() && not istrue; j++) {

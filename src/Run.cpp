@@ -31,7 +31,6 @@
 #include "external/Translator.hpp"
 #include "external/utils/ResourceManager.hpp"
 #include "external/Tasks.hpp"
-#include "external/OneShotTasks.hpp"
 #include "external/utils/TimingUtils.hpp"
 #include "external/FlatZincRewriter.hpp"
 
@@ -147,11 +146,6 @@ int MinisatID::run(const std::string& inputfile, SolverOption modes) {
 				auto t = Transform(&space, TheoryPrinting::ECNFGRAPH);
 				t.execute();
 				break;}
-			case Inference::UNSATCORE:{
-				auto t = OneShotUnsatCoreExtraction(modes);
-				parseAndInitializeTheory(inputfile, &t);
-				t.execute();
-				break;}
 			}
 			jumpback = 1;
 			cleanexit = true;
@@ -219,7 +213,7 @@ void initializeAndParseOPB(const std::string& inputfile, pwls d) {
 	}
 }
 
-typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, uint, TheoryID, bool, int, std::vector<Lit> > ECNFParsing;
+typedef Parser<ECNFScanner, ECNFParser, ExternalConstraintVisitor*, TheoryID, bool, int, std::vector<Lit> > ECNFParsing;
 typedef Parser<FZ::FZScanner, FZ::FZParser, FZ::InsertWrapper&> FZParsing;
 
 template<class Monitor>
@@ -227,7 +221,7 @@ void initializeAndParseFODOT(const std::string& inputfile, Monitor* d, const Sol
 	auto input = getInput(inputfile);
 
 	istream is(input->getBuffer());
-	ECNFParsing parser(&is, d, 1, {1}, false, 1, {});
+	ECNFParsing parser(&is, d, {1}, false, 1, {});
 
 	try {
 		parser.parse();

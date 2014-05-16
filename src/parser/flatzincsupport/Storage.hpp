@@ -20,7 +20,6 @@ namespace FZ {
 
 class Storage {
 private:
-	uint maxid;
 	int truelit;
 	ExternalConstraintVisitor* store;
 	FZTranslator* translator;
@@ -38,7 +37,7 @@ private:
 
 public:
 	Storage(ExternalConstraintVisitor* store)
-			: maxid(1), truelit(-1), store(store), translator(new FZTranslator()), nextint(1) {
+			: truelit(-1), store(store), translator(new FZTranslator()), nextint(1) {
 		store->setTranslator(translator);
 	}
 
@@ -54,7 +53,7 @@ public:
 		auto var = new MBoolVar();
 		var->var = nextint++;
 		name2bool.insert( { name, var });
-		extAdd(*store, BoolVar(maxid++, var->var));
+		extAdd(*store, BoolVar(var->var));
 		if (output) {
 			translator->setString(var->var, name);
 		}
@@ -350,15 +349,15 @@ public:
 		if (expr.type == EXPR_BOOL) {
 			var.hasvalue = true;
 			var.value = expr.boollit;
-			extAdd(*store, Disjunction(maxid++, { expr.boollit ? get(var.var) : ~get(var.var) }));
+			extAdd(*store, Disjunction({ expr.boollit ? get(var.var) : ~get(var.var) }));
 		} else if (expr.type == EXPR_ARRAYACCESS) {
 			var.hasmap = true;
 			var.mappedvar = getBoolVar(*expr.arrayaccesslit->id, expr.arrayaccesslit->index);
-			extAdd(*store, Implication(maxid++, get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
+			extAdd(*store, Implication(get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
 		} else if (expr.type == EXPR_IDENT) {
 			var.hasmap = true;
 			var.mappedvar = getBoolVar(*expr.ident->name);
-			extAdd(*store, Implication(maxid++, get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
+			extAdd(*store, Implication(get(var.var), ImplicationType::EQUIVALENT, { get(var.mappedvar->var) }, true));
 		} else {
 			throw fzexception("Unexpected type in adding bool expression.\n");
 		}
@@ -388,24 +387,24 @@ public:
 	void writeIntVar(const MIntVar& var) {
 		varid2var.insert( { var.var, var });
 		if (var.range) {
-			extAdd(*store, IntVarRange(maxid++, VarID { var.var }, var.begin, var.end));
+			extAdd(*store, IntVarRange(VarID { var.var }, var.begin, var.end));
 		} else {
 			std::vector<Weight> weights; // TODO var.values should be Weight
 			for(auto w: var.values){
 				weights.push_back(Weight(w));
 			}
-			extAdd(*store, IntVarEnum(maxid++, VarID { var.var }, weights));
+			extAdd(*store, IntVarEnum(VarID { var.var }, weights));
 		}
 	}
 
 	template<class T>
 	void addBinI(const T& boolvar, uint intvar, MinisatID::EqType eq, int domelem) {
-		extAdd(*store, CPBinaryRel(maxid++, get(boolvar), VarID { intvar }, eq, domelem));
+		extAdd(*store, CPBinaryRel(get(boolvar), VarID { intvar }, eq, domelem));
 	}
 
 	template<class T>
 	void addBinT(const T& boolvar, uint intvar, MinisatID::EqType eq, uint intvar2) {
-		extAdd(*store, CPBinaryRelVar(maxid++, get(boolvar), VarID { intvar }, eq, { intvar2 }));
+		extAdd(*store, CPBinaryRelVar(get(boolvar), VarID { intvar }, eq, { intvar2 }));
 	}
 
 	//nobounds implies that it has not been written to output
@@ -446,10 +445,10 @@ public:
 	}
 
 	void writeRule(int head, const std::vector<int>& rhs, bool conj, int definitionID) {
-		extAdd(*store, MinisatID::Rule(maxid++, head, get(rhs), conj, definitionID, false));
+		extAdd(*store, MinisatID::Rule(head, get(rhs), conj, definitionID, false));
 	}
 	void writeEquiv(int head, const std::vector<int>& rhs, bool conj) {
-		extAdd(*store, Implication(maxid++, get(head), ImplicationType::EQUIVALENT, get(rhs), conj));
+		extAdd(*store, Implication(get(head), ImplicationType::EQUIVALENT, get(rhs), conj));
 	}
 
 	template<class T>
@@ -475,12 +474,12 @@ public:
 	}
 
 	void addLinear(int head, const std::vector<uint> variables, const std::vector<int>& weights, MinisatID::EqType eq, int bound) {
-		CPSumWeighted sum(maxid++, get(head), std::vector<Lit>(variables.size(), get(getTrue())), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
+		CPSumWeighted sum(get(head), std::vector<Lit>(variables.size(), get(getTrue())), getVarIDs(variables), getWeights(weights), eq, Weight(bound));
 		extAdd(*store, sum);
 	}
 
 	void addProduct(int head, const std::vector<uint> variables, int weight, MinisatID::EqType eq, uint varbound) {
-		CPProdWeighted sum(maxid++, get(head), std::vector<Lit>(variables.size(), get(getTrue())), getVarIDs(variables), Weight(weight), eq,
+		CPProdWeighted sum(get(head), std::vector<Lit>(variables.size(), get(getTrue())), getVarIDs(variables), Weight(weight), eq,
 				VarID { varbound });
 		extAdd(*store, sum);
 	}
@@ -500,7 +499,7 @@ public:
 	}
 
 	void addClause(const std::vector<int>& poslits, const std::vector<int>& neglits) {
-		Disjunction d(maxid++, get(poslits));
+		Disjunction d(get(poslits));
 		for (auto i : neglits) {
 			d.literals.push_back(get(-i));
 		}

@@ -14,8 +14,8 @@
 using namespace MinisatID;
 using namespace std;
 
-BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, EqType comp, IntView* _right, const Lit& h)
-		: Propagator(id, engine, "binary constraint") {
+BinaryConstraint::BinaryConstraint(PCSolver* engine, IntView* _left, EqType comp, IntView* _right, const Lit& h)
+		: Propagator(engine, "binary constraint") {
 	// FIXME optimize if left and right are the same variable!
 	switch (comp) {
 	case EqType::EQ: {
@@ -24,8 +24,8 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
-		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
-		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::GEQ, _right->getID()));
+		add(Implication(h, ImplicationType::EQUIVALENT, { lefthead, righthead }, true));
+		add(CPBinaryRelVar(righthead, _left->getID(), EqType::GEQ, _right->getID()));
 		head_ = lefthead;
 		left_ = getPCSolver().getIntView(_left->getID(), 0);
 		right_ = getPCSolver().getIntView(_right->getID(), 0);
@@ -37,12 +37,12 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		getPCSolver().setString(h.getAtom(),ss.str());
 		auto lefthead = mkPosLit(getPCSolver().newAtom());
 		auto righthead = mkPosLit(getPCSolver().newAtom());
-		add(Implication(getID(), h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
-		add(CPBinaryRelVar(getID(), righthead, _left->getID(), EqType::G, _right->getID()));
+		add(Implication(h, ImplicationType::EQUIVALENT, { lefthead, righthead }, false));
+		add(CPBinaryRelVar(righthead, _left->getID(), EqType::G, _right->getID()));
 		head_ = lefthead;
 		left_ = getPCSolver().getIntView(_left->getID(), 0);
 		if(_right->minValue()==getMinElem<int>()){
-			add(Disjunction(DEFAULTCONSTRID, {head_}));
+			add(Disjunction({head_}));
 			notifyNotPresent();
 			return;
 		}
@@ -58,7 +58,7 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		head_ = h;
 		left_ = getPCSolver().getIntView(_left->getID(), 0);
 		if(_right->minValue()==getMinElem<int>()){
-			add(Disjunction(DEFAULTCONSTRID, {not head_}));
+			add(Disjunction({not head_}));
 			notifyNotPresent();
 			return;
 		}
@@ -73,7 +73,7 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 		head_ = h;
 		left_ = getPCSolver().getIntView(_right->getID(), 0);
 		if(_left->minValue()==getMinElem<int>()){
-			add(Disjunction(DEFAULTCONSTRID, {not head_}));
+			add(Disjunction({not head_}));
 			notifyNotPresent();
 			return;
 		}
@@ -85,12 +85,12 @@ BinaryConstraint::BinaryConstraint(uint id, PCSolver* engine, IntView* _left, Eq
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
 	if(left_->isPartial()){
-		add(Implication(getID(), not head(), ImplicationType::IMPLIEDBY, {left_->getNoImageLit()}, true));
+		add(Implication(not head(), ImplicationType::IMPLIEDBY, {left_->getNoImageLit()}, true));
 		getPCSolver().accept(this, left_->getNoImageLit(), FAST);
 		getPCSolver().accept(this, not left_->getNoImageLit(), FAST);
 	}
 	if(right_->isPartial()){
-		add(Implication(getID(), not head(), ImplicationType::IMPLIEDBY, {right_->getNoImageLit()}, true));
+		add(Implication(not head(), ImplicationType::IMPLIEDBY, {right_->getNoImageLit()}, true));
 		getPCSolver().accept(this, right_->getNoImageLit(), FAST);
 		getPCSolver().accept(this, not right_->getNoImageLit(), FAST);
 	}
@@ -145,7 +145,7 @@ rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	}
 	lits.push_back(left()->getNoImageLit());
 	lits.push_back(right()->getNoImageLit());
-	return getPCSolver().createClause(Disjunction(getID(), lits), true);
+	return getPCSolver().createClause(Disjunction(lits), true);
 }
 
 int BinaryConstraint::getNbOfFormulas() const {

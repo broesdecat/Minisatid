@@ -32,11 +32,6 @@ struct MinisatID::PBAgg {
 	MiniSatPP::vec<MiniSatPP::Int> weights;
 	Weight bound;
 	int sign;
-	uint id;
-
-	PBAgg(uint id):id(id){
-
-	}
 };
 
 AggToCNFTransformer::~AggToCNFTransformer() {
@@ -76,8 +71,8 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 			continue;
 		}
 
-		auto pbaggeq = new PBAgg(agg->getID());
-		auto pbaggineq = new PBAgg(agg->getID());
+		auto pbaggeq = new PBAgg();
+		auto pbaggineq = new PBAgg();
 		auto bound = agg->getBound();
 		pbaggeq->bound = bound;
 		pbaggineq->bound = bound;
@@ -91,19 +86,19 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 			pbaggeq->sign = 1;
 		}
 		Weight min = 0, max = 0;
-		for (auto k = set->getWL().cbegin(); k < set->getWL().cend(); ++k) {
-			pbaggeq->literals.push(mapToPBLit((*k).getLit()));
-			pbaggineq->literals.push(mapToPBLit((*k).getLit()));
-			if (var((*k).getLit()) > maxvar) {
-				maxvar = var((*k).getLit());
+		for (auto wlt : set->getWL()) {
+			pbaggeq->literals.push(mapToPBLit(wlt.getLit()));
+			pbaggineq->literals.push(mapToPBLit(wlt.getLit()));
+			if (var(wlt.getLit()) > maxvar) {
+				maxvar = var(wlt.getLit());
 			}
-			if ((*k).getWeight() < 0) {
-				min += (*k).getWeight();
+			if (wlt.getWeight() < 0) {
+				min += wlt.getWeight();
 			} else {
-				max += (*k).getWeight();
+				max += wlt.getWeight();
 			}
-			pbaggeq->weights.push(MiniSatPP::Int(toInt((*k).getWeight())));  // FIXME use the bignums without downcast? (5 places in file)
-			pbaggineq->weights.push(MiniSatPP::Int(toInt((*k).getWeight())));
+			pbaggeq->weights.push(MiniSatPP::Int(toInt(wlt.getWeight())));  // FIXME use the bignums without downcast? (5 places in file)
+			pbaggineq->weights.push(MiniSatPP::Int(toInt(wlt.getWeight())));
 		}
 		auto headval = pcsolver.rootValue(agg->getHead());
 		if (headval == l_Undef) {
@@ -164,9 +159,7 @@ SATVAL MinisatID::execute(AggToCNFTransformer& transformer) {
 	pbsolver->allocConstrs(transformer.maxvar, transformer.pbaggs.size());
 
 	bool unsat = false;
-	std::vector<uint> aggids;
 	for(auto agg:transformer.pbaggs){
-		aggids.push_back(agg->id);
 		unsat = !pbsolver->addConstr(agg->literals, agg->weights, MiniSatPP::Int(toInt(agg->bound)), agg->sign, false);
 		if(unsat){
 			break;
@@ -187,11 +180,10 @@ SATVAL MinisatID::execute(AggToCNFTransformer& transformer) {
 	}
 
 	//add the CNF to the solver
-	for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
-		// FIXME use aggids for unsat core!
-		Disjunction clause(DEFAULTCONSTRID,{});
-		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
-			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, pcsolver, transformer.opbinternal2pcsolver));
+	for (auto enc : pbencodings) {
+		Disjunction clause({});
+		for (auto pbl : enc) {
+			clause.literals.push_back(mapFromPBLit(pbl, transformer.maxvar, pcsolver, transformer.opbinternal2pcsolver));
 		}
 		internalAdd(clause, pcsolver.getTheoryID(), pcsolver);
 	}

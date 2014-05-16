@@ -16,7 +16,7 @@ using namespace MinisatID;
 
 // Watch BOTH: so watching when it becomes decidable
 LazyResidual::LazyResidual(PCSolver* engine, Atom var, Value watchedvalue, LazyGroundingCommand* monitor)
-		: 	Propagator(DEFAULTCONSTRID, engine, "lazy residual notifier"),
+		: 	Propagator(engine, "lazy residual notifier"),
 			monitor(monitor),
 			residual(var),
 			watchedvalue(watchedvalue) {
@@ -86,7 +86,7 @@ rClause LazyResidual::notifypropagate() {
 	notifyNotPresent();
 
 	if (getPCSolver().isUnsat()) {
-		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
+		confl = getPCSolver().createClause(Disjunction({ }), true);
 	}
 	return confl;
 }

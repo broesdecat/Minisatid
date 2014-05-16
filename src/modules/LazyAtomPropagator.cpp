@@ -14,8 +14,8 @@
 using namespace MinisatID;
 using namespace std;
 
-LazyAtomPropagator::LazyAtomPropagator(uint id, PCSolver* engine, const Lit& head, const std::vector<IntView*> args, LazyAtomGrounder* grounder)
-		: 	Propagator(id, engine, "lazy element constraint"),
+LazyAtomPropagator::LazyAtomPropagator(PCSolver* engine, const Lit& head, const std::vector<IntView*> args, LazyAtomGrounder* grounder)
+		: 	Propagator(engine, "lazy element constraint"),
 			head(head),
 			args(args),
 			grounder(grounder),
@@ -78,7 +78,7 @@ rClause LazyAtomPropagator::notifypropagate() {
 		grounder->ground(headvalue == l_True, argvalues);
 	}
 	if (getPCSolver().isUnsat()) {
-		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
+		confl = getPCSolver().createClause(Disjunction({ }), true);
 	}
 	return confl;
 }

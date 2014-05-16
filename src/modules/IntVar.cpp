@@ -18,19 +18,19 @@ using namespace std;
 void MinisatID::addPartialChecks(Propagator* origin, std::vector<IntView*> views, const Lit& head){
 	for(auto view:views){
 		if(view->isPartial()){
-			origin->add(Disjunction(origin->getID(), {~view->getNoImageLit(), ~head}));
+			origin->add(Disjunction({~view->getNoImageLit(), ~head}));
 		}
 	}
 }
 
-IntVar::IntVar(uint id, PCSolver* solver, VarID varid, Lit partial)
-		: Propagator(id, solver, "intvar"), varid_(varid), engine_(*solver), noimagelit(partial), minvalue(0), maxvalue(0), currentmin(0), currentmax(0) {
+IntVar::IntVar(PCSolver* solver, VarID varid, Lit partial)
+		: Propagator(solver, "intvar"), varid_(varid), engine_(*solver), noimagelit(partial), minvalue(0), maxvalue(0), currentmin(0), currentmax(0) {
 	engine().accept(this, noimagelit, FASTEST);
 	engine().accept(this, ~noimagelit, FASTEST);
 }
 
-BasicIntVar::BasicIntVar(uint id, PCSolver* solver, VarID varid, Lit partial)
-		: IntVar(id, solver, varid, partial) {
+BasicIntVar::BasicIntVar(PCSolver* solver, VarID varid, Lit partial)
+		: IntVar(solver, varid, partial) {
 }
 
 void IntVar::notifyBacktrack(int, const Lit&) {
@@ -83,7 +83,7 @@ Lit IntVar::getEQLit(Weight bound) {
 //	engine().setActivity(head.getAtom(), act); // TODO in krinkelplanning, good for lazy, not for non-lazy
 
 	eqlits[bound] = head;
-	add(Implication(getID(), head, ImplicationType::EQUIVALENT, { ~getNoImageLit(), getGEQLit(bound), getLEQLit(bound) }, true));
+	add(Implication(head, ImplicationType::EQUIVALENT, { ~getNoImageLit(), getGEQLit(bound), getLEQLit(bound) }, true));
 	return head;
 }
 
@@ -94,18 +94,18 @@ bool IntVar::possiblyNondenoting() const{
 void IntVar::addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next) {
 	// leq[i] => leq[i+1]
 	if (next != NULL) {
-		add(Disjunction(getID(), { ~getLEQLit(lv.value), getLEQLit(next->value) }));
+		add(Disjunction({ ~getLEQLit(lv.value), getLEQLit(next->value) }));
 	} else if (lv.value == origMaxValue()) {
-		add(Disjunction(getID(), { getLEQLit(lv.value) }));
+		add(Disjunction({ getLEQLit(lv.value) }));
 	}
 
 	//~leq[i] => ~leq[i-1]
 	if (prev != NULL) {
-		add(Disjunction(getID(), { getLEQLit(lv.value), ~getLEQLit(prev->value) }));
+		add(Disjunction({ getLEQLit(lv.value), ~getLEQLit(prev->value) }));
 	}
 
 	if(possiblyNondenoting()){
-		add(Disjunction(getID(),{~getNoImageLit(), getLEQLit(lv.value)})); // If partial, all atoms are true (note one is ALWAYS true)
+		add(Disjunction({~getNoImageLit(), getLEQLit(lv.value)})); // If partial, all atoms are true (note one is ALWAYS true)
 	}
 }
 
@@ -165,8 +165,8 @@ void BasicIntVar::updateBounds() {
 	// clog <<"Updated bounds for var" <<toString(getVarID()) <<" to ["<<minValue() <<"," <<maxValue() <<"]\n";
 }
 
-RangeIntVar::RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial)
-		: BasicIntVar(id, solver, varid, partial) {
+RangeIntVar::RangeIntVar(PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial)
+		: BasicIntVar(solver, varid, partial) {
 	if (min > max) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent(); // FIXME what if the explanation is required later on? => check reason list before deleting
@@ -225,8 +225,8 @@ Lit RangeIntVar::getGEQLit(Weight bound) {
 	return not getLEQLit(bound - 1);
 }
 
-EnumIntVar::EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values, Lit partial)
-		: BasicIntVar(id, solver, varid, partial), _values(values) {
+EnumIntVar::EnumIntVar(PCSolver* solver, VarID varid, const std::vector<Weight>& values, Lit partial)
+		: BasicIntVar(solver, varid, partial), _values(values) {
 	if (values.empty()) {
 		getPCSolver().notifyUnsat(); //FIXME not able to explain this atm
 		notifyNotPresent();

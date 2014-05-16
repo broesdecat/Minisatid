@@ -40,7 +40,13 @@ using namespace std;
 using namespace MinisatID;
 
 typedef enum {
-	ENDRULE = 0, BASICRULE = 1, CONSTRAINTRULE = 2, CHOICERULE = 3, GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
+	ENDRULE = 0,
+	BASICRULE = 1,
+	CONSTRAINTRULE = 2,
+	CHOICERULE = 3,
+	GENERATERULE = 4,
+	WEIGHTRULE = 5,
+	OPTIMIZERULE = 6
 } RuleType;
 
 template<class T>
@@ -267,7 +273,8 @@ template<class T>
 bool Read<T>::parseOptimizeRule(istream &f) {
 	long n;
 	f >> n; // formerly choice between min or max, only 0 (minimize) still accepted
-	if (!f.good()) return false;
+	if (!f.good())
+		return false;
 	if (n != 0) {
 		char s[100];
 		sprintf(s, "maximize statements are no longer accepted, line %ld\n", linenumber);
@@ -295,7 +302,7 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 template<class T>
 void Read<T>::addBasicRules() {
 	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
-		extAdd(getSolver(), Rule(maxid++,(*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID, false));
+		extAdd(getSolver(), Rule((*i)->head, (*i)->body, (*i)->conj, defaultdefinitionID, false));
 	}
 }
 
@@ -303,7 +310,7 @@ template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
-		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID, false));
+		extAdd(getSolver(), Aggregate(mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID, false));
 	}
 }
 
@@ -311,7 +318,7 @@ template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
-		extAdd(getSolver(), Aggregate(maxid++,mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID, false));
+		extAdd(getSolver(), Aggregate(mkPosLit((*i)->head), (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID, false));
 	}
 }
 
@@ -336,7 +343,7 @@ void Read<T>::tseitinizeHeads() {
 			basicrules.push_back(new BasicRule(head, tempbody));
 
 			//To guarantee #model equivalence:
-			Implication eq(maxid++,tempbody[0], ImplicationType::EQUIVALENT, { mkPosLit(head) }, true);
+			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, { mkPosLit(head) }, true);
 			extAdd(getSolver(), eq);
 		}
 	}
@@ -358,7 +365,7 @@ void Read<T>::tseitinizeHeads() {
 		MAssert((*i).second);
 		auto it = headtorules.find((*i).first);
 		if (it == headtorules.cend() || (*it).second.size() == 0) {
-			Disjunction clause(maxid++, {mkNegLit((*i).first)});
+			Disjunction clause( { mkNegLit((*i).first) });
 			extAdd(getSolver(), clause);
 		}
 	}
@@ -470,7 +477,7 @@ bool Read<T>::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		Disjunction clause(maxid++, {mkPosLit(makeParsedAtom(i))});
+		Disjunction clause( { mkPosLit(makeParsedAtom(i)) });
 		extAdd(getSolver(), clause);
 	}
 	f.getline(s, len); // Read rest of last line (get newline);
@@ -493,7 +500,7 @@ bool Read<T>::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		Disjunction clause(maxid++, {mkNegLit(makeParsedAtom(i))});
+		Disjunction clause( { mkNegLit(makeParsedAtom(i)) });
 		extAdd(getSolver(), clause);
 	}
 

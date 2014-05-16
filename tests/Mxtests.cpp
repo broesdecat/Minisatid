@@ -24,7 +24,7 @@ TEST(MXTest, MultiAssumpSolve) {
 	SolverOption options;
 	options.verbosity = 0;
 	auto space = new Space(options);
-	extAdd(*space, Disjunction(DEFAULTCONSTRID, { mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
+	extAdd(*space, Disjunction({ mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
 	ModelExpandOptions mxopts(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxopts, { mkNegLit(2) });
 	mx.execute();

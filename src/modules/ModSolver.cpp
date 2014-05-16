@@ -28,7 +28,7 @@ using namespace MinisatID;
 // TODO set nbofmodels of subsolvers to 1 or All!
 // TODO set their verbosity to 0 if not debugging
 ModSolver::ModSolver(Atom head, PCSolver* parent, PCSolver* subsolver, const std::vector<Atom>& rigidatoms)
-		: Propagator(DEFAULTCONSTRID, parent, "modal solver"), searching(false), rigidatoms(rigidatoms), head(head), child(subsolver) {
+		: Propagator(parent, "modal solver"), searching(false), rigidatoms(rigidatoms), head(head), child(subsolver) {
 	trail.push_back(vector<Lit>());
 }
 
@@ -113,7 +113,7 @@ rClause ModSolver::notifypropagate() {
 	//In future, we might want to delay effectively propagating and searching in subfolders to the point where the
 	//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
 	bool noconflict = true;
-	Disjunction confldisj(getID(), { });
+	Disjunction confldisj({ });
 	assert(confldisj.literals.size()==0);
 	noconflict = propagateDownAtEndOfQueue(confldisj.literals);
 

@@ -53,7 +53,7 @@ enum class OutputFormat {
 	FODOT, ASP, PLAIN, FZ, OPB, DEFAULT
 };
 enum class Inference {
-	PROPAGATE, MODELEXPAND, PRINTTHEORY, PRINTGRAPH, UNSATCORE
+	PROPAGATE, MODELEXPAND, PRINTTHEORY, PRINTGRAPH
 };
 
 // General options for all inferences

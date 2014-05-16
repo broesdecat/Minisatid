@@ -114,7 +114,7 @@ void PropagatorFactory::add(const Implication& formula) {
 void PropagatorFactory::add(const Rule& rule) {
 	notifyMonitorsOfAdding(rule);
 
-	definitions->addRule(rule.getID(), rule.onlyif, rule.definitionID, rule.conjunctive, rule.head, rule.body);
+	definitions->addRule(rule.onlyif, rule.definitionID, rule.conjunctive, rule.head, rule.body);
 }
 
 void PropagatorFactory::add(const WLSet& formula) {
@@ -157,7 +157,7 @@ void PropagatorFactory::add(const Aggregate& origagg) {
 		}
 	}
 	if (newagg.sem == AggSem::DEF) {
-		definitions->addDefinedAggregate(newagg.getID(), newagg, *setwithagg.set);
+		definitions->addDefinedAggregate(newagg, *setwithagg.set);
 	}
 
 	MAssert(newagg.type!=AggType::MIN);
@@ -180,7 +180,7 @@ void PropagatorFactory::add(const Aggregate& origagg) {
 			newsem = AggSem::COMP;
 		}
 	}
-	auto agg = new TempAgg(newagg.getID(), newagg.head, AggBound(newagg.sign, newagg.bound), newsem, newagg.type);
+	auto agg = new TempAgg(newagg.head, AggBound(newagg.sign, newagg.bound), newsem, newagg.type);
 	set.aggs.push_back(agg);
 
 	if (finishedParsing()) {
@@ -217,7 +217,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 	guaranteeAtRootLevel();
 
 	auto head = getEngine().newAtom();
-	add(Disjunction(DEFAULTCONSTRID, { mkPosLit(head) }));
+	add(Disjunction({ mkPosLit(head) }));
 
 	auto it = parsedsets.find(formula.setid);
 	if (it == parsedsets.cend()) {
@@ -242,7 +242,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 
 	tempagglist aggs;
 	AggBound bound(AggSign::UB, Weight(0));
-	aggs.push_back(new TempAgg(DEFAULTCONSTRID, mkNegLit(head), bound, AggSem::OR, type));
+	aggs.push_back(new TempAgg(mkNegLit(head), bound, AggSem::OR, type));
 	finishSet(set, aggs, true, formula.priority);
 }
 
@@ -302,9 +302,9 @@ void PropagatorFactory::add(const IntVarRange& obj) {
 		}
 		IntVar* intvar = NULL;
 		if (not isNegInfinity(obj.minvalue) && not isPosInfinity(obj.maxvalue) && abs(obj.maxvalue - obj.minvalue) < 100) {
-			intvar = new RangeIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
+			intvar = new RangeIntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
 		} else {
-			intvar = new LazyIntVar(obj.getID(), getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit()); // TODO also for enum variables
+			intvar = new LazyIntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit()); // TODO also for enum variables
 		}
 		intvars.insert({ obj.varID, new IntView(intvar, intvar->getVarID(), Weight(0)) });
 		intvar->finish();
@@ -324,7 +324,7 @@ void PropagatorFactory::add(const IntVarEnum& obj) {
 			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
 			throw idpexception(ss.str());
 		}
-		auto intvar = new EnumIntVar(obj.getID(), getEnginep(), obj.varID, obj.values, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
+		auto intvar = new EnumIntVar(getEnginep(), obj.varID, obj.values, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
 		intvars.insert( { obj.varID, new IntView(intvar, obj.varID, Weight(0)) });
 		intvar->finish();
 	}
@@ -335,7 +335,7 @@ void PropagatorFactory::add(const CPBinaryRel& obj) {
 	if (getEngine().modes().usegecode) {
 		addCP(obj);
 	} else {
-		Implication eq(obj.getID(), obj.head, ImplicationType::EQUIVALENT, { }, true);
+		Implication eq(obj.head, ImplicationType::EQUIVALENT, { }, true);
 		auto left = getIntView(obj.varID, Weight(0));
 		switch (obj.rel) {
 		case EqType::EQ:
@@ -368,7 +368,7 @@ void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	} else {
 		auto leftint = getIntView(obj.lhsvarID, Weight(0));
 		auto rightint = getIntView(obj.rhsvarID, Weight(0));
-		new BinaryConstraint(obj.getID(), getEnginep(), leftint, obj.rel, rightint, obj.head);
+		new BinaryConstraint(getEnginep(), leftint, obj.rel, rightint, obj.head);
 	}
 }
 
@@ -380,16 +380,15 @@ Elem PropagatorFactory::createUnconditional(const Elem& obj, Weight neutral){
 	for(uint i=0; i<newsum.varIDs.size(); ++i){
 		auto origintvar = getIntView(newsum.varIDs[i], Weight(0));
 		auto newcpvarid = getEngine().newID();
-		add(IntVarRange(obj.getID(), newcpvarid, min(neutral,origintvar->origMinValue()), max(neutral,origintvar->origMaxValue())));
+		add(IntVarRange(newcpvarid, min(neutral,origintvar->origMinValue()), max(neutral,origintvar->origMaxValue())));
 				// TODO: better make it an enum if 0 if far from the other values?
 		newsum.varIDs[i] = newcpvarid;
 		auto tseitin0 = getEngine().newAtom();
 		auto tseitineq = getEngine().newAtom();
-		auto id = newsum.getID();
-		add(Disjunction(id, {obj.conditions[i], mkPosLit(tseitin0)}));
-		add(CPBinaryRel(id, mkPosLit(tseitin0), newcpvarid, EqType::EQ, 0));
-		add(Disjunction(id, {~obj.conditions[i], mkPosLit(tseitineq)}));
-		add(CPBinaryRelVar(id, mkPosLit(tseitineq), newcpvarid, EqType::EQ, newsum.varIDs[i]));
+		add(Disjunction({obj.conditions[i], mkPosLit(tseitin0)}));
+		add(CPBinaryRel(mkPosLit(tseitin0), newcpvarid, EqType::EQ, 0));
+		add(Disjunction({~obj.conditions[i], mkPosLit(tseitineq)}));
+		add(CPBinaryRelVar(mkPosLit(tseitineq), newcpvarid, EqType::EQ, newsum.varIDs[i]));
 	}
 	return newsum;
 }
@@ -428,27 +427,27 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 			switch(obj.rel){
 			case EqType::EQ:{
 				auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
-				add(Aggregate(obj.getID(), ts1, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
-				add(Aggregate(obj.getID(), ts2, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
-				add(Implication(obj.getID(), obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, true));
+				add(Aggregate(ts1, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				add(Aggregate(ts2, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				add(Implication(obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, true));
 				break;}
 			case EqType::NEQ:{
 				auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
-				add(Aggregate(obj.getID(), ts1, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
-				add(Aggregate(obj.getID(), ts2, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
-				add(Implication(obj.getID(), obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, false));
+				add(Aggregate(ts1, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				add(Aggregate(ts2, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				add(Implication(obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, false));
 				break;}
 			case EqType::GEQ:
-				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				add(Aggregate(obj.head, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
 				break;
 			case EqType::LEQ:
-				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				add(Aggregate(obj.head, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
 				break;
 			case EqType::L:
-				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+				add(Aggregate(obj.head, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
 				break;
 			case EqType::G:
-				add(Aggregate(obj.getID(), obj.head, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+				add(Aggregate(obj.head, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
 				break;
 			}
 		}else{
@@ -461,10 +460,10 @@ void PropagatorFactory::add(const CPSumWeighted& obj) {
 					conditions.push_back(obj.conditions[i]);
 				}else{
 					conditions.push_back(mkPosLit(getEngine().newAtom()));
-					add(Implication(obj.getID(), conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
+					add(Implication(conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
 				}
 			}
-			new FDSumConstraint(obj.getID(), getEnginep(), obj.head, conditions, vars, obj.weights, obj.rel, obj.bound);
+			new FDSumConstraint(getEnginep(), obj.head, conditions, vars, obj.weights, obj.rel, obj.bound);
 		}
 	}
 }
@@ -483,10 +482,10 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
 				conditions.push_back(obj.conditions[i]);
 			}else{
 				conditions.push_back(mkPosLit(getEngine().newAtom()));
-				add(Implication(obj.getID(), conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
+				add(Implication(conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
 			}
 		}
-		new FDProdConstraint(obj.getID(), getEnginep(), obj.head, conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
+		new FDProdConstraint(getEnginep(), obj.head, conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
 	}
 }
 
@@ -630,7 +629,7 @@ SATVAL PropagatorFactory::finish() {
 
 	// create reified aggregates
 	for (auto i = parsedaggs.cbegin(); satval == SATVAL::POS_SAT && i != parsedaggs.cend(); ++i) {
-		add(Aggregate((*i)->getID(), getEngine().getTrueLit(), (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1, false));
+		add(Aggregate(getEngine().getTrueLit(), (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1, false));
 		satval &= getEngine().satState();
 	}
 	deleteList<Aggregate>(parsedaggs);
@@ -665,14 +664,14 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 }
 
 template<class Engine>
-void PropagatorFactory::propagateAfterAddition(int ID, Engine& engine){
+void PropagatorFactory::propagateAfterAddition(Engine& engine){
 	auto confl = engine.propagate();
 	if(confl!=nullPtrClause){
 		litlist lits;
 		for(uint i=0; i<engine.getClauseSize(confl); ++i){
 			lits.push_back(engine.getClauseLit(confl, i));
 		}
-		add(Disjunction(ID, lits));
+		add(Disjunction(lits));
 	}
 }
 
@@ -688,7 +687,7 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 	}
 	new LazyResidual(getEnginep(), object.residual, object.watchedvalue, object.monitor);
 
-	propagateAfterAddition(0, getEngine());
+	propagateAfterAddition(getEngine());
 }
 
 void PropagatorFactory::add(const LazyGroundImpl& object) {
@@ -719,9 +718,9 @@ void PropagatorFactory::add(const LazyGroundImpl& object) {
 	}
 
 	auto clauseid = grounder2clause.size();
-	grounder2clause.push_back(new LazyTseitinClause(object.getID(), getEnginep(), object.impl, object.monitor, clauseid));
+	grounder2clause.push_back(new LazyTseitinClause(getEnginep(), object.impl, object.monitor, clauseid));
 
-	propagateAfterAddition(object.getID(), getEngine());
+	propagateAfterAddition(getEngine());
 }
 
 void PropagatorFactory::add(const LazyAddition& object) {
@@ -733,7 +732,7 @@ void PropagatorFactory::add(const LazyAddition& object) {
 	}
 	grounder2clause[object.ref]->addGrounding(object.list);
 
-	propagateAfterAddition(0, getEngine());
+	propagateAfterAddition(getEngine());
 }
 
 void PropagatorFactory::add(const TwoValuedRequirement& object) {
@@ -755,7 +754,7 @@ void PropagatorFactory::add(const LazyAtom& object) {
 	for (auto arg : object.args) {
 		argvars.push_back(getIntView(arg, 0));
 	}
-	new LazyAtomPropagator(object.getID(), getEnginep(), object.head, argvars, object.grounder);
+	new LazyAtomPropagator(getEnginep(), object.head, argvars, object.grounder);
 
-	propagateAfterAddition(object.getID(), getEngine());
+	propagateAfterAddition(getEngine());
 }

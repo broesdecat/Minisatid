@@ -46,7 +46,7 @@ protected:
 
 	void addConstraint(IntVarValue const * const prev, const IntVarValue& lv, IntVarValue const * const next);
 
-	IntVar(uint id, PCSolver* solver, VarID varid, Lit partial);
+	IntVar(PCSolver* solver, VarID varid, Lit partial);
 
 public:
 	virtual void accept(ConstraintVisitor& visitor);
@@ -102,7 +102,7 @@ protected:
 
 	void addConstraints();
 
-	BasicIntVar(uint id, PCSolver* solver, VarID varid, Lit partial);
+	BasicIntVar(PCSolver* solver, VarID varid, Lit partial);
 
 public:
 	virtual void updateBounds();
@@ -112,7 +112,7 @@ class RangeIntVar: public BasicIntVar{
 private:
 	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
-	RangeIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial);
+	RangeIntVar(PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial);
 
 public:
 	virtual void finish();
@@ -129,7 +129,7 @@ private:
 
 	friend class PropagatorFactory;
 	// NOTE: call finish after creation (but allows to first save the intvar without causing propagation
-	EnumIntVar(uint id, PCSolver* solver, VarID varid, const std::vector<Weight>& values, Lit partial);
+	EnumIntVar(PCSolver* solver, VarID varid, const std::vector<Weight>& values, Lit partial);
 
 public:
 	virtual void finish();
@@ -150,7 +150,7 @@ private:
 	bool checkAndAddVariable(Weight value);
 
 	friend class PropagatorFactory;
-	LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial);
+	LazyIntVar(PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial);
 
 public:
 	virtual void finish();

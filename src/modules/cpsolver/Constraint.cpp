@@ -77,7 +77,7 @@ void SumConstraint::accept(ConstraintVisitor& visitor) {
 	for(auto val:mult){
 		w.push_back(Weight(val));
 	}
-	visitor.add(CPSumWeighted(DEFAULTCONSTRID, mkPosLit(getHead()), getID(set), w, toEqType(rel), Weight(irhs)));
+	visitor.add(CPSumWeighted(mkPosLit(getHead()), getID(set), w, toEqType(rel), Weight(irhs)));
 }
 
 ProdConstraint::ProdConstraint(CPScript& space, const TermIntVar& one, const TermIntVar& two, const TermIntVar& rhs, Atom atom)
@@ -98,7 +98,7 @@ CountConstraint::CountConstraint(CPScript& space, const vector<TermIntVar>& set,
 	count(space, ar, eqbound, rel, trhs.getIntVar(space)/*,consistency level*/);
 }
 void CountConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPCount(DEFAULTCONSTRID, getID(set), Weight(eqbound), toEqType(rel), trhs.getID()));
+	visitor.add(CPCount(getID(set), Weight(eqbound), toEqType(rel), trhs.getID()));
 }
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, Atom atom)
@@ -117,9 +117,9 @@ BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelTy
 }
 void BinArithConstraint::accept(ConstraintVisitor& visitor) {
 	if(intrhs) {
-		visitor.add(CPBinaryRel(DEFAULTCONSTRID, mkPosLit(getHead()), lhs.getID(), toEqType(rel), Weight(irhs)));
+		visitor.add(CPBinaryRel(mkPosLit(getHead()), lhs.getID(), toEqType(rel), Weight(irhs)));
 	} else {
-		visitor.add(CPBinaryRelVar(DEFAULTCONSTRID, mkPosLit(getHead()), lhs.getID(), toEqType(rel), trhs.getID()));
+		visitor.add(CPBinaryRelVar(mkPosLit(getHead()), lhs.getID(), toEqType(rel), trhs.getID()));
 	}
 }
 
@@ -132,7 +132,7 @@ DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> set)
 	distinct(space, gset, ICL_DOM);
 }
 void DistinctConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPAllDiff(DEFAULTCONSTRID, getID(set)));
+	visitor.add(CPAllDiff(getID(set)));
 }
 
 ElementConstraint::ElementConstraint(CPScript& space, const vector<TermIntVar>& set, TermIntVar index, TermIntVar rhs)
@@ -146,7 +146,7 @@ ElementConstraint::ElementConstraint(CPScript& space, const vector<TermIntVar>& 
 	element(space, gset, gindex, grhs, ICL_DOM);
 }
 void ElementConstraint::accept(ConstraintVisitor& visitor) {
-	visitor.add(CPElement(DEFAULTCONSTRID, getID(set), index.getID(), rhs.getID()));
+	visitor.add(CPElement(getID(set), index.getID(), rhs.getID()));
 }
 
 ostream& MinisatID::operator<<(ostream& os, const TermIntVar& tiv) {

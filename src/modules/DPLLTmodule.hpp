@@ -25,25 +25,18 @@ private:
 
 	const std::string name;
 
-	uint id;
-
 protected:
 	PCSolver* pcsolver;
 
 public:
-	Propagator(uint id, PCSolver* s, const std::string& name)
+	Propagator(PCSolver* s, const std::string& name)
 			: 	present(true),
 				trailindex(0),
 				inqueue(false),
 				name(name),
-				id(id),
 				pcsolver(s) {
 	}
 	virtual ~Propagator() {
-	}
-
-	const uint& getID() const {
-		return id;
 	}
 
 	// queueing mech, only use for MAIN (propagation) queue

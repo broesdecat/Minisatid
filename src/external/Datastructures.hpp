@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef DATASTRUCTURES_HPP_
-#define DATASTRUCTURES_HPP_
+#pragma once
 
 #include <vector>
 #include <map>
@@ -134,8 +133,6 @@ struct Model {
 };
 
 typedef std::vector<Lit> literallist;
-#define DEFAULTCONSTRID 1
-// FIXME should be a number NOT used by any other constraint!
 
 class ConstraintVisitor;
 class Space;
@@ -182,32 +179,16 @@ public:
 	virtual void accept(Space* visitor) = 0;
 };
 
-class ID: public Constraint {
-private:
-	uint _id;
-public:
-	ID(uint id)
-			: _id(id) {
-	}
-
-	virtual ~ID() {
-	}
-
-	uint getID() const {
-		return _id;
-	}
-};
-
 #define DATASTRUCTURE_DECLAREACCEPT \
 		void accept(ConstraintVisitor* visitor);\
 		void accept(Space* visitor);
 
-class Disjunction: public ID {
+class Disjunction: public Constraint {
 public:
 	std::vector<Lit> literals;
 
-	Disjunction(uint id, const std::vector<Lit>& literals)
-			: 	ID(id),
+	Disjunction(const std::vector<Lit>& literals)
+			:
 				literals(literals) {
 	}
 
@@ -228,15 +209,15 @@ enum class ImplicationType {
 	EQUIVALENT
 };
 
-class Implication: public ID {
+class Implication: public Constraint {
 public:
 	Lit head;
 	ImplicationType type;
 	std::vector<Lit> body;
 	bool conjunction;
 
-	Implication(uint id, const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction)
-			: 	ID(id),
+	Implication(const Lit& head, ImplicationType type, const std::vector<Lit>& body, bool conjunction)
+			:
 				head(head),
 				type(type),
 				body(body),
@@ -267,7 +248,7 @@ public:
  * namely because the only-if and ufs watch heads not being true, whlie the if watches heads not being false.
  * The "onlyif" option means that they only constrain to no unfounded sets and the only-if of the completion
  */
-class Rule: public ID {
+class Rule: public Constraint {
 public:
 	Atom head;
 	std::vector<Lit> body;
@@ -275,8 +256,8 @@ public:
 	int definitionID;
 	bool onlyif;
 
-	Rule(uint id, Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID, bool onlyif)
-			: 	ID(id),
+	Rule(Atom head, const std::vector<Lit>& body, bool conjunctive, int definitionID, bool onlyif)
+			:
 				head(head),
 				body(body),
 				conjunctive(conjunctive),
@@ -325,7 +306,7 @@ public:
 WLSet createSet(int setid, const std::vector<Lit>& literals, const Weight& w);
 WLSet createSet(int setid, const std::vector<Lit>& literals, const std::vector<Weight>& weights);
 
-class Aggregate: public ID {
+class Aggregate: public Constraint {
 public:
 	Lit head;
 	int setID;
@@ -336,8 +317,8 @@ public:
 	int defID; //Only relevant if defined aggregate, otherwise the value does not matter
 	bool onlyif;
 
-	Aggregate(uint id, const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID, bool onlyif)
-			: 	ID(id),
+	Aggregate(const Lit& head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID, bool onlyif)
+			:
 				head(head),
 				setID(setID),
 				bound(bound),
@@ -437,13 +418,13 @@ public:
 	}
 };
 
-struct BoolVar: public ID {
+struct BoolVar: public Constraint {
 	Atom atom;
 
 	DATASTRUCTURE_DECLAREACCEPT
 
-	BoolVar(uint id, Atom atom)
-			: 	ID(id),
+	BoolVar(Atom atom)
+			:
 				atom(atom) {
 	}
 
@@ -452,7 +433,7 @@ struct BoolVar: public ID {
 	}
 };
 
-struct IntVarRange: public ID {
+struct IntVarRange: public Constraint {
 	bool partial;
 	Lit possiblynondenoting; // Should not be used if partial is false
 	VarID varID;
@@ -461,8 +442,8 @@ struct IntVarRange: public ID {
 	DATASTRUCTURE_DECLAREACCEPT
 
 #ifndef NOARBITPREC
-	IntVarRange(uint id, VarID varID)
-			: 	ID(id),
+	IntVarRange(VarID varID)
+			:
 				partial(false),
 				possiblynondenoting(mkNegLit(1)),
 				varID(varID),
@@ -471,16 +452,16 @@ struct IntVarRange: public ID {
 	}
 #endif
 
-	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue)
-			: 	ID(id),
+	IntVarRange(VarID varID, const Weight& minvalue, const Weight& maxvalue)
+			:
 			  	partial(false),
 			  	possiblynondenoting(mkNegLit(1)),
 				varID(varID),
 				minvalue(minvalue),
 				maxvalue(maxvalue) {
 	}
-	IntVarRange(uint id, VarID varID, const Weight& minvalue, const Weight& maxvalue, Lit possiblynondenoting)
-			: 	ID(id),
+	IntVarRange(VarID varID, const Weight& minvalue, const Weight& maxvalue, Lit possiblynondenoting)
+			:
 			  	partial(true),
 			  	possiblynondenoting(possiblynondenoting),
 				varID(varID),
@@ -497,21 +478,21 @@ struct IntVarRange: public ID {
 	}
 };
 
-struct IntVarEnum: public ID {
+struct IntVarEnum: public Constraint {
 	bool partial;
 	Lit possiblynondenoting; // Should not be used if partial is false
 	VarID varID;
 	std::vector<Weight> values;
 
-	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values)
-			: 	ID(id),
+	IntVarEnum(VarID varID, const std::vector<Weight>& values)
+			:
 			  	partial(false),
 			  	possiblynondenoting(mkPosLit(1)),
 				varID(varID),
 				values(values) {
 	}
-	IntVarEnum(uint id, VarID varID, const std::vector<Weight>& values, Lit possiblynondenoting)
-			: 	ID(id),
+	IntVarEnum(VarID varID, const std::vector<Weight>& values, Lit possiblynondenoting)
+			:
 			  	partial(true),
 			  	possiblynondenoting(possiblynondenoting),
 				varID(varID),
@@ -529,14 +510,14 @@ struct IntVarEnum: public ID {
 	}
 };
 
-struct CPBinaryRel: public ID {
+struct CPBinaryRel: public Constraint {
 	Lit head;
 	VarID varID;
 	EqType rel;
 	Weight bound;
 
-	CPBinaryRel(uint id, const Lit& head, VarID varID, EqType rel, const Weight& bound)
-			: 	ID(id),
+	CPBinaryRel(const Lit& head, VarID varID, EqType rel, const Weight& bound)
+			:
 				head(head),
 				varID(varID),
 				rel(rel),
@@ -550,13 +531,13 @@ struct CPBinaryRel: public ID {
 	}
 };
 
-struct CPBinaryRelVar: public ID {
+struct CPBinaryRelVar: public Constraint {
 	Lit head;
 	VarID lhsvarID, rhsvarID;
 	EqType rel;
 
-	CPBinaryRelVar(uint id, const Lit& head, VarID lhsvarID, EqType rel, VarID rhsvarID)
-			: 	ID(id),
+	CPBinaryRelVar(const Lit& head, VarID lhsvarID, EqType rel, VarID rhsvarID)
+			:
 				head(head),
 				lhsvarID(lhsvarID),
 				rhsvarID(rhsvarID),
@@ -570,7 +551,7 @@ struct CPBinaryRelVar: public ID {
 	}
 };
 
-struct CPSumWeighted: public ID {
+struct CPSumWeighted: public Constraint {
 	Lit head;
 	std::vector<Lit> conditions;
 	std::vector<VarID> varIDs;
@@ -578,9 +559,9 @@ struct CPSumWeighted: public ID {
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(uint id, const Lit& head, const std::vector<Lit>& conditions, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights,
+	CPSumWeighted(const Lit& head, const std::vector<Lit>& conditions, const std::vector<VarID>& varIDs, const std::vector<Weight>& weights,
 			EqType rel, Weight bound)
-			: 	ID(id),
+			:
 				head(head),
 				conditions(conditions),
 				varIDs(varIDs),
@@ -601,7 +582,7 @@ struct CPSumWeighted: public ID {
 	}
 };
 
-struct CPProdWeighted: public ID {
+struct CPProdWeighted: public Constraint {
 	Lit head;
 	std::vector<Lit> conditions;
 	std::vector<VarID> varIDs;
@@ -609,8 +590,8 @@ struct CPProdWeighted: public ID {
 	EqType rel;
 	VarID boundID;
 
-	CPProdWeighted(uint id, const Lit& head, const std::vector<Lit>& conditions, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
-			: 	ID(id),
+	CPProdWeighted(const Lit& head, const std::vector<Lit>& conditions, const std::vector<VarID>& varIDs, Weight prodweight, EqType rel, VarID boundid)
+			:
 				head(head),
 				conditions(conditions),
 				varIDs(varIDs),
@@ -632,14 +613,14 @@ struct CPProdWeighted: public ID {
 };
 
 // Encodes: (number of varIDS equal to eqbound) rel rhsvar
-struct CPCount: public ID {
+struct CPCount: public Constraint {
 	std::vector<VarID> varIDs;
 	Weight eqbound;
 	EqType rel;
 	VarID rhsvar;
 
-	CPCount(uint id, const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
-			: 	ID(id),
+	CPCount(const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
+			:
 				varIDs(varIDs),
 				eqbound(eqbound),
 				rel(rel),
@@ -653,11 +634,11 @@ struct CPCount: public ID {
 	}
 };
 
-struct CPAllDiff: public ID {
+struct CPAllDiff: public Constraint {
 	std::vector<VarID> varIDs;
 
-	CPAllDiff(uint id, const std::vector<VarID>& varIDs)
-			: 	ID(id),
+	CPAllDiff(const std::vector<VarID>& varIDs)
+			:
 				varIDs(varIDs) {
 	}
 
@@ -668,13 +649,13 @@ struct CPAllDiff: public ID {
 	}
 };
 
-struct CPElement: public ID {
+struct CPElement: public Constraint {
 	std::vector<VarID> varIDs;
 	VarID index;
 	VarID rhs;
 
-	CPElement(uint id, const std::vector<VarID>& varids, VarID index, VarID rhs)
-			: 	ID(id),
+	CPElement(const std::vector<VarID>& varids, VarID index, VarID rhs)
+			:
 				varIDs(varids),
 				index(index),
 				rhs(rhs) {
@@ -724,13 +705,13 @@ public:
 
 	virtual void requestGrounding(int id, bool groundall, bool& stilldelayed) = 0;
 };
-class LazyGroundImpl: public ID {
+class LazyGroundImpl: public Constraint {
 public:
 	Implication impl;
 	LazyGrounder* monitor;
 
-	LazyGroundImpl(uint id, const Implication& impl, LazyGrounder* monitor)
-			: 	ID(id),
+	LazyGroundImpl(const Implication& impl, LazyGrounder* monitor)
+			:
 				impl(impl),
 				monitor(monitor) {
 	}
@@ -827,14 +808,14 @@ struct TwoValuedRequirement: public Constraint {
 	}
 };
 
-class SubTheory: public ID {
+class SubTheory: public Constraint {
 public:
 	Atom head;
 	TheoryID childid;
 	std::vector<Atom> rigidatoms;
 
-	SubTheory(uint id, Atom head, TheoryID childid, std::vector<Atom> atoms)
-			: 	ID(id),
+	SubTheory(Atom head, TheoryID childid, std::vector<Atom> atoms)
+			:
 				head(head),
 				childid(childid),
 				rigidatoms(atoms) {
@@ -877,14 +858,14 @@ public:
 /*
  * Represents a constraint of the form head <=> P(args), where args is a set of cp variables and P is lazily grounded by the passed-in grounder.
  */
-class LazyAtom: public ID {
+class LazyAtom: public Constraint {
 public:
 	Lit head;
 	std::vector<VarID> args;
 	LazyAtomGrounder* grounder;
 
-	LazyAtom(uint id, const Lit& head, const std::vector<VarID>& args, LazyAtomGrounder* grounder)
-			: 	ID(id),
+	LazyAtom(const Lit& head, const std::vector<VarID>& args, LazyAtomGrounder* grounder)
+			:
 				head(head),
 				args(args),
 				grounder(grounder) {
@@ -902,5 +883,3 @@ typedef std::vector<Model*> modellist;
 typedef WLtuple WL;
 
 }
-
-#endif /* DATASTRUCTURES_HPP_ */

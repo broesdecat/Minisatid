@@ -4,8 +4,7 @@
  (c) K.U.Leuven
  ************************************/
 
-#ifndef DEFINITION_HPP_
-#define DEFINITION_HPP_
+#pragma once
 
 #include "external/ExternalUtils.hpp"
 
@@ -14,7 +13,6 @@ namespace MinisatID {
 class PCSolver;
 
 struct TempRule {
-	uint id;
 	Atom head;
 	std::vector<Lit> body;
 	bool conjunctive;
@@ -25,9 +23,8 @@ struct TempRule {
 
 	bool onlyif;
 
-	TempRule(uint id, bool onlyif, Atom head, bool conjunctive, std::vector<Lit> body)
-			: 	id(id),
-				head(head),
+	TempRule(bool onlyif, Atom head, bool conjunctive, std::vector<Lit> body)
+			: 	head(head),
 				body(body),
 				conjunctive(conjunctive),
 				isagg(false),
@@ -35,9 +32,8 @@ struct TempRule {
 				innerset(NULL),
 				onlyif(onlyif) {
 	}
-	TempRule(uint id, bool onlyif, Aggregate* inneragg, WLSet* innerset)
-			: 	id(id),
-				head(var(inneragg->head)),
+	TempRule(bool onlyif, Aggregate* inneragg, WLSet* innerset)
+			: 	head(var(inneragg->head)),
 				conjunctive(false),
 				isagg(true),
 				inneragg(inneragg),
@@ -89,12 +85,10 @@ public:
 	// Call when grounding/parsing of all definitions is finished and they are in a consistent state
 	void addToPropagators();
 
-	void addDefinedAggregate(uint id, const Aggregate& inneragg, const WLSet& innerset);
-	void addRule(uint id, bool onlyif, int defID, bool conj, Atom head, const litlist& ps);
+	void addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset);
+	void addRule(bool onlyif, int defID, bool conj, Atom head, const litlist& ps);
 
 private:
 	void addFinishedRule(TempRule* rule);
 };
 }
-
-#endif /* DEFINITION_HPP_ */

@@ -36,7 +36,7 @@ private:
 	std::map<Lit, BinReason> reasons; // Maps a literal to the propagated intvar (NULL if head) and to the one value necessary for explaining it.
 
 	friend class PropagatorFactory;
-	BinaryConstraint(uint id, PCSolver* engine, IntView* left, EqType comp, IntView* right, const Lit& h);
+	BinaryConstraint(PCSolver* engine, IntView* left, EqType comp, IntView* right, const Lit& h);
 
 public:
 	const Lit& head() const {

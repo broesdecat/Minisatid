@@ -19,7 +19,7 @@ using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
-		Propagator({}, solver, "aggregate"),
+		Propagator(solver, "aggregate"),
 		type(w),
 		prop(NULL),
 		setid(setid),
@@ -32,8 +32,8 @@ TypedSet::TypedSet(PCSolver* solver, int setid, AggProp const * const w, const v
 		MinisatID::print(10000, *this, true);
 	}
 
-	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
-		addAgg(**i, optim);
+	for (auto agg : aggr) {
+		addAgg(*agg, optim);
 	}
 
 	prop = getType().createPropagator(this);
@@ -186,7 +186,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 }
 
 void TypedSet::addExplanation(AggReason& ar) const {
-	Disjunction lits(ar.getAgg().getID(), {ar.getPropLit()});
+	Disjunction lits({ar.getPropLit()});
 	getProp()->getExplanation(lits.literals, ar);
 	ar.setClause(lits);
 
@@ -241,7 +241,7 @@ void TypedSet::accept(ConstraintVisitor& visitor){
 	auto set = WLSet(getSetID(), getWL());
 	visitor.add(set);
 	for(auto agg:getAgg()){
-		visitor.add(Aggregate(agg->getID(), agg->getHead(), getSetID(), agg->getBound(), agg->getType(), agg->getSign(), agg->getSem(), -1, false));
+		visitor.add(Aggregate(agg->getHead(), getSetID(), agg->getBound(), agg->getType(), agg->getSign(), agg->getSem(), -1, false));
 	}
 }
 

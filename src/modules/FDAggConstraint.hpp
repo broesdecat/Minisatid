@@ -19,7 +19,7 @@ protected:
 	std::vector<Lit> _conditions;
 
 protected:
-	FDAggConstraint(uint id, PCSolver* s, const std::string& name);
+	FDAggConstraint(PCSolver* s, const std::string& name);
 	virtual void setWeights(const std::vector<Weight>&) = 0;
 	void sharedInitialization(const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 	void watchRelevantVars(); //sets all watches
@@ -78,13 +78,13 @@ private:
 
 public:
 	// Sum constraint: one weight for each var, where bound is an int.
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, const Weight& bound);
+	FDSumConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, const Weight& bound);
 
 private:
 	friend class FDAggConstraint;
 	friend class FDProdConstraint;
 	// NOTE: bound has to have a KNOWN value!
-	FDSumConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
+	FDSumConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const std::vector<Weight>& weights, EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);
@@ -134,9 +134,9 @@ private:
 public:
 
 	// Product constraint: one weight for the whole expression, bound is an integer!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
+	FDProdConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, const Weight& bound);
 	// Product constraint: one weight for the whole expression, bound is a variable!
-	FDProdConstraint(uint id, PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
+	FDProdConstraint(PCSolver* engine, const Lit& head, const std::vector<Lit>& conditions, const std::vector<IntView*>& set, const Weight& weight, EqType rel, IntView* bound);
 
 protected:
 	virtual void setWeights(const std::vector<Weight>&);

@@ -18,7 +18,7 @@ using namespace MinisatID;
 using namespace Minisat;
 
 SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
-		: 	Propagator(DEFAULTCONSTRID, solver, "symmetry propagator"),
+		: 	Propagator(solver, "symmetry propagator"),
 			symmetrical(sym.getSymmetrical()),
 			inverse(sym.getInverse()),
 			nextToPropagate(0) {
@@ -109,7 +109,7 @@ rClause SymmetryPropagator::notifypropagate() {
 	} else {
 		getSymmetricalClause(getPCSolver().getExplanation(l), symClause);
 	}
-	auto c = getPCSolver().createClause(Disjunction(getID(), symClause), true);
+	auto c = getPCSolver().createClause(Disjunction(symClause), true);
 	bool isConflict = true;
 	for (auto ll : symClause) {
 		MAssert(getPCSolver().value(ll)==l_Undef || getPCSolver().value(ll)==l_False);

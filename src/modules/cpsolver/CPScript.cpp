@@ -54,7 +54,7 @@ boolvarindex CPScript::addBoolVar(){
 void CPScript::accept(ConstraintVisitor& visitor){
 	int id = 1;
 	for(auto i=intvars.cbegin(); i<intvars.cend(); ++i){
-		visitor.add(IntVarRange(DEFAULTCONSTRID, {id++}, i->min(), i->max()));
+		visitor.add(IntVarRange({id++}, i->min(), i->max()));
 	}
 }
 

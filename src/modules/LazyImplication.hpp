@@ -34,7 +34,7 @@ private:
 	bool impliesfired, impliedbyfired;
 
 public:
-	LazyTseitinClause(uint id, PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID);
+	LazyTseitinClause(PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID);
 
 	void addGrounding(const litlist& list);
 

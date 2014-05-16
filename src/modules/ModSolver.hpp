@@ -92,6 +92,10 @@ public:
 	ModSolver(Atom head, PCSolver* parent, PCSolver* child, const std::vector<Atom>& rigidatoms);
 	virtual ~ModSolver();
 
+	int getID() {
+		return -1; // FIXME have a way to identify model solvers (their hierarchy id?)
+	}
+
 	void finishParsing();
 
 	//Propagator methods

@@ -7,8 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
-#ifndef MINISATID_SYMMETRY_HPP_
-#define MINISATID_SYMMETRY_HPP_
+#pragma once
 
 #include <vector>
 #include "utils/Utils.hpp"
@@ -58,9 +57,6 @@ public:
 	}
 
 	Lit getSymmetrical(Lit in);
-
 };
 
 }
-
-#endif /* MINISATID_SYMMETRY_HPP_ */

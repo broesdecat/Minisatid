@@ -48,8 +48,8 @@ EqType invertEqType(EqType type) {
 
 WLSet createSet(int setid, const std::vector<Lit>& literals, const Weight& w) {
 	WLSet set(setid);
-	for (auto i = literals.cbegin(); i < literals.cend(); ++i) {
-		set.wl.push_back( { *i, w });
+	for (auto l : literals) {
+		set.wl.push_back( { l, w });
 	}
 	return set;
 }
@@ -64,42 +64,42 @@ WLSet createSet(int setid, const std::vector<Lit>& literals, const std::vector<W
 	return set;
 }
 
-void addImplication(uint id, const Lit& head, const litlist& body, bool conjunction, std::vector<Disjunction>& clauses) {
+void addImplication(const Lit& head, const litlist& body, bool conjunction, std::vector<Disjunction>& clauses) {
 	if (conjunction) {
-		Disjunction d(id, { });
+		Disjunction d({ });
 		d.literals.resize(2, not head);
-		for (auto i = body.cbegin(); i < body.cend(); ++i) {
-			d.literals[1] = *i;
+		for (auto l : body) {
+			d.literals[1] = l;
 			clauses.push_back(d);
 		}
 	} else {
-		Disjunction d(id, body);
+		Disjunction d(body);
 		d.literals.push_back(not head);
 		clauses.push_back(d);
 	}
 }
 
 // Precondition: already added vars!
-void addReverseImplication(uint id, const Lit& head, const litlist& body, bool conjunction, std::vector<Disjunction>& clauses) {
+void addReverseImplication(const Lit& head, const litlist& body, bool conjunction, std::vector<Disjunction>& clauses) {
 	litlist list;
-	for (auto i = body.cbegin(); i < body.cend(); ++i) {
-		list.push_back(not *i);
+	for (auto l : body) {
+		list.push_back(not l);
 	}
-	addImplication(id, not head, list, not conjunction, clauses);
+	addImplication(not head, list, not conjunction, clauses);
 }
 
 std::vector<Disjunction> Implication::getEquivalentClauses() const {
 	std::vector<Disjunction> clauses;
 	switch (type) {
 	case ImplicationType::EQUIVALENT:
-		addImplication(getID(), head, body, conjunction, clauses);
-		addReverseImplication(getID(), head, body, conjunction, clauses);
+		addImplication(head, body, conjunction, clauses);
+		addReverseImplication(head, body, conjunction, clauses);
 		break;
 	case ImplicationType::IMPLIES:
-		addImplication(getID(), head, body, conjunction, clauses);
+		addImplication(head, body, conjunction, clauses);
 		break;
 	case ImplicationType::IMPLIEDBY:
-		addReverseImplication(getID(), head, body, conjunction, clauses);
+		addReverseImplication(head, body, conjunction, clauses);
 		break;
 	}
 	return clauses;

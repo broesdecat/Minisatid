@@ -35,14 +35,12 @@ enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
 class PropRule {
 private:
-	uint id;
 	const Atom head;
 	litlist lits;
 
 public:
-    PropRule(uint id, Lit head, const litlist& ps): id(id), head(var(head)), lits(ps){}
+    PropRule(Lit head, const litlist& ps): head(var(head)), lits(ps){}
 
-    const uint& getID() const {return id; }
     uint 	size() 				const	{ return lits.size(); }
     Lit 	getHead() 			const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
@@ -53,7 +51,6 @@ public:
 
 class IDAgg{
 private:
-	uint id;
 	AggBound	bound;
 	Lit			head;
 	AggSem		sem;
@@ -62,9 +59,8 @@ private:
 	std::vector<WL> wls; // NOTE: SORTED by literal weights!
 
 public:
-	IDAgg(uint id, const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& wls);
+	IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& wls);
 
-	const uint & getID() const { return id; }
 	const Lit& 	getHead		() 					const 	{ return head; }
 	void	 	setHead		(const Lit& l)			 	{ head = l; }
 	int			getIndex	()					const	{ return index; }

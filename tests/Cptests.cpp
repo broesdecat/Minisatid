@@ -20,13 +20,13 @@ TEST(CPTest, UnSatCPSum) {
 	SolverOption options;
 	options.verbosity = 0;
 	auto space = new Space(options);
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkNegLit(2), mkPosLit(3)}));
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkNegLit(3)}));
+	extAdd(*space, Disjunction({mkPosLit(1), mkNegLit(2), mkPosLit(3)}));
+	extAdd(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
+	extAdd(*space, Disjunction({mkNegLit(3)}));
 	VarID groundone={1}, groundtwo={2};
-	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundone, -3, 7));
-	extAdd(*space, IntVarRange(DEFAULTCONSTRID,groundtwo, 7, 10));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(1), {mkNegLit(3),mkNegLit(3)}, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
+	extAdd(*space, IntVarRange(groundone, -3, 7));
+	extAdd(*space, IntVarRange(groundtwo, 7, 10));
+	extAdd(*space, CPSumWeighted(mkPosLit(1), {mkNegLit(3),mkNegLit(3)}, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, {});
@@ -40,16 +40,16 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	SolverOption options;
 	options.verbosity = 0;
 	auto space = new Space(options);
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(42)}));
+	extAdd(*space, Disjunction({mkPosLit(42)}));
 
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
+	extAdd(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
 	vector<VarID> elemx;
 	uint n = 100;
 	for(uint i=0; i<n; ++i){
 		mult.push_back(Weight(((int)i)-1));
 		VarID x = {i};
-		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, Weight(0), Weight(n)));
+		extAdd(*space, IntVarRange(x, Weight(0), Weight(n)));
 		elemx.push_back(x);
 	}
 
@@ -57,19 +57,19 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	weights.resize(elemx.size(),Weight(1));
 
 	for(uint i=0; i<n; ++i){
-		extAdd(*space, CPCount(DEFAULTCONSTRID,elemx, Weight((int)i), EqType::EQ, elemx[i]));
+		extAdd(*space, CPCount(elemx, Weight((int)i), EqType::EQ, elemx[i]));
 	}
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(4)}));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(4), vector<Lit>(elemx.size(), mkPosLit(42)), elemx, weights, EqType::EQ, n));
+	extAdd(*space, Disjunction({mkPosLit(4)}));
+	extAdd(*space, CPSumWeighted(mkPosLit(4), vector<Lit>(elemx.size(), mkPosLit(42)), elemx, weights, EqType::EQ, n));
 
-	extAdd(*space, Disjunction(DEFAULTCONSTRID,{mkPosLit(5)}));
-	extAdd(*space, CPSumWeighted(DEFAULTCONSTRID,mkPosLit(5),vector<Lit>(elemx.size(), mkPosLit(42)), elemx, mult, EqType::EQ, 0));
+	extAdd(*space, Disjunction({mkPosLit(5)}));
+	extAdd(*space, CPSumWeighted(mkPosLit(5),vector<Lit>(elemx.size(), mkPosLit(42)), elemx, mult, EqType::EQ, 0));
 
 	int literalcount = 6;
 	for(uint i=0; i<n; ++i){
 		for(uint j=0; j<n; ++j){
-			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::EQ, Weight((int)j)));
-			extAdd(*space, CPBinaryRel(DEFAULTCONSTRID,mkPosLit(literalcount++), elemx[i], EqType::GEQ, Weight((int)j)));
+			extAdd(*space, CPBinaryRel(mkPosLit(literalcount++), elemx[i], EqType::EQ, Weight((int)j)));
+			extAdd(*space, CPBinaryRel(mkPosLit(literalcount++), elemx[i], EqType::GEQ, Weight((int)j)));
 		}
 	}
 
@@ -89,15 +89,15 @@ TEST(CPTest, Unsat2) {
 	uint n = 4;
 	for(uint i=1; i<n; ++i){
 		VarID x = {i};
-		extAdd(*space, IntVarRange(DEFAULTCONSTRID,x, 1, 3));
+		extAdd(*space, IntVarRange(x, 1, 3));
 		elemx.push_back(x);
 	}
 
 	int c = 1;
 	for(uint i=0; i<elemx.size(); ++i){
 		for(uint j=0; j<elemx.size(); ++j, ++c){
-			extAdd(*space, CPBinaryRelVar(DEFAULTCONSTRID,mkPosLit(c), elemx[i], EqType::NEQ, elemx[j]));
-			extAdd(*space, Disjunction(DEFAULTCONSTRID, {mkPosLit(c)}));
+			extAdd(*space, CPBinaryRelVar(mkPosLit(c), elemx[i], EqType::NEQ, elemx[j]));
+			extAdd(*space, Disjunction({mkPosLit(c)}));
 		}
 	}
 

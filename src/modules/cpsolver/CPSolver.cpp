@@ -44,7 +44,7 @@ void LitTrail::propagate(const Lit& l) {
 }
 
 CPSolver::CPSolver(PCSolver * solver)
-		: 	Propagator(DEFAULTCONSTRID, solver, "CP-solver"),
+		: 	Propagator(solver, "CP-solver"),
 			solverdata(new CPSolverData()),
 			addedconstraints(false),
 			searchedandnobacktrack(false),
@@ -123,7 +123,7 @@ bool CPSolver::add(const CPProdWeighted& form) {
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	auto id=getPCSolver().newID();
 	if(form.prodWeight!=Weight(1)){
-		add(IntVarRange(DEFAULTCONSTRID, id,form.prodWeight, form.prodWeight));
+		add(IntVarRange(id,form.prodWeight, form.prodWeight));
 		set.push_back(convertToVar(id));
 	}
 
@@ -217,7 +217,7 @@ rClause CPSolver::getExplanation(const Lit& p) {
 
 	MAssert(propreason[p]!=(uint)-1);
 
-	Disjunction clause(DEFAULTCONSTRID, {p});
+	Disjunction clause({p});
 	for (uint i = 0; i < propreason[p]; i++) {
 		// FIXME skip all those not propagated into the cp solver
 		clause.literals.push_back(~trail.getTrail()[i]);
@@ -348,7 +348,7 @@ rClause CPSolver::notifypropagate() {
  * 		(and which represent reification atoms)
  */
 rClause CPSolver::genFullConflictClause() {
-	Disjunction clause(DEFAULTCONSTRID, {});
+	Disjunction clause({});
 	for (auto i = trail.getTrail().rbegin(); i < trail.getTrail().rend(); i++) {
 		// TODO can skip all literals that were propagated BY the CP solver
 		clause.literals.push_back(~(*i));

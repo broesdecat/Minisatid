@@ -42,8 +42,8 @@ public:
 };
 
 int LazyTseitinClause::ltcids = 0;
-LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID)
-		: 	Propagator(id, engine, "lazy tseitin eq"),
+LazyTseitinClause::LazyTseitinClause(PCSolver* engine, const Implication& impl, LazyGrounder* monitor, int clauseID)
+		: 	Propagator(engine, "lazy tseitin eq"),
 			ltcid(ltcids++),
 			clauseID(clauseID),
 			monitor(monitor),
@@ -54,25 +54,25 @@ LazyTseitinClause::LazyTseitinClause(uint id, PCSolver* engine, const Implicatio
 			impliesfired(false),
 			impliedbyfired(false) {
 	if (hasImplies()) {
-		implone = Implication(getID(), impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
+		implone = Implication(impl.head, ImplicationType::IMPLIES, impl.body, impl.conjunction);
 	}
 	if (hasImpliedBy()) {
 		litlist lits;
 		for (auto i = impl.body.cbegin(); i < impl.body.cend(); ++i) {
 			lits.push_back(not *i);
 		}
-		impltwo = Implication(getID(), not impl.head, ImplicationType::IMPLIES, lits, not impl.conjunction);
+		impltwo = Implication(not impl.head, ImplicationType::IMPLIES, lits, not impl.conjunction);
 	}
 
 	if (hasImplies() && implone.conjunction) {
 		for (auto i = implone.body.cbegin(); i < implone.body.cend(); ++i) {
-			add(Disjunction(getID(), { not implone.head, *i }));
+			add(Disjunction({ not implone.head, *i }));
 		}
 		implone.body.clear(); // Clear all current literals. Only when more are added do we need to consider this
 	}
 	if (hasImpliedBy() && impltwo.conjunction) {
 		for (auto i = impltwo.body.cbegin(); i < impltwo.body.cend(); ++i) {
-			add(Disjunction(getID(), { not impltwo.head, *i }));
+			add(Disjunction({ not impltwo.head, *i }));
 		}
 		impltwo.body.clear(); // Clear all current literals. Only when more are added do we need to consider this
 	}
@@ -134,7 +134,7 @@ rClause LazyTseitinClause::notifypropagate() {
 
 	auto confl = nullPtrClause;
 	if (getPCSolver().isUnsat()) {
-		confl = getPCSolver().createClause(Disjunction(DEFAULTCONSTRID, { }), true);
+		confl = getPCSolver().createClause(Disjunction({ }), true);
 	}
 	return confl;
 }
@@ -159,7 +159,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, I
 		groundedall = true;
 		monitor->requestGrounding(clauseID, true, stilldelayed); // get all grounding
 		for (auto bdl : newgrounding) {
-			add(Disjunction(getID(), { not tocheck.head, impliedby ? not bdl : bdl }));
+			add(Disjunction({ not tocheck.head, impliedby ? not bdl : bdl }));
 			if (isEquivalence()) {
 				complement.body.push_back(impliedby ? bdl : not bdl);
 			}
@@ -167,7 +167,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, I
 		if (isEquivalence()) {
 			auto lits = complement.body;
 			lits.push_back(not complement.head);
-			add(Disjunction(getID(), lits));
+			add(Disjunction(lits));
 		}
 	} else {
 		uint nonfalse = 0;
@@ -196,7 +196,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, I
 				}
 				if (isEquivalence()) {
 					for (auto bdl : newgrounding) {
-						add(Disjunction(getID(), { not complement.head, impliedby ? bdl : not bdl }));
+						add(Disjunction({ not complement.head, impliedby ? bdl : not bdl }));
 					}
 				}
 			}
@@ -221,7 +221,7 @@ bool LazyTseitinClause::checkPropagation(Implication& tocheck, bool impliedby, I
 			} else {
 				auto lits = tocheck.body;
 				lits.push_back(not tocheck.head);
-				add(Disjunction(getID(), lits));
+				add(Disjunction(lits));
 			}
 		}
 	}

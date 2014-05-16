@@ -55,7 +55,7 @@ using namespace MinisatID;
 template<class T> void DefaultCallback<T>::metaData(int nbvar, int) {
 	maxvar = nbvar;
 	dummyhead = Atom(++maxvar);
-	Disjunction clause(maxid++, {mkPosLit(dummyhead)});
+	Disjunction clause({mkPosLit(dummyhead)});
 	extAdd(getSolver(), clause);
 }
 
@@ -103,7 +103,7 @@ template<class T> void DefaultCallback<T>::beginConstraint() {
 
 template<class T> void DefaultCallback<T>::endConstraint() {
 	extAdd(getSolver(), wset);
-	Aggregate agg(maxid++, mkPosLit(dummyhead), wset.setID, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false);
+	Aggregate agg(mkPosLit(dummyhead), wset.setID, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false);
 	if(equality){
 		agg.sign = AggSign::LB;
 		extAdd(getSolver(), agg);

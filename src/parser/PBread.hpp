@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef PBREAD_H
-#define PBREAD_H
+#pragma once
 
 #include "utils/Utils.hpp"
 #include "external/Translator.hpp"
@@ -42,7 +41,6 @@ namespace MinisatID {
 template<class T>
 class DefaultCallback {
 private:
-	uint maxid;
 	T& solver;
 	T& getSolver() { return solver; }
 
@@ -56,7 +54,7 @@ private:
 	Atom dummyhead;
 
 public:
-	DefaultCallback(T& solver):maxid(1), solver(solver), setid(0), wset(setid), dummyhead(Atom(-1)){
+	DefaultCallback(T& solver):solver(solver), setid(0), wset(setid), dummyhead(Atom(-1)){
 
 	}
 
@@ -299,5 +297,3 @@ private:
 };
 
 }
-
-#endif

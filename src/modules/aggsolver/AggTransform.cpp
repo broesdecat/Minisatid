@@ -133,7 +133,7 @@ List combine(const List& listone, const List& listtwo) {
 
 Disjunction implies(const TempAgg& from, const TempAgg& to) {
 // FIXME combine both id for unsat core
-	return Disjunction(DEFAULTCONSTRID, { not from.getHead(), to.getHead() });
+	return Disjunction({ not from.getHead(), to.getHead() });
 }
 
 void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
@@ -190,7 +190,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 	const TempAgg& agg = *aggs[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
-	Disjunction clause(agg.getID(), { ub ? agg.getHead() : not agg.getHead() });
+	Disjunction clause({ ub ? agg.getHead() : not agg.getHead() });
 	for (auto i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
 			break;
@@ -232,7 +232,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 				lbool headvalue = solver->rootValue(agg.getHead());
 				if (headvalue != l_False) {
 					if (headvalue == l_Undef) {
-						internalAdd(Disjunction(agg.getID(), { agg.getHead() }), solver->getTheoryID(), *solver);
+						internalAdd(Disjunction({ agg.getHead() }), solver->getTheoryID(), *solver);
 					}
 				}
 			} else if (agg.hasLB() && bound == 1) {
@@ -240,7 +240,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 				for (auto wl : set->getWL()) {
 					body.push_back(wl.getLit());
 				}
-				Implication eq(agg.getID(), agg.getHead(), ImplicationType::EQUIVALENT, body, false);
+				Implication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
 				internalAdd(eq, solver->getTheoryID(), *solver);
 			} else {
 				remaggs.push_back(*i);
@@ -289,19 +289,18 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* 
 
 //create implication aggs
 	tempagglist implaggs, del;
-	for (auto i = aggs.cbegin(); i < aggs.cend(); ++i) {
-		auto agg = *(*i);
-
+	for (auto aggp : aggs) {
+		auto agg = *aggp;
 		if (agg.getSem() == AggSem::OR) {
-			implaggs.push_back(*i);
+			implaggs.push_back(aggp);
 		} else {
 			auto weighttwo = agg.getSign() == AggSign::LB ? agg.getBound() - 1 : agg.getBound() + 1;
 			auto signtwo = agg.getSign() == AggSign::LB ? AggSign::UB : AggSign::LB;
-			auto one = new TempAgg(agg.getID(), ~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
-			auto two = new TempAgg(agg.getID(), agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
+			auto one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::OR, agg.getType());
+			auto two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::OR, agg.getType());
 			implaggs.push_back(one);
 			implaggs.push_back(two);
-			del.push_back(*i);
+			del.push_back(aggp);
 		}
 	}
 

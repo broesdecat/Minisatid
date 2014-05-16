@@ -19,8 +19,8 @@ using namespace std;
 // NOTE: currently always grounds at least log(max-min) elements.
 // TODO Could be changed to be able to only ground at least 2 elements.
 
-LazyIntVar::LazyIntVar(uint id, PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial)
-		: IntVar(id, solver, varid, partial), halve(true){
+LazyIntVar::LazyIntVar(PCSolver* solver, VarID varid, Weight min, Weight max, Lit partial)
+		: IntVar(solver, varid, partial), halve(true){
 	setOrigMax(max);
 	setOrigMin(min);
 	//clog <<"Created lazy variable " <<toString(varid) <<" = [" <<min <<", " <<max <<"]\n";
@@ -89,7 +89,7 @@ Lit LazyIntVar::addVariable(Weight value){
 	engine().accept(this, var, FASTEST);
 	engine().accept(this, ~var, FASTEST);
 	if(value==origMaxValue()){
-		add(Disjunction(getID(), { var }));
+		add(Disjunction({ var }));
 	}
 	IntVarValue* next = NULL;
 	if((i+1)<leqlits.size()){

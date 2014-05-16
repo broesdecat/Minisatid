@@ -25,7 +25,7 @@ private:
 	std::set<std::vector<int>> grounded;
 
 public:
-	LazyAtomPropagator(uint id, PCSolver* engine, const Lit& head, const std::vector<IntView*> args, LazyAtomGrounder* grounder);
+	LazyAtomPropagator(PCSolver* engine, const Lit& head, const std::vector<IntView*> args, LazyAtomGrounder* grounder);
 
 	const Lit& getHead() const {
 		return head;
