@@ -283,12 +283,13 @@ void InsertWrapper::add(Constraint* var) {
 	switch ((*it).second) {
 	case bool2int: {
 		parseArgs(arguments, args, { ARG_BOOL, ARG_INT });
-		auto reiftrue = storage->createOneShotLit();
-		auto reiffalse = storage->createOneShotLit();
-		storage->addBinI(reiftrue, args[1], MinisatID::EqType::EQ, 1);
-		storage->addBinI(reiffalse, args[1], MinisatID::EqType::EQ, 0);
-		storage->addClause( { reiftrue }, { args[0] });
-		storage->addClause( { args[0], reiffalse }, { });
+		//auto reiftrue = storage->createOneShotLit();
+		//auto reiffalse = storage->createOneShotLit();
+		//storage->addBinI(reiftrue, args[1], MinisatID::EqType::EQ, 1);
+		//storage->addBinI(reiffalse, args[1], MinisatID::EqType::EQ, 0);
+		//storage->addClause( { reiftrue }, { args[0] });
+		//storage->addClause( { args[0], reiffalse }, { });
+		storage->addBinI(-args[0], args[1], MinisatID::EqType::LEQ, 0);
 		break;
 	}
 	case booland: {
