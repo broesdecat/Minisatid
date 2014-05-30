@@ -55,7 +55,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 	}
 
 	auto propfactory = new PropagatorFactory(modes, this);
-	if(modes.usesimplifier){
+	if(modes.usesimplifier && not modes.lazy){
 		factory = new TheorySimplifier(propfactory);
 	}else{
 		factory = propfactory;
