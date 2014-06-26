@@ -254,11 +254,13 @@ void FDSumConstraint::initialize(const Lit& head, const std::vector<Lit>& condit
 	double absmax(0);
 	for (uint i = 0; i < newset.size(); ++i) {
 		double sumterm = newweights[i];
-		double maxterm = abs(sumterm)*max(abs(newset[i]->maxValue()), abs(newset[i]->minValue()));
+		double miv = newset[i]->minValue(); // IMPORTANT: first cast to double (otherwise abs is wrong!)
+		double mav = newset[i]->maxValue(); // IMPORTANT: first cast to double (otherwise abs is wrong!)
+		double maxterm = abs(sumterm)*max(abs(mav), abs(miv));
 		absmax += maxterm;
 	}
 	if(absmax>=getMaxElem<Weight>()){
-		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision.");
+		throw idpexception("Overflow possible for sum of a set of variables in limited integer precision. Compile with GMP to resolve overflow issues.");
 	}
 #endif
 	sharedInitialization(head, newConditions, newset, newweights, rel, bound);
@@ -671,11 +673,13 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 
 #ifdef NOARBITPREC
 	double absmax(abs(newweight)); //note that s == 0 unless set
-		for (auto var : newset) {
-		absmax *= max(abs(var->maxValue()), abs(var->minValue()));
+	for (auto var : newset) {
+		double miv = var->minValue(); // IMPORTANT: first cast to double (otherwise abs is wrong!)
+		double mav = var->maxValue(); // IMPORTANT: first cast to double (otherwise abs is wrong!)
+		absmax *= max(abs(miv), abs(mav));
 	}
-	if(absmax>getMaxElem<Weight>()) {
-		throw idpexception("Overflow possible for a product of a set of variables in limited integer precision.");
+	if(absmax>=getMaxElem<Weight>()){
+		throw idpexception("Overflow possible for product of a set of variables in limited integer precision. Compile with GMP to resolve overflow issues.");
 	}
 #endif
 
