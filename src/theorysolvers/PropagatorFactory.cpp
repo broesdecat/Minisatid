@@ -651,6 +651,8 @@ SATVAL PropagatorFactory::finish() {
 	return satval;
 }
 
+bool printedinfwarning = false;
+
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments) {
 	for (auto name2var : intvars) {
 		auto ivar = name2var.second;
@@ -659,7 +661,25 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 			cerr << "Variable " << ivar->toString() << "[" << ivar->minValue() << "," << ivar->maxValue() << "]" << " is not assigned.\n";
 			throw idpexception("Current interpretation is a not a model.");
 		}
-		varassignments.push_back({ivar->getVarID(), image?ivar->minValue():0, image});
+		int value = 0;
+		if(image){
+			if(ivar->minValue()>=getMaxElem<int>()){ // TODO improve by supporting GMP in idp
+				if(not printedinfwarning){
+					printedinfwarning = true;
+					clog <<"Warning: restricting a value to the integer domain, which might not be correct\n";
+				}
+				value = getMaxElem<int>();
+			}else if(ivar->minValue()<=getMinElem<int>()){
+				if(not printedinfwarning){
+					printedinfwarning = true;
+					clog <<"Warning: restricting a value to the integer domain, which might not be correct\n";
+				}
+				value = getMinElem<int>();
+			}else{
+				value = toInt(ivar->minValue());
+			}
+		}
+		varassignments.push_back({ivar->getVarID(), value, image});
 	}
 }
 
