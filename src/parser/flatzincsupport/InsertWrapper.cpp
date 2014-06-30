@@ -87,13 +87,15 @@ void InsertWrapper::add(Var* var) {
 		if ((*ident->name) == "output_var") {
 			var->setOutput();
 		} else if ((*ident->name) == "output_array") {
-			var->setOutput();
-			stringstream ss;
-			ss << var->getName() << " = array" << ident->arguments->size() << "d(";
-			bool begin = true;
 			MAssert(ident->arguments->size()==1);
 			MAssert((*ident->arguments)[0]->type==EXPR_TYPE::EXPR_ARRAY);
 			const auto& ranges = *(*ident->arguments)[0]->arraylit->exprs;
+
+			var->setOutput();
+
+			stringstream ss;
+			ss << var->getName() << " = array" << ranges.size() << "d(";
+			bool begin = true;
 			for (auto it = ranges.rbegin(); it != ranges.rend(); ++it) {
 				if (not begin) {
 					ss << ",";
