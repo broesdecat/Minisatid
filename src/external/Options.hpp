@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Marien, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #ifndef MINISATID_OPTIONS_HPP_
@@ -35,7 +35,6 @@ enum DEFSEM {
 	DEF_STABLE, DEF_WELLF, DEF_COMP
 };
 
-
 enum class SATVAL {
 	UNSAT, POS_SAT
 };
@@ -54,6 +53,9 @@ enum class OutputFormat {
 };
 enum class Inference {
 	PROPAGATE, MODELEXPAND, PRINTTHEORY, PRINTGRAPH
+};
+enum class Heuristic {
+	CLASSIC, VMTF, DIRECTRELEVANCE, STRONGRELEVANCE
 };
 
 // General options for all inferences
@@ -91,6 +93,7 @@ public:
 	bool usesimplifier; // Use code that caches all constraints, applies some simplifications (removing duplicate variables, ...) and then goes on to propagation and solving.
 	bool userandomizedrestarts;
 	bool flatzinc_a;
+	Heuristic heuristic;
 
 	SolverOption();
 

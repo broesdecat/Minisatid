@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Mari��n, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/aggsolver/AggSet.hpp"
@@ -13,6 +13,8 @@
 #include "external/ConstraintVisitor.hpp"
 #include "utils/Print.hpp"
 #include <cmath>
+
+#include "satsolver/heuristics/Heuristics.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -133,7 +135,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 
 	if (modes().bumpaggonnotify) {
 		//Decreases sokoban and dansmee performance, increases fastfood
-		getPCSolver().varBumpActivity(var(p));
+		getPCSolver().getHeuristic().notifyTypedSet(var(p));
 	}
 
 	//If a propagation will be done or conflict (not already true), then add the learned clause first

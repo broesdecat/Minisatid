@@ -3,7 +3,7 @@
  *
  * Use of this software is governed by the GNU LGPLv3.0 license
  *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Written by Broes De Cat and Maarten Mari��n, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
@@ -13,16 +13,24 @@
 using namespace MinisatID;
 
 Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver, bool oneshot){
-	auto s = new Minisat::Solver(pcsolver, oneshot);
 	auto options = pcsolver->modes();
-	s->random_var_freq = options.rand_var_freq;
-	s->var_decay = options.var_decay;
+	MinisatHeuristic* heur;
+	switch (options.heuristic) {
+	case Heuristic::CLASSIC:
+		heur = new MinisatHeuristic(options.polarity == Polarity::RAND);
+		break;
+	case Heuristic::VMTF:
+		heur = new VarMTF(8);
+		break;
+	default:
+		heur = new MinisatHeuristic(options.polarity == Polarity::RAND);
+		break;
+	}
+
+	auto s = new Minisat::Solver(pcsolver, oneshot, heur);
 	s->verbosity = options.verbosity;
 	s->random_seed = options.randomseed;
 	s->fullmodelcheck = options.fullmodelcheck;
 	s->max_learned_clauses = options.maxNbOfLearnedClauses;
-	if(options.polarity==Polarity::RAND){
-		s->rnd_pol=true;
-	}
 	return s;
 }

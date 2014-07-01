@@ -45,7 +45,7 @@ class Heap {
     {
         int x  = heap[i];
         int p  = parent(i);
-        
+
         while (i != 0 && lt(x, heap[p])){
             heap[i]          = heap[p];
             indices[heap[p]] = i;
@@ -103,7 +103,7 @@ class Heap {
 
         indices[n] = heap.size();
         heap.push(n);
-        percolateUp(indices[n]); 
+        percolateUp(indices[n]);
     }
 
     int peek(){

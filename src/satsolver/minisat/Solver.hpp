@@ -25,6 +25,7 @@
 #include "mtl/Heap.h"
 #include "utils/Options.h"
 #include "SolverTypes.hpp"
+#include "satsolver/heuristics/Heuristics.hpp"
 
 #include <vector>
 #include <iostream>
@@ -37,6 +38,7 @@
 namespace MinisatID {
 class PCSolver;
 class ConstraintVisitor;
+class MinisatHeuristic;
 }
 
 namespace Minisat {
@@ -44,16 +46,11 @@ namespace Minisat {
 class Solver: public MinisatID::Propagator {
 	// FIXME returning CRefs is dangerous, as they can be relocated by garbage control!
 public:
-	double random_var_freq;
 	double random_seed;
 	int verbosity;
-	double var_decay;
-	bool rnd_pol; // Use random polarities for branching heuristics.
 	int max_learned_clauses;
 	bool oneshot, assumpset;
 	bool fullmodelcheck; // If true, check whether all clauses are satisfied when a model is found.
-
-	void setInitialPolarity(Atom var, bool initiallyMakeTrue);
 
 private:
 	bool needsimplify;
@@ -170,8 +167,6 @@ public:
 	int getStartLastLevel() const {
 		return trail_lim.size() == 0 ? 0 : trail_lim.last();
 	}
-	void varBumpActivity(Atom v); // Increase a variable with the current 'bump' value.
-	void varReduceActivity(Atom v);
 
 	uint64_t nbVars() const; // The current number of variables.
 
@@ -211,13 +206,11 @@ public:
 
 	int getLevel(Atom x) const;
 
-	Solver(MinisatID::PCSolver* s, bool oneshot);
+	Solver(MinisatID::PCSolver* s, bool oneshot, MinisatID::MinisatHeuristic* heur);
 	virtual ~Solver();
 
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
 	Atom newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
-	void setActivity(Atom var, double activity);
-	double getActivity(Atom var) const;
 
 	void setAssumptions(const std::vector<Lit>& assumps);
 	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
@@ -252,8 +245,6 @@ private:
 	double clause_decay;
 	bool luby_restart;
 	int ccmin_mode; // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
-	int phase_saving; // Controls the level of phase saving (0=none, 1=limited, 2=full).
-	bool rnd_init_act; // Initialize variable activities with a small random value.
 	double garbage_frac; // The fraction of wasted memory allowed before a garbage collection is triggered.
 
 	int restart_first; // The initial restart limit.                                                                (default 100)
@@ -318,26 +309,12 @@ protected:
 		}
 	};
 
-	struct VarOrderLt {
-		const vec<double>& activity;
-		bool operator ()(Atom x, Atom y) const {
-			return activity[x] > activity[y];
-		}
-		VarOrderLt(const vec<double>& act)
-				: activity(act) {
-		}
-	};
-
 	// Solver state
 	bool ok; // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
 
 	double cla_inc; // Amount to bump next clause with.
-	vec<double> activity; // A heuristic measurement of the activity of a variable.
-	double var_inc; // Amount to bump next variable with.
 	OccLists<Lit, vec<Watcher>, WatcherDeleted> watches; // 'watches[lit]' is a list of constraints watching 'lit' (will go there if literal becomes true).
 	vec<lbool> assigns; // The current assignments.
-	vec<char> polarity; // The preferred polarity of each variable.
-	vec<lbool> user_pol; // The users preferred polarity of each variable.
 	vec<char> decision; // Declares if a variable is eligible for selection in the decision heuristic.
 	vec<Lit> trail; // Assignment stack; stores all assigments made in the order they were made.
 	vec<int> trail_lim; // Separator indices for different decision levels in 'trail'.
@@ -346,7 +323,6 @@ protected:
 	int simpDB_assigns; // Number of top-level assignments since last execution of 'simplify()'.
 	int64_t simpDB_props; // Remaining number of propagations that must be made before next execution of 'simplify()'.
 	vec<Lit> assumptions; // Current set of assumptions provided to solve by the user.
-	Heap<VarOrderLt> order_heap; // A priority queue of variables ordered with respect to the variable activity.
 	bool remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
 
 	void addConflict();
@@ -380,10 +356,8 @@ protected:
 	lbool search(int maxconcflicts, bool nosearch);
 	void reduceDB(); // Reduce the set of learnt clauses.
 	void removeSatisfied(vec<CRef>& cs); // Shrink 'cs' to contain only non-satisfied clauses.
-	void rebuildOrderHeap();
 
-	// Maintaining Variable/Clause activity
-	void varBumpActivity(Atom v, double inc); // Increase a variable with the current 'bump' value.
+	// Maintaining Clause activity
 	void claBumpActivity(Clause& c); // Increase a clause with the current 'bump' value.
 
 	// Operations on clauses
@@ -418,6 +392,18 @@ public:
 	double getRandNumber(){
 		return drand(random_seed);
 	}
+	int getRandInt(int max){
+		return irand(random_seed,max);
+	}
+
+private:
+	friend class MinisatID::MinisatHeuristic;
+	friend class MinisatID::VarMTF;
+	MinisatID::MinisatHeuristic* heuristic; // TODO: Jo: I think making this a pointerless attribute would improve speed
+public:
+	MinisatID::MinisatHeuristic& getHeuristic(){
+		return *heuristic;
+	}
 };
 
 //=================================================================================================
@@ -428,33 +414,6 @@ inline CRef Solver::reason(Atom x) const {
 }
 inline int Solver::getLevel(Atom x) const {
 	return vardata[x].level;
-}
-
-inline void Solver::insertVarOrder(Atom x) {
-	if (!order_heap.inHeap(x) && decision[x])
-		order_heap.insert(x);
-}
-
-inline void Solver::varDecayActivity() {
-	var_inc *= (1 / var_decay);
-}
-inline void Solver::varBumpActivity(Atom v) {
-	varBumpActivity(v, var_inc);
-}
-inline void Solver::varReduceActivity(Atom v) {
-	varBumpActivity(v, -var_inc);
-}
-inline void Solver::varBumpActivity(Atom v, double inc) {
-	if ((activity[v] += inc) > 1e100) {
-		// Rescale:
-		for (int i = 0; i < nVars(); i++)
-			activity[i] *= 1e-100;
-		var_inc *= 1e-100;
-	}
-
-	// Update order_heap with respect to new activity:
-	if (order_heap.inHeap(v))
-		order_heap.decrease(v);
 }
 
 inline void Solver::claDecayActivity() {

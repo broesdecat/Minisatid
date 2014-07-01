@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <vector>
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
 
