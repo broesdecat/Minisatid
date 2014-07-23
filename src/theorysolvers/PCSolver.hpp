@@ -125,6 +125,7 @@ public:
 		optimproblem = true;
 	}
 
+	// Note: only call after finishparsing!
 	bool isOptimizationProblem() const {
 		return optimproblem;
 	}

@@ -50,7 +50,7 @@ private:
 	Monitor* monitor;
 	VarCreation* varcreator;
 	SearchEngine* engine;
-	bool oneshot, executed;
+	bool oneshot, executed, optim;
 
 public:
 	Space(const SolverOption& options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.

@@ -13,14 +13,16 @@ Space::Space(const SolverOption& options, bool oneshot) :
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
 				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
 				oneshot(oneshot),
-				executed(false) {
+				executed(false),
+				optim(false) {
 }
 Space::Space(Remapper* remapper, Translator* translator, const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(remapper, translator, options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
 				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
 				oneshot(oneshot),
-				executed(false) {
+				executed(false),
+				optim(false) {
 }
 Space::~Space() {
 	delete (engine);
@@ -40,7 +42,7 @@ bool Space::isCertainlyUnsat() const {
 }
 
 bool Space::isOptimizationProblem() const {
-	return engine->isOptimizationProblem();
+	return optim;
 }
 
 bool Space::isAlwaysAtOptimum() const {
@@ -63,16 +65,20 @@ void Space::add(const Aggregate& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeOrderedList& o){
+	optim = true;
 	// TODO disable in other theories (also other optim)
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeSubset& o){
+	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const OptimizeVar& o){
+	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeAgg& o){
+	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const Symmetry& o){
