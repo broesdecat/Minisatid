@@ -68,6 +68,17 @@ Lit IntVar::getEQLit(Weight bound) {
 	if(it!=eqlits.cend()){
 		return it->second;
 	}
+
+	auto geq = getGEQLit(bound);
+	auto leq = getLEQLit(bound);
+	if(certainlyHasImage() && getPCSolver().rootValue(geq)==l_True){
+		eqlits[bound] = geq;
+		return geq;
+	}else if(certainlyHasImage() && getPCSolver().rootValue(leq)==l_True){
+		eqlits[bound] = leq;
+		return leq;
+	}
+
 	auto head = getPCSolver().getLit(getVarID(), EqType::EQ, bound);
 
 // Adding equality theory turns out to be expensive
@@ -83,7 +94,7 @@ Lit IntVar::getEQLit(Weight bound) {
 //	engine().setActivity(head.getAtom(), act); // TODO in krinkelplanning, good for lazy, not for non-lazy
 
 	eqlits[bound] = head;
-	add(Implication(head, ImplicationType::EQUIVALENT, { ~getNoImageLit(), getGEQLit(bound), getLEQLit(bound) }, true));
+	add(Implication(head, ImplicationType::EQUIVALENT, { ~getNoImageLit(), geq, leq }, true));
 	return head;
 }
 

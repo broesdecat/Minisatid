@@ -15,6 +15,8 @@
 using namespace std;
 using namespace MinisatID;
 
+#warning todo: simplify equivalences A <=> B
+
 void TheorySimplifier::add(const CPBinaryRel& obj) {
 	auto canon = canonify(obj);
 
