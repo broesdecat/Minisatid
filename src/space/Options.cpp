@@ -64,7 +64,7 @@ SolverOption::SolverOption():
 		outputfile(""),
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
 		fullmodelcheck(false),
-		usesimplifier(false),
+		usesimplifier(true),
 		userandomizedrestarts(true),
 		flatzinc_a(false){
 	stringstream str;
