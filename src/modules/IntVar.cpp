@@ -72,11 +72,11 @@ Lit IntVar::getEQLit(Weight bound) {
 	auto geq = getGEQLit(bound);
 	auto leq = getLEQLit(bound);
 	if(certainlyHasImage() && getPCSolver().rootValue(geq)==l_True){
-		eqlits[bound] = geq;
-		return geq;
-	}else if(certainlyHasImage() && getPCSolver().rootValue(leq)==l_True){
 		eqlits[bound] = leq;
 		return leq;
+	}else if(certainlyHasImage() && getPCSolver().rootValue(leq)==l_True){
+		eqlits[bound] = geq;
+		return geq;
 	}
 
 	auto head = getPCSolver().getLit(getVarID(), EqType::EQ, bound);
