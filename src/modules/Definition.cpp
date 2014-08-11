@@ -63,7 +63,7 @@ void Definition::addRule(bool onlyif, int defID, bool conj, Atom head, const lit
 	}
 
 	auto prevrule = it->second;
-	if(prevrule->onlyif != prevrule->onlyif){
+	if(onlyif != prevrule->onlyif){
 		throw idpexception("Rules on the same head in the same definition need to have the same semantics.");
 	}
 	if (prevrule->conjunctive) { // introduce new var (we need disjunctive root anyway)
