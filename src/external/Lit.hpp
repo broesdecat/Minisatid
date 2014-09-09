@@ -44,9 +44,6 @@ struct VarID{
 struct Lit {
 	int x;
 
-	// Use this as a constructor:
-	friend Lit mkLit(Atom var, bool sign = false);
-
 	bool operator ==(Lit p) const {
 		return x == p.x;
 	}
@@ -65,7 +62,7 @@ struct Lit {
 	}
 };
 
-inline Lit mkLit(Atom var, bool sign) {
+inline Lit mkLit(Atom var, bool sign = false) {
 	MAssert(var>=0);
 	Lit p;
 	p.x = var + var + (int) sign;
