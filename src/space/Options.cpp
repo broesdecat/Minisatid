@@ -60,7 +60,6 @@ SolverOption::SolverOption():
 		lazyheur(false),
 		watchedrelevance(false),
 		expandimmediately(false),
-		usegecode(false),
 		outputfile(""),
 		maxNbOfLearnedClauses(numeric_limits<int>::max()),
 		fullmodelcheck(false),

@@ -13,7 +13,6 @@ MinisatID is the search algorithm used in the knowledge base system IDP, support
 - Unfounded set detection algorithms to support inductive definitions (e.g. reachability).
 - Branch-and-bounds optimization.
 - Lazy clause generation for finite domain constraints (over integers).
-- Integration with the constraint programming engine gecode.
 - Dynamic symmetry breaking using minisat-SPFS as backend (to be integrated soon).
 - Interface for incrementally adding any type of variable or constraint, minimally disturbing the current state (used in lazy grounding algorithms).
 - Developed by Broes De Cat and formerly by Maarten Mariën.
@@ -24,7 +23,6 @@ Required software packages:
 - Cmake build tools.
 - Bison 2.6 and Flex parser generator software.
 - Pdflatex and doxygen for building the documentation.
-- (optional) Gecode for constraint programming support.
 
 Assume MinisatID is unpacked in <minisatiddir>, you want to build in <builddir> (cannot be the same as <minisatiddir>) and install in <installdir>. 
 Building and installing is then achieved by executing the following commands:

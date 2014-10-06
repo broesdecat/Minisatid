@@ -11,7 +11,6 @@
 #include <iostream>
 #include "satsolver/SATSolver.hpp"
 #include "satsolver/heuristics/Heuristics.hpp"
-#include "modules/cpsolver/CPSolver.hpp"
 #include "modules/IntVar.hpp"
 
 #include "theorysolvers/PropagatorFactory.hpp"
@@ -49,12 +48,6 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
-	if(modes.usegecode){
-#ifdef CPSUPPORT
-		cpsolver = new CPSolver(this);
-#endif
-	}
-
 	auto propfactory = new PropagatorFactory(modes, this);
 	if(modes.usesimplifier && not modes.lazy){
 		factory = new TheorySimplifier(propfactory);
@@ -88,29 +81,6 @@ PCSolver::~PCSolver() {
 	// NOTE: solvers are deleted by the queue!
 	delete (factory);
 	delete (trail);
-}
-
-bool PCSolver::hasCPSolver() const {
-#ifdef CPSUPPORT
-	return cpsolver!=NULL && cpsolver->isPresent();
-#else
-	return false;
-#endif
-}
-SATVAL PCSolver::findNextCPModel() {
-	auto result = SATVAL::POS_SAT;
-	if(not hasCPSolver()){
-		result = SATVAL::UNSAT;
-	}else{
-#ifdef CPSUPPORT
-		if(not getCPSolver()->hasData()) {
-			result = SATVAL::UNSAT;
-		}else{
-			result = getCPSolver()->findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
-		}
-#endif
-	}
-	return result;
 }
 
 void PCSolver::invalidate(litlist& clause) const {
