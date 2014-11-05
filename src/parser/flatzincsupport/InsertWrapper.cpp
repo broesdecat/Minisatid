@@ -291,7 +291,8 @@ void InsertWrapper::add(Constraint* var) {
 		//storage->addBinI(reiffalse, args[1], MinisatID::EqType::EQ, 0);
 		//storage->addClause( { reiftrue }, { args[0] });
 		//storage->addClause( { args[0], reiffalse }, { });
-		storage->addBinI(-args[0], args[1], MinisatID::EqType::LEQ, 0);
+		storage->addBinI(-args[0], args[1], MinisatID::EqType::EQ, 0);
+    storage->addBinI(args[0], args[1], MinisatID::EqType::EQ, 1);
 		break;
 	}
 	case booland: {
