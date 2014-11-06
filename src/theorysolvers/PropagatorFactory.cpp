@@ -268,12 +268,6 @@ void PropagatorFactory::add(const Symmetry& formula) {
 	new SymmetryPropagator(getEnginep(), formula);
 }
 
-template<class T>
-void PropagatorFactory::addCP(const T& formula) {
-	throw idpexception("Deleting gecode CP-SUPPORT");
-	guaranteeAtRootLevel();
-}
-
 void PropagatorFactory::add(const IntVarRange& obj) {
 	notifyMonitorsOfAdding(obj);
         if (intvars.find(obj.varID) != intvars.cend()) {
@@ -449,19 +443,9 @@ void PropagatorFactory::add(const CPProdWeighted& obj) {
         new FDProdConstraint(getEnginep(), obj.head, conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
 }
 
-void PropagatorFactory::add(const CPCount& obj) {
-	notifyMonitorsOfAdding(obj);
-        throw notYetImplemented("No support for handling CPCount without gecode yet.");
-}
-
 void PropagatorFactory::add(const CPAllDiff& obj) {
 	notifyMonitorsOfAdding(obj);
-        throw notYetImplemented("No support for handling CPAllDiff without gecode yet.");
-}
-
-void PropagatorFactory::add(const CPElement& obj) {
-	notifyMonitorsOfAdding(obj);
-        throw notYetImplemented("No support for handling CPElement without gecode yet.");
+        throw notYetImplemented("No support for alldif constraints yet.");
 }
 
 // NOTE: need to guarantee that constraints are never added at a level where they will not have full effect.

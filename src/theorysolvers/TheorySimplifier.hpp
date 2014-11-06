@@ -196,9 +196,6 @@ public:
 		internalAdd(obj);
 	}
 	virtual void add(const CPBinaryRel& obj);
-	virtual void add(const CPCount& obj) {
-		internalAdd(obj);
-	}
 	virtual void add(const CPBinaryRelVar& obj) {
 		internalAdd(obj);
 	}
@@ -206,9 +203,6 @@ public:
 		internalAdd(obj);
 	}
 	virtual void add(const CPProdWeighted& obj) {
-		internalAdd(obj);
-	}
-	virtual void add(const CPElement& obj) {
 		internalAdd(obj);
 	}
 	virtual void add(const LazyGroundLit& obj) {

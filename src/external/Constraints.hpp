@@ -211,20 +211,6 @@ public:
 	}
 };
 template<typename Remapper>
-class ExtAdd<CPCount, Remapper> {
-public:
-	CPCount extAdd(Remapper& r, const CPCount& obj) {
-		return CPCount(map(obj.varIDs, r), obj.eqbound, obj.rel, map(obj.rhsvar, r));
-	}
-};
-template<typename Remapper>
-class ExtAdd<CPElement, Remapper> {
-public:
-	CPElement extAdd(Remapper& r, const CPElement& obj) {
-		return CPElement(map(obj.varIDs, r), map(obj.index, r), map(obj.rhs, r));
-	}
-};
-template<typename Remapper>
 class ExtAdd<CPAllDiff, Remapper> {
 public:
 	CPAllDiff extAdd(Remapper& r, const CPAllDiff& obj) {

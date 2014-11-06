@@ -96,13 +96,7 @@ void Space::add(const IntVarRange& o){
 void Space::add(const CPAllDiff& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
-void Space::add(const CPElement& o){
-	internalAdd(o, o.theoryid, *getEngine());
-}
 void Space::add(const CPBinaryRel& o){
-	internalAdd(o, o.theoryid, *getEngine());
-}
-void Space::add(const CPCount& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const CPBinaryRelVar& o){

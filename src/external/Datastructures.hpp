@@ -612,53 +612,12 @@ struct CPProdWeighted: public Constraint {
 	}
 };
 
-// Encodes: (number of varIDS equal to eqbound) rel rhsvar
-struct CPCount: public Constraint {
-	std::vector<VarID> varIDs;
-	Weight eqbound;
-	EqType rel;
-	VarID rhsvar;
-
-	CPCount(const std::vector<VarID>& varIDs, const Weight& eqbound, EqType rel, VarID rhsvar)
-			:
-				varIDs(varIDs),
-				eqbound(eqbound),
-				rel(rel),
-				rhsvar(rhsvar) {
-	}
-
-	DATASTRUCTURE_DECLAREACCEPT
-
-	virtual std::vector<Atom> getAtoms() const {
-		return {};
-	}
-};
-
 struct CPAllDiff: public Constraint {
 	std::vector<VarID> varIDs;
 
 	CPAllDiff(const std::vector<VarID>& varIDs)
 			:
 				varIDs(varIDs) {
-	}
-
-	DATASTRUCTURE_DECLAREACCEPT
-
-	virtual std::vector<Atom> getAtoms() const {
-		return {};
-	}
-};
-
-struct CPElement: public Constraint {
-	std::vector<VarID> varIDs;
-	VarID index;
-	VarID rhs;
-
-	CPElement(const std::vector<VarID>& varids, VarID index, VarID rhs)
-			:
-				varIDs(varids),
-				index(index),
-				rhs(rhs) {
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT

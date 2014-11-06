@@ -88,11 +88,9 @@ public:
 	virtual void add(const IntVarRange&);
 	virtual void add(const CPAllDiff&);
 	virtual void add(const CPBinaryRel&);
-	virtual void add(const CPCount&);
 	virtual void add(const CPBinaryRelVar&);
 	virtual void add(const CPSumWeighted&);
 	virtual void add(const CPProdWeighted&);
-	virtual void add(const CPElement&) ;
 	virtual void add(const LazyGroundLit&);
 	virtual void add(const LazyGroundImpl&);
 	virtual void add(const LazyAddition&);

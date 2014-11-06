@@ -185,12 +185,6 @@ public:
 		target() << "Added binary constraint " << print(rel.head) << " <=> " << print(rel.varID) << " " << rel.rel << " " << rel.bound << "\n";
 	}
 
-	void add(const CPCount& obj) {
-		target() << "Added count constraint: count of variables { ";
-		printConcatWithFunctor(obj.varIDs, ", ", target(), Print<VarID>(getPrinter()));
-		target() << " } equal to " << obj.eqbound << obj.rel << print(obj.rhsvar) << "\n";
-	}
-
 	void add(const CPBinaryRelVar& rel) {
 		target() << "Added binary constraint " << print(rel.head) << " <=> " << print(rel.lhsvarID) << " " << rel.rel << " " << print(rel.rhsvarID)
 				<< "\n";
@@ -222,12 +216,6 @@ public:
 			target() << "if " << print(prod.conditions[i]) << " " << print(prod.varIDs[i]);
 		}
 		target() << " }) " << prod.rel << " " << print(prod.boundID) << "\n";
-	}
-
-	void add(const CPElement& rel) {
-		target() << "Added element constraint {";
-		printConcatWithFunctor(rel.varIDs, ", ", target(), Print<VarID>(getPrinter()));
-		target() << "}[" << print(rel.index) << "]=" << print(rel.rhs) << "\n";
 	}
 
 	void add(const LazyGroundLit& lg) {
