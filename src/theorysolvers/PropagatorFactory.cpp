@@ -248,15 +248,8 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 
 void PropagatorFactory::add(const OptimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
-
-	if (getEngine().modes().usegecode) {
-		throw idpexception("Gecode cannot be used to optimize over finite domain variables at the moment");
-	}
-
 	getEngine().notifyOptimizationProblem();
-
 	guaranteeAtRootLevel();
-
 	auto it = intvars.find(formula.varID);
 	if (it == intvars.cend()) {
 		stringstream ss;
@@ -275,40 +268,21 @@ void PropagatorFactory::add(const Symmetry& formula) {
 	new SymmetryPropagator(getEnginep(), formula);
 }
 
-template<class T>
-void PropagatorFactory::addCP(const T&
-#ifdef CPSUPPORT
-		formula
-#endif
-		) {
-	MAssert(getEngine().modes().usegecode);
-	guaranteeAtRootLevel();
-#ifndef CPSUPPORT
-	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
-#else
-	CPStorage::getStorage()->add(formula);
-#endif
-}
-
 void PropagatorFactory::add(const IntVarRange& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		if (intvars.find(obj.varID) != intvars.cend()) {
-			stringstream ss;
-			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
-			throw idpexception(ss.str());
-		}
-		IntVar* intvar = NULL;
-		if (not isNegInfinity(obj.minvalue) && not isPosInfinity(obj.maxvalue) && abs(obj.maxvalue - obj.minvalue) < 100) {
-			intvar = new RangeIntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
-		} else {
-			intvar = new LazyIntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit()); // TODO also for enum variables
-		}
-		intvars.insert({ obj.varID, new IntView(intvar, intvar->getVarID(), Weight(0)) });
-		intvar->finish();
-	}
+        if (intvars.find(obj.varID) != intvars.cend()) {
+                stringstream ss;
+                ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
+                throw idpexception(ss.str());
+        }
+        IntVar* intvar = NULL;
+        if (not isNegInfinity(obj.minvalue) && not isPosInfinity(obj.maxvalue) && abs(obj.maxvalue - obj.minvalue) < 100) {
+                intvar = new RangeIntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
+        } else {
+                intvar = new LazyIntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit()); // TODO also for enum variables
+        }
+        intvars.insert({ obj.varID, new IntView(intvar, intvar->getVarID(), Weight(0)) });
+        intvar->finish();
 }
 
 void PropagatorFactory::add(const BoolVar&) {
@@ -316,60 +290,48 @@ void PropagatorFactory::add(const BoolVar&) {
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		if (intvars.find(obj.varID) != intvars.cend()) {
-			stringstream ss;
-			ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
-			throw idpexception(ss.str());
-		}
-		auto intvar = new EnumIntVar(getEnginep(), obj.varID, obj.values, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
-		intvars.insert( { obj.varID, new IntView(intvar, obj.varID, Weight(0)) });
-		intvar->finish();
-	}
+        if (intvars.find(obj.varID) != intvars.cend()) {
+                stringstream ss;
+                ss << "Integer variable " << toString(obj.varID, getEngine()) << " was declared twice.\n";
+                throw idpexception(ss.str());
+        }
+        auto intvar = new EnumIntVar(getEnginep(), obj.varID, obj.values, obj.partial?obj.possiblynondenoting:getEngine().getFalseLit());
+        intvars.insert( { obj.varID, new IntView(intvar, obj.varID, Weight(0)) });
+        intvar->finish();
 }
 
 void PropagatorFactory::add(const CPBinaryRel& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		Implication eq(obj.head, ImplicationType::EQUIVALENT, { }, true);
-		auto left = getIntView(obj.varID, Weight(0));
-		switch (obj.rel) {
-		case EqType::EQ:
-			eq.body.push_back(left->getEQLit(obj.bound));
-			break;
-		case EqType::NEQ:
-			eq.body.push_back(~left->getEQLit(obj.bound));
-			break;
-		case EqType::GEQ:
-			eq.body.push_back(left->getGEQLit(obj.bound));
-			break;
-		case EqType::G:
-			eq.body.push_back(left->getGEQLit(obj.bound + 1));
-			break;
-		case EqType::LEQ:
-			eq.body.push_back(left->getLEQLit(obj.bound));
-			break;
-		case EqType::L:
-			eq.body.push_back(left->getLEQLit(obj.bound - 1));
-			break;
-		}
-		add(eq);
-	}
+        Implication eq(obj.head, ImplicationType::EQUIVALENT, { }, true);
+        auto left = getIntView(obj.varID, Weight(0));
+        switch (obj.rel) {
+        case EqType::EQ:
+                eq.body.push_back(left->getEQLit(obj.bound));
+                break;
+        case EqType::NEQ:
+                eq.body.push_back(~left->getEQLit(obj.bound));
+                break;
+        case EqType::GEQ:
+                eq.body.push_back(left->getGEQLit(obj.bound));
+                break;
+        case EqType::G:
+                eq.body.push_back(left->getGEQLit(obj.bound + 1));
+                break;
+        case EqType::LEQ:
+                eq.body.push_back(left->getLEQLit(obj.bound));
+                break;
+        case EqType::L:
+                eq.body.push_back(left->getLEQLit(obj.bound - 1));
+                break;
+        }
+        add(eq);
 }
 
 void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		auto leftint = getIntView(obj.lhsvarID, Weight(0));
-		auto rightint = getIntView(obj.rhsvarID, Weight(0));
-		new BinaryConstraint(getEnginep(), leftint, obj.rel, rightint, obj.head);
-	}
+        auto leftint = getIntView(obj.lhsvarID, Weight(0));
+        auto rightint = getIntView(obj.rhsvarID, Weight(0));
+        new BinaryConstraint(getEnginep(), leftint, obj.rel, rightint, obj.head);
 }
 
 template<class Elem>
@@ -407,113 +369,83 @@ IntView* PropagatorFactory::getIntView(VarID varID, Weight bound){
 
 void PropagatorFactory::add(const CPSumWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(createUnconditional(obj, 0));
-	} else {
-		auto allknown = true;
-		for(auto varid : obj.varIDs){
-			auto var = getIntView(varid, Weight(0));
-			if((var->isPartial() && not var->certainlyHasImage()) || var->origMinValue()!=var->origMaxValue()){
-				allknown = false;
-				break;
-			}
-		}
-		if(allknown){
-			WLSet set(getEngine().newSetID());
-			for(uint i=0; i<obj.varIDs.size(); ++i){
-				set.wl.push_back({obj.conditions[i], getIntView(obj.varIDs[i], Weight(0))->origMinValue() * obj.weights[i]});
-			}
-			add(set);
-			switch(obj.rel){
-			case EqType::EQ:{
-				auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
-				add(Aggregate(ts1, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
-				add(Aggregate(ts2, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
-				add(Implication(obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, true));
-				break;}
-			case EqType::NEQ:{
-				auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
-				add(Aggregate(ts1, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
-				add(Aggregate(ts2, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
-				add(Implication(obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, false));
-				break;}
-			case EqType::GEQ:
-				add(Aggregate(obj.head, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
-				break;
-			case EqType::LEQ:
-				add(Aggregate(obj.head, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
-				break;
-			case EqType::L:
-				add(Aggregate(obj.head, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
-				break;
-			case EqType::G:
-				add(Aggregate(obj.head, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
-				break;
-			}
-		}else{
-			vector<IntView*> vars;
-			litlist conditions;
-			for (size_t i=0; i< obj.varIDs.size(); ++i) {
-				auto var = getIntView(obj.varIDs[i], 0);
-				vars.push_back(var);
-				if(not var->isPartial()){
-					conditions.push_back(obj.conditions[i]);
-				}else{
-					conditions.push_back(mkPosLit(getEngine().newAtom()));
-					add(Implication(conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
-				}
-			}
-			new FDSumConstraint(getEnginep(), obj.head, conditions, vars, obj.weights, obj.rel, obj.bound);
-		}
-	}
+        auto allknown = true;
+        for(auto varid : obj.varIDs){
+                auto var = getIntView(varid, Weight(0));
+                if((var->isPartial() && not var->certainlyHasImage()) || var->origMinValue()!=var->origMaxValue()){
+                        allknown = false;
+                        break;
+                }
+        }
+        if(allknown){
+                WLSet set(getEngine().newSetID());
+                for(uint i=0; i<obj.varIDs.size(); ++i){
+                        set.wl.push_back({obj.conditions[i], getIntView(obj.varIDs[i], Weight(0))->origMinValue() * obj.weights[i]});
+                }
+                add(set);
+                switch(obj.rel){
+                case EqType::EQ:{
+                        auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
+                        add(Aggregate(ts1, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+                        add(Aggregate(ts2, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+                        add(Implication(obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, true));
+                        break;}
+                case EqType::NEQ:{
+                        auto ts1 = mkPosLit(getEngine().newAtom()), ts2 = mkPosLit(getEngine().newAtom());
+                        add(Aggregate(ts1, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+                        add(Aggregate(ts2, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+                        add(Implication(obj.head, ImplicationType::EQUIVALENT, {ts1, ts2}, false));
+                        break;}
+                case EqType::GEQ:
+                        add(Aggregate(obj.head, set.setID, obj.bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+                        break;
+                case EqType::LEQ:
+                        add(Aggregate(obj.head, set.setID, obj.bound, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+                        break;
+                case EqType::L:
+                        add(Aggregate(obj.head, set.setID, obj.bound-1, AggType::SUM, AggSign::UB, AggSem::COMP, -1, false));
+                        break;
+                case EqType::G:
+                        add(Aggregate(obj.head, set.setID, obj.bound+1, AggType::SUM, AggSign::LB, AggSem::COMP, -1, false));
+                        break;
+                }
+        }else{
+                vector<IntView*> vars;
+                litlist conditions;
+                for (size_t i=0; i< obj.varIDs.size(); ++i) {
+                        auto var = getIntView(obj.varIDs[i], 0);
+                        vars.push_back(var);
+                        if(not var->isPartial()){
+                                conditions.push_back(obj.conditions[i]);
+                        }else{
+                                conditions.push_back(mkPosLit(getEngine().newAtom()));
+                                add(Implication(conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
+                        }
+                }
+                new FDSumConstraint(getEnginep(), obj.head, conditions, vars, obj.weights, obj.rel, obj.bound);
+        }
 }
 
 void PropagatorFactory::add(const CPProdWeighted& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(createUnconditional(obj, 1));
-	} else {
-		vector<IntView*> vars;
-		litlist conditions;
-		for (size_t i=0; i< obj.varIDs.size(); ++i) {
-			auto var = getIntView(obj.varIDs[i], 0);
-			vars.push_back(var);
-			if(not var->isPartial()){
-				conditions.push_back(obj.conditions[i]);
-			}else{
-				conditions.push_back(mkPosLit(getEngine().newAtom()));
-				add(Implication(conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
-			}
-		}
-		new FDProdConstraint(getEnginep(), obj.head, conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
-	}
-}
-
-void PropagatorFactory::add(const CPCount& obj) {
-	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		throw notYetImplemented("No support for handling CPCount without gecode yet.");
-	}
+        vector<IntView*> vars;
+        litlist conditions;
+        for (size_t i=0; i< obj.varIDs.size(); ++i) {
+                auto var = getIntView(obj.varIDs[i], 0);
+                vars.push_back(var);
+                if(not var->isPartial()){
+                        conditions.push_back(obj.conditions[i]);
+                }else{
+                        conditions.push_back(mkPosLit(getEngine().newAtom()));
+                        add(Implication(conditions[i], ImplicationType::EQUIVALENT, {obj.conditions[i], not var->getNoImageLit()}, true));
+                }
+        }
+        new FDProdConstraint(getEnginep(), obj.head, conditions, vars, obj.prodWeight, obj.rel, getIntView(obj.boundID, 0));
 }
 
 void PropagatorFactory::add(const CPAllDiff& obj) {
 	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		throw notYetImplemented("No support for handling CPAllDiff without gecode yet.");
-	}
-}
-
-void PropagatorFactory::add(const CPElement& obj) {
-	notifyMonitorsOfAdding(obj);
-	if (getEngine().modes().usegecode) {
-		addCP(obj);
-	} else {
-		throw notYetImplemented("No support for handling CPElement without gecode yet.");
-	}
+        throw notYetImplemented("No support for alldif constraints yet.");
 }
 
 // NOTE: need to guarantee that constraints are never added at a level where they will not have full effect.
@@ -766,10 +698,6 @@ void PropagatorFactory::add(const TwoValuedRequirement& object) {
 
 void PropagatorFactory::add(const LazyAtom& object) {
 	notifyMonitorsOfAdding(object);
-
-	if(getEngine().modes().usegecode){
-		throw idpexception("Gecode does not support lazily expanded atoms yet.");
-	}
 	std::vector<IntView*> argvars;
 	for (auto arg : object.args) {
 		argvars.push_back(getIntView(arg, 0));

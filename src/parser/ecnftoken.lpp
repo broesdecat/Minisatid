@@ -97,8 +97,6 @@ WHITESPACE	[\t\r ]*
 <theory>^"DISTINCT"		{return ET::DISTINCT;}
 <theory>^"CPSUM"		{return ET::CPSUM;}
 <theory>^"CPPROD"		{return ET::CPPROD;}
-<theory>^"COUNT"		{return ET::COUNT;}
-<theory>^"ELEMENT"		{return ET::ELEMENT;}
 
 <theory>^"SubTheory"		{return ET::SUBTHEORY;}
 

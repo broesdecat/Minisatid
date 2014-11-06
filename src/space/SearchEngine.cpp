@@ -94,13 +94,6 @@ OptimStatement& SearchEngine::getNextOptimum() {
 	return getSolver()->getNextOptimum();
 }
 
-bool SearchEngine::hasCPSolver() const {
-	return getSolver()->hasCPSolver();
-}
-SATVAL SearchEngine::findNextCPModel() {
-	return getSolver()->findNextCPModel();
-}
-
 void SearchEngine::notifyTerminateRequested() {
 	getSolver()->notifyTerminateRequested();
 }

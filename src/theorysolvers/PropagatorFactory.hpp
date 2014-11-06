@@ -187,9 +187,7 @@ public:
 	void add(const CPBinaryRelVar& object);
 	void add(const CPSumWeighted& object);
 	void add(const CPProdWeighted& object);
-	void add(const CPCount& object);
 	void add(const CPAllDiff& object);
-	void add(const CPElement& object);
 	void add(const LazyGroundLit& object);
 	void add(const LazyGroundImpl& object);
 	void add(const LazyAddition& object);
@@ -206,8 +204,6 @@ public:
 	virtual IntView* getIntView(VarID varID, Weight bound);
 
 private:
-	template<class T>
-	void addCP			(const T& formula);
 
 	void internalAdd(const Disjunction& sentence);
 

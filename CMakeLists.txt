@@ -26,7 +26,6 @@ if(GPERF)
 	addToCXX("-fno-omit-frame-pointer")
 endif()
 
-OPTION(WITHGECODE		"Include gecode support for cp (need gecode to be installed)" OFF)
 OPTION(BUILDTESTS  		"Run the gtest tests" ON)
 OPTION(GMP  			"Enable gmp support" OFF)
 
@@ -43,16 +42,6 @@ if(GMP)
 else()
 	addToCXX("-D NO_GMP")
 	message("WARNING: this IntegerType may not be suitable for some input file. Consider using GMP")
-endif()
-
-if(WITHGECODE)
-	find_package(Gecode)
-	if(GECODE_FOUND)
-		include_directories(${Gecode_INCLUDE_DIRS})
-		set(LIBS ${LIBS} ${Gecode_LIBRARIES})
-	else()
-		message(FATAL_ERROR "Gecode not found")
-	endif()
 endif()
 
 ### 32 bits

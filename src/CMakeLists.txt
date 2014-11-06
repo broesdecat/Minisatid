@@ -31,23 +31,10 @@ addToCXX("-D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}-${MinisatID_VERSION_PATCH}\\\"")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"\"")
 
-# CP interface
-file(GLOB_RECURSE CP_SOURCES "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/*.cpp")
-list(APPEND CP_SOURCES "${PROJECT_SOURCE_DIR}/src/modules/CPSolver.cpp")
-file(GLOB_RECURSE CP_HEADERS "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/*.hpp")
-list(APPEND CP_HEADERS "${PROJECT_SOURCE_DIR}/src/modules/CPSolver.hpp")
-if(WITHGECODE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D CPSUPPORT")
-endif()
-
 set(LIBMINISATIDCPPFILES "")
 file(GLOB_RECURSE LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE LIBMINISATIDHPPFILES "${PROJECT_SOURCE_DIR}/src/*.hpp")
 LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/Main.cpp")
-if(NOT WITHGECODE)
-	LIST(REMOVE_ITEM LIBMINISATIDCPPFILES ${CP_SOURCES})
-	LIST(REMOVE_ITEM LIBMINISATIDHPPFILES ${CP_HEADERS})
-endif()
 
 find_package(BISON)
 find_package(FLEX)
@@ -102,4 +89,3 @@ install (TARGETS minisatid minisatid-bin
 
 message(STATUS "Options:")
 message(STATUS "General minisatid options: ${CMAKE_CXX_FLAGS}")
-message(STATUS "use gecode support for cp ${WITHGECODE}")

@@ -73,7 +73,7 @@ protected:
 };
 
 enum class MXState {
-	MODEL, UNSAT, UNKNOWN
+	MODEL, MODEL_FINAL, UNSAT, UNKNOWN
 };
 
 struct OptimStatement;
@@ -117,8 +117,10 @@ private:
 	void innerExecute();
 
 	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
+        MXState findNext();
 	void invalidate(litlist& clause);
-	SATVAL invalidateModel(const litlist& clause);
+        SATVAL invalidateModel();
+	SATVAL invalidateModel(Disjunction& clause);
 
 	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
 	litlist savedinvalidation;

@@ -33,6 +33,21 @@
 using namespace std;
 using namespace MinisatID;
 
+
+void Monitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
+	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
+		if (remapper->wasInput(propagation)) {
+			(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
+		}
+	}
+}
+
+void Monitor::notifyMonitor(int untillevel) {
+	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
+		(*i)->notifyBacktracked(untillevel);
+	}
+}
+
 VarID VarCreation::createID(){
 	return {remapper->getNewID()};
 }
@@ -41,26 +56,47 @@ Atom VarCreation::createVar() {
 	return remapper->getNewVar();
 }
 
+/*
+ * Task
+ */
 void Task::execute() {
 	innerExecute();
+}
+void Task::notifyTerminateRequested() {
+	terminate = true;
+}
+
+/*
+ * SpaceTask
+ */
+SpaceTask::SpaceTask(Space* space)
+		: Task(space->getOptions()), space(space) {
+
+}
+SearchEngine& SpaceTask::getSolver() const {
+	return *getSpace()->getEngine();
 }
 void SpaceTask::execute() {
 	space->getEngine()->finishParsing();
 	space->notifyInferenceExecuted();
 	Task::execute();
 }
-void Task::notifyTerminateRequested() {
-	terminate = true;
-}
 void SpaceTask::notifyTerminateRequested() {
 	Task::notifyTerminateRequested();
 	space->getEngine()->notifyTerminateRequested();
 }
 
+/*
+ * MXTask
+ */
+
 MXStatistics MXTask::getStats() const{
 	return getSpace()->getStats();
 }
 
+/*
+ * ModelExpand
+ */
 // NOTE: EXTERNAL literals
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
 		: MXTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
@@ -78,15 +114,6 @@ int ModelExpand::getNbModelsFound() const {
 		return 0;
 	}
 	return _solutions->getNbModelsFound();
-}
-
-SearchEngine& SpaceTask::getSolver() const {
-	return *getSpace()->getEngine();
-}
-
-SpaceTask::SpaceTask(Space* space)
-		: Task(space->getOptions()), space(space) {
-
 }
 
 const modellist& ModelExpand::getSolutions() const {
@@ -243,67 +270,53 @@ bool findmoreModels(const ModelExpandOptions& options, ModelManager* m) {
  * and can be backtracked!
  */
 MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& options) {
-	bool moremodels = true; // True if more models might exist
 	getSolver().setAssumptions(assmpt);
-	while (moremodels && findmoreModels(options, _solutions)) {
-		auto state = getSolver().solve(true);
-		if (state == l_Undef || terminateRequested()) {
-			return MXState::UNKNOWN;
-		}
-		bool modelfound = state == l_True;
+	auto state = MXState::MODEL;
+	while (state == MXState::MODEL && findmoreModels(options, _solutions)) {
+		state = findNext();
+	}
+	return state;
+}
 
-		if (not modelfound) {
-			moremodels = false;
-			break;
-		}
-
-		addModel(getSpace()->getEngine()->getModel());
-
-		// => first check whether there might be more CP models before backtracking completely!
-		// Probably better refactor to put this deeper?
-		bool morecpmodels = getSolver().hasCPSolver();
-		if (morecpmodels) {
-			//Check for more models with different var assignment
-			while (morecpmodels && findmoreModels(options, _solutions)) {
-				if (getSolver().findNextCPModel() == SATVAL::UNSAT) {
-					morecpmodels = false;
-				} else {
-					addModel(getSpace()->getEngine()->getModel());
-				}
-			}
-		}
-
-		if (not findmoreModels(options, _solutions)) { // Do not invalidate if enough models have been found
-			break;
-		}
-
-		//Invalidate SAT model
-		if (getSolver().moreModelsPossible()) { //choices were made, so other models possible
-			Disjunction invalidation({});
-			getSolver().invalidate(invalidation.literals);
-			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
-		} else {
-			if (not morecpmodels) {
-				moremodels = false;
-			}
-		}
+MXState ModelExpand::findNext() {
+	auto state = getSolver().solve(true);
+	if (state == l_Undef || terminateRequested()) {
+		return MXState::UNKNOWN;
+	}
+	bool modelfound = state == l_True;
+	if (not modelfound) {
+		return MXState::UNSAT;
 	}
 
-	return moremodels ? MXState::MODEL : MXState::UNSAT;
+	addModel(getSpace()->getEngine()->getModel());
+	//Invalidate SAT model
+	if (!getSolver().moreModelsPossible()) {
+		return MXState::MODEL_FINAL;
+	}
+	//choices were made, so other models possible
+	auto invalidatedState = invalidateModel();
+	if(invalidatedState != SATVAL::POS_SAT){
+		return MXState::MODEL_FINAL;
+	}
+	return MXState::MODEL;
+}
+
+SATVAL ModelExpand::invalidateModel() {
+	Disjunction invalidation({});
+	getSolver().invalidate(invalidation.literals);
+	return invalidateModel(invalidation);
 }
 
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
-SATVAL ModelExpand::invalidateModel(const litlist& clause) {
-	Disjunction d(clause);
-
+SATVAL ModelExpand::invalidateModel(Disjunction& clause) {
 	if (getOptions().verbosity >= 3) {
 		clog << "Adding model-invalidating clause: [ ";
-		clog << getSpace()->toString(d.literals);
+		clog << getSpace()->toString(clause.literals);
 		clog << "]\n";
 	}
-	internalAdd(d, getSolver().getBaseTheoryID(), getSolver());
+	internalAdd(clause, getSolver().getBaseTheoryID(), getSolver());
 	return getSolver().satState();
 }
 
@@ -467,7 +480,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 
 		if (not unsatreached) {
 			if (getSolver().moreModelsPossible()) { //choices were made, so other models possible
-				unsatreached = invalidateModel(invalidation.literals) == SATVAL::UNSAT;
+				unsatreached = invalidateModel(invalidation) == SATVAL::UNSAT;
 			} else {
 				unsatreached = true;
 			}
@@ -524,24 +537,13 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 	return unsatreached && modelfound;
 }
 
-void Monitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
-	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
-		if (remapper->wasInput(propagation)) {
-			(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
-		}
-	}
-}
-
-void Monitor::notifyMonitor(int untillevel) {
-	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
-		(*i)->notifyBacktracked(untillevel);
-	}
-}
-
 void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 	printer->notifyCurrentOptimum(value);
 }
 
+/*
+ * UnitPropagate
+ */
 literallist UnitPropagate::getEntailedLiterals() const {
 	auto lits = getSolver().getEntailedLiterals();
 	literallist literals;
@@ -576,7 +578,9 @@ void UnitPropagate::writeOutEntailedLiterals() {
 	output << "\n";
 	resman->close();
 }
-
+/*
+ * Transform
+ */
 void Transform::innerExecute() {
 	std::shared_ptr<ResMan> resfile(createResMan(getSpace()->getOptions().outputfile));
 	ostream output(resfile->getBuffer());

@@ -65,9 +65,6 @@ public:
 	bool hasNextOptimum() const;
 	OptimStatement& getNextOptimum();
 
-	bool hasCPSolver() const;
-	SATVAL findNextCPModel();
-
 	void notifyTerminateRequested();
 
 	void saveState();

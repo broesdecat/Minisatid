@@ -71,9 +71,6 @@ public:
 	virtual void add(const CPBinaryRel&) {
 		UNHANDLED("binary constraints", getName())
 	}
-	virtual void add(const CPCount&) {
-		UNHANDLED("count constraints", getName())
-	}
 	virtual void add(const CPBinaryRelVar&) {
 		UNHANDLED("binary var constraints", getName())
 	}
@@ -82,9 +79,6 @@ public:
 	}
 	virtual void add(const CPProdWeighted&) {
 		UNHANDLED("weighted prod constraints", getName())
-	}
-	virtual void add(const CPElement&) {
-		UNHANDLED("element constraints", getName())
 	}
 	virtual void add(const LazyGroundLit&) {
 		UNHANDLED("lazy residuals", getName())

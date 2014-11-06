@@ -156,20 +156,6 @@ public:
 		return searchengine;
 	}
 
-	// CP-support
-private:
-#ifdef CPSUPPORT
-	CPSolver* cpsolver;
-#endif
-public:
-	bool hasCPSolver() const;
-	SATVAL findNextCPModel();
-#ifdef CPSUPPORT
-	CPSolver* getCPSolver() const {
-		return cpsolver;
-	}
-#endif
-
 	// Propagatorfactory
 private:
 	Factory* factory;

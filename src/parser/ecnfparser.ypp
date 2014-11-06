@@ -493,19 +493,6 @@ cpconstraint
 				CR(wrapper, prod, theoryid);
 				delete $2; delete $3; delete $5; delete $7;
 			}
-		|	ELEMENT varidbody DELIM varid varid ZERO 
-			{ 	
-				CPElement elem(*$2, $4, $5);
-				CR(wrapper, elem, theoryid);
-				delete $2;
-			}
-			//only global card at the moment! 
-		|	COUNT varidbody DELIM weight REL varid ZERO   
-			{ 	
-				CPCount count(*$2, cWeight($4), $5, $6);
-				CR(wrapper, count, theoryid);
-				delete $2; delete $4;
-			}
 			//only global alldiff at the moment!
 		|	DISTINCT varidbody DELIM ZERO //DELIM to remove shift-reduce conflict 
 			{ 	

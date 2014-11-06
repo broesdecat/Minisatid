@@ -231,10 +231,6 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 	fmdesc.push_back(pair<string, string>("yes", "Check"));
 	fmdesc.push_back(pair<string, string>("no", "Don't check"));
 
-	vector<pair<string, string> > gecodedesc;
-	gecodedesc.push_back(pair<string, string>("yes", "Use Gecode for CP constraints"));
-	gecodedesc.push_back(pair<string, string>("no", "Don't use Gecode for CP constraints"));
-
 	vector<Polarity> polvals;
 	vector<pair<string, string> > poldesc;
 	polvals.push_back(Polarity::TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
@@ -329,10 +325,6 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes, std::st
 			modes.usesimplifier, cmd, "Choose whether to use a preprocessor before search"));
 	options.push_back(new Option<bool, string>	("","lazy-heur", 	yesnovals, lazyheurdesc,
 			modes.lazyheur, cmd, "Choose whether to use a special search heuristic optimized for lazily adding constraints"));
-#ifdef CPSUPPORT
-	options.push_back(new Option<bool, string>	("","gecode", 	yesnovals, gecodedesc,
-			modes.usegecode, cmd, "Choose whether to use Gecode for propagation over finite domain constraints."));
-#endif
 	options.push_back(new NoValsOption<int>		("","maxlearnt", 	"int",
 			modes.maxNbOfLearnedClauses, cmd, "The maximum number of learnt clauses to maintain at one time."));
 	options.push_back(new Option<bool, string>	("","fullmodelcheck", 	yesnovals, fmdesc,

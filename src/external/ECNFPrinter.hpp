@@ -201,14 +201,6 @@ public:
 				<< toString(binconstr.rhsvarID) << " 0\n";
 	}
 
-	void add(const CPCount& count) {
-		target() << CPCOUNTSTR << " ";
-		for (auto i = count.varIDs.cbegin(); i < count.varIDs.cend(); ++i) {
-			target() << toString(*i) << " ";
-		}
-		target() << DELIMSTR << count.eqbound << " " << count.rel << " " << toString(count.rhsvar) << " 0\n";
-	}
-
 	void add(const CPSumWeighted& sum) {
 		target() << CPSUMSTR << " " << toString(sum.head) << " ";
 		for (auto c : sum.conditions) {
@@ -235,14 +227,6 @@ public:
 			target() << toString(*i) << " ";
 		}
 		target() << DELIMSTR << " " << prod.prodWeight << " " << prod.rel << " " << toString(prod.boundID) << " 0\n";
-	}
-
-	void add(const CPElement& elem) {
-		target() << CPELEMENTSTR << " ";
-		for (auto i = elem.varIDs.cbegin(); i < elem.varIDs.cend(); ++i) {
-			target() << toString(*i) << " ";
-		}
-		target() << DELIMSTR << toString(elem.index) << " " << toString(elem.rhs) << " 0\n";
 	}
 };
 

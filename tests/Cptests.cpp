@@ -56,9 +56,6 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	vector<Weight> weights;
 	weights.resize(elemx.size(),Weight(1));
 
-	for(uint i=0; i<n; ++i){
-		extAdd(*space, CPCount(elemx, Weight((int)i), EqType::EQ, elemx[i]));
-	}
 	extAdd(*space, Disjunction({mkPosLit(4)}));
 	extAdd(*space, CPSumWeighted(mkPosLit(4), vector<Lit>(elemx.size(), mkPosLit(42)), elemx, weights, EqType::EQ, n));
 
