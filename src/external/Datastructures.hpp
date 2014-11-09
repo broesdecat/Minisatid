@@ -136,8 +136,6 @@ typedef std::vector<Lit> literallist;
 
 class ConstraintVisitor;
 class Space;
-class OneShotFlatzinc;
-class OneShotUnsatCoreExtraction;
 
 // NOTE: possible optimization during compilation:
 // 	replace ID with a class without fields which always return {} for getID()

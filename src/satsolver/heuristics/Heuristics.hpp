@@ -42,7 +42,7 @@ private:
 
 public:
 	MinisatHeuristic(bool rand_pol);
-	~MinisatHeuristic(){}
+	virtual ~MinisatHeuristic(){}
 
 	virtual void addAtom(Atom v, lbool upol);
 
@@ -88,7 +88,7 @@ private:
 
 public:
 	VarMTF(int nrPushedLiterals);
-	~VarMTF(){}
+	virtual ~VarMTF(){}
 
 	virtual void addAtom(Atom v, lbool upol);
 

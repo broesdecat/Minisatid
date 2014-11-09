@@ -132,11 +132,6 @@ private:
 	void notifyCurrentOptimum(const Weight& value) const;
 
 	void addModel(std::shared_ptr<Model> model);
-
-	friend class OneShotUnsatCoreExtraction;
-	void setAssumptionsAsInternal(const litlist& assmpt){
-		assumptions = assmpt;
-	}
 };
 
 class UnitPropagate: public SpaceTask {

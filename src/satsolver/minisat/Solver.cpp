@@ -65,14 +65,6 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 
 
 Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
-/*
-		: Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-			var_decay(opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
->>>>>>> renaming of ClassicHeuristic to MinisatHeuristic
-		: Propagator(DEFAULTCONSTRID, s, "satsolver"), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-			max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
->>>>>>> Extracted heuristic from Minisat
-*/
 		: Propagator(s, "satsolver"), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
 					max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
 
