@@ -436,7 +436,10 @@ bool PCSolver::hasMonitors() const{
 }
 
 void PCSolver::setAssumptions(const litlist& assumps) {
-	getSATSolver()->setAssumptions(assumps);
+  getSATSolver()->clearAssumptions();
+  for(auto l: assumps){
+    getSATSolver()->addAssumption(l);
+  }
 }
 lbool PCSolver::solve(bool search) {
 	return getSATSolver()->solve(not search);

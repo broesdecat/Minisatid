@@ -29,6 +29,7 @@
 
 #include <vector>
 #include <iostream>
+#include <unordered_set>
 #include <set>
 #include <list>
 #include <map>
@@ -124,6 +125,9 @@ private:
 	bool addClause_(vec<Lit>& ps);
 public:
 	void randomizedRestart();
+  void addAssumption(const Lit l);
+  void removeAssumption(const Lit l);
+  void clearAssumptions();
 	void saveState();
 	void resetState();
 	void printClause(const CRef c) const;
@@ -212,7 +216,6 @@ public:
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
 	Atom newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
 
-	void setAssumptions(const std::vector<Lit>& assumps);
 	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
 
 private:
@@ -322,7 +325,8 @@ protected:
 	int qhead; // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	int simpDB_assigns; // Number of top-level assignments since last execution of 'simplify()'.
 	int64_t simpDB_props; // Remaining number of propagations that must be made before next execution of 'simplify()'.
-	vec<Lit> assumptions; // Current set of assumptions provided to solve by the user.
+	std::unordered_set<Lit> assumptions; // Current set of assumptions provided to solve by the user.
+  std::vector<std::unordered_set<Lit>::const_iterator> assumpIterators; // an iterator for each assumption level pointing to the next assumption in assumptions. The 0th iterator is assumptions.cbegin(), the last iterator is assumptions.cend()
 	bool remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
 
 	void addConflict();

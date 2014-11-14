@@ -500,6 +500,21 @@ void Solver::detachClause(CRef cr, bool strict) {
 	}
 }
 
+void Solver::addAssumption(const Lit l){
+  pcsolver->backtrackTo(0);
+  assumptions.insert(l);
+}
+
+void Solver::removeAssumption(const Lit l){
+  pcsolver->backtrackTo(0);
+  assumptions.erase(l);
+}
+
+void Solver::clearAssumptions(){
+  pcsolver->backtrackTo(0);
+  assumptions.clear();
+}
+
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 // NOTE: never call directly from within!
 void Solver::saveState() {
@@ -1292,21 +1307,26 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				// Reduce the set of learnt clauses:
 				reduceDB();
 			}
-
+      
+      if(decisionLevel()<assumpIterators.size()){
+        assumpIterators.resize(decisionLevel());
+      }
+      auto assumpIterator=assumptions.cbegin();
+      if(assumpIterators.size()>0){
+        assumpIterator=assumpIterators.back();
+      }
 			Lit next = lit_Undef;
-			while (decisionLevel() < assumptions.size()) {
-				//clog <<"Assumption\n";
-				// Perform user provided assumption:
-				Lit p = assumptions[decisionLevel()];
-				if (value(p) == l_True) {
-					// Dummy decision level:
-					createNewDecisionLevel();
+			while (assumpIterator!=assumptions.cend()) {
+				Lit p = *assumpIterator;
+        assumpIterator++;
+				if (value(p) == l_Undef) { // Perform user provided assumption:
+					next = p;
+          assumpIterators.push_back(assumpIterator);
+					break;
 				} else if (value(p) == l_False) {
 					analyzeFinal(~p, conflict);
 					return l_False;
 				} else {
-					next = p;
-					break;
 				}
 			}
 
@@ -1371,41 +1391,6 @@ static double luby(double y, int x) {
 	}
 
 	return pow(y, seq);
-}
-
-void Solver::setAssumptions(const litlist& assumps) {
-	// Note: important: when setting to identical assumptions, no action should be taken!!! (important for CORRECTNESS of finding multiple optim models)
-	bool identical = true;
-	if ((int) assumps.size() != assumptions.size()) {
-		identical = false;
-	}
-	for (uint i = 0; i < assumps.size() && identical; ++i) {
-		if (assumps[i] != assumptions[i]) {
-			identical = false;
-		}
-	}
-	if (identical) {
-		return;
-	}
-
-	if (oneshot) {
-		MAssert(not assumpset);
-	}
-	if (not oneshot && assumpset) {
-		getPCSolver().resetState();
-	}
-	getPCSolver().backtrackTo(0);
-	assumptions.clear();
-	//clog <<"Assumptions: ";
-	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
-		assumptions.push(*i);
-		//clog <<toString(*i) <<" ";
-	}
-	//clog <<"\n";
-	if (not oneshot) {
-		getPCSolver().saveState();
-	}
-	assumpset = true;
 }
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
