@@ -501,6 +501,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 }
 
 void Solver::addAssumption(const Lit l){
+  MAssert(assumptions.count(~l)==0);
   pcsolver->backtrackTo(0);
   assumptions.insert(l);
 }

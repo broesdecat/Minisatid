@@ -31,6 +31,22 @@ public:
 		solvers[TheoryID(1)]=solver;
 	}
 	~SearchEngine();
+  
+  /*****
+   * Base interface:
+   */
+  void addAssumption(const Lit assump);
+  void removeAssumption(const Lit assump);
+  void clearAssumptions();
+  void setAssumptions(const litlist& assumps);
+	lbool solve(bool search);
+
+	litlist getUnsatExplanation() const;
+	litlist getEntailedLiterals() const;
+  
+  /*****
+   * Old methods:
+   */
 
 	TheoryID getBaseTheoryID(){
 		return TheoryID(1);
@@ -77,11 +93,6 @@ public:
 
 	void accept(ConstraintVisitor& visitor);
 
-	void setAssumptions(const litlist& assumps);
-	lbool solve(bool search);
-	litlist getUnsatExplanation() const;
-
-	litlist getEntailedLiterals() const;
 	bool moreModelsPossible() const;
 
 	// MODAL SUPPORT

@@ -199,7 +199,9 @@ public:
 
 // Search management
 public:
-	void setAssumptions(const litlist& assumps);
+  void addAssumption(const Lit assump);
+  void removeAssumption(const Lit assump);
+  void clearAssumptions();
 
 	/**
 	 * Return true iff a model has been found

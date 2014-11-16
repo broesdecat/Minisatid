@@ -76,7 +76,10 @@ bool ModSolver::search(const litlist& assumpts, bool ) {
 
 	 return result;*/
 
-	child->setAssumptions(assumpts);
+  child->clearAssumptions();
+  for(auto l: assumpts){
+    child->addAssumption(l);
+  }
 	searching = true;
 	auto result = child->solve(true);
 	searching = false;

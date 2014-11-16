@@ -122,11 +122,22 @@ void SearchEngine::accept(ConstraintVisitor& visitor) {
 	getSolver()->accept(visitor);
 }
 
+void SearchEngine::addAssumption(const Lit assump){
+  createVar(var(assump),getBaseTheoryID());
+  getSolver()->addAssumption(assump);
+}
+void SearchEngine::removeAssumption(const Lit assump){
+  createVar(var(assump),getBaseTheoryID());
+  getSolver()->removeAssumption(assump);
+}
+void SearchEngine::clearAssumptions(){
+  getSolver()->clearAssumptions();
+}
 void SearchEngine::setAssumptions(const litlist& assumps) {
+  clearAssumptions();
 	for(auto l: assumps){
-		createVar(var(l), getBaseTheoryID());
+		addAssumption(l);
 	}
-	getSolver()->setAssumptions(assumps);
 }
 lbool SearchEngine::solve(bool search) {
 	return getSolver()->solve(search);
