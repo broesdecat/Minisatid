@@ -50,7 +50,7 @@ private:
 	Monitor* monitor;
 	VarCreation* varcreator;
 	SearchEngine* engine;
-	bool oneshot, executed, optim;
+	bool oneshot, executed;
 
 public:
 	Space(const SolverOption& options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.
@@ -71,7 +71,6 @@ public:
 	void 	addMonitor(PropAndBackMonitor* monitor);
 
 	bool 	isOptimizationProblem() const;
-	bool	isAlwaysAtOptimum() const;
 
 	virtual void add(const Disjunction&);
 	virtual void add(const Implication&);

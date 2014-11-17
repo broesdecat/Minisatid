@@ -84,9 +84,6 @@ void SearchEngine::finishParsing() {
 bool SearchEngine::isOptimizationProblem() const {
 	return getSolver()->isOptimizationProblem();
 }
-bool SearchEngine::isAlwaysAtOptimum() const{
-	return getSolver()->isAlwaysAtOptimum();
-}
 bool SearchEngine::hasNextOptimum() const {
 	return getSolver()->hasNextOptimum();
 }

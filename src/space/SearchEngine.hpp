@@ -77,7 +77,6 @@ public:
 
 	void finishParsing();
 	bool isOptimizationProblem() const;
-	bool isAlwaysAtOptimum() const;
 	bool hasNextOptimum() const;
 	OptimStatement& getNextOptimum();
 

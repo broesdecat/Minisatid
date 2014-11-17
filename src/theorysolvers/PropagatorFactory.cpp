@@ -191,8 +191,6 @@ void PropagatorFactory::add(const Aggregate& origagg) {
 void PropagatorFactory::add(const MinimizeSubset& formula) {
 	notifyMonitorsOfAdding(formula);
 
-	getEngine().notifyOptimizationProblem();
-
 	guaranteeAtRootLevel();
 
 	OptimStatement optim(formula.priority, Optim::SUBSET, formula.literals);
@@ -201,8 +199,6 @@ void PropagatorFactory::add(const MinimizeSubset& formula) {
 
 void PropagatorFactory::add(const MinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
-
-	getEngine().notifyOptimizationProblem();
 
 	guaranteeAtRootLevel();
 
@@ -238,7 +234,6 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 
 void PropagatorFactory::add(const OptimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
-	getEngine().notifyOptimizationProblem();
 	guaranteeAtRootLevel();
 	auto it = intvars.find(formula.varID);
 	if (it == intvars.cend()) {

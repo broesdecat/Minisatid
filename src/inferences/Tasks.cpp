@@ -227,14 +227,9 @@ void ModelExpand::innerExecute() {
 	bool moremodelspossible = true;
 	if (getSpace()->isOptimizationProblem()) {
 		bool optimumfound = true;
-		if (getSpace()->isAlwaysAtOptimum()) {
-			findNext(assumptions, _options);
-			optimumfound = _solutions->getNbModelsFound() > 0;
-		} else {
-			while (getSolver().hasNextOptimum() && optimumfound) {
-				optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
-			}
-		}
+    while (getSolver().hasNextOptimum() && optimumfound) {
+      optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
+    }
 
 		if (optimumfound) {
 			_solutions->notifyOptimalModelFound();

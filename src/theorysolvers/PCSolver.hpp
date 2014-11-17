@@ -117,20 +117,11 @@ public:
 			throw idpexception("Cannot add additional optimizations after finishParsing has been called.");
 		}
 		optimization.push_back(optim);
-		notifyOptimizationProblem();
-	}
-
-	// NOTE: only call from code which simplifies optimization statements
-	void notifyOptimizationProblem(){
-		optimproblem = true;
 	}
 
 	// Note: only call after finishparsing!
 	bool isOptimizationProblem() const {
-		return optimproblem;
-	}
-	bool isAlwaysAtOptimum() const{
-		return isOptimizationProblem() && optimization.size()==0;
+		return optimization.size()>0;
 	}
 
 	uint currentoptim;
