@@ -10,7 +10,6 @@
 #define MAXSTR "Max"
 #define AGGMNMSTR "Mnmagg"
 #define SUBMNMSTR "Mnmsubset"
-#define LISTMNMSTR "Mnmlist"
 #define VARMNMSTR "Mnmvar"
 #define VARMXMSTR "Mxmvar"
 #define DELIMSTR "|"

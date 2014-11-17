@@ -540,9 +540,6 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 		case Optim::AGG:
 			visitor.add(MinimizeAgg((*i).priority, (*i).agg_to_minimize->getSet()->getSetID(), (*i).agg_to_minimize->getType()));
 			break;
-		case Optim::LIST:
-			visitor.add(MinimizeOrderedList((*i).priority, (*i).to_minimize));
-			break;
 		case Optim::SUBSET:
 			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));
 			break;

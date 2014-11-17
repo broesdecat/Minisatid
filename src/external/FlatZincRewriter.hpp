@@ -29,7 +29,7 @@ enum class SolverState { PARSING, FINISHING};
 
 typedef std::vector<Weight> weightlist;
 
-enum OptimFZ { MNMZ_NONE, MNMZ_VAR, MNMZ_LIST, MNMZ_SUBSET, MNMZ_AGG };
+enum OptimFZ { MNMZ_NONE, MNMZ_VAR, MNMZ_SUBSET, MNMZ_AGG };
 
 enum CloseConstraint {CLOSE, OPEN};
 
@@ -57,7 +57,6 @@ private:
 	bool hasoptim;
 	std::vector<OptimizeVar> 			savedvar; // To be added AFTER initialization
 	std::vector<MinimizeAgg>			savedagg; // To be added AFTER initialization
-	std::vector<MinimizeOrderedList> 	savedlistmnmz; // To be added AFTER initialization
 
 	std::vector<Aggregate> savedaggs;
 	std::vector<BinRel> savedbinrels;
@@ -91,7 +90,6 @@ public:
 	virtual void add(const Rule&);
 	virtual void add(const WLSet&);
 	virtual void add(const Aggregate&);
-	virtual void add(const MinimizeOrderedList&);
 	virtual void add(const OptimizeVar&);
 	virtual void add(const MinimizeAgg&);
 	virtual void add(const IntVarEnum&);

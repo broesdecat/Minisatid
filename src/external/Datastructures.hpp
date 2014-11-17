@@ -336,27 +336,6 @@ public:
 	}
 };
 
-class MinimizeOrderedList: public Constraint {
-public:
-	uint priority;
-	std::vector<Lit> literals;
-
-	MinimizeOrderedList(uint priority, std::vector<Lit> literals)
-			: 	priority(priority),
-				literals(literals) {
-	}
-
-	DATASTRUCTURE_DECLAREACCEPT
-
-	virtual std::vector<Atom> getAtoms() const {
-		std::vector<Atom> atoms;
-		for (auto i = literals.cbegin(); i < literals.cend(); ++i) {
-			atoms.push_back(var(*i));
-		}
-		return atoms;
-	}
-};
-
 class MinimizeSubset: public Constraint {
 public:
 	uint priority;

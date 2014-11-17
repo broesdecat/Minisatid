@@ -199,16 +199,6 @@ void PropagatorFactory::add(const MinimizeSubset& formula) {
 	getEngine().addOptimization(optim);
 }
 
-void PropagatorFactory::add(const MinimizeOrderedList& formula) {
-	notifyMonitorsOfAdding(formula);
-
-	getEngine().notifyOptimizationProblem();
-
-	guaranteeAtRootLevel();
-
-	OptimStatement optim(formula.priority, Optim::LIST, formula.literals);
-	getEngine().addOptimization(optim);
-}
 void PropagatorFactory::add(const MinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
 

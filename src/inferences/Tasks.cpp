@@ -500,9 +500,6 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		//invalidate the solver
 		Disjunction invalidation({});
 		switch (optim.optim) {
-		case Optim::LIST:
-			unsatreached = invalidateValue(invalidation.literals, optim);
-			break;
 		case Optim::SUBSET:
 			currentassmpt.clear();
 			setassump = true;
@@ -540,15 +537,6 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 
 		// If resetting state, also fix the optimization constraints to their optimal condition
 		switch (optim.optim) {
-		case Optim::LIST:
-			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
-				if (*i == _solutions->getBestLitFound()) {
-					break;
-				}
-				internalAdd(Disjunction({ ~*i }), getSolver().getBaseTheoryID(), getSolver());
-			}
-			internalAdd(Disjunction({ _solutions->getBestLitFound() }), getSolver().getBaseTheoryID(), getSolver());
-			break;
 		case Optim::SUBSET: {
 			WLSet set(getSolver().newSetID());
 			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {

@@ -16,7 +16,7 @@ class Agg;
 class IntView;
 
 enum class Optim {
-	LIST, SUBSET, AGG, VAR
+	SUBSET, AGG, VAR
 };
 
 struct OptimStatement {
@@ -30,7 +30,7 @@ struct OptimStatement {
 
 	OptimStatement(uint priority, Optim optim, litlist minim) :
 			minimize(true), priority(priority), optim(optim), to_minimize(minim), agg_to_minimize(NULL), var(NULL), atoptimum(false) {
-		MAssert(optim==Optim::LIST || optim==Optim::SUBSET);
+		MAssert(optim==Optim::SUBSET);
 	}
 	OptimStatement(uint priority, Agg* agg) :
 		minimize(true), priority(priority), optim(Optim::AGG), agg_to_minimize(agg), var(NULL), atoptimum(false) {

@@ -64,11 +64,6 @@ void Space::add(const WLSet& o){
 void Space::add(const Aggregate& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
-void Space::add(const MinimizeOrderedList& o){
-	optim = true;
-	// TODO disable in other theories (also other optim)
-	internalAdd(o, o.theoryid, *getEngine());
-}
 void Space::add(const MinimizeSubset& o){
 	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());

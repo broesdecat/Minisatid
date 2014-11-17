@@ -78,7 +78,6 @@ public:
 	virtual void add(const Rule&);
 	virtual void add(const WLSet&);
 	virtual void add(const Aggregate&);
-	virtual void add(const MinimizeOrderedList&);
 	virtual void add(const MinimizeSubset&);
 	virtual void add(const OptimizeVar&);
 	virtual void add(const MinimizeAgg&);

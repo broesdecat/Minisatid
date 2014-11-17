@@ -129,7 +129,7 @@
 }
 
 %token DEFOP
-%token SUBSETMINDEFN MNMZDEFN VARMINDEFN VARMAXDEFN AGGMINDEFN
+%token SUBSETMINDEFN VARMINDEFN VARMAXDEFN AGGMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
 %token <str> NUMBER
@@ -241,7 +241,6 @@ ecnftheory	:	/* empty */
 			| 	ecnftheory agg
 			|	ecnftheory set
 			|	ecnftheory wset
-			|	ecnftheory mnmz
 			|	ecnftheory subsetmnmz
 			|	ecnftheory varmnmz
 			|	ecnftheory varmxmz
@@ -271,13 +270,7 @@ subtheory :	SUBTHEORY number NUMBER body ZERO
 				delete $4;
 			}
 		;
-			
-mnmz	:	MNMZDEFN body ZERO
-			{
-				MinimizeOrderedList mnm(1, *$2);
-				CR(wrapper, mnm, theoryid);
-				delete $2; 
-			}
+
 subsetmnmz: SUBSETMINDEFN body ZERO
 			{
 				MinimizeSubset mnm(1, *$2);

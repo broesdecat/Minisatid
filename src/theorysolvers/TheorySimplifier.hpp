@@ -168,9 +168,6 @@ public:
 	virtual void add(const Aggregate& obj) {
 		internalAdd(obj);
 	}
-	virtual void add(const MinimizeOrderedList& obj) {
-		internalAdd(obj);
-	}
 	virtual void add(const MinimizeSubset& obj) {
 		internalAdd(obj);
 	}
