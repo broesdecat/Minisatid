@@ -39,7 +39,6 @@ private:
 	//Owning pointer
 
 	bool optimalmodelfound;
-	bool unsatfound;
 
 	Weight latestintoptimum;
 	Lit latestlitoptimum; // For ordered litlist optimization
@@ -92,7 +91,7 @@ public:
 		return getNbModelsFound() > 0;
 	}
 	bool isUnsat() {
-		return unsatfound;
+		return !isSat();
 	}
 
 private:

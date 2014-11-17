@@ -78,25 +78,19 @@ enum class MXState {
 
 struct OptimStatement;
 
-class MXTask: public SpaceTask{
-public:
-	MXTask(Space* space): SpaceTask(space){}
-	virtual bool isSat() const = 0;
-	virtual bool isUnsat() const = 0;
-	virtual void notifySolvingAborted() = 0;
-	MXStatistics getStats() const;
-};
-
-class ModelExpand: public MXTask {
+class ModelExpand: public SpaceTask {
 private:
 	ModelExpandOptions _options;
+protected:
 	litlist assumptions; // Note: internal literals
 	ModelManager* _solutions;
 	Printer* printer;
 
 public:
 	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
-	~ModelExpand();
+	virtual ~ModelExpand();
+  
+  MXStatistics getStats() const;
 
 	/**
 	 * NOTE: Returns 0 if an optimization problem where no proven minimal model has been found yet!
@@ -113,14 +107,16 @@ public:
 	void notifySolvingAborted();
 	litlist getUnsatExplanation() const;
 
+protected:
+	virtual void innerExecute();
+  void addModel(std::shared_ptr<Model> model);
+  SATVAL invalidateModel();
+ 
 private:
-	void innerExecute();
-
 	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
-        MXState findNext();
-	void invalidate(litlist& clause);
-        SATVAL invalidateModel();
-	SATVAL invalidateModel(Disjunction& clause);
+  MXState findNext();
+  SATVAL invalidateModel(Disjunction& clause);      
+	
 
 	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
 	litlist savedinvalidation;
@@ -131,7 +127,18 @@ private:
 	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
 	void notifyCurrentOptimum(const Weight& value) const;
 
-	void addModel(std::shared_ptr<Model> model);
+};
+
+class FindModels: public ModelExpand {
+private:
+  int nbModels;
+  
+public:
+	FindModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
+	~FindModels();
+
+protected:
+	virtual void innerExecute();
 };
 
 class UnitPropagate: public SpaceTask {

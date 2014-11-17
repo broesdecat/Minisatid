@@ -160,7 +160,7 @@ inline void Solver::createNewDecisionLevel() {
 	getPCSolver().newDecisionLevel();
 }
 
-std::vector<Lit> Solver::getDecisions() const {
+std::vector<Lit> Solver::getDecisions() const { // TODO: assumptions are not decisions, but they seem to be considered thus by this method
 	std::vector<Lit> v;
 	auto prev = -1;
 	for (int i = 0; i < trail_lim.size(); i++) {

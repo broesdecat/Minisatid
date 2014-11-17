@@ -29,6 +29,7 @@
 
 #include <map>
 #include <vector>
+#include <bitset>
 
 using namespace std;
 using namespace MinisatID;
@@ -86,12 +87,53 @@ void SpaceTask::notifyTerminateRequested() {
 	space->getEngine()->notifyTerminateRequested();
 }
 
-/*
- * MXTask
+/**
+ * FindModels
  */
 
-MXStatistics MXTask::getStats() const{
-	return getSpace()->getStats();
+FindModels::FindModels(Space* space, ModelExpandOptions opts, const litlist& assumptions)
+  : ModelExpand(space,opts,assumptions), nbModels(opts.nbmodelstofind){
+  
+}
+
+FindModels::~FindModels(){
+}
+
+void FindModels::innerExecute(){
+  printer->notifyStartSolving();
+	if (getSpace()->isCertainlyUnsat()) {
+		printer->notifySolvingFinished();
+		return;
+	}
+  
+	printSearchStart(clog, getOptions().verbosity);
+  getSolver().setAssumptions(assumptions);
+  
+  auto state = getSolver().solve(true);
+  if (state == l_Undef || terminateRequested()) {
+    printer->notifySolvingAborted();
+    return;
+  }else if(state==l_False){
+    getSpace()->notifyUnsat();
+    return;
+  }else{ // model found :)
+    addModel(getSpace()->getEngine()->getModel());
+  }
+  
+  while(nbModels==0 || nbModels > _solutions->getNbModelsFound()){
+    invalidateModel();
+    state = getSolver().solve(true);
+  
+    if (state == l_Undef || terminateRequested()) {
+      printer->notifySolvingAborted();
+      return;
+    }else if(state==l_False){
+      break;
+    }
+    
+    addModel(getSpace()->getEngine()->getModel());
+  }
+  printer->notifySolvingFinished();
 }
 
 /*
@@ -99,14 +141,17 @@ MXStatistics MXTask::getStats() const{
  */
 // NOTE: EXTERNAL literals
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: MXTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+		: SpaceTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
 			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
-
 }
 
 ModelExpand::~ModelExpand() {
 	delete (_solutions);
 	delete (printer);
+}
+
+MXStatistics ModelExpand::getStats() const{
+	return getSpace()->getStats();
 }
 
 int ModelExpand::getNbModelsFound() const {
@@ -169,7 +214,6 @@ void ModelExpand::notifySolvingAborted() {
 void ModelExpand::innerExecute() {
 	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
-		_solutions->notifyUnsat();
 		printer->notifySolvingFinished();
 		return;
 	}
@@ -209,8 +253,7 @@ void ModelExpand::innerExecute() {
 			}
 		}
 	}
-	if (_solutions->getNbModelsFound() == 0) {
-		_solutions->notifyUnsat();
+	if (isUnsat()) {
 		getSpace()->notifyUnsat();
 	}
 	if (terminateRequested()) {
@@ -241,17 +284,13 @@ vector<VariableEqValue> getBackMappedModel(const std::vector<VariableEqValue>& m
 	}
 	return outmodel;
 }
-void addModelToSolution(const std::shared_ptr<Model>& model, const Remapper& remapper, ModelManager& solution, Printer& printer) {
-	auto outmodel = new Model();
-	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, remapper);
-	outmodel->variableassignments = getBackMappedModel(model->variableassignments, remapper);
-	solution.addModel(outmodel);
-	printer.addModel(outmodel);
-
-}
 
 void ModelExpand::addModel(std::shared_ptr<Model> model) {
-	addModelToSolution(model, *getSpace()->getRemapper(), *_solutions, *printer);
+  auto outmodel = new Model();
+	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, *getSpace()->getRemapper());
+	outmodel->variableassignments = getBackMappedModel(model->variableassignments, *getSpace()->getRemapper());
+	_solutions->addModel(outmodel);
+	printer->addModel(outmodel);
 }
 
 bool findmoreModels(const ModelExpandOptions& options, ModelManager* m) {
