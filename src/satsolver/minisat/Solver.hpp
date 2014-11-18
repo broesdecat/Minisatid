@@ -130,6 +130,7 @@ public:
   void clearAssumptions();
 	void saveState();
 	void resetState();
+  void getOutOfUnsat();
 	void printClause(const CRef c) const;
 
 	int getNbOfAssumptions() const { return assumptions.size(); }

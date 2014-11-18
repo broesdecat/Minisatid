@@ -69,6 +69,7 @@ public:
 	}
 
 	void 	addMonitor(PropAndBackMonitor* monitor);
+  void  finishParsing();
 
 	bool 	isOptimizationProblem() const;
 

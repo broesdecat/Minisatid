@@ -488,6 +488,10 @@ void PCSolver::resetState() {
 	saved = false;
 }
 
+void PCSolver::getOutOfUnsat(){
+  getSolver().getOutOfUnsat();
+}
+
 // PRINT METHODS
 
 void PCSolver::printEnqueued(const Lit& p) const {

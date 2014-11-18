@@ -23,11 +23,9 @@ class Solver;
 namespace MinisatID {
 
 class TimeTrail;
-class CPSolver;
 class SolverOption;
 class Propagator;
 class EventQueue;
-class SearchMonitor;
 class IntView;
 class VarCreation;
 class ConstraintVisitor;
@@ -238,6 +236,7 @@ private:
 public:
 	void saveState();
 	void resetState();
+  void getOutOfUnsat();
 
 	// SATState information
 public:

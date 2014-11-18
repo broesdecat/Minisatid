@@ -102,6 +102,10 @@ void SearchEngine::resetState() {
 	getSolver()->resetState();
 }
 
+void SearchEngine::getOutOfUnsat(){
+  getSolver()->getOutOfUnsat();
+}
+
 std::shared_ptr<Model> SearchEngine::getModel() {
 	return getSolver()->getModel();
 }

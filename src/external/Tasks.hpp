@@ -111,20 +111,20 @@ protected:
 	virtual void innerExecute();
   void addModel(std::shared_ptr<Model> model);
   SATVAL invalidateModel();
+  SATVAL invalidateModel(Disjunction& clause);      
+  bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
+	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
+	bool invalidateSubset(litlist& invalidation, OptimStatement& optim);
  
 private:
 	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
   MXState findNext();
-  SATVAL invalidateModel(Disjunction& clause);      
+  
 	
 
 	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
 	litlist savedinvalidation;
 
-	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
-	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
-	bool invalidateSubset(litlist& invalidation, OptimStatement& optim);
-	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
 	void notifyCurrentOptimum(const Weight& value) const;
 
 };
@@ -136,6 +136,18 @@ private:
 public:
 	FindModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
 	~FindModels();
+
+protected:
+	virtual void innerExecute();
+};
+
+class FindOptimalModels: public ModelExpand {
+private:
+  int nbModels;
+  
+public:
+	FindOptimalModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
+	~FindOptimalModels();
 
 protected:
 	virtual void innerExecute();

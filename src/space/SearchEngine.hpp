@@ -84,6 +84,7 @@ public:
 
 	void saveState();
 	void resetState();
+  void getOutOfUnsat();
 
 	std::shared_ptr<Model> getModel();
 	lbool getModelValue(Atom v);

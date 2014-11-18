@@ -31,6 +31,10 @@ void Space::addMonitor(PropAndBackMonitor* m) {
 	monitor->addMonitor(m);
 }
 
+void Space::finishParsing(){
+  engine->finishParsing();
+}
+
 void Space::notifyUnsat(){
 	engine->notifyUnsat();
 }

@@ -245,27 +245,31 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 		return false;
 	}
 
-	vec<Lit> ps;
-	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
-		ps.push(*i);
-	}
-
-	sort(ps); // NOTE: remove duplicates
-
-	// Check satisfaction and remove literals false at root
-	Lit p;
-	int i, j;
-	for (i = j = 0, p = lit_Undef; i < ps.size(); i++) {
-		if (rootValue(ps[i]) == l_True || ps[i] == ~p) {
-			return true;
-		} else if (rootValue(ps[i]) != l_False && ps[i] != p) {
-			ps[j++] = p = ps[i];
-		}
-	}
-	ps.shrinkByNb(i - j);
+  // remove doubles and sort
+  std::set<Lit> sorted_clause;
+  sorted_clause.insert(lits.cbegin(), lits.cend());
+  
+  // construct ps
+  vec<Lit> ps;
+  // tautology check, satisfied check, ignore false root literals:
+  Lit negLastLit = lit_Undef;
+  for(Lit l: sorted_clause){
+    if(negLastLit==l){
+      return true; // tautology detected
+    }else{
+      negLastLit=~l;
+    }
+    
+    lbool rootVal = rootValue(l);
+    if(rootVal==l_True){
+      return true; // true literal detected
+    }else if(rootVal==l_Undef){
+      ps.push(l);
+    }// else it's a false root lit, so not added to ps.
+  }
 
 	// NOTE: sort randomly to reduce dependency on grounding and literal introduction mechanics (certainly for lazy grounding)
-//	permuteRandomly(ps);
+  //	permuteRandomly(ps);
 
 	if (ps.size() == 0) {
 		notifyUnsat();
@@ -581,6 +585,11 @@ void Solver::resetState() {
 	rootunitlits = savedrootlits;
 
 	remove_satisfied = true;
+}
+
+void Solver::getOutOfUnsat(){
+  pcsolver->backtrackTo(0);
+  ok = true;
 }
 
 void Solver::removeClause(CRef cr) {
@@ -1400,19 +1409,16 @@ lbool Solver::solve(bool nosearch) {
 		getPCSolver().saveState(); // NOTE: to assure that the state has been saved exactly once
 	}
 	assumpset = true;
-
 	model.clear();
 	conflict.clear();
 	if (!ok) {
 		return l_False;
 	}
-
 	// To get a better estimate of the number of max_learnts allowed, have to ask all propagators their size
 	max_learnts = (getPCSolver().getNbOfFormulas() + nLearnts()) * learntsize_factor;
 	learntsize_adjust_confl = learntsize_adjust_start_confl;
 	learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 	auto status = l_Undef;
-
 	/*	if (verbosity >= 1) {
 	 fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
 	 (int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) clauses_literals, (int) max_learnts,
@@ -1435,7 +1441,6 @@ lbool Solver::solve(bool nosearch) {
 		}
 		curr_restarts++;
 	}
-
 	if (status == l_True) {
 		// Extend & copy model:
 		model.growTo(nVars());
