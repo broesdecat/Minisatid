@@ -123,7 +123,7 @@ private:
 
 	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
 	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
-	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
+	bool invalidateSubset(litlist& invalidation, OptimStatement& optim);
 	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
 	void notifyCurrentOptimum(const Weight& value) const;
 

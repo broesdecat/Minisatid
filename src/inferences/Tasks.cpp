@@ -355,7 +355,7 @@ SATVAL ModelExpand::invalidateModel(Disjunction& clause) {
 }
 
 // OPTIMIZATION METHODS
-bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim) {
+bool ModelExpand::invalidateSubset(litlist& invalidation, OptimStatement& optim) {
 	int subsetsize = 0;
 	const auto& minim = optim.to_minimize;
 	for (auto i = minim.cbegin(); i < minim.cend(); ++i) {
@@ -364,7 +364,9 @@ bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt, Optim
 			invalidation.push_back(~lit);
 			++subsetsize;
 		} else {
-			assmpt.push_back(~lit);
+      // add unit clauses to ensure subsetminimality
+      // TODO: duplicate unit clauses which now will be deleted by simplification. This can be more efficient.
+      internalAdd(Disjunction({~lit}), getSolver().getBaseTheoryID(), getSolver());
 		}
 	}
 
@@ -458,7 +460,6 @@ bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
  */
 bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 	litlist currentassmpt = assmpt;
-	bool setassump = true;
 
 	bool modelfound = false, unsatreached = false;
 
@@ -469,11 +470,6 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 				unsatreached = true;
 				continue;
 			}
-		}
-
-		if (setassump) {
-			getSolver().setAssumptions(currentassmpt); // NOTE do not do this if the assumptions have not changed!
-			setassump = false;
 		}
 
 		auto sat = getSolver().solve(true);
@@ -496,9 +492,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		Disjunction invalidation({});
 		switch (optim.optim) {
 		case Optim::SUBSET:
-			currentassmpt.clear();
-			setassump = true;
-			unsatreached = invalidateSubset(invalidation.literals, currentassmpt, optim);
+			unsatreached = invalidateSubset(invalidation.literals, optim);
 			break;
 		case Optim::AGG:
 			unsatreached = invalidateAgg(invalidation.literals, optim);
