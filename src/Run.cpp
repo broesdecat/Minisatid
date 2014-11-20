@@ -288,30 +288,24 @@ void MinisatID::parseAndInitializeTheory(const std::string& inputfile, ExternalC
 }
 
 void doModelGeneration(Space* d) {  
-  d->finishParsing();
-  
-	ModelExpandOptions mxoptions(0, Models::ALL, Models::NONE);
+  ModelExpandOptions mxoptions(0, Models::ALL, Models::NONE);
   mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
 	if(!d->getOptions().flatzinc_a){
     if(d->isOptimizationProblem()){
       mxoptions.printmodels = Models::BEST;
       mxoptions.savemodels = Models::BEST;
-      mx = new FindOptimalModels(d, mxoptions, { });
-    }else{
-      mx = new FindModels(d, mxoptions, { });
-    } 
+    }
 	}else{
     mxoptions.printmodels = Models::ALL;
+    mxoptions.savemodels = Models::NONE;
 		if (d->isOptimizationProblem()) {
 			mxoptions.nbmodelstofind = 1;
 		}else{
 			mxoptions.nbmodelstofind = 0;
 		}
-		mxoptions.savemodels = Models::NONE;
-    mx = new ModelExpand(d, mxoptions, { });
   }
-  
+  ModelExpand* mx = d->createModelExpand(d,mxoptions,{});
   mx->execute();
 }
 

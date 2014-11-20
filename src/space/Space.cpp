@@ -4,6 +4,7 @@
 #include "Remapper.hpp"
 #include "external/Translator.hpp"
 #include "datastructures/InternalAdd.hpp"
+#include "external/Tasks.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -11,16 +12,12 @@ using namespace MinisatID;
 Space::Space(const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
-				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
-				oneshot(oneshot),
-				executed(false){
+				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))){
 }
 Space::Space(Remapper* remapper, Translator* translator, const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(remapper, translator, options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
-				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
-				oneshot(oneshot),
-				executed(false){
+				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))){
 }
 Space::~Space() {
 	delete (engine);
@@ -130,4 +127,13 @@ Value Space::getTruthValue(const Lit& lit) const {
 
 MXStatistics Space::getStats() const{
 	return getEngine()->getStats();
+}
+
+ModelExpand* Space::createModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions){
+  space->finishParsing();
+  if(space->isOptimizationProblem()){
+    return new MinisatID::FindOptimalModels(space, options, assumptions);
+  }else{
+    return new MinisatID::FindModels(space, options, assumptions);
+  }
 }

@@ -25,14 +25,15 @@ TEST(MXTest, MultiAssumpSolve) {
 	options.verbosity = 0;
 	auto space = new Space(options);
 	extAdd(*space, Disjunction({ mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
+  space->finishParsing();
 	ModelExpandOptions mxopts(0, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxopts, { mkNegLit(2) });
+	auto mx = FindModels(space, mxopts, { mkNegLit(2) });
 	mx.execute();
 	ASSERT_EQ(mx.getNbModelsFound(), 3);
-	auto mx2 = ModelExpand(space, mxopts, { mkNegLit(1) });
+	auto mx2 = FindModels(space, mxopts, { mkNegLit(1) });
 	mx2.execute();
 	ASSERT_EQ(mx2.getNbModelsFound(), 3);
-	auto mx3 = ModelExpand(space, mxopts, { });
+	auto mx3 = FindModels(space, mxopts, { });
 	mx3.execute();
 	ASSERT_EQ(mx3.getNbModelsFound(), 7);
 }

@@ -25,7 +25,6 @@ class Propagator;
 class EventQueue;
 class PropagatorFactory;
 class SearchEngine;
-class Optimization;
 class PropAndBackMonitor;
 class Printer;
 class Space;
@@ -57,6 +56,7 @@ protected:
 };
 
 class SpaceTask: public Task{
+protected:
 	Space* space;
 public:
 	SpaceTask(Space* space);
@@ -106,27 +106,17 @@ public:
 	bool isUnsat() const;
 	void notifySolvingAborted();
 	litlist getUnsatExplanation() const;
+  virtual void execute() {
+    Task::execute();
+  }
 
 protected:
-	virtual void innerExecute();
+	virtual void innerExecute()=0;
   void addModel(std::shared_ptr<Model> model);
   SATVAL invalidateModel();
   SATVAL invalidateModel(Disjunction& clause);      
-  bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
-	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
-	bool invalidateSubset(litlist& invalidation, OptimStatement& optim);
- 
-private:
-	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
-  MXState findNext();
-  
-	
-
-	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
-	litlist savedinvalidation;
-
-	void notifyCurrentOptimum(const Weight& value) const;
-
+  Lit invalidateAgg(OptimStatement& optim);
+	Lit invalidateVar(OptimStatement& optim);
 };
 
 class FindModels: public ModelExpand {

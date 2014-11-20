@@ -29,7 +29,8 @@ TEST(CPTest, UnSatCPSum) {
 	extAdd(*space, CPSumWeighted(mkPosLit(1), {mkNegLit(3),mkNegLit(3)}, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxoptions, {});
+  space->finishParsing();
+	auto mx = FindModels(space, mxoptions, {});
 	mx.execute();
 	ASSERT_TRUE(mx.isUnsat());
 	delete(space);
@@ -71,7 +72,8 @@ TEST(CPTest, DISABLED_MagicSeq) {
 	}
 
 	ModelExpandOptions mxoptions(2, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxoptions, {});
+  space->finishParsing();
+	auto mx = FindModels(space, mxoptions, {});
 	mx.execute();
 	ASSERT_TRUE(mx.isUnsat());
 	delete(space);
@@ -99,7 +101,8 @@ TEST(CPTest, Unsat2) {
 	}
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
-	auto mx = ModelExpand(space, mxoptions, {});
+  space->finishParsing();
+	auto mx = FindModels(space, mxoptions, {});
 	mx.execute();
 	ASSERT_TRUE(mx.isUnsat());
 	delete(space);

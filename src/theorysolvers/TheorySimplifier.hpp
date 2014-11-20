@@ -80,6 +80,9 @@ private:
 	CPBinaryRel canonify(const CPBinaryRel& incomp) const;
 
 public:
+  virtual WLSet* getParsedSet(int id){
+    return factory->getParsedSet(id);
+  }
 
 	PropagatorFactory& getFactory() {
 		return *factory;

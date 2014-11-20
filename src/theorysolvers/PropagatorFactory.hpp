@@ -135,6 +135,7 @@ public:
 	}
 
 	virtual IntView* getIntView(VarID varID, Weight bound) = 0;
+  virtual WLSet* getParsedSet(int id) = 0;
 };
 
 class PropagatorFactory:
@@ -201,6 +202,10 @@ public:
 	void notifyMonitorsOfAdding(const T& obj) const;
 
 	virtual IntView* getIntView(VarID varID, Weight bound);
+
+  virtual WLSet* getParsedSet(int id){
+    return parsedsets.at(id).set;
+  }
 
 private:
 

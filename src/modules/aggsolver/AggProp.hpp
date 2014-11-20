@@ -69,7 +69,6 @@ public:
 	Agg(TypedSet* set, const TempAgg& agg, bool optim):
 		TempAgg(agg), optim(optim), set(set){}
 
-	bool		isOptimAgg		() 	const	{ return optim; }
 	TypedSet*	getSet			()	const	{ return set; }
 	SATVAL		reInitializeAgg	();
 	bool		isOptim			() const { return optim; }
