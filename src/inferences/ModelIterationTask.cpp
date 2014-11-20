@@ -23,10 +23,12 @@ using namespace std;
 using namespace MinisatID;
 
 ModelIterationTask::ModelIterationTask(Space* space, ModelExpandOptions options, const litlist& assumptions)
-: _options(options),
-assumptions(map(assumptions, *space->getRemapper())),
-_solutions(new ModelManager(options.savemodels)),
-printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
+	: modes(space->getOptions()),
+		space(space),
+		_options(options),
+		assumptions(map(assumptions, *space->getRemapper())),
+		_solutions(new ModelManager(options.savemodels)),
+		printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 }
 
 ModelIterationTask::~ModelIterationTask() {
@@ -58,7 +60,6 @@ SearchEngine& ModelIterationTask::getSolver() const {
 void ModelIterationTask::initialise() {
 	space->getEngine()->finishParsing();
 	space->notifyInferenceExecuted();
-
 	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
 		_solutions->notifyUnsat();
@@ -70,7 +71,6 @@ void ModelIterationTask::initialise() {
 }
 
 shared_ptr<Model> ModelIterationTask::findNext() {
-	std::cerr << "Task\n";
 	shared_ptr<Model> ptr = findNextModel();
 	if (state != MXState::MODEL) {
 		stop();

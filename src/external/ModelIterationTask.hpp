@@ -35,7 +35,7 @@ namespace MinisatID {
         std::shared_ptr<Model> findNext();
         void notifyTerminateRequested();
     private:
-        bool terminate;
+        bool terminate = false;
         SolverOption modes;
 
         Space* space;
