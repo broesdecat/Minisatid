@@ -26,6 +26,8 @@
 #include "external/utils/ResourceManager.hpp"
 #include "external/Space.hpp"
 
+#include "TaskHelpers.hpp"
+
 #include <map>
 #include <vector>
 #include <bitset>
@@ -302,36 +304,6 @@ litlist ModelExpand::getUnsatExplanation() const {
 
 void ModelExpand::notifySolvingAborted() {
 	printer->notifySolvingAborted();
-}
-
-//Translate into original vocabulary
-vector<Lit> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
-	vector<Lit> outmodel;
-	for (auto lit : model) {
-		if (r.wasInput(lit)) {
-			outmodel.push_back(r.getLiteral(lit));
-		}
-	}
-	sort(outmodel.begin(), outmodel.end());
-	return outmodel;
-}
-vector<VariableEqValue> getBackMappedModel(const std::vector<VariableEqValue>& model, const Remapper& r) {
-	vector<VariableEqValue> outmodel;
-	for (auto vareq : model) {
-		if (r.wasInput(vareq.getVariable())) {
-			auto image = vareq.hasValue();
-			outmodel.push_back({r.getOrigID(vareq.getVariable()), image?vareq.getValue() : 0, image});
-		}
-	}
-	return outmodel;
-}
-
-void ModelExpand::addModel(std::shared_ptr<Model> model) {
-  auto outmodel = new Model();
-	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, *getSpace()->getRemapper());
-	outmodel->variableassignments = getBackMappedModel(model->variableassignments, *getSpace()->getRemapper());
-	_solutions->addModel(outmodel);
-	printer->addModel(outmodel);
 }
 
 /**
