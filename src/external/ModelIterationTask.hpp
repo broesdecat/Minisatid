@@ -11,20 +11,18 @@
 #include "Options.hpp"
 #include "Datastructures.hpp"
 #include "MXStatistics.hpp"
-#include "space/SearchEngine.hpp"
+#include "MXState.hpp"
 #include <vector>
+#include <memory>
 
 namespace MinisatID {
 
     class ModelManager;
     class Printer;
     class Space;
-
+    class SearchEngine;
+    
     typedef std::vector<Lit> litlist;
-
-    enum class MXState {
-        MODEL, MODEL_FINAL, UNSAT, UNKNOWN
-    };
 
     class ModelIterationTask {
     public:
@@ -32,18 +30,23 @@ namespace MinisatID {
         ModelIterationTask(const ModelIterationTask& orig);
         virtual ~ModelIterationTask();
         MXStatistics getStats() const;
+        
+        void initialise();
+        std::shared_ptr<Model> findNext();
+        void notifyTerminateRequested();
     private:
         bool terminate;
         SolverOption modes;
-        virtual void notifyTerminateRequested();
 
         Space* space;
         
 	ModelExpandOptions _options;
 	litlist assumptions; // Note: internal literals
         MXState state = MXState::MODEL;
-    protected:
 
+	ModelManager* _solutions; 
+	Printer* printer;
+        
         bool terminateRequested() const {
             return terminate;
         }
@@ -57,23 +60,15 @@ namespace MinisatID {
         }
         SearchEngine& getSolver() const;
         
-        //???
-        void initialise();
+        void stop();
+        std::shared_ptr<Model> findNextModel();
         const modellist& getSolutions() const;
 	
-	bool isSat() const;
-	bool isUnsat() const;
 	void notifySolvingAborted();
         
-        MXState findNext();
 	void invalidate(litlist& clause);
         SATVAL invalidateModel();
 	SATVAL invalidateModel(Disjunction& clause);
-
-	litlist savedinvalidation;
-
-	ModelManager* _solutions; 
-	Printer* printer;
     };
 
 }

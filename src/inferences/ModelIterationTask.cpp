@@ -17,15 +17,16 @@
 #include "external/Constraints.hpp"
 
 #include "TaskHelpers.hpp"
+#include "space/SearchEngine.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
 ModelIterationTask::ModelIterationTask(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: _options(options), 
-		assumptions(map(assumptions, *space->getRemapper())), 
-		_solutions(new ModelManager(options.savemodels)),
-		printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
+: _options(options),
+assumptions(map(assumptions, *space->getRemapper())),
+_solutions(new ModelManager(options.savemodels)),
+printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 }
 
 ModelIterationTask::~ModelIterationTask() {
@@ -57,7 +58,7 @@ SearchEngine& ModelIterationTask::getSolver() const {
 void ModelIterationTask::initialise() {
 	space->getEngine()->finishParsing();
 	space->notifyInferenceExecuted();
-	
+
 	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
 		_solutions->notifyUnsat();
@@ -65,8 +66,19 @@ void ModelIterationTask::initialise() {
 		return;
 	}
 	printSearchStart(clog, getOptions().verbosity);
-	
 	getSolver().setAssumptions(assumptions);
+}
+
+shared_ptr<Model> ModelIterationTask::findNext() {
+	std::cerr << "Task\n";
+	shared_ptr<Model> ptr = findNextModel();
+	if (state != MXState::MODEL) {
+		stop();
+	}
+	return ptr;
+}
+
+void ModelIterationTask::stop() {
 	if (state == MXState::UNSAT || state == MXState::MODEL_FINAL) {
 		if (_solutions->getNbModelsFound() == 0) {
 			printNoModels(clog, getOptions().verbosity);
@@ -86,43 +98,40 @@ void ModelIterationTask::initialise() {
 	}
 }
 
-MXStatistics ModelIterationTask::getStats() const{
+MXStatistics ModelIterationTask::getStats() const {
 	return getSpace()->getStats();
-}
-
-bool ModelIterationTask::isSat() const {
-	return _solutions->isSat();
-}
-bool ModelIterationTask::isUnsat() const {
-	return _solutions->isUnsat();
 }
 
 void ModelIterationTask::notifySolvingAborted() {
 	printer->notifySolvingAborted();
 }
 
-
-MXState ModelIterationTask::findNext() {
+shared_ptr<Model> ModelIterationTask::findNextModel() {
 	auto state = getSolver().solve(true);
 	if (state == l_Undef || terminateRequested()) {
-		return MXState::UNKNOWN;
+		this->state = MXState::UNKNOWN;
+		return NULL;
 	}
 	bool modelfound = state == l_True;
 	if (not modelfound) {
-		return MXState::UNSAT;
+		this->state = MXState::UNSAT;
+		return NULL;
 	}
 	shared_ptr<Model> model = getSpace()->getEngine()->getModel();
 	shared_ptr<Model> ptr = shared_ptr<Model>(createModel(model, *getSpace()->getRemapper()));
 	//Invalidate SAT model
 	if (!getSolver().moreModelsPossible()) {
-		return MXState::MODEL_FINAL;
+		this->state = MXState::MODEL_FINAL;
+		return ptr;
 	}
 	//choices were made, so other models possible
 	auto invalidatedState = invalidateModel();
-	if(invalidatedState != SATVAL::POS_SAT){
-		return MXState::MODEL_FINAL;
+	if (invalidatedState != SATVAL::POS_SAT) {
+		this->state = MXState::MODEL_FINAL;
+		return ptr;
 	}
-	return MXState::MODEL;
+	this->state = MXState::MODEL;
+	return ptr;
 }
 
 SATVAL ModelIterationTask::invalidateModel() {
