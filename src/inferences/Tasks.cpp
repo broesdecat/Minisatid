@@ -368,9 +368,14 @@ SATVAL ModelExpand::invalidateModel(Disjunction& clause) {
 // OPTIMIZATION METHODS
 
 Lit ModelExpand::invalidateAgg(OptimStatement& optim) {  
+  // general idea: add a new -conditional- agg constraint over the same weighted set as the optimization criterion
+  // problem: the weighted set used in the optimization criterion is normalized, and cannot be used to construct the agg constraint
+  // solution: get the originally parsed weighted set (has the same id (which is a bad smell)).
   auto agg = optim.agg_to_minimize;
 	auto s = agg->getSet();
-  WLSet* wlset = space->getEngine()->getFactory(getSolver().getBaseTheoryID()).getParsedSet(s->getSetID()); // Sad to see this dirty hack being needed :/
+  // Getting the original weighted set. Ugly line of code ahead:
+  WLSet* wlset = space->getEngine()->getFactory(getSolver().getBaseTheoryID()).getParsedSet(s->getSetID());
+  // calculating current optimization value
   int bestvalue = 0;
   for(auto wl: wlset->wl){
     if(getSolver().getModelValue(wl.getLit())==l_True){
@@ -385,6 +390,7 @@ Lit ModelExpand::invalidateAgg(OptimStatement& optim) {
 	}
   
   Lit assumption = mkPosLit(getSolver().newAtom());  
+  // adding new bound:
   space->add(Aggregate(assumption, agg->getSet()->getSetID(), bestvalue-1, agg->getType(), agg->getSign(), AggSem::COMP, -1, false));
   return assumption;
 }
