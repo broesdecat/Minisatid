@@ -60,9 +60,6 @@ Atom VarCreation::createVar() {
 /*
  * Task
  */
-void Task::execute() {
-	innerExecute();
-}
 void Task::notifyTerminateRequested() {
 	terminate = true;
 }
@@ -76,10 +73,6 @@ SpaceTask::SpaceTask(Space* space)
 }
 SearchEngine& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
-}
-void SpaceTask::execute() {
-	space->finishParsing();
-	Task::execute();
 }
 void SpaceTask::notifyTerminateRequested() {
 	Task::notifyTerminateRequested();
@@ -97,7 +90,7 @@ FindModels::FindModels(Space* space, ModelExpandOptions opts, const litlist& ass
 FindModels::~FindModels(){
 }
 
-void FindModels::innerExecute(){
+void FindModels::execute(){
   printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
 		printer->notifySolvingFinished();
@@ -119,9 +112,11 @@ void FindModels::innerExecute(){
   }
   
   while(nbModels==0 || nbModels > _solutions->getNbModelsFound()){
-    invalidateModel();
+    Disjunction invalidation({});
+    getSolver().invalidate(invalidation.literals);
+    invalidateModel(invalidation);
+    
     state = getSolver().solve(true);
-  
     if (state == l_Undef || terminateRequested()) {
       printer->notifySolvingAborted();
       return;
@@ -147,7 +142,7 @@ FindOptimalModels::FindOptimalModels(Space* space, ModelExpandOptions opts, cons
 FindOptimalModels::~FindOptimalModels(){
 }
 
-void FindOptimalModels::innerExecute(){
+void FindOptimalModels::execute(){
   printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
 		printer->notifySolvingFinished();
@@ -231,16 +226,11 @@ void FindOptimalModels::innerExecute(){
   // optimality reached
   _solutions->notifyOptimalModelFound();  // this keep the last added model
   getSolver().getOutOfUnsat();
-  bool firstPass = true;
   
   // now, to find as many models as needed:
   while(nbModels==0 || nbModels > _solutions->getNbModelsFound()){
-    if(firstPass){
-      invalidateModel(lastInvalidationClause);
-      firstPass=false;
-    }else{
-      invalidateModel();
-    }
+    invalidateModel(lastInvalidationClause);
+    
     state = getSolver().solve(true);
     if (state == l_Undef || terminateRequested()) {
       printer->notifySolvingAborted();
@@ -249,6 +239,8 @@ void FindOptimalModels::innerExecute(){
       break;
     }
     addModel(getSpace()->getEngine()->getModel());
+    lastInvalidationClause.literals.clear();
+    getSolver().invalidate(lastInvalidationClause.literals);
   }
   printer->notifySolvingFinished();
 }
@@ -346,12 +338,6 @@ void ModelExpand::addModel(std::shared_ptr<Model> model) {
 	printer->addModel(outmodel);
 }
 
-SATVAL ModelExpand::invalidateModel() {
-	Disjunction invalidation({});
-	getSolver().invalidate(invalidation.literals);
-	return invalidateModel(invalidation);
-}
-
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
@@ -434,7 +420,8 @@ literallist UnitPropagate::getEntailedLiterals() const {
 	return literals;
 }
 
-void UnitPropagate::innerExecute() {
+void UnitPropagate::execute() {
+  space->finishParsing();
 	getSolver().setAssumptions(assumptions);
 	getSolver().solve(false);
 }
@@ -459,7 +446,9 @@ void UnitPropagate::writeOutEntailedLiterals() {
 /*
  * Transform
  */
-void Transform::innerExecute() {
+void Transform::execute() {
+  space->finishParsing();
+  
 	std::shared_ptr<ResMan> resfile(createResMan(getSpace()->getOptions().outputfile));
 	ostream output(resfile->getBuffer());
 	switch (outputlanguage) {

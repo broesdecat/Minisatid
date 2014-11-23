@@ -486,7 +486,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::innerExecute() {
+void FlatZincRewriter<Stream>::execute() {
 	state = SolverState::FINISHING;
 
 	for (auto binrel : savedbinrels) {

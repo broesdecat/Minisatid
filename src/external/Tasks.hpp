@@ -46,10 +46,9 @@ public:
 		return terminate;
 	}
 
-	virtual void execute();
+	virtual void execute() = 0;
 
 protected:
-	virtual void innerExecute() = 0;
 	const SolverOption& getOptions() const{
 		return modes;
 	}
@@ -62,7 +61,6 @@ public:
 	SpaceTask(Space* space);
 
 	virtual void notifyTerminateRequested();
-	virtual void execute();
 
 	Space* getSpace() const {
 		return space;
@@ -70,10 +68,6 @@ public:
 
 protected:
 	SearchEngine& getSolver() const;
-};
-
-enum class MXState {
-	MODEL, MODEL_FINAL, UNSAT, UNKNOWN
 };
 
 struct OptimStatement;
@@ -106,14 +100,9 @@ public:
 	bool isUnsat() const;
 	void notifySolvingAborted();
 	litlist getUnsatExplanation() const;
-  virtual void execute() {
-    Task::execute();
-  }
 
 protected:
-	virtual void innerExecute()=0;
   void addModel(std::shared_ptr<Model> model);
-  SATVAL invalidateModel();
   SATVAL invalidateModel(Disjunction& clause);      
   Lit invalidateAgg(OptimStatement& optim);
 	Lit invalidateVar(OptimStatement& optim);
@@ -127,8 +116,7 @@ public:
 	FindModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
 	~FindModels();
 
-protected:
-	virtual void innerExecute();
+	virtual void execute();
 };
 
 class FindOptimalModels: public ModelExpand {
@@ -139,8 +127,7 @@ public:
 	FindOptimalModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
 	~FindOptimalModels();
 
-protected:
-	virtual void innerExecute();
+	virtual void execute();
 };
 
 class UnitPropagate: public SpaceTask {
@@ -156,8 +143,7 @@ public:
 	literallist getEntailedLiterals() const;
 	void writeOutEntailedLiterals();
 
-private:
-	void innerExecute();
+	virtual void execute();
 };
 
 enum class TheoryPrinting { CNF, ECNF, FZ, HUMAN, ECNFGRAPH };
@@ -171,8 +157,7 @@ public:
 			: SpaceTask(space), outputlanguage(outputlanguage) {
 	}
 
-private:
-	void innerExecute();
+	virtual void execute();
 };
 
 }

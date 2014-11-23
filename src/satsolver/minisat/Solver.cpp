@@ -1318,6 +1318,9 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				reduceDB();
 			}
       
+      // set assumptions as first decisions
+      // the reason to use decisions instead of unit clauses, 
+      // is that you don't want assumptions to be used as logical consequences of the theory, e.g. when simplifying clauses
       if(decisionLevel()<assumpIterators.size()){
         assumpIterators.resize(decisionLevel());
       }

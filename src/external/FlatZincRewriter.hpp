@@ -98,10 +98,10 @@ public:
 	virtual void add(const CPBinaryRelVar&);
 	virtual void add(const CPSumWeighted&);
 	// TODO additional constraints
+  
+  void execute();
 
 protected:
-	void innerExecute();
-
 	std::ostream& getOutput();
 
 	const WLSet& getSet(uint i) const;
