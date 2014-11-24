@@ -475,15 +475,12 @@ bool PCSolver::isDecided(Atom var) {
 
 void PCSolver::saveState() {
 	saved = true;
-	getEventQueue().saveState();
 	getSolver().saveState();
 }
 
 void PCSolver::resetState() {
 	if (saved) {
 		getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
-								  // So NEVER make the searchengine "EV_STATEFUL"!
-		getEventQueue().resetState();
 	}
 	saved = false;
 }

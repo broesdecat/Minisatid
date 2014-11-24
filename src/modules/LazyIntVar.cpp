@@ -29,7 +29,6 @@ LazyIntVar::LazyIntVar(PCSolver* solver, VarID varid, Weight min, Weight max, Li
 void LazyIntVar::finish(){
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_STATEFUL);
 	getPCSolver().acceptBounds(getPCSolver().getIntView(this->getVarID(), 0), this);
 
 	Weight val(0);

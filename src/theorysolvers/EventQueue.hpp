@@ -49,9 +49,6 @@ private:
 
 	watchlist propagatewatchesasap;
 
-	bool savingstate;
-	proplist newpropagators;
-
 	long nbrestarts;
 	bool backtrackedtoroot;
 

@@ -23,7 +23,6 @@ using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver)
 		: 	pcsolver(pcsolver),
-			savingstate(false),
 			nbrestarts(0),
 			backtrackedtoroot(false),
 			_propagating(false),
@@ -33,7 +32,6 @@ EventQueue::EventQueue(PCSolver& pcsolver)
 	event2propagator[EV_DECISIONLEVEL];
 	event2propagator[EV_BACKTRACK];
 	event2propagator[EV_MODELFOUND];
-	event2propagator[EV_STATEFUL];
 }
 
 EventQueue::~EventQueue() {
@@ -47,36 +45,9 @@ bool EventQueue::isUnsat() const {
 	return getPCSolver().satState() == SATVAL::UNSAT;
 }
 
-void EventQueue::saveState() {
-	savingstate = true;
-	newpropagators.clear();
-	auto props = event2propagator.at(EV_STATEFUL);
-	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
-		if (props[i]->isPresent()) {
-			props[i]->saveState();
-		}
-	}
-}
-void EventQueue::resetState() {
-	for (auto i = newpropagators.cbegin(); i < newpropagators.cend(); ++i) {
-		(*i)->notifyNotPresent();
-	}
-	newpropagators.clear();
-	savingstate = false;
-	auto props = event2propagator.at(EV_STATEFUL);
-	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
-		if (props[i]->isPresent()) {
-			props[i]->resetState();
-		}
-	}
-}
-
 // NOTE: EACH propagator has to register here for the general methods
 void EventQueue::accept(Propagator* propagator) {
 	allpropagators.push_back(propagator);
-	if (savingstate) {
-		newpropagators.push_back(propagator);
-	}
 }
 
 void EventQueue::notifyNbOfVars(uint64_t nbvars) {
@@ -400,21 +371,4 @@ void EventQueue::clearNotPresentPropagators() {
 			}
 		}
 	}
-
-	auto temp = newpropagators;
-	newpropagators.clear();
-	for (auto prop = temp.cbegin(); prop < temp.cend(); ++prop) {
-		if ((*prop)->isPresent()) {
-			newpropagators.push_back(*prop);
-		}
-	}
-
-	/*	for (auto j = allpropagators.begin(); j < allpropagators.end();) { TODO cannot be enabled as watches have pointers to propagators, which would become invalid if the propagator is deleted
-	 if (not (*j)->isPresent()) {
-	 delete (*j);
-	 j = allpropagators.erase(j);
-	 } else {
-	 ++j;
-	 }
-	 }*/
 }

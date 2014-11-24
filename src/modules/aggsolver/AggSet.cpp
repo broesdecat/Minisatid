@@ -66,7 +66,6 @@ TypedSet::TypedSet(PCSolver* solver, int setid, AggProp const * const w, const v
 	// NOTE: important: only pass the object around when the object will be created (had an issue where an exception was thrown INSIDE the constructor AFTER passing the object to another class)
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_MODELFOUND);
-	getPCSolver().accept(this, EV_STATEFUL);
 	getPCSolver().accept(this, EV_BACKTRACK);
 }
 
