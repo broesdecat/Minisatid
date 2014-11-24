@@ -137,10 +137,6 @@ void GenPWAgg::backtrack(int untillevel) {
 	}
 }
 
-void GenPWAgg::resetState() {
-	getSet().acceptForBacktrack();
-}
-
 rClause GenPWAgg::propagateAtEndOfQueue() {
 	auto confl = nullPtrClause;
 	std::vector<GenPWatch*> watchlist;

@@ -55,10 +55,6 @@ protected:
 
 	std::vector<FWTrail*>&	getTrail		() 					 		{ return trail; }
 
-	// State saving
-	int savedtrailsize;
-	FWTrail* savedlevel;
-
 public:
 	FWAgg(TypedSet* set);
 	virtual ~FWAgg();
@@ -68,8 +64,6 @@ public:
 	virtual rClause	propagateAtEndOfQueue	();
 	virtual void	backtrack				(int untillevel);
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar) = 0;
-	virtual void 	saveState();
-	virtual void 	resetState();
 
 	const Weight& 	getCP					()	const 	{ return trail.back()->CBP; }
 	const Weight& 	getCC					()	const 	{ return trail.back()->CBC; }

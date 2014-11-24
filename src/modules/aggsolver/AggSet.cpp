@@ -265,17 +265,6 @@ rClause TypedSet::getExplanation(const Lit& p) {
 	return c;
 }
 
-void TypedSet::saveState() {
-	prop->saveState();
-}
-void TypedSet::resetState() {
-	prop->resetState();
-}
-
-//int TypedSet::getNbOfFormulas() const {
-//	return getAgg().size() * getWL().size() * log(getWL().size()); // Could refine depending on aggregate type
-//}
-
 void MinisatID::makeSumSetPositive(TypedSet& set){
 
 #ifdef NOARBITPREC

@@ -102,14 +102,6 @@ Lit LazyIntVar::addVariable(Weight value){
 	return var;
 }
 
-void LazyIntVar::saveState(){
-	savedleqlits = leqlits;
-}
-void LazyIntVar::resetState(){
-	leqlits = savedleqlits; // TODO remove watches on older literals from the queue
-	updateBounds();
-}
-
 /**
  * lazy intvar:
  *
