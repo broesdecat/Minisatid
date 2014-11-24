@@ -101,12 +101,10 @@ private:
 
 	vec<CRef> clauses; // List of problem clauses.
 	vec<CRef> learnts; // List of learnt clauses.
-	std::set<CRef> newclauses, newlearnts;
 
 	// ******* END VAR STORING VARIABLES
 
-	std::list<ReverseTrailElem> rootunitlits, savedrootlits;
-	std::vector<Atom> newvars;
+	std::list<ReverseTrailElem> rootunitlits;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
 	void removeClause(CRef cr); // Detach and free a clause.
@@ -121,15 +119,12 @@ public:
 	int printECNF(std::ostream& stream, std::set<Atom>& printedvars); // Returns the number of clauses that were added
 
 private:
-	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
 	bool addClause_(vec<Lit>& ps);
 public:
 	void randomizedRestart();
   void addAssumption(const Lit l);
   void removeAssumption(const Lit l);
   void clearAssumptions();
-	void saveState();
-	void resetState();
   void getOutOfUnsat();
 	void printClause(const CRef c) const;
 
@@ -328,7 +323,6 @@ protected:
 	int64_t simpDB_props; // Remaining number of propagations that must be made before next execution of 'simplify()'.
 	std::unordered_set<Lit> assumptions; // Current set of assumptions provided to solve by the user.
   std::vector<std::unordered_set<Lit>::const_iterator> assumpIterators; // an iterator for each assumption level pointing to the next assumption in assumptions. The 0th iterator is assumptions.cbegin(), the last iterator is assumptions.cend()
-	bool remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
 
 	void addConflict();
 
@@ -345,10 +339,6 @@ protected:
 	double max_learnts;
 	double learntsize_adjust_confl;
 	int learntsize_adjust_cnt;
-
-	// State saving
-	bool savedok;
-	uint roottraillim;
 
 	void insertVarOrder(Atom x); // Insert a variable in the decision order priority queue.
 	Lit pickBranchLit(); // Return the next decision variable.

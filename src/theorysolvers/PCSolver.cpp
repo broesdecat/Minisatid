@@ -475,12 +475,11 @@ bool PCSolver::isDecided(Atom var) {
 
 void PCSolver::saveState() {
 	saved = true;
-	getSolver().saveState();
 }
 
 void PCSolver::resetState() {
 	if (saved) {
-		getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
+		
 	}
 	saved = false;
 }

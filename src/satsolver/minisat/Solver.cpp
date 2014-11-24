@@ -91,7 +91,7 @@ Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
 			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0),
 			max_literals(0), tot_literals(0), time_of_first_decision(0),
 			ok(true), cla_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
-			remove_satisfied(true), max_learnts(0), heuristic(heur) {
+			max_learnts(0), heuristic(heur) {
 	getHeuristic().setSolver(this);
 	getHeuristic().rnd_init_act=opt_rnd_init_act; // TODO: fix: this option should be provided at construction of the heuristic
 	getHeuristic().phase_saving=opt_phase_saving; // TODO: fix: this option should be provided at construction of the heuristic
@@ -147,8 +147,6 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	decision.push();
 	trail.capacity(v + 1);
 	setDecidable(v, dvar);
-
-	newvars.push_back(v);
 
 	twovalued = false;
 
@@ -451,10 +449,8 @@ void Solver::attachClause(CRef cr, bool conflict) {
 void Solver::addToClauses(CRef cr, bool learnt) {
 	getHeuristic().notifyNewClause(ca[cr]);
 	if (learnt) {
-		newlearnts.insert(cr);
 		learnts.push(cr);
 	} else {
-		newclauses.insert(cr);
 		clauses.push(cr);
 	}
 }
@@ -518,73 +514,6 @@ void Solver::removeAssumption(const Lit l){
 void Solver::clearAssumptions(){
   pcsolver->backtrackTo(0);
   assumptions.clear();
-}
-
-// Store the entailed literals and save all new clauses, both in learnts and clauses
-// NOTE: never call directly from within!
-void Solver::saveState() {
-	if (verbosity > 3) {
-		clog << ">>> Saving the state.\n";
-	}
-	// Reset stored info
-	if (trail_lim.size() > 0) {
-		roottraillim = trail_lim[0];
-	} else {
-		roottraillim = trail.size();
-	}
-	newvars.clear();
-	newclauses.clear();
-	newlearnts.clear();
-	savedrootlits = rootunitlits;
-
-	savedok = ok;
-	
-	// Remove satisfied clauses:
-	removeSatisfied(learnts);
-	removeSatisfied(clauses);
-	checkGarbage();
-	getHeuristic().notifySimplification();
-	remove_satisfied = false;
-}
-
-void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
-	int i, j;
-	for (i = j = 0; i < clauses.size(); i++) {
-		if (newclauses.find(clauses[i]) != newclauses.cend()) {
-			removeClause(clauses[i]);
-		} else {
-			clauses[j++] = clauses[i];
-		}
-	}
-	clauses.shrinkByNb(i - j);
-	newclauses.clear();
-}
-
-// Reset always backtracks to 0 if there are new entailed literals
-// NOTE: never call directly from within!
-void Solver::resetState() {
-	if (verbosity > 3) {
-		clog << ">>> Resetting the state.\n";
-	}
-	ok = savedok;
-	auto newtrailrootlim = trail.size();
-	if (trail_lim.size() > 0) {
-		newtrailrootlim = trail_lim[0];
-	}
-	if (roottraillim != (uint) newtrailrootlim) {
-		trail_lim[0] = roottraillim;
-		uncheckedBacktrack(0);
-	}
-	removeUndefs(newclauses, clauses);
-	removeUndefs(newlearnts, learnts);
-
-	for (auto i = newvars.cbegin(); i < newvars.cend(); ++i) { // To guarantee number of model equivalence with previous one (in fact should remove the var)
-		setDecidable(*i, false);
-	}
-
-	rootunitlits = savedrootlits;
-
-	remove_satisfied = true;
 }
 
 void Solver::getOutOfUnsat(){
@@ -1184,9 +1113,7 @@ bool Solver::simplify() {
 
 	// Remove satisfied clauses:
 	removeSatisfied(learnts);
-	if (remove_satisfied) { // Can be turned off.
-		removeSatisfied(clauses);
-	}
+	removeSatisfied(clauses);
 
 	checkGarbage();
 	getHeuristic().notifySimplification();
@@ -1521,26 +1448,14 @@ void Solver::relocAll(ClauseAllocator& to) {
 
 	// All learnt:
 	//
-	auto tempnew = newlearnts;
-	newlearnts.clear();
 	for (int i = 0; i < learnts.size(); i++) {
-		bool save = tempnew.find(learnts[i]) != tempnew.cend();
 		ca.reloc(learnts[i], to);
-		if (save) {
-			newlearnts.insert(learnts[i]);
-		}
 	}
 
 	// All original:
 	//
-	auto tempclauses = newclauses;
-	newclauses.clear();
 	for (int i = 0; i < clauses.size(); i++) {
-		bool save = tempclauses.find(clauses[i]) != tempclauses.cend();
 		ca.reloc(clauses[i], to);
-		if (save) {
-			newclauses.insert(clauses[i]);
-		}
 	}
 
 	for (auto i = rootunitlits.begin(); i != rootunitlits.end(); i++) {
