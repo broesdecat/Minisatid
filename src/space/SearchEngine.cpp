@@ -127,8 +127,7 @@ void SearchEngine::removeAssumption(const Lit assump){
 void SearchEngine::clearAssumptions(){
   getSolver()->clearAssumptions();
 }
-void SearchEngine::setAssumptions(const litlist& assumps) {
-  clearAssumptions();
+void SearchEngine::addAssumptions(const litlist& assumps) {
 	for(auto l: assumps){
 		addAssumption(l);
 	}

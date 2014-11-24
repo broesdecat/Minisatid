@@ -25,7 +25,6 @@
 #include "ModelManager.hpp"
 #include "external/utils/ResourceManager.hpp"
 #include "external/Space.hpp"
-#include "external/Constraints.hpp"
 
 #include <map>
 #include <vector>
@@ -83,8 +82,8 @@ void SpaceTask::notifyTerminateRequested() {
  * FindModels
  */
 
-FindModels::FindModels(Space* space, ModelExpandOptions opts, const litlist& assumptions)
-  : ModelExpand(space,opts,assumptions), nbModels(opts.nbmodelstofind){
+FindModels::FindModels(Space* space, ModelExpandOptions opts)
+  : ModelExpand(space,opts), nbModels(opts.nbmodelstofind){
 }
 
 FindModels::~FindModels(){
@@ -98,7 +97,6 @@ void FindModels::execute(){
 	}
   
 	printSearchStart(clog, getOptions().verbosity);
-  getSolver().setAssumptions(assumptions);
   
   auto state = getSolver().solve(true);
   if (state == l_Undef || terminateRequested()) {
@@ -135,8 +133,8 @@ void FindModels::execute(){
  * FindOptimalModels
  */
 
-FindOptimalModels::FindOptimalModels(Space* space, ModelExpandOptions opts, const litlist& assumptions)
-  : ModelExpand(space,opts,assumptions), nbModels(opts.nbmodelstofind){
+FindOptimalModels::FindOptimalModels(Space* space, ModelExpandOptions opts)
+  : ModelExpand(space,opts), nbModels(opts.nbmodelstofind){
 }
 
 FindOptimalModels::~FindOptimalModels(){
@@ -151,7 +149,6 @@ void FindOptimalModels::execute(){
 	
   printer->notifyOptimizing();
 	printSearchStart(clog, getOptions().verbosity);
-  getSolver().setAssumptions(assumptions);
   
   Disjunction lastInvalidationClause({});
   // find a first model
@@ -248,9 +245,8 @@ void FindOptimalModels::execute(){
 /*
  * ModelExpand
  */
-// NOTE: EXTERNAL literals
-ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: SpaceTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options)
+		: SpaceTask(space), _options(options), _solutions(new ModelManager(options.savemodels)),
 			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 }
 
@@ -422,7 +418,7 @@ literallist UnitPropagate::getEntailedLiterals() const {
 
 void UnitPropagate::execute() {
   space->finishParsing();
-	getSolver().setAssumptions(assumptions);
+	getSolver().addAssumptions(assumptions);
 	getSolver().solve(false);
 }
 

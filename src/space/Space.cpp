@@ -5,6 +5,7 @@
 #include "external/Translator.hpp"
 #include "datastructures/InternalAdd.hpp"
 #include "external/Tasks.hpp"
+#include "external/Constraints.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -131,9 +132,10 @@ MXStatistics Space::getStats() const{
 
 ModelExpand* Space::createModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions){
   space->finishParsing();
+  space->getEngine()->addAssumptions(map(assumptions, *space->getRemapper()));
   if(space->isOptimizationProblem()){
-    return new MinisatID::FindOptimalModels(space, options, assumptions);
+    return new MinisatID::FindOptimalModels(space, options);
   }else{
-    return new MinisatID::FindModels(space, options, assumptions);
+    return new MinisatID::FindModels(space, options);
   }
 }

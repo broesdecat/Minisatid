@@ -38,7 +38,7 @@ public:
   void addAssumption(const Lit assump);
   void removeAssumption(const Lit assump);
   void clearAssumptions();
-  void setAssumptions(const litlist& assumps);
+  void addAssumptions(const litlist& assumps);
 	lbool solve(bool search);
 
 	litlist getUnsatExplanation() const;

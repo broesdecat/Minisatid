@@ -15,29 +15,12 @@
 #include "external/FlatZincRewriter.hpp"
 #include "Run.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "space/SearchEngine.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
 namespace Tests {
-TEST(MXTest, MultiAssumpSolve) {
-	SolverOption options;
-	options.verbosity = 0;
-	auto space = new Space(options);
-	extAdd(*space, Disjunction({ mkPosLit(1), mkPosLit(2), mkPosLit(3) }));
-  space->finishParsing();
-	ModelExpandOptions mxopts(0, Models::NONE, Models::NONE);
-	auto mx = FindModels(space, mxopts, { mkNegLit(2) });
-	mx.execute();
-	ASSERT_EQ(mx.getNbModelsFound(), 3);
-	auto mx2 = FindModels(space, mxopts, { mkNegLit(1) });
-	mx2.execute();
-	ASSERT_EQ(mx2.getNbModelsFound(), 3);
-	auto mx3 = FindModels(space, mxopts, { });
-	mx3.execute();
-	ASSERT_EQ(mx3.getNbModelsFound(), 7);
-}
-
 // TODO enable fullmodelcheck for small enough tests
 
 // TODO lazy addition tests?

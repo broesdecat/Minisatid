@@ -76,12 +76,11 @@ class ModelExpand: public SpaceTask {
 private:
 	ModelExpandOptions _options;
 protected:
-	litlist assumptions; // Note: internal literals
 	ModelManager* _solutions;
 	Printer* printer;
 
 public:
-	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
+	ModelExpand(Space* space, ModelExpandOptions options);
 	virtual ~ModelExpand();
   
   MXStatistics getStats() const;
@@ -113,7 +112,7 @@ private:
   int nbModels;
   
 public:
-	FindModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
+	FindModels(Space* space, ModelExpandOptions opts); // TODO: pass options by reference
 	~FindModels();
 
 	virtual void execute();
@@ -124,7 +123,7 @@ private:
   int nbModels;
   
 public:
-	FindOptimalModels(Space* space, ModelExpandOptions opts, const litlist& assumptions); // TODO: pass options by reference
+	FindOptimalModels(Space* space, ModelExpandOptions opts); // TODO: pass options by reference
 	~FindOptimalModels();
 
 	virtual void execute();

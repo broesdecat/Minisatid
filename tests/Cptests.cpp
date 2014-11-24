@@ -30,7 +30,7 @@ TEST(CPTest, UnSatCPSum) {
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
   space->finishParsing();
-	auto mx = FindModels(space, mxoptions, {});
+	auto mx = FindModels(space, mxoptions);
 	mx.execute();
 	ASSERT_TRUE(mx.isUnsat());
 	delete(space);
@@ -73,7 +73,7 @@ TEST(CPTest, DISABLED_MagicSeq) {
 
 	ModelExpandOptions mxoptions(2, Models::NONE, Models::NONE);
   space->finishParsing();
-	auto mx = FindModels(space, mxoptions, {});
+	auto mx = FindModels(space, mxoptions);
 	mx.execute();
 	ASSERT_TRUE(mx.isUnsat());
 	delete(space);
@@ -102,7 +102,7 @@ TEST(CPTest, Unsat2) {
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
   space->finishParsing();
-	auto mx = FindModels(space, mxoptions, {});
+	auto mx = FindModels(space, mxoptions);
 	mx.execute();
 	ASSERT_TRUE(mx.isUnsat());
 	delete(space);
