@@ -50,7 +50,7 @@ public:
 	double random_seed;
 	int verbosity;
 	int max_learned_clauses;
-	bool oneshot, assumpset;
+	bool oneshot;
 	bool fullmodelcheck; // If true, check whether all clauses are satisfied when a model is found.
 
 private:

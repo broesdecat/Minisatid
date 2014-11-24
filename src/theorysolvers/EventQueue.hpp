@@ -78,9 +78,6 @@ public:
 		}
 	}
 
-	void saveState();
-	void resetState();
-
 	rClause notifyFullAssignmentFound();
 
 	// NOTE: a propagator should only accept events when he is ready for those events!

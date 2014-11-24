@@ -82,8 +82,6 @@ public:
 
 	void notifyTerminateRequested();
 
-	void saveState();
-	void resetState();
   void getOutOfUnsat();
 
 	std::shared_ptr<Model> getModel();

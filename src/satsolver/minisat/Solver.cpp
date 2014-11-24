@@ -66,7 +66,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 
 Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
 		: Propagator(s, "satsolver"), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-					max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
+					max_learned_clauses(opt_maxlearned), oneshot(oneshot), fullmodelcheck(false),
 
 			needsimplify(true), backtracked(true),
 
@@ -1335,10 +1335,6 @@ static double luby(double y, int x) {
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve(bool nosearch) {
-	if (not assumpset) {
-		getPCSolver().saveState(); // NOTE: to assure that the state has been saved exactly once
-	}
-	assumpset = true;
 	model.clear();
 	conflict.clear();
 	if (!ok) {

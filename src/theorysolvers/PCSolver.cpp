@@ -43,7 +43,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 			cpsolver(NULL),
 #endif
 			factory(NULL),
-			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL),
+			trail(new TimeTrail()), minnewset(-1), terminate(false), printer(printer), queue(NULL),
 			groundingCalls(0), maxCallsBeforeRestart(100) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
@@ -471,17 +471,6 @@ void PCSolver::notifyUnsat() {
 
 bool PCSolver::isDecided(Atom var) {
 	return getSATSolver()->isDecided(var);
-}
-
-void PCSolver::saveState() {
-	saved = true;
-}
-
-void PCSolver::resetState() {
-	if (saved) {
-		
-	}
-	saved = false;
 }
 
 void PCSolver::getOutOfUnsat(){

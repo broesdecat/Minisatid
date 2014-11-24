@@ -230,16 +230,9 @@ public:
 	int getClauseSize(rClause cr) const;
 	Lit getClauseLit(rClause cr, int i) const;
 
-	// State saving
-private:
-	bool saved;
-public:
-	void saveState();
-	void resetState();
   void getOutOfUnsat();
 
 	// SATState information
-public:
 	void notifyUnsat();
 	SATVAL satState() const;
 	bool isUnsat() const {

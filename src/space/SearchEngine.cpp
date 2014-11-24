@@ -95,13 +95,6 @@ void SearchEngine::notifyTerminateRequested() {
 	getSolver()->notifyTerminateRequested();
 }
 
-void SearchEngine::saveState() {
-	getSolver()->saveState();
-}
-void SearchEngine::resetState() {
-	getSolver()->resetState();
-}
-
 void SearchEngine::getOutOfUnsat(){
   getSolver()->getOutOfUnsat();
 }
