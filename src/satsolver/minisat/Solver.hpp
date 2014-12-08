@@ -29,6 +29,7 @@
 
 #include <vector>
 #include <iostream>
+#include <unordered_set>
 #include <set>
 #include <list>
 #include <map>
@@ -49,7 +50,7 @@ public:
 	double random_seed;
 	int verbosity;
 	int max_learned_clauses;
-	bool oneshot, assumpset;
+	bool oneshot;
 	bool fullmodelcheck; // If true, check whether all clauses are satisfied when a model is found.
 
 private:
@@ -100,12 +101,10 @@ private:
 
 	vec<CRef> clauses; // List of problem clauses.
 	vec<CRef> learnts; // List of learnt clauses.
-	std::set<CRef> newclauses, newlearnts;
 
 	// ******* END VAR STORING VARIABLES
 
-	std::list<ReverseTrailElem> rootunitlits, savedrootlits;
-	std::vector<Atom> newvars;
+	std::list<ReverseTrailElem> rootunitlits;
 	void addRootUnitLit(const ReverseTrailElem& elem);
 
 	void removeClause(CRef cr); // Detach and free a clause.
@@ -120,12 +119,13 @@ public:
 	int printECNF(std::ostream& stream, std::set<Atom>& printedvars); // Returns the number of clauses that were added
 
 private:
-	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
 	bool addClause_(vec<Lit>& ps);
 public:
 	void randomizedRestart();
-	void saveState();
-	void resetState();
+  void addAssumption(const Lit l);
+  void removeAssumption(const Lit l);
+  void clearAssumptions();
+  void getOutOfUnsat();
 	void printClause(const CRef c) const;
 
 	int getNbOfAssumptions() const { return assumptions.size(); }
@@ -212,7 +212,6 @@ public:
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
 	Atom newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
 
-	void setAssumptions(const std::vector<Lit>& assumps);
 	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
 
 private:
@@ -322,8 +321,8 @@ protected:
 	int qhead; // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	int simpDB_assigns; // Number of top-level assignments since last execution of 'simplify()'.
 	int64_t simpDB_props; // Remaining number of propagations that must be made before next execution of 'simplify()'.
-	vec<Lit> assumptions; // Current set of assumptions provided to solve by the user.
-	bool remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
+	std::unordered_set<Lit> assumptions; // Current set of assumptions provided to solve by the user.
+  std::vector<std::unordered_set<Lit>::const_iterator> assumpIterators; // an iterator for each assumption level pointing to the next assumption in assumptions. The 0th iterator is assumptions.cbegin(), the last iterator is assumptions.cend()
 
 	void addConflict();
 
@@ -340,10 +339,6 @@ protected:
 	double max_learnts;
 	double learntsize_adjust_confl;
 	int learntsize_adjust_cnt;
-
-	// State saving
-	bool savedok;
-	uint roottraillim;
 
 	void insertVarOrder(Atom x); // Insert a variable in the decision order priority queue.
 	Lit pickBranchLit(); // Return the next decision variable.

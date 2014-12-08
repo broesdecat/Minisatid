@@ -66,7 +66,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 
 Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
 		: Propagator(s, "satsolver"), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()),
-					max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), fullmodelcheck(false),
+					max_learned_clauses(opt_maxlearned), oneshot(oneshot), fullmodelcheck(false),
 
 			needsimplify(true), backtracked(true),
 
@@ -91,7 +91,7 @@ Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
 			starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0),
 			max_literals(0), tot_literals(0), time_of_first_decision(0),
 			ok(true), cla_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0),
-			remove_satisfied(true), max_learnts(0), heuristic(heur) {
+			max_learnts(0), heuristic(heur) {
 	getHeuristic().setSolver(this);
 	getHeuristic().rnd_init_act=opt_rnd_init_act; // TODO: fix: this option should be provided at construction of the heuristic
 	getHeuristic().phase_saving=opt_phase_saving; // TODO: fix: this option should be provided at construction of the heuristic
@@ -148,8 +148,6 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	trail.capacity(v + 1);
 	setDecidable(v, dvar);
 
-	newvars.push_back(v);
-
 	twovalued = false;
 
 	return v;
@@ -160,7 +158,7 @@ inline void Solver::createNewDecisionLevel() {
 	getPCSolver().newDecisionLevel();
 }
 
-std::vector<Lit> Solver::getDecisions() const {
+std::vector<Lit> Solver::getDecisions() const { // TODO: assumptions are not decisions, but they seem to be considered thus by this method
 	std::vector<Lit> v;
 	auto prev = -1;
 	for (int i = 0; i < trail_lim.size(); i++) {
@@ -245,27 +243,31 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 		return false;
 	}
 
-	vec<Lit> ps;
-	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
-		ps.push(*i);
-	}
-
-	sort(ps); // NOTE: remove duplicates
-
-	// Check satisfaction and remove literals false at root
-	Lit p;
-	int i, j;
-	for (i = j = 0, p = lit_Undef; i < ps.size(); i++) {
-		if (rootValue(ps[i]) == l_True || ps[i] == ~p) {
-			return true;
-		} else if (rootValue(ps[i]) != l_False && ps[i] != p) {
-			ps[j++] = p = ps[i];
-		}
-	}
-	ps.shrinkByNb(i - j);
+  // remove doubles and sort
+  std::set<Lit> sorted_clause;
+  sorted_clause.insert(lits.cbegin(), lits.cend());
+  
+  // construct ps
+  vec<Lit> ps;
+  // tautology check, satisfied check, ignore false root literals:
+  Lit negLastLit = lit_Undef;
+  for(Lit l: sorted_clause){
+    if(negLastLit==l){
+      return true; // tautology detected
+    }else{
+      negLastLit=~l;
+    }
+    
+    lbool rootVal = rootValue(l);
+    if(rootVal==l_True){
+      return true; // true literal detected
+    }else if(rootVal==l_Undef){
+      ps.push(l);
+    }// else it's a false root lit, so not added to ps.
+  }
 
 	// NOTE: sort randomly to reduce dependency on grounding and literal introduction mechanics (certainly for lazy grounding)
-//	permuteRandomly(ps);
+  //	permuteRandomly(ps);
 
 	if (ps.size() == 0) {
 		notifyUnsat();
@@ -447,10 +449,8 @@ void Solver::attachClause(CRef cr, bool conflict) {
 void Solver::addToClauses(CRef cr, bool learnt) {
 	getHeuristic().notifyNewClause(ca[cr]);
 	if (learnt) {
-		newlearnts.insert(cr);
 		learnts.push(cr);
 	} else {
-		newclauses.insert(cr);
 		clauses.push(cr);
 	}
 }
@@ -500,71 +500,25 @@ void Solver::detachClause(CRef cr, bool strict) {
 	}
 }
 
-// Store the entailed literals and save all new clauses, both in learnts and clauses
-// NOTE: never call directly from within!
-void Solver::saveState() {
-	if (verbosity > 3) {
-		clog << ">>> Saving the state.\n";
-	}
-	// Reset stored info
-	if (trail_lim.size() > 0) {
-		roottraillim = trail_lim[0];
-	} else {
-		roottraillim = trail.size();
-	}
-	newvars.clear();
-	newclauses.clear();
-	newlearnts.clear();
-	savedrootlits = rootunitlits;
-
-	savedok = ok;
-	
-	// Remove satisfied clauses:
-	removeSatisfied(learnts);
-	removeSatisfied(clauses);
-	checkGarbage();
-	getHeuristic().notifySimplification();
-	remove_satisfied = false;
+void Solver::addAssumption(const Lit l){
+  MAssert(assumptions.count(~l)==0);
+  pcsolver->backtrackTo(0);
+  assumptions.insert(l);
 }
 
-void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
-	int i, j;
-	for (i = j = 0; i < clauses.size(); i++) {
-		if (newclauses.find(clauses[i]) != newclauses.cend()) {
-			removeClause(clauses[i]);
-		} else {
-			clauses[j++] = clauses[i];
-		}
-	}
-	clauses.shrinkByNb(i - j);
-	newclauses.clear();
+void Solver::removeAssumption(const Lit l){
+  pcsolver->backtrackTo(0);
+  assumptions.erase(l);
 }
 
-// Reset always backtracks to 0 if there are new entailed literals
-// NOTE: never call directly from within!
-void Solver::resetState() {
-	if (verbosity > 3) {
-		clog << ">>> Resetting the state.\n";
-	}
-	ok = savedok;
-	auto newtrailrootlim = trail.size();
-	if (trail_lim.size() > 0) {
-		newtrailrootlim = trail_lim[0];
-	}
-	if (roottraillim != (uint) newtrailrootlim) {
-		trail_lim[0] = roottraillim;
-		uncheckedBacktrack(0);
-	}
-	removeUndefs(newclauses, clauses);
-	removeUndefs(newlearnts, learnts);
+void Solver::clearAssumptions(){
+  pcsolver->backtrackTo(0);
+  assumptions.clear();
+}
 
-	for (auto i = newvars.cbegin(); i < newvars.cend(); ++i) { // To guarantee number of model equivalence with previous one (in fact should remove the var)
-		setDecidable(*i, false);
-	}
-
-	rootunitlits = savedrootlits;
-
-	remove_satisfied = true;
+void Solver::getOutOfUnsat(){
+  pcsolver->backtrackTo(0);
+  ok = true;
 }
 
 void Solver::removeClause(CRef cr) {
@@ -1159,9 +1113,7 @@ bool Solver::simplify() {
 
 	// Remove satisfied clauses:
 	removeSatisfied(learnts);
-	if (remove_satisfied) { // Can be turned off.
-		removeSatisfied(clauses);
-	}
+	removeSatisfied(clauses);
 
 	checkGarbage();
 	getHeuristic().notifySimplification();
@@ -1292,21 +1244,29 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 				// Reduce the set of learnt clauses:
 				reduceDB();
 			}
-
+      
+      // set assumptions as first decisions
+      // the reason to use decisions instead of unit clauses, 
+      // is that you don't want assumptions to be used as logical consequences of the theory, e.g. when simplifying clauses
+      if(decisionLevel()<assumpIterators.size()){
+        assumpIterators.resize(decisionLevel());
+      }
+      auto assumpIterator=assumptions.cbegin();
+      if(assumpIterators.size()>0){
+        assumpIterator=assumpIterators.back();
+      }
 			Lit next = lit_Undef;
-			while (decisionLevel() < assumptions.size()) {
-				//clog <<"Assumption\n";
-				// Perform user provided assumption:
-				Lit p = assumptions[decisionLevel()];
-				if (value(p) == l_True) {
-					// Dummy decision level:
-					createNewDecisionLevel();
+			while (assumpIterator!=assumptions.cend()) {
+				Lit p = *assumpIterator;
+        assumpIterator++;
+				if (value(p) == l_Undef) { // Perform user provided assumption:
+					next = p;
+          assumpIterators.push_back(assumpIterator);
+					break;
 				} else if (value(p) == l_False) {
 					analyzeFinal(~p, conflict);
 					return l_False;
 				} else {
-					next = p;
-					break;
 				}
 			}
 
@@ -1373,60 +1333,18 @@ static double luby(double y, int x) {
 	return pow(y, seq);
 }
 
-void Solver::setAssumptions(const litlist& assumps) {
-	// Note: important: when setting to identical assumptions, no action should be taken!!! (important for CORRECTNESS of finding multiple optim models)
-	bool identical = true;
-	if ((int) assumps.size() != assumptions.size()) {
-		identical = false;
-	}
-	for (uint i = 0; i < assumps.size() && identical; ++i) {
-		if (assumps[i] != assumptions[i]) {
-			identical = false;
-		}
-	}
-	if (identical) {
-		return;
-	}
-
-	if (oneshot) {
-		MAssert(not assumpset);
-	}
-	if (not oneshot && assumpset) {
-		getPCSolver().resetState();
-	}
-	getPCSolver().backtrackTo(0);
-	assumptions.clear();
-	//clog <<"Assumptions: ";
-	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
-		assumptions.push(*i);
-		//clog <<toString(*i) <<" ";
-	}
-	//clog <<"\n";
-	if (not oneshot) {
-		getPCSolver().saveState();
-	}
-	assumpset = true;
-}
-
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve(bool nosearch) {
-	if (not assumpset) {
-		getPCSolver().saveState(); // NOTE: to assure that the state has been saved exactly once
-	}
-	assumpset = true;
-
 	model.clear();
 	conflict.clear();
 	if (!ok) {
 		return l_False;
 	}
-
 	// To get a better estimate of the number of max_learnts allowed, have to ask all propagators their size
 	max_learnts = (getPCSolver().getNbOfFormulas() + nLearnts()) * learntsize_factor;
 	learntsize_adjust_confl = learntsize_adjust_start_confl;
 	learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 	auto status = l_Undef;
-
 	/*	if (verbosity >= 1) {
 	 fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
 	 (int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) clauses_literals, (int) max_learnts,
@@ -1449,7 +1367,6 @@ lbool Solver::solve(bool nosearch) {
 		}
 		curr_restarts++;
 	}
-
 	if (status == l_True) {
 		// Extend & copy model:
 		model.growTo(nVars());
@@ -1527,26 +1444,14 @@ void Solver::relocAll(ClauseAllocator& to) {
 
 	// All learnt:
 	//
-	auto tempnew = newlearnts;
-	newlearnts.clear();
 	for (int i = 0; i < learnts.size(); i++) {
-		bool save = tempnew.find(learnts[i]) != tempnew.cend();
 		ca.reloc(learnts[i], to);
-		if (save) {
-			newlearnts.insert(learnts[i]);
-		}
 	}
 
 	// All original:
 	//
-	auto tempclauses = newclauses;
-	newclauses.clear();
 	for (int i = 0; i < clauses.size(); i++) {
-		bool save = tempclauses.find(clauses[i]) != tempclauses.cend();
 		ca.reloc(clauses[i], to);
-		if (save) {
-			newclauses.insert(clauses[i]);
-		}
 	}
 
 	for (auto i = rootunitlits.begin(); i != rootunitlits.end(); i++) {

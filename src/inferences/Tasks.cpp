@@ -25,10 +25,10 @@
 #include "ModelManager.hpp"
 #include "external/utils/ResourceManager.hpp"
 #include "external/Space.hpp"
-#include "external/Constraints.hpp"
 
 #include <map>
 #include <vector>
+#include <bitset>
 
 using namespace std;
 using namespace MinisatID;
@@ -59,9 +59,6 @@ Atom VarCreation::createVar() {
 /*
  * Task
  */
-void Task::execute() {
-	innerExecute();
-}
 void Task::notifyTerminateRequested() {
 	terminate = true;
 }
@@ -76,37 +73,190 @@ SpaceTask::SpaceTask(Space* space)
 SearchEngine& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
-void SpaceTask::execute() {
-	space->getEngine()->finishParsing();
-	space->notifyInferenceExecuted();
-	Task::execute();
-}
 void SpaceTask::notifyTerminateRequested() {
 	Task::notifyTerminateRequested();
 	space->getEngine()->notifyTerminateRequested();
 }
 
-/*
- * MXTask
+/**
+ * FindModels
  */
 
-MXStatistics MXTask::getStats() const{
-	return getSpace()->getStats();
+FindModels::FindModels(Space* space, ModelExpandOptions opts)
+  : ModelExpand(space,opts), nbModels(opts.nbmodelstofind){
+}
+
+FindModels::~FindModels(){
+}
+
+void FindModels::execute(){
+  printer->notifyStartSolving();
+	if (getSpace()->isCertainlyUnsat()) {
+		printer->notifySolvingFinished();
+		return;
+	}
+  
+	printSearchStart(clog, getOptions().verbosity);
+  
+  auto state = getSolver().solve(true);
+  if (state == l_Undef || terminateRequested()) {
+    printer->notifySolvingAborted();
+    return;
+  }else if(state==l_False){
+    getSpace()->notifyUnsat();
+    return;
+  }else{ // model found :)
+    addModel(getSpace()->getEngine()->getModel());
+  }
+  
+  while(nbModels==0 || nbModels > _solutions->getNbModelsFound()){
+    Disjunction invalidation({});
+    getSolver().invalidate(invalidation.literals);
+    invalidateModel(invalidation);
+    
+    state = getSolver().solve(true);
+    if (state == l_Undef || terminateRequested()) {
+      printer->notifySolvingAborted();
+      return;
+    }else if(state==l_False){
+      break;
+    }
+    
+    addModel(getSpace()->getEngine()->getModel());
+  }
+  
+  printer->notifySolvingFinished();
+}
+
+
+/**
+ * FindOptimalModels
+ */
+
+FindOptimalModels::FindOptimalModels(Space* space, ModelExpandOptions opts)
+  : ModelExpand(space,opts), nbModels(opts.nbmodelstofind){
+}
+
+FindOptimalModels::~FindOptimalModels(){
+}
+
+void FindOptimalModels::execute(){
+  printer->notifyStartSolving();
+	if (getSpace()->isCertainlyUnsat()) {
+		printer->notifySolvingFinished();
+		return;
+	}
+	
+  printer->notifyOptimizing();
+	printSearchStart(clog, getOptions().verbosity);
+  
+  Disjunction lastInvalidationClause({});
+  // find a first model
+  auto state = getSolver().solve(true);
+  if (state == l_Undef || terminateRequested()) {
+    printer->notifySolvingAborted();
+    return;
+  }else if(state==l_False){
+    getSpace()->notifyUnsat();
+    return;
+  }else{ // model found :)
+    addModel(getSpace()->getEngine()->getModel());
+    getSolver().invalidate(lastInvalidationClause.literals);
+  }
+  
+  // do the actual optimization
+  while (getSolver().hasNextOptimum()){
+    auto optim = getSolver().getNextOptimum();
+    bool optimumfound=false;
+    while(!optimumfound){
+      // add stricter bound using assumptions
+      Lit lastAssumption;
+		  switch (optim.optim) {
+		  case Optim::SUBSET:{
+			  throw idpexception("Invalid code path: subset minisation not yet supported.");
+			  break;}
+		  case Optim::AGG:{
+        lastAssumption = invalidateAgg(optim);
+			  optimumfound = lastAssumption==Minisat::lit_Undef;
+			  break;}
+		  case Optim::VAR:{
+			  lastAssumption = invalidateVar(optim);
+			  optimumfound = lastAssumption==Minisat::lit_Undef;
+			  break;}
+		  }
+		  if(optimumfound){
+		    break;
+		  }
+      
+	    getSolver().addAssumption(lastAssumption);
+	    // NOTE: since we added an assumption literal, the invalidation will never propagate to false.
+	    // look for new model:  
+		  state = getSolver().solve(true);
+	    if (state == l_Undef || terminateRequested()) {
+        printer->notifySolvingAborted();
+        return;
+      }else if(state==l_False){
+        optimumfound=true;
+        getSolver().removeAssumption(lastAssumption);
+        getSolver().addAssumption(~lastAssumption); // TODO add unit clauses instead...
+        // Fix the optimization constraints to their optimal condition
+        switch (optim.optim) {
+        case Optim::SUBSET:{
+          throw idpexception("Invalid code path: subset minimisation not yet supported.");
+          break;}
+        case Optim::AGG:{
+          auto agg = optim.agg_to_minimize;
+          space->add(Aggregate(~lastAssumption, agg->getSet()->getSetID(), _solutions->getBestValueFound(), agg->getType(), agg->getSign(), AggSem::COMP, -1, false));
+          break;}
+        case Optim::VAR:{
+          internalAdd(Disjunction({ optim.var->getEQLit(_solutions->getBestValueFound()) }), getSolver().getBaseTheoryID(), getSolver());
+          break;}
+        }
+      }else{
+        addModel(getSpace()->getEngine()->getModel());
+        lastInvalidationClause.literals.clear();
+        getSolver().invalidate(lastInvalidationClause.literals);
+      }
+    }
+  }
+
+  // optimality reached
+  _solutions->notifyOptimalModelFound();  // this keep the last added model
+  getSolver().getOutOfUnsat();
+  
+  // now, to find as many models as needed:
+  while(nbModels==0 || nbModels > _solutions->getNbModelsFound()){
+    invalidateModel(lastInvalidationClause);
+    
+    state = getSolver().solve(true);
+    if (state == l_Undef || terminateRequested()) {
+      printer->notifySolvingAborted();
+      return;
+    }else if(state==l_False){
+      break;
+    }
+    addModel(getSpace()->getEngine()->getModel());
+    lastInvalidationClause.literals.clear();
+    getSolver().invalidate(lastInvalidationClause.literals);
+  }
+  printer->notifySolvingFinished();
 }
 
 /*
  * ModelExpand
  */
-// NOTE: EXTERNAL literals
-ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: MXTask(space), _options(options), assumptions(map(assumptions, *space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options)
+		: SpaceTask(space), _options(options), _solutions(new ModelManager(options.savemodels)),
 			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
-
 }
 
 ModelExpand::~ModelExpand() {
 	delete (_solutions);
 	delete (printer);
+}
+
+MXStatistics ModelExpand::getStats() const{
+	return getSpace()->getStats();
 }
 
 int ModelExpand::getNbModelsFound() const {
@@ -154,72 +304,6 @@ void ModelExpand::notifySolvingAborted() {
 	printer->notifySolvingAborted();
 }
 
-/*
- * Possible answers:
- * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
- * false => unsatisfiable
- *
- * Possible tasks:
- * do propagation => do not do search, do not save any model
- * check satisfiability => save the first model
- * find n/all models and print them => do not save models, but print them one at a time
- * find n/all models and return them => save all models
- * count the number of models => do not save models
- */
-void ModelExpand::innerExecute() {
-	printer->notifyStartSolving();
-	if (getSpace()->isCertainlyUnsat()) {
-		_solutions->notifyUnsat();
-		printer->notifySolvingFinished();
-		return;
-	}
-
-	if (getSpace()->isOptimizationProblem()) {
-		printer->notifyOptimizing();
-	}
-
-	printSearchStart(clog, getOptions().verbosity);
-
-	bool moremodelspossible = true;
-	if (getSpace()->isOptimizationProblem()) {
-		bool optimumfound = true;
-		if (getSpace()->isAlwaysAtOptimum()) {
-			findNext(assumptions, _options);
-			optimumfound = _solutions->getNbModelsFound() > 0;
-		} else {
-			while (getSolver().hasNextOptimum() && optimumfound) {
-				optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
-			}
-		}
-
-		if (optimumfound) {
-			_solutions->notifyOptimalModelFound();
-		} else {
-			moremodelspossible = false;
-		}
-	}
-	if (moremodelspossible) {
-		auto moremodels = findNext(assumptions, _options);
-		if (moremodels == MXState::UNSAT) {
-			if (getNbModelsFound() == 0) {
-				printNoModels(clog, getOptions().verbosity);
-			} else {
-				printer->notifyNoMoreModels();
-				printNoMoreModels(clog, getOptions().verbosity);
-			}
-		}
-	}
-	if (_solutions->getNbModelsFound() == 0) {
-		_solutions->notifyUnsat();
-		getSpace()->notifyUnsat();
-	}
-	if (terminateRequested()) {
-		printer->notifySolvingAborted();
-	} else {
-		printer->notifySolvingFinished();
-	}
-}
-
 //Translate into original vocabulary
 vector<Lit> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
 	vector<Lit> outmodel;
@@ -241,158 +325,59 @@ vector<VariableEqValue> getBackMappedModel(const std::vector<VariableEqValue>& m
 	}
 	return outmodel;
 }
-void addModelToSolution(const std::shared_ptr<Model>& model, const Remapper& remapper, ModelManager& solution, Printer& printer) {
-	auto outmodel = new Model();
-	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, remapper);
-	outmodel->variableassignments = getBackMappedModel(model->variableassignments, remapper);
-	solution.addModel(outmodel);
-	printer.addModel(outmodel);
-
-}
 
 void ModelExpand::addModel(std::shared_ptr<Model> model) {
-	addModelToSolution(model, *getSpace()->getRemapper(), *_solutions, *printer);
-}
-
-bool findmoreModels(const ModelExpandOptions& options, ModelManager* m) {
-	return options.nbmodelstofind == 0 || m->getNbModelsFound() < options.nbmodelstofind;
-}
-
-/**
- * Checks satisfiability of the theory.
- * Returns false if no model was found, true otherwise.
- * If a model is found, it is printed and returned in <m>, the theory is extended to prevent
- * 		the same model from being found again and
- * 		the datastructures are reset to prepare to find the next model
- */
-/**
- * Important: assmpt are the first DECISIONS that are made. So they are not automatic unit propagations
- * and can be backtracked!
- */
-MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& options) {
-	getSolver().setAssumptions(assmpt);
-	auto state = MXState::MODEL;
-	while (state == MXState::MODEL && findmoreModels(options, _solutions)) {
-		state = findNext();
-	}
-	return state;
-}
-
-MXState ModelExpand::findNext() {
-	auto state = getSolver().solve(true);
-	if (state == l_Undef || terminateRequested()) {
-		return MXState::UNKNOWN;
-	}
-	bool modelfound = state == l_True;
-	if (not modelfound) {
-		return MXState::UNSAT;
-	}
-
-	addModel(getSpace()->getEngine()->getModel());
-	//Invalidate SAT model
-	if (!getSolver().moreModelsPossible()) {
-		return MXState::MODEL_FINAL;
-	}
-	//choices were made, so other models possible
-	auto invalidatedState = invalidateModel();
-	if(invalidatedState != SATVAL::POS_SAT){
-		return MXState::MODEL_FINAL;
-	}
-	return MXState::MODEL;
-}
-
-SATVAL ModelExpand::invalidateModel() {
-	Disjunction invalidation({});
-	getSolver().invalidate(invalidation.literals);
-	return invalidateModel(invalidation);
+  auto outmodel = new Model();
+	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, *getSpace()->getRemapper());
+	outmodel->variableassignments = getBackMappedModel(model->variableassignments, *getSpace()->getRemapper());
+	_solutions->addModel(outmodel);
+	printer->addModel(outmodel);
 }
 
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
 SATVAL ModelExpand::invalidateModel(Disjunction& clause) {
-	if (getOptions().verbosity >= 3) {
+	if (getOptions().verbosity >= 1) {
 		clog << "Adding model-invalidating clause: [ ";
 		clog << getSpace()->toString(clause.literals);
 		clog << "]\n";
 	}
-	internalAdd(clause, getSolver().getBaseTheoryID(), getSolver());
+  internalAdd(clause, getSolver().getBaseTheoryID(), getSolver());
 	return getSolver().satState();
 }
 
 // OPTIMIZATION METHODS
-bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim) {
-	int subsetsize = 0;
-	const auto& minim = optim.to_minimize;
-	for (auto i = minim.cbegin(); i < minim.cend(); ++i) {
-		auto lit = *i;
-		if (getSolver().getModelValue(var(lit)) == l_True) {
-			invalidation.push_back(~lit);
-			++subsetsize;
-		} else {
-			assmpt.push_back(~lit);
-		}
-	}
 
-	_solutions->setLatestOptimum(subsetsize);
-
-	if (subsetsize == 0) {
-		return true; //optimum has already been found!!!
-	} else {
-		return false;
-	}
-}
-
-bool ModelExpand::invalidateValue(litlist& invalidation, OptimStatement& optim) {
-	bool currentoptimumfound = false;
-
-	const auto& minim = optim.to_minimize;
-	for (uint i = 0; !currentoptimumfound && i < minim.size(); ++i) {
-		if (!currentoptimumfound && getSolver().getModelValue(var(minim[i])) == l_True) {
-			if (getOptions().verbosity >= 1) {
-				clog << "> Current optimum found for: ";
-				clog << getSpace()->toString(minim[i]);
-				clog << "\n";
-			}
-			currentoptimumfound = true;
-			_solutions->setLatestOptimum(minim[i]);
-		}
-		if (!currentoptimumfound) {
-			invalidation.push_back(minim[i]);
-		}
-	}
-
-	if (invalidation.size() == 0) {
-		return true; //optimum has already been found!!!
-	} else {
-		return false;
-	}
-}
-
-bool ModelExpand::invalidateAgg(litlist& invalidation, OptimStatement& optim) {
-	auto agg = optim.agg_to_minimize;
+Lit ModelExpand::invalidateAgg(OptimStatement& optim) {  
+  // general idea: add a new -conditional- agg constraint over the same weighted set as the optimization criterion
+  // problem: the weighted set used in the optimization criterion is normalized, and cannot be used to construct the agg constraint
+  // solution: get the originally parsed weighted set (has the same id (which is a bad smell)).
+  auto agg = optim.agg_to_minimize;
 	auto s = agg->getSet();
-	auto bestvalue = s->getType().getValue(*s);
-	_solutions->setLatestOptimum(bestvalue);
+  // Getting the original weighted set. Ugly line of code ahead:
+  WLSet* wlset = space->getEngine()->getFactory(getSolver().getBaseTheoryID()).getParsedSet(s->getSetID());
+  // calculating current optimization value
+  int bestvalue = 0;
+  for(auto wl: wlset->wl){
+    if(getSolver().getModelValue(wl.getLit())==l_True){
+      bestvalue += wl.getWeight();
+    }
+  }
+  _solutions->setLatestOptimum(bestvalue);
 	printer->notifyCurrentOptimum(bestvalue);
-
+  
 	if (getOptions().verbosity >= 1) {
 		clog << "> Current optimal value " << bestvalue << "\n";
 	}
-
-	agg->setBound(AggBound(agg->getSign(), bestvalue - 1));
-
-	if (s->getType().getMinPossible(*s) == bestvalue) {
-		return true;
-	}
-
-	HeadReason ar(*agg, mkNegLit(var(agg->getHead())));
-	s->getProp()->getExplanation(invalidation, ar);
-
-	return false;
+  
+  Lit assumption = mkPosLit(getSolver().newAtom());  
+  // adding new bound:
+  space->add(Aggregate(assumption, agg->getSet()->getSetID(), bestvalue-1, agg->getType(), agg->getSign(), AggSem::COMP, -1, false));
+  return assumption;
 }
 
-bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
+Lit ModelExpand::invalidateVar(OptimStatement& optim) {
 	auto var = optim.var;
 	auto bestvalue = var->maxValue();
 	_solutions->setLatestOptimum(bestvalue);
@@ -403,142 +388,17 @@ bool ModelExpand::invalidateVar(litlist& invalidation, OptimStatement& optim) {
 
 	if(optim.minimize){
 		if (var->origMinValue() == bestvalue) {
-			return true;
-		}
-		invalidation.push_back(var->getLEQLit(bestvalue - 1));
+			return Minisat::lit_Undef;
+		}else{
+      return var->getLEQLit(bestvalue - 1);
+    }
 	}else{
 		if (var->origMaxValue() == bestvalue) {
-			return true;
-		}
-		invalidation.push_back(var->getGEQLit(bestvalue + 1));
+			return Minisat::lit_Undef;
+		}else{
+      return var->getGEQLit(bestvalue + 1);
+    }
 	}
-	return false;
-}
-
-/*
- * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
- *
- * If the optimal model was found, the state is reset such that more models might be found with that same value.
- *
- * Returns true if an optimal model was found
- */
-bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
-	litlist currentassmpt = assmpt;
-	bool setassump = true;
-
-	bool modelfound = false, unsatreached = false;
-
-	while (not unsatreached) {
-		if (optim.optim == Optim::AGG) {
-			// NOTE: necessary to propagate the changes to the bound correctly
-			if (optim.agg_to_minimize->reInitializeAgg() == SATVAL::UNSAT) {
-				unsatreached = true;
-				continue;
-			}
-		}
-
-		if (setassump) {
-			getSolver().setAssumptions(currentassmpt); // NOTE do not do this if the assumptions have not changed!
-			setassump = false;
-		}
-
-		auto sat = getSolver().solve(true);
-		if (sat == l_False) {
-			unsatreached = true;
-			break;
-		} else if (sat == l_Undef) {
-			break;
-		}
-		modelfound = true;
-		savedinvalidation.clear();
-		getSolver().invalidate(savedinvalidation);
-
-		//Store current model in m before invalidating the solver
-		auto m = getSolver().getModel();
-
-		getSolver().saveState();
-
-		//invalidate the solver
-		Disjunction invalidation({});
-		switch (optim.optim) {
-		case Optim::LIST:
-			unsatreached = invalidateValue(invalidation.literals, optim);
-			break;
-		case Optim::SUBSET:
-			currentassmpt.clear();
-			setassump = true;
-			unsatreached = invalidateSubset(invalidation.literals, currentassmpt, optim);
-			break;
-		case Optim::AGG:
-			unsatreached = invalidateAgg(invalidation.literals, optim);
-			break;
-		case Optim::VAR: {
-			unsatreached = invalidateVar(invalidation.literals, optim);
-			break;
-		}
-		}
-
-		if (not unsatreached) {
-			if (getSolver().moreModelsPossible()) { //choices were made, so other models possible
-				unsatreached = invalidateModel(invalidation) == SATVAL::UNSAT;
-			} else {
-				unsatreached = true;
-			}
-		}
-
-		addModel(m);
-	}
-
-	//cerr <<"Unsat found, enabling finding more models\n";
-	if (unsatreached && modelfound) {
-		getSolver().resetState();
-		getSolver().setAssumptions(assmpt); // Note: prevents when finding multiple models, that in findnext, reset is called again (as assmpts have just been set)
-
-		// TODO In fact from here the state no longer has to be saved
-
-		// Prevent to find the first model again
-		internalAdd(Disjunction(savedinvalidation), getSolver().getBaseTheoryID(), getSolver());
-
-		// If resetting state, also fix the optimization constraints to their optimal condition
-		switch (optim.optim) {
-		case Optim::LIST:
-			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
-				if (*i == _solutions->getBestLitFound()) {
-					break;
-				}
-				internalAdd(Disjunction({ ~*i }), getSolver().getBaseTheoryID(), getSolver());
-			}
-			internalAdd(Disjunction({ _solutions->getBestLitFound() }), getSolver().getBaseTheoryID(), getSolver());
-			break;
-		case Optim::SUBSET: {
-			WLSet set(getSolver().newSetID());
-			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
-				set.wl.push_back( { *i, 1 });
-			}
-			internalAdd(set, getSolver().getBaseTheoryID(), getSolver());
-			auto var = getSolver().newAtom();
-			internalAdd(Disjunction({ mkPosLit(var) }), getSolver().getBaseTheoryID(), getSolver());
-			internalAdd(Aggregate(mkPosLit(var), set.setID, _solutions->getBestValueFound(), AggType::CARD, AggSign::UB, AggSem::COMP, -1, false), getSolver().getBaseTheoryID(), getSolver());
-			break;
-		}
-		case Optim::AGG: {
-			auto agg = optim.agg_to_minimize;
-			agg->setBound(AggBound(agg->getSign(), _solutions->getBestValueFound()));
-			agg->reInitializeAgg();
-			break;
-		}
-		case Optim::VAR: {
-			internalAdd(Disjunction({ optim.var->getEQLit(_solutions->getBestValueFound()) }), getSolver().getBaseTheoryID(), getSolver());
-			break;
-		}
-		}
-	}
-
-	return unsatreached && modelfound;
-}
-
-void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
-	printer->notifyCurrentOptimum(value);
 }
 
 /*
@@ -556,8 +416,9 @@ literallist UnitPropagate::getEntailedLiterals() const {
 	return literals;
 }
 
-void UnitPropagate::innerExecute() {
-	getSolver().setAssumptions(assumptions);
+void UnitPropagate::execute() {
+  space->finishParsing();
+	getSolver().addAssumptions(assumptions);
 	getSolver().solve(false);
 }
 
@@ -581,7 +442,9 @@ void UnitPropagate::writeOutEntailedLiterals() {
 /*
  * Transform
  */
-void Transform::innerExecute() {
+void Transform::execute() {
+  space->finishParsing();
+  
 	std::shared_ptr<ResMan> resfile(createResMan(getSpace()->getOptions().outputfile));
 	ostream output(resfile->getBuffer());
 	switch (outputlanguage) {

@@ -73,12 +73,7 @@ public:
 	virtual rClause notifyFullAssignmentFound() {
 		throw idpexception("Operation applied to invalid propagator.");
 	}
-	virtual void saveState() {
-		throw idpexception("Operation applied to invalid propagator.");
-	}
-	virtual void resetState() {
-		throw idpexception("Operation applied to invalid propagator.");
-	}
+  
 	// Supposed to return an estimate of the number of clauses this propagator represents.
 	// However, most implementations simply return 1.
 	virtual int getNbOfFormulas() const = 0;

@@ -31,6 +31,22 @@ public:
 		solvers[TheoryID(1)]=solver;
 	}
 	~SearchEngine();
+  
+  /*****
+   * Base interface:
+   */
+  void addAssumption(const Lit assump);
+  void removeAssumption(const Lit assump);
+  void clearAssumptions();
+  void addAssumptions(const litlist& assumps);
+	lbool solve(bool search);
+
+	litlist getUnsatExplanation() const;
+	litlist getEntailedLiterals() const;
+  
+  /*****
+   * Old methods:
+   */
 
 	TheoryID getBaseTheoryID(){
 		return TheoryID(1);
@@ -61,14 +77,12 @@ public:
 
 	void finishParsing();
 	bool isOptimizationProblem() const;
-	bool isAlwaysAtOptimum() const;
 	bool hasNextOptimum() const;
 	OptimStatement& getNextOptimum();
 
 	void notifyTerminateRequested();
 
-	void saveState();
-	void resetState();
+  void getOutOfUnsat();
 
 	std::shared_ptr<Model> getModel();
 	lbool getModelValue(Atom v);
@@ -77,11 +91,6 @@ public:
 
 	void accept(ConstraintVisitor& visitor);
 
-	void setAssumptions(const litlist& assumps);
-	lbool solve(bool search);
-	litlist getUnsatExplanation() const;
-
-	litlist getEntailedLiterals() const;
 	bool moreModelsPossible() const;
 
 	// MODAL SUPPORT

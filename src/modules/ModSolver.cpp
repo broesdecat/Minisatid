@@ -76,7 +76,10 @@ bool ModSolver::search(const litlist& assumpts, bool ) {
 
 	 return result;*/
 
-	child->setAssumptions(assumpts);
+  child->clearAssumptions();
+  for(auto l: assumpts){
+    child->addAssumption(l);
+  }
 	searching = true;
 	auto result = child->solve(true);
 	searching = false;
@@ -184,10 +187,11 @@ bool ModSolver::propagateDownAtEndOfQueue(litlist& confldisj) {
 		searching = false;
 	}
 
-	getParent().saveState(); //IMPORTANT
+  // TODO: state saving is now replaced by assumption-controlled constraints. Please test whether the Modsolver still works!
+	// getParent().saveState(); //IMPORTANT
 	bool result = search(assumptions, allknown);
 	result = analyzeResult(result, allknown, confldisj);
-	getParent().resetState();
+	// getParent().resetState();
 
 	if (verbosity() > 4) {
 		clog << "Finished checking solver " << getID() << ": " << (result ? "no conflict" : "conflict") << ".\n";

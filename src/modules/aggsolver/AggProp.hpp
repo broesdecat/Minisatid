@@ -69,7 +69,6 @@ public:
 	Agg(TypedSet* set, const TempAgg& agg, bool optim):
 		TempAgg(agg), optim(optim), set(set){}
 
-	bool		isOptimAgg		() 	const	{ return optim; }
 	TypedSet*	getSet			()	const	{ return set; }
 	SATVAL		reInitializeAgg	();
 	bool		isOptim			() const { return optim; }
@@ -219,8 +218,6 @@ public:
 	virtual rClause		propagateAtEndOfQueue() = 0;
 	virtual void		backtrack		(int untillevel) = 0;
     virtual void 		getExplanation	(litlist& lits, const AggReason& ar) = 0;
-	virtual void 		saveState() = 0;
-	virtual void 		resetState() = 0;
 
     TypedSet&			getSet() 			{ return *set; }
     const TypedSet&		getSet() 	const	{ return *set; }

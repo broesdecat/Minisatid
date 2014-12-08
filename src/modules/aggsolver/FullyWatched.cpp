@@ -22,7 +22,7 @@ using namespace std;
 using namespace MinisatID;
 
 FWAgg::FWAgg(TypedSet* set) :
-		AggPropagator(set), savedtrailsize(-1), savedlevel(NULL) {
+		AggPropagator(set) {
 }
 
 FWAgg::~FWAgg(){
@@ -107,14 +107,6 @@ void FWAgg::backtrack(int untillevel) {
 		getTrail().pop_back();
 		getTrail().back()->start = getTrail().back()->props.size();
 	}
-}
-
-void FWAgg::saveState() {
-	savedlevel = new FWTrail(*getTrail().front());
-}
-void FWAgg::resetState() {
-	delete (getTrail().front());
-	getTrail()[0] = savedlevel;
 }
 
 /**

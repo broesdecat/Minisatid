@@ -18,7 +18,7 @@ using namespace MinisatID;
 
 template<class T>
 void printValue(T& output, lbool value){
-	output <<"(" <<(value==l_Undef?"X":value==l_True?"T":"F") <<")";
+	output <<"(" <<(value==l_Undef?"U":value==l_True?"T":"F") <<")";
 }
 
 void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {

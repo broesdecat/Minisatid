@@ -98,13 +98,6 @@ public:
 	}
 };
 template<typename Remapper>
-class ExtAdd<MinimizeOrderedList, Remapper> {
-public:
-	MinimizeOrderedList extAdd(Remapper& r, const MinimizeOrderedList& obj) {
-		return MinimizeOrderedList(obj.priority, map(obj.literals, r));
-	}
-};
-template<typename Remapper>
 class ExtAdd<OptimizeVar, Remapper> {
 public:
 	OptimizeVar extAdd(Remapper& r, const OptimizeVar& obj) {

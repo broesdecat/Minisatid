@@ -59,6 +59,8 @@ Weight AggProp::getMaxPossible(const TypedSet& set) const {
 	return getMaxPossible(set.getWL());
 }
 
+// NOTE: The internal weighted set is not the same as the weighted set in the propagatorfactory with the same id
+// the difference is that this set is normalized to only contain positive weights. See also makeSumSetPositive in AggSet.hpp
 Weight AggProp::getValue(const TypedSet& set) const {
 	Weight total = getESV();
 	for (auto i = set.getWL().cbegin(); i < set.getWL().cend(); ++i) {

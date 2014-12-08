@@ -17,6 +17,7 @@ namespace MinisatID{
 class Translator;
 class SearchEngine;
 class PropAndBackMonitor;
+class ModelExpand;
 
 class Monitor {
 private:
@@ -50,7 +51,6 @@ private:
 	Monitor* monitor;
 	VarCreation* varcreator;
 	SearchEngine* engine;
-	bool oneshot, executed, optim;
 
 public:
 	Space(const SolverOption& options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.
@@ -61,24 +61,16 @@ public:
 	void notifyUnsat();
 	bool isCertainlyUnsat() const;
 
-	void notifyInferenceExecuted(){
-		if(oneshot){
-			MAssert(not executed);
-		}
-		executed = true;
-	}
-
 	void 	addMonitor(PropAndBackMonitor* monitor);
+  void  finishParsing();
 
 	bool 	isOptimizationProblem() const;
-	bool	isAlwaysAtOptimum() const;
 
 	virtual void add(const Disjunction&);
 	virtual void add(const Implication&);
 	virtual void add(const Rule&);
 	virtual void add(const WLSet&);
 	virtual void add(const Aggregate&);
-	virtual void add(const MinimizeOrderedList&);
 	virtual void add(const MinimizeSubset&);
 	virtual void add(const OptimizeVar&);
 	virtual void add(const MinimizeAgg&);
@@ -101,6 +93,8 @@ public:
 	Value getTruthValue(const Lit& lit) const;
 
 	MXStatistics getStats() const;
+  
+  ModelExpand* createModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
 };
 
 }

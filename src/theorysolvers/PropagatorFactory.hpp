@@ -135,6 +135,7 @@ public:
 	}
 
 	virtual IntView* getIntView(VarID varID, Weight bound) = 0;
+  virtual WLSet* getParsedSet(int id) = 0;
 };
 
 class PropagatorFactory:
@@ -176,7 +177,6 @@ public:
 	void add(const WLSet& sentence);
 	void add(const Aggregate& sentence);
 	void add(const MinimizeSubset& sentence);
-	void add(const MinimizeOrderedList& sentence);
 	void add(const OptimizeVar& sentence);
 	void add(const MinimizeAgg& sentence);
 	void add(const Symmetry& sentence);
@@ -202,6 +202,10 @@ public:
 	void notifyMonitorsOfAdding(const T& obj) const;
 
 	virtual IntView* getIntView(VarID varID, Weight bound);
+
+  virtual WLSet* getParsedSet(int id){
+    return parsedsets.at(id).set;
+  }
 
 private:
 

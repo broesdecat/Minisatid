@@ -396,7 +396,7 @@ VarID FlatZincRewriter<Stream>::newCpVar(const std::vector<Weight>& values) {
 template<typename Stream>
 VarID FlatZincRewriter<Stream>::addOptimization(bool& minimize) {
 	minimize = true;
-	if (savedvar.size() + savedlistmnmz.size() + savedagg.size() > 1) {
+	if (savedvar.size() + savedagg.size() > 1) {
 		throw idpexception("Transformation to flatzinc does not support prioritized optimization.");
 	}
 	VarID optimvar;
@@ -426,18 +426,6 @@ VarID FlatZincRewriter<Stream>::addOptimization(bool& minimize) {
 		addVarSum(getWeigths(set), getLiterals(set), head, EqType::EQ, optimvar);
 		Disjunction d({head});
 		add(d);
-	} else if (savedlistmnmz.size() > 0) {
-		auto mnm = savedlistmnmz[0];
-
-		optimvar = newCpVar(1, long(mnm.literals.size()));
-
-		int currentvalue = 1;
-		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {
-			stringstream ss;
-			ss << currentvalue;
-			addBinRel(getIntVarName(optimvar), ss.str(), *i, EqType::EQ);
-			currentvalue++;
-		}
 	} else {
 		MAssert(savedvar.size()>0);
 		if(savedvar.size()>1){
@@ -498,7 +486,7 @@ void FlatZincRewriter<Stream>::addProduct(const Aggregate& agg, const WLSet& set
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::innerExecute() {
+void FlatZincRewriter<Stream>::execute() {
 	state = SolverState::FINISHING;
 
 	for (auto binrel : savedbinrels) {
@@ -738,14 +726,6 @@ void FlatZincRewriter<Stream>::add(const Aggregate& origagg) {
 		}
 		constraints << ";\n";
 	}
-}
-
-template<typename Stream>
-void FlatZincRewriter<Stream>::add(const MinimizeOrderedList& sentence) {
-	MAssert(isParsing());
-	hasoptim = true;
-	check(sentence.literals);
-	savedlistmnmz.push_back(sentence);
 }
 
 template<typename Stream>

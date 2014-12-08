@@ -4,6 +4,8 @@
 #include "Remapper.hpp"
 #include "external/Translator.hpp"
 #include "datastructures/InternalAdd.hpp"
+#include "external/Tasks.hpp"
+#include "external/Constraints.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -11,18 +13,12 @@ using namespace MinisatID;
 Space::Space(const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
-				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
-				oneshot(oneshot),
-				executed(false),
-				optim(false) {
+				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))){
 }
 Space::Space(Remapper* remapper, Translator* translator, const SolverOption& options, bool oneshot) :
 		ExternalConstraintVisitor(remapper, translator, options, "Space"),
 		monitor(new Monitor(getRemapper())), varcreator(new VarCreation(getRemapper())), engine(
-				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))),
-				oneshot(oneshot),
-				executed(false),
-				optim(false) {
+				new SearchEngine(new PCSolver(DEFAULTTHEORYID, getOptions(), monitor, varcreator, this, oneshot))){
 }
 Space::~Space() {
 	delete (engine);
@@ -31,6 +27,10 @@ Space::~Space() {
 
 void Space::addMonitor(PropAndBackMonitor* m) {
 	monitor->addMonitor(m);
+}
+
+void Space::finishParsing(){
+  engine->finishParsing();
 }
 
 void Space::notifyUnsat(){
@@ -42,11 +42,7 @@ bool Space::isCertainlyUnsat() const {
 }
 
 bool Space::isOptimizationProblem() const {
-	return optim;
-}
-
-bool Space::isAlwaysAtOptimum() const {
-	return engine->isAlwaysAtOptimum();
+	return engine->isOptimizationProblem();
 }
 
 void Space::add(const Disjunction& o){
@@ -64,21 +60,13 @@ void Space::add(const WLSet& o){
 void Space::add(const Aggregate& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
-void Space::add(const MinimizeOrderedList& o){
-	optim = true;
-	// TODO disable in other theories (also other optim)
-	internalAdd(o, o.theoryid, *getEngine());
-}
 void Space::add(const MinimizeSubset& o){
-	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const OptimizeVar& o){
-	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const MinimizeAgg& o){
-	optim = true;
 	internalAdd(o, o.theoryid, *getEngine());
 }
 void Space::add(const Symmetry& o){
@@ -140,4 +128,14 @@ Value Space::getTruthValue(const Lit& lit) const {
 
 MXStatistics Space::getStats() const{
 	return getEngine()->getStats();
+}
+
+ModelExpand* Space::createModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions){
+  space->finishParsing();
+  space->getEngine()->addAssumptions(map(assumptions, *space->getRemapper()));
+  if(space->isOptimizationProblem()){
+    return new MinisatID::FindOptimalModels(space, options);
+  }else{
+    return new MinisatID::FindModels(space, options);
+  }
 }

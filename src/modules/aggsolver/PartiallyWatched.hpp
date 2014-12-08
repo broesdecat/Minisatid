@@ -100,9 +100,6 @@ public:
 	virtual rClause propagateAtEndOfQueue();
 	virtual void backtrack(int untillevel);
 	virtual void getExplanation(litlist& lits, const AggReason& ar);
-	virtual void saveState() {
-	}
-	virtual void resetState();
 
 protected:
 	virtual void propagate(int level, Watch* ws, int aggindex);

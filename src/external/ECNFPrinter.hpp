@@ -106,14 +106,6 @@ public:
 		target() << "0\n";
 	}
 
-	void add(const MinimizeOrderedList& mnm) {
-		target() << LISTMNMSTR << " ";
-		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {
-			target() << toString(*i) << " ";
-		}
-		target() << "0\n";
-	}
-
 	void add(const MinimizeSubset& mnm) {
 		target() << SUBMNMSTR << " ";
 		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {

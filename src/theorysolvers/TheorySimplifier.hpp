@@ -80,6 +80,9 @@ private:
 	CPBinaryRel canonify(const CPBinaryRel& incomp) const;
 
 public:
+  virtual WLSet* getParsedSet(int id){
+    return factory->getParsedSet(id);
+  }
 
 	PropagatorFactory& getFactory() {
 		return *factory;
@@ -166,9 +169,6 @@ public:
 		internalAdd(obj);
 	}
 	virtual void add(const Aggregate& obj) {
-		internalAdd(obj);
-	}
-	virtual void add(const MinimizeOrderedList& obj) {
 		internalAdd(obj);
 	}
 	virtual void add(const MinimizeSubset& obj) {

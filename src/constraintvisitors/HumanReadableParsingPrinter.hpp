@@ -118,12 +118,6 @@ public:
 		target() << "\n";
 	}
 
-	void add(const MinimizeOrderedList& mnm) {
-		target() << "Minimizing ordered list ";
-		printConcatWithFunctor(mnm.literals, " < ", target(), Print<Lit>(getPrinter()));
-		target() << "\n";
-	}
-
 	void add(const MinimizeSubset& mnm) {
 		target() << "Searching minimal subset of set { ";
 		printConcatWithFunctor(mnm.literals, ", ", target(), Print<Lit>(getPrinter()));

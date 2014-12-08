@@ -144,7 +144,7 @@ class LazyIntVar: public IntVar{
 private:
 	bool halve; // Heuristic optimization to choose to halve the domain or not
 
-	std::vector<IntVarValue> leqlits, savedleqlits; // ORDERED list such that atom <=> intvar =< value
+	std::vector<IntVarValue> leqlits; // ORDERED list such that atom <=> intvar =< value
 
 	Lit addVariable(Weight value);
 	bool checkAndAddVariable(Weight value);
@@ -156,9 +156,7 @@ public:
 	virtual void finish();
 
 	virtual void updateBounds();
-
-	virtual void saveState();
-	virtual void resetState();
+  
 	virtual int getNbOfFormulas() const { return 1; }
 
 	virtual Lit getLEQLit(Weight bound);

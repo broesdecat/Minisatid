@@ -25,7 +25,7 @@ using namespace std;
 using namespace MinisatID;
 
 ModelManager::ModelManager(Models saveoption) :
-		nbmodelsfound(0), temporarymodel(NULL), optimalmodelfound(false), unsatfound(false), saveoption(saveoption), modelsave(ModelSaved::NONE) {
+		nbmodelsfound(0), temporarymodel(NULL), optimalmodelfound(false),  saveoption(saveoption), modelsave(ModelSaved::NONE) {
 }
 
 ModelManager::~ModelManager() {
@@ -79,8 +79,4 @@ void ModelManager::saveModel(Model * const model) {
 
 void ModelManager::addModel(Model * const model) {
 	saveModel(model);
-}
-
-void ModelManager::notifyUnsat() {
-	unsatfound = true;
 }

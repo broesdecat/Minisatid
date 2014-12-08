@@ -43,7 +43,7 @@ PCSolver::PCSolver(TheoryID theoryID, SolverOption modes, Monitor* monitor, VarC
 			cpsolver(NULL),
 #endif
 			factory(NULL),
-			trail(new TimeTrail()), minnewset(-1), terminate(false), saved(false), printer(printer), queue(NULL),
+			trail(new TimeTrail()), minnewset(-1), terminate(false), printer(printer), queue(NULL),
 			groundingCalls(0), maxCallsBeforeRestart(100) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
@@ -435,8 +435,14 @@ bool PCSolver::hasMonitors() const{
 	return monitor!=NULL && monitor->hasMonitors();
 }
 
-void PCSolver::setAssumptions(const litlist& assumps) {
-	getSATSolver()->setAssumptions(assumps);
+void PCSolver::addAssumption(const Lit assump){
+  getSATSolver()->addAssumption(assump);
+}
+void PCSolver::removeAssumption(const Lit assump){
+  getSATSolver()->removeAssumption(assump);
+}
+void PCSolver::clearAssumptions(){
+  getSATSolver()->clearAssumptions();
 }
 lbool PCSolver::solve(bool search) {
 	return getSATSolver()->solve(not search);
@@ -467,19 +473,8 @@ bool PCSolver::isDecided(Atom var) {
 	return getSATSolver()->isDecided(var);
 }
 
-void PCSolver::saveState() {
-	saved = true;
-	getEventQueue().saveState();
-	getSolver().saveState();
-}
-
-void PCSolver::resetState() {
-	if (saved) {
-		getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
-								  // So NEVER make the searchengine "EV_STATEFUL"!
-		getEventQueue().resetState();
-	}
-	saved = false;
+void PCSolver::getOutOfUnsat(){
+  getSolver().getOutOfUnsat();
 }
 
 // PRINT METHODS
@@ -533,9 +528,6 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 		switch ((*i).optim) {
 		case Optim::AGG:
 			visitor.add(MinimizeAgg((*i).priority, (*i).agg_to_minimize->getSet()->getSetID(), (*i).agg_to_minimize->getType()));
-			break;
-		case Optim::LIST:
-			visitor.add(MinimizeOrderedList((*i).priority, (*i).to_minimize));
 			break;
 		case Optim::SUBSET:
 			visitor.add(MinimizeSubset((*i).priority, (*i).to_minimize));

@@ -41,9 +41,6 @@ public:
 	virtual void add(const Aggregate&) {
 		UNHANDLED("aggregates", getName())
 	}
-	virtual void add(const MinimizeOrderedList&) {
-		UNHANDLED("list minimization", getName())
-	}
 	virtual void add(const MinimizeSubset&) {
 		UNHANDLED("subsetminimization", getName())
 	}

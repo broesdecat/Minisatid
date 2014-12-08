@@ -60,7 +60,7 @@ void handleSignals();
 
 void doModelGeneration(Space* d);
 
-MXTask* mx = NULL;
+ModelExpand* mx = NULL;
 
 int MinisatID::run(const std::string& inputfile, SolverOption modes) {
 	jumpback = 1;
@@ -287,26 +287,26 @@ void MinisatID::parseAndInitializeTheory(const std::string& inputfile, ExternalC
 	}
 }
 
-void doModelGeneration(Space* d) {
-	ModelExpandOptions mxoptions(0, Models::ALL, Models::NONE);
-	if (d->isOptimizationProblem()) { // Change default options added before parsing
-		mxoptions.printmodels = Models::BEST;
-		mxoptions.savemodels = Models::BEST;
-	}
-	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
+void doModelGeneration(Space* d) {  
+  ModelExpandOptions mxoptions(0, Models::ALL, Models::NONE);
+  mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
-	if(d->getOptions().flatzinc_a){
-		mxoptions.printmodels = Models::ALL;
+	if(!d->getOptions().flatzinc_a){
+    if(d->isOptimizationProblem()){
+      mxoptions.printmodels = Models::BEST;
+      mxoptions.savemodels = Models::BEST;
+    }
+	}else{
+    mxoptions.printmodels = Models::ALL;
+    mxoptions.savemodels = Models::NONE;
 		if (d->isOptimizationProblem()) {
 			mxoptions.nbmodelstofind = 1;
 		}else{
 			mxoptions.nbmodelstofind = 0;
 		}
-		mxoptions.savemodels = Models::NONE;
-	}
-
-	mx = new ModelExpand(d, mxoptions, { });
-	mx->execute();
+  }
+  ModelExpand* mx = d->createModelExpand(d,mxoptions,{});
+  mx->execute();
 }
 
 // Debugging - information printing

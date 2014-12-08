@@ -23,11 +23,9 @@ class Solver;
 namespace MinisatID {
 
 class TimeTrail;
-class CPSolver;
 class SolverOption;
 class Propagator;
 class EventQueue;
-class SearchMonitor;
 class IntView;
 class VarCreation;
 class ConstraintVisitor;
@@ -117,20 +115,11 @@ public:
 			throw idpexception("Cannot add additional optimizations after finishParsing has been called.");
 		}
 		optimization.push_back(optim);
-		notifyOptimizationProblem();
-	}
-
-	// NOTE: only call from code which simplifies optimization statements
-	void notifyOptimizationProblem(){
-		optimproblem = true;
 	}
 
 	// Note: only call after finishparsing!
 	bool isOptimizationProblem() const {
-		return optimproblem;
-	}
-	bool isAlwaysAtOptimum() const{
-		return isOptimizationProblem() && optimization.size()==0;
+		return optimization.size()>0;
 	}
 
 	uint currentoptim;
@@ -199,7 +188,9 @@ public:
 
 // Search management
 public:
-	void setAssumptions(const litlist& assumps);
+  void addAssumption(const Lit assump);
+  void removeAssumption(const Lit assump);
+  void clearAssumptions();
 
 	/**
 	 * Return true iff a model has been found
@@ -239,15 +230,9 @@ public:
 	int getClauseSize(rClause cr) const;
 	Lit getClauseLit(rClause cr, int i) const;
 
-	// State saving
-private:
-	bool saved;
-public:
-	void saveState();
-	void resetState();
+  void getOutOfUnsat();
 
 	// SATState information
-public:
 	void notifyUnsat();
 	SATVAL satState() const;
 	bool isUnsat() const {

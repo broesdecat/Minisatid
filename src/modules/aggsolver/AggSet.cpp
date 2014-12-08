@@ -66,7 +66,6 @@ TypedSet::TypedSet(PCSolver* solver, int setid, AggProp const * const w, const v
 	// NOTE: important: only pass the object around when the object will be created (had an issue where an exception was thrown INSIDE the constructor AFTER passing the object to another class)
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_MODELFOUND);
-	getPCSolver().accept(this, EV_STATEFUL);
 	getPCSolver().accept(this, EV_BACKTRACK);
 }
 
@@ -265,17 +264,6 @@ rClause TypedSet::getExplanation(const Lit& p) {
 
 	return c;
 }
-
-void TypedSet::saveState() {
-	prop->saveState();
-}
-void TypedSet::resetState() {
-	prop->resetState();
-}
-
-//int TypedSet::getNbOfFormulas() const {
-//	return getAgg().size() * getWL().size() * log(getWL().size()); // Could refine depending on aggregate type
-//}
 
 void MinisatID::makeSumSetPositive(TypedSet& set){
 

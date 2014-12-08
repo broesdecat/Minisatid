@@ -84,9 +84,6 @@ void SearchEngine::finishParsing() {
 bool SearchEngine::isOptimizationProblem() const {
 	return getSolver()->isOptimizationProblem();
 }
-bool SearchEngine::isAlwaysAtOptimum() const{
-	return getSolver()->isAlwaysAtOptimum();
-}
 bool SearchEngine::hasNextOptimum() const {
 	return getSolver()->hasNextOptimum();
 }
@@ -98,11 +95,8 @@ void SearchEngine::notifyTerminateRequested() {
 	getSolver()->notifyTerminateRequested();
 }
 
-void SearchEngine::saveState() {
-	getSolver()->saveState();
-}
-void SearchEngine::resetState() {
-	getSolver()->resetState();
+void SearchEngine::getOutOfUnsat(){
+  getSolver()->getOutOfUnsat();
 }
 
 std::shared_ptr<Model> SearchEngine::getModel() {
@@ -122,11 +116,21 @@ void SearchEngine::accept(ConstraintVisitor& visitor) {
 	getSolver()->accept(visitor);
 }
 
-void SearchEngine::setAssumptions(const litlist& assumps) {
+void SearchEngine::addAssumption(const Lit assump){
+  createVar(var(assump),getBaseTheoryID());
+  getSolver()->addAssumption(assump);
+}
+void SearchEngine::removeAssumption(const Lit assump){
+  createVar(var(assump),getBaseTheoryID());
+  getSolver()->removeAssumption(assump);
+}
+void SearchEngine::clearAssumptions(){
+  getSolver()->clearAssumptions();
+}
+void SearchEngine::addAssumptions(const litlist& assumps) {
 	for(auto l: assumps){
-		createVar(var(l), getBaseTheoryID());
+		addAssumption(l);
 	}
-	getSolver()->setAssumptions(assumps);
 }
 lbool SearchEngine::solve(bool search) {
 	return getSolver()->solve(search);

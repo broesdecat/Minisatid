@@ -25,7 +25,6 @@ class Propagator;
 class EventQueue;
 class PropagatorFactory;
 class SearchEngine;
-class Optimization;
 class PropAndBackMonitor;
 class Printer;
 class Space;
@@ -47,22 +46,21 @@ public:
 		return terminate;
 	}
 
-	virtual void execute();
+	virtual void execute() = 0;
 
 protected:
-	virtual void innerExecute() = 0;
 	const SolverOption& getOptions() const{
 		return modes;
 	}
 };
 
 class SpaceTask: public Task{
+protected:
 	Space* space;
 public:
 	SpaceTask(Space* space);
 
 	virtual void notifyTerminateRequested();
-	virtual void execute();
 
 	Space* getSpace() const {
 		return space;
@@ -72,31 +70,20 @@ protected:
 	SearchEngine& getSolver() const;
 };
 
-enum class MXState {
-	MODEL, MODEL_FINAL, UNSAT, UNKNOWN
-};
-
 struct OptimStatement;
 
-class MXTask: public SpaceTask{
-public:
-	MXTask(Space* space): SpaceTask(space){}
-	virtual bool isSat() const = 0;
-	virtual bool isUnsat() const = 0;
-	virtual void notifySolvingAborted() = 0;
-	MXStatistics getStats() const;
-};
-
-class ModelExpand: public MXTask {
+class ModelExpand: public SpaceTask {
 private:
 	ModelExpandOptions _options;
-	litlist assumptions; // Note: internal literals
+protected:
 	ModelManager* _solutions;
 	Printer* printer;
 
 public:
-	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
-	~ModelExpand();
+	ModelExpand(Space* space, ModelExpandOptions options);
+	virtual ~ModelExpand();
+  
+  MXStatistics getStats() const;
 
 	/**
 	 * NOTE: Returns 0 if an optimization problem where no proven minimal model has been found yet!
@@ -113,25 +100,33 @@ public:
 	void notifySolvingAborted();
 	litlist getUnsatExplanation() const;
 
+protected:
+  void addModel(std::shared_ptr<Model> model);
+  SATVAL invalidateModel(Disjunction& clause);      
+  Lit invalidateAgg(OptimStatement& optim);
+	Lit invalidateVar(OptimStatement& optim);
+};
+
+class FindModels: public ModelExpand {
 private:
-	void innerExecute();
+  int nbModels;
+  
+public:
+	FindModels(Space* space, ModelExpandOptions opts); // TODO: pass options by reference
+	~FindModels();
 
-	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
-        MXState findNext();
-	void invalidate(litlist& clause);
-        SATVAL invalidateModel();
-	SATVAL invalidateModel(Disjunction& clause);
+	virtual void execute();
+};
 
-	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
-	litlist savedinvalidation;
+class FindOptimalModels: public ModelExpand {
+private:
+  int nbModels;
+  
+public:
+	FindOptimalModels(Space* space, ModelExpandOptions opts); // TODO: pass options by reference
+	~FindOptimalModels();
 
-	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
-	bool invalidateVar(litlist& invalidation, OptimStatement& optim);
-	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
-	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
-	void notifyCurrentOptimum(const Weight& value) const;
-
-	void addModel(std::shared_ptr<Model> model);
+	virtual void execute();
 };
 
 class UnitPropagate: public SpaceTask {
@@ -147,8 +142,7 @@ public:
 	literallist getEntailedLiterals() const;
 	void writeOutEntailedLiterals();
 
-private:
-	void innerExecute();
+	virtual void execute();
 };
 
 enum class TheoryPrinting { CNF, ECNF, FZ, HUMAN, ECNFGRAPH };
@@ -162,8 +156,7 @@ public:
 			: SpaceTask(space), outputlanguage(outputlanguage) {
 	}
 
-private:
-	void innerExecute();
+	virtual void execute();
 };
 
 }
