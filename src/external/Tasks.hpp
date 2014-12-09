@@ -101,9 +101,9 @@ public:
 	litlist getUnsatExplanation() const;
 
 protected:
-  void addModel(std::shared_ptr<Model> model);
-  SATVAL invalidateModel(Disjunction& clause);      
-  Lit invalidateAgg(OptimStatement& optim);
+	void addModel(std::shared_ptr<Model> model);
+	SATVAL invalidateModel(Disjunction& clause);      
+	Lit invalidateAgg(OptimStatement& optim);
 	Lit invalidateVar(OptimStatement& optim);
 };
 

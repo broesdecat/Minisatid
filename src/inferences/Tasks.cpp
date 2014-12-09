@@ -105,6 +105,7 @@ void FindModels::execute(){
     printer->notifySolvingAborted();
     return;
   }else if(state==l_False){
+    printNoModels(clog, getOptions().verbosity);
     getSpace()->notifyUnsat();
     return;
   }else{ // model found :)
@@ -121,12 +122,13 @@ void FindModels::execute(){
       printer->notifySolvingAborted();
       return;
     }else if(state==l_False){
-      break;
+        printer->notifyNoMoreModels();
+        printNoMoreModels(clog, getOptions().verbosity);
+        break;
     }
     
     addModel(getSpace()->getEngine()->getModel());
   }
-  
   printer->notifySolvingFinished();
 }
 
@@ -143,105 +145,120 @@ FindOptimalModels::~FindOptimalModels(){
 }
 
 void FindOptimalModels::execute(){
-  printer->notifyStartSolving();
+	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
 		printer->notifySolvingFinished();
 		return;
 	}
 	
-  printer->notifyOptimizing();
+	printer->notifyOptimizing();
 	printSearchStart(clog, getOptions().verbosity);
-  
-  Disjunction lastInvalidationClause({});
-  // find a first model
-  auto state = getSolver().solve(true);
-  if (state == l_Undef || terminateRequested()) {
-    printer->notifySolvingAborted();
-    return;
-  }else if(state==l_False){
-    getSpace()->notifyUnsat();
-    return;
-  }else{ // model found :)
-    addModel(getSpace()->getEngine()->getModel());
-    getSolver().invalidate(lastInvalidationClause.literals);
-  }
-  
-  // do the actual optimization
-  while (getSolver().hasNextOptimum()){
-    auto optim = getSolver().getNextOptimum();
-    bool optimumfound=false;
-    while(!optimumfound){
-      // add stricter bound using assumptions
-      Lit lastAssumption;
-		  switch (optim.optim) {
-		  case Optim::SUBSET:{
-			  throw idpexception("Invalid code path: subset minisation not yet supported.");
-			  break;}
-		  case Optim::AGG:{
-        lastAssumption = invalidateAgg(optim);
-			  optimumfound = lastAssumption==Minisat::lit_Undef;
-			  break;}
-		  case Optim::VAR:{
-			  lastAssumption = invalidateVar(optim);
-			  optimumfound = lastAssumption==Minisat::lit_Undef;
-			  break;}
-		  }
-		  if(optimumfound){
-		    break;
-		  }
-      
-	    getSolver().addAssumption(lastAssumption);
-	    // NOTE: since we added an assumption literal, the invalidation will never propagate to false.
-	    // look for new model:  
-		  state = getSolver().solve(true);
-	    if (state == l_Undef || terminateRequested()) {
-        printer->notifySolvingAborted();
-        return;
-      }else if(state==l_False){
-        optimumfound=true;
-        getSolver().removeAssumption(lastAssumption);
-        getSolver().addAssumption(~lastAssumption); // TODO add unit clauses instead...
-        // Fix the optimization constraints to their optimal condition
-        switch (optim.optim) {
-        case Optim::SUBSET:{
-          throw idpexception("Invalid code path: subset minimisation not yet supported.");
-          break;}
-        case Optim::AGG:{
-          auto agg = optim.agg_to_minimize;
-          space->add(Aggregate(~lastAssumption, agg->getSet()->getSetID(), _solutions->getBestValueFound(), agg->getType(), agg->getSign(), AggSem::COMP, -1, false));
-          break;}
-        case Optim::VAR:{
-          internalAdd(Disjunction({ optim.var->getEQLit(_solutions->getBestValueFound()) }), getSolver().getBaseTheoryID(), getSolver());
-          break;}
-        }
-      }else{
-        addModel(getSpace()->getEngine()->getModel());
-        lastInvalidationClause.literals.clear();
-        getSolver().invalidate(lastInvalidationClause.literals);
-      }
-    }
-  }
 
-  // optimality reached
-  _solutions->notifyOptimalModelFound();  // this keep the last added model
-  getSolver().getOutOfUnsat();
+	Disjunction lastInvalidationClause({});
+	// find a first model
+	auto state = getSolver().solve(true);
+	if (state == l_Undef || terminateRequested()) {
+		printer->notifySolvingAborted();
+		return;
+	}else if(state==l_False){
+		printNoModels(clog, getOptions().verbosity);
+		getSpace()->notifyUnsat();
+		return;
+	}else{ // model found :)
+		addModel(getSpace()->getEngine()->getModel());
+		getSolver().invalidate(lastInvalidationClause.literals);
+	}
   
-  // now, to find as many models as needed:
-  while(nbModels==0 || nbModels > _solutions->getNbModelsFound()){
-    invalidateModel(lastInvalidationClause);
-    
-    state = getSolver().solve(true);
-    if (state == l_Undef || terminateRequested()) {
-      printer->notifySolvingAborted();
-      return;
-    }else if(state==l_False){
-      break;
-    }
-    addModel(getSpace()->getEngine()->getModel());
-    lastInvalidationClause.literals.clear();
-    getSolver().invalidate(lastInvalidationClause.literals);
-  }
-  printer->notifySolvingFinished();
+	// do the actual optimization
+	while (getSolver().hasNextOptimum()) {
+		auto optim = getSolver().getNextOptimum();
+		bool optimumfound = false;
+		while (!optimumfound) {
+			// add stricter bound using assumptions
+			Lit lastAssumption;
+			switch (optim.optim) {
+				case Optim::SUBSET:
+				{
+					throw idpexception("Invalid code path: subset minisation not yet supported.");
+					break;
+				}
+				case Optim::AGG:
+				{
+					lastAssumption = invalidateAgg(optim);
+					optimumfound = lastAssumption == Minisat::lit_Undef;
+					break;
+				}
+				case Optim::VAR:
+				{
+					lastAssumption = invalidateVar(optim);
+					optimumfound = lastAssumption == Minisat::lit_Undef;
+					break;
+				}
+			}
+			if (optimumfound) {
+				break;
+			}
+
+			getSolver().addAssumption(lastAssumption);
+			// NOTE: since we added an assumption literal, the invalidation will never propagate to false.
+			// look for new model:  
+			state = getSolver().solve(true);
+			if (state == l_Undef || terminateRequested()) {
+				printer->notifySolvingAborted();
+				return;
+			} else if (state == l_False) {
+				optimumfound = true;
+				getSolver().removeAssumption(lastAssumption);
+				getSolver().addAssumption(~lastAssumption); // TODO add unit clauses instead...
+				// Fix the optimization constraints to their optimal condition
+				switch (optim.optim) {
+					case Optim::SUBSET:
+					{
+						throw idpexception("Invalid code path: subset minimisation not yet supported.");
+						break;
+					}
+					case Optim::AGG:
+					{
+						auto agg = optim.agg_to_minimize;
+						space->add(Aggregate(~lastAssumption, agg->getSet()->getSetID(), _solutions->getBestValueFound(), agg->getType(), agg->getSign(), AggSem::COMP, -1, false));
+						break;
+					}
+					case Optim::VAR:
+					{
+						internalAdd(Disjunction({optim.var->getEQLit(_solutions->getBestValueFound())}), getSolver().getBaseTheoryID(), getSolver());
+						break;
+					}
+				}
+			} else {
+				addModel(getSpace()->getEngine()->getModel());
+				lastInvalidationClause.literals.clear();
+				getSolver().invalidate(lastInvalidationClause.literals);
+			}
+		}
+	}
+
+	// optimality reached
+	_solutions->notifyOptimalModelFound(); // this keep the last added model
+	getSolver().getOutOfUnsat();
+
+	// now, to find as many models as needed:
+	while (nbModels == 0 || nbModels > _solutions->getNbModelsFound()) {
+		invalidateModel(lastInvalidationClause);
+
+		state = getSolver().solve(true);
+		if (state == l_Undef || terminateRequested()) {
+			printer->notifySolvingAborted();
+			return;
+		} else if (state == l_False) {
+			printer->notifyNoMoreModels();
+			printNoMoreModels(clog, getOptions().verbosity);
+			break;
+		}
+		addModel(getSpace()->getEngine()->getModel());
+		lastInvalidationClause.literals.clear();
+		getSolver().invalidate(lastInvalidationClause.literals);
+	}
+	printer->notifySolvingFinished();
 }
 
 /*

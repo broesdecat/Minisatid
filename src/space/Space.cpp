@@ -38,7 +38,7 @@ void Space::notifyUnsat(){
 }
 
 bool Space::isCertainlyUnsat() const {
-	return engine->satState() == SATVAL::UNSAT;
+	return engine->isUnsat();
 }
 
 bool Space::isOptimizationProblem() const {
