@@ -12,7 +12,6 @@
 #include "Datastructures.hpp"
 #include "MXStatistics.hpp"
 #include "Options.hpp"
-#include "MXState.hpp"
 #include <memory>
 #include <iostream>
 
