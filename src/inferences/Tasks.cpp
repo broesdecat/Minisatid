@@ -306,6 +306,10 @@ void ModelExpand::notifySolvingAborted() {
 	printer->notifySolvingAborted();
 }
 
+void ModelExpand::addModel(std::shared_ptr<Model> model) {
+	addModelToSolution(model, *getSpace()->getRemapper(), *_solutions, *printer);
+}
+
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
