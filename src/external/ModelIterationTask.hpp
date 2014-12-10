@@ -35,20 +35,20 @@ namespace MinisatID {
         std::shared_ptr<Model> findNext();
         void notifyTerminateRequested();
     private:
-        bool terminate = false;
+        bool terminated = false;
+        bool modelsFound = false;
         SolverOption modes;
 
         Space* space;
         
 	ModelExpandOptions _options;
 	litlist assumptions; // Note: internal literals
-        MXState state = MXState::MODEL;
 
 	ModelManager* _solutions; 
 	Printer* printer;
         
         bool terminateRequested() const {
-            return terminate;
+            return terminated;
         }
 
         const SolverOption& getOptions() const {
@@ -60,9 +60,7 @@ namespace MinisatID {
         }
         SearchEngine& getSolver() const;
         
-        void stop();
         std::shared_ptr<Model> findNextModel();
-        const modellist& getSolutions() const;
 	
 	void notifySolvingAborted();
         
