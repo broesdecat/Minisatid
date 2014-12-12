@@ -5,8 +5,7 @@
  * Created on November 19, 2014, 6:11 PM
  */
 
-#ifndef MODELITERATIONTASK_HPP
-#define	MODELITERATIONTASK_HPP
+#pragma once
 
 #include "Options.hpp"
 #include "Datastructures.hpp"
@@ -69,5 +68,4 @@ namespace MinisatID {
     };
 
 }
-#endif	/* MODELITERATIONTASK_HPP */
 

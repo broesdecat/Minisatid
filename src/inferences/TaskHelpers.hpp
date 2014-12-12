@@ -5,8 +5,7 @@
  * Created on November 20, 2014, 9:49 AM
  */
 
-#ifndef TASKHELPERS_HPP
-#define	TASKHELPERS_HPP
+#pragma once
 
 #include <vector>
 #include "space/Remapper.hpp"
@@ -20,5 +19,4 @@ namespace MinisatID {
     void addModelToSolution(const std::shared_ptr<Model>&, const Remapper&, ModelManager&, Printer&);
     Model* createModel(const std::shared_ptr<Model>&, const Remapper&);
 }
-#endif	/* TASKHELPERS_HPP */
 
