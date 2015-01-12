@@ -358,14 +358,10 @@ Lit ModelExpand::invalidateAgg(OptimStatement& optim) {
   // Getting the original weighted set. Ugly line of code ahead:
   WLSet* wlset = space->getEngine()->getFactory(getSolver().getBaseTheoryID()).getParsedSet(s->getSetID());
   // calculating current optimization value
-  int bestvalue = 0;
+  Weight bestvalue = 0;
   for(auto wl: wlset->wl){
     if(getSolver().getModelValue(wl.getLit())==l_True){
-#ifdef GMP
-      bestvalue += wl.getWeight().toInt();
-#else
       bestvalue += wl.getWeight();
-#endif
     }
   }
   _solutions->setLatestOptimum(bestvalue);
