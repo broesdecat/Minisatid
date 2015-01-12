@@ -361,7 +361,11 @@ Lit ModelExpand::invalidateAgg(OptimStatement& optim) {
   int bestvalue = 0;
   for(auto wl: wlset->wl){
     if(getSolver().getModelValue(wl.getLit())==l_True){
+#ifdef GMP
+      bestvalue += wl.getWeight().toInt();
+#else
       bestvalue += wl.getWeight();
+#endif
     }
   }
   _solutions->setLatestOptimum(bestvalue);
