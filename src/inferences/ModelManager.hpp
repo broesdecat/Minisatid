@@ -86,7 +86,6 @@ public:
 	}
 	void notifyOptimalModelFound();
 
-	void notifyUnsat();
 	bool isSat() {
 		return getNbModelsFound() > 0;
 	}

@@ -30,7 +30,14 @@ class Printer{
 private:
 	Models printoption;
 
+        /**
+         * ModelManager used for:
+         * Counting the number of models.
+         * Unsat state: no models have been found total.
+         * 
+         */
 	ModelManager* modelmanager;
+        
 	Space* space;
 	std::shared_ptr<ResMan> resman;
 	SolverOption modes;
