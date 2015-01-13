@@ -128,7 +128,6 @@ SATVAL ModelIterationTask::invalidateModel() {
 
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
- * %Ruben Does this ALWAYS return false if UNSAT??
  */
 SATVAL ModelIterationTask::invalidateModel(Disjunction& clause) {
     if (getOptions().verbosity >= 3) {
