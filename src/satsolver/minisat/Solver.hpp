@@ -185,6 +185,8 @@ public:
 	virtual void accept(MinisatID::ConstraintVisitor& visitor);
 private:
 	void acceptClauseList(MinisatID::ConstraintVisitor& visitor, const vec<CRef>& list);
+	int curr_restarts;
+	void setNextConflictThreshold();
 public:
 	CRef getExplanation(const Lit& l) {
 		return reason(var(l));
@@ -348,7 +350,7 @@ protected:
 	void analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
 	void analyzeFinal(Lit p, vec<Lit>& out_conflict); // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
 	bool litRedundant(Lit p, uint32_t abstract_levels); // (helper method for 'analyze()')
-	lbool search(int maxconcflicts, bool nosearch);
+	lbool search(bool nosearch);
 	void reduceDB(); // Reduce the set of learnt clauses.
 	void removeSatisfied(vec<CRef>& cs); // Shrink 'cs' to contain only non-satisfied clauses.
 

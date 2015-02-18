@@ -118,6 +118,7 @@ private:
 	std::map<Atom,std::string> atom2string;
 public:
 	virtual void setString(const Atom& lit, const std::string& name);
+	virtual bool isTseitin(const Atom&) const;
 	virtual std::string toString(VarID id) const;
 	virtual std::string toString(const Lit& lit) const;
 	std::string toString(const litlist& literals) const;

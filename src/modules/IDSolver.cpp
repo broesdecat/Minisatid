@@ -216,6 +216,9 @@ void IDSolver::accept(ConstraintVisitor& visitor) {
  */
 void IDSolver::initialize() {
 	needInit = false;
+	if(adaption_current>adaption_total){
+		adaption_total *= 2;
+	}
 	adaption_current=0;
 	// NOTE can only initialize unfounded sets at level 0
 	// FIXME improve this by only using root literals for simplification and to use a reverse trail

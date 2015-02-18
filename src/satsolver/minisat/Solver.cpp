@@ -84,6 +84,8 @@ Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
 
 			currentconflicts(0), maxconflicts(0),
 
+			curr_restarts(0),
+
 			twovalued(false)
 
 			// Statistics: (formerly in 'SolverStats')
@@ -97,6 +99,9 @@ Solver::Solver(PCSolver* s, bool oneshot, MinisatHeuristic* heur)
 	getHeuristic().phase_saving=opt_phase_saving; // TODO: fix: this option should be provided at construction of the heuristic
 	getHeuristic().random_var_freq=opt_random_var_freq; // TODO: fix: this option should be provided at construction of the heuristic
 	getHeuristic().var_decay=opt_var_decay; // TODO: fix: this option should be provided at construction of the heuristic
+
+	setNextConflictThreshold();
+
 	getPCSolver().accept(this);
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
@@ -142,7 +147,11 @@ Atom Solver::newVar(lbool upol, bool dvar) {
 	vardata.push(mkVarData(CRef_Undef, 0));
 
 	seen.push(0);
-	getHeuristic().addAtom(v, upol);
+	if(getPCSolver().modes().defaultmaketrue){
+		getHeuristic().addAtom(v, l_False);
+	}else{
+		getHeuristic().addAtom(v, upol);
+	}
 
 	decision.push();
 	trail.capacity(v + 1);
@@ -586,7 +595,7 @@ void Solver::uncheckedBacktrack(int level) {
 
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 void Solver::cancelUntil(int level) {
-	if ((maxconflicts >= 0 && currentconflicts >= maxconflicts)) {
+	if (currentconflicts >= maxconflicts) {
 		level = 0;
 	}
 	if (decisionLevel() > level) {
@@ -1142,7 +1151,7 @@ void Solver::addConflict(){
  |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
  |    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
  |________________________________________________________________________________________________@*/
-lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
+lbool Solver::search(bool nosearch/*AE*/) {
 	MAssert(ok);
 	int backtrack_level;
 	vec<Lit> learnt_clause;
@@ -1150,9 +1159,6 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 	starts++;
 	needsimplify = true;
-
-	currentconflicts = 0;
-	maxconflicts = maxconfl;
 
 	auto confl = nullPtrClause;
 	for (;;) {
@@ -1179,6 +1185,7 @@ lbool Solver::search(int maxconfl, bool nosearch/*AE*/) {
 
 			if (maxconflicts >= 0 && currentconflicts >= maxconflicts) {
 				getPCSolver().backtrackTo(0);
+				setNextConflictThreshold();
 				return l_Undef;
 			}
 
@@ -1333,6 +1340,12 @@ static double luby(double y, int x) {
 	return pow(y, seq);
 }
 
+void Solver::setNextConflictThreshold(){
+	double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
+	maxconflicts = rest_base*=restart_first;
+	currentconflicts = 0;
+}
+
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve(bool nosearch) {
 	model.clear();
@@ -1352,13 +1365,11 @@ lbool Solver::solve(bool nosearch) {
 	 }*/
 
 	// Search:
-	int curr_restarts = 0;
 	while (status == l_Undef) {
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
 		}
-		double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
-		status = search(rest_base * restart_first/*AB*/, nosearch/*AE*/);
+		status = search(nosearch/*AE*/);
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
 		}

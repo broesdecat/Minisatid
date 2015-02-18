@@ -179,7 +179,7 @@ private:
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
 	bool				backtracked;	//True if the solver has backtracked between now and the previous search for cycle sources. Is true at the start
-	int					adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
+	int64_t				adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
 	int					adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
 
 	varlist				css; // List of possible support violators.

@@ -69,6 +69,10 @@ std::string SearchEngine::toString(const Lit& lit) const {
 	return getSolver()->toString(lit);
 }
 
+bool SearchEngine::isTseitin(const Atom& atom) const {
+	return getSolver()->isTseitin(atom);
+}
+
 void SearchEngine::invalidate(litlist& clause) const {
 	getSolver()->invalidate(clause);
 }

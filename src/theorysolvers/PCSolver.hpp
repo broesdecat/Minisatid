@@ -243,6 +243,7 @@ public:
 private:
 	LiteralPrinter* printer;
 public:
+	bool isTseitin(const Atom& atom) const;
 	virtual void setString(const Atom& lit, const std::string& name);
 	virtual std::string toString(VarID id) const;
 	virtual std::string toString(const Lit& lit) const;

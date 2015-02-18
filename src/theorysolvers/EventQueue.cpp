@@ -8,6 +8,7 @@
  */
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "modules/LazyResidual.hpp"
 #include "satsolver/SATSolver.hpp"
 #include "external/ConstraintVisitor.hpp"
 
@@ -89,7 +90,7 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 }
 
 void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY priority) {
-	if (not getPCSolver().isDecisionVar(var(litevent))) {
+	if (not getPCSolver().isDecisionVar(var(litevent)) && dynamic_cast<LazyResidual*>(propagator)==NULL) {
 		getPCSolver().notifyDecisionVar(var(litevent));
 	}
 	auto& list = lit2priority2propagators[toInt(litevent)][priority];
