@@ -1180,13 +1180,12 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 		if (realmin >= maxbound) {
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
-			addClause(lits, false);
+			return addClause(lits, false);
 		} else if (realmax < minbound) {
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
-			addClause(lits, false);
+			return addClause(lits, false);
 		}
-		return nullPtrClause;
 	}
 
 	// Optimize to stop early
@@ -1201,7 +1200,11 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 			lits.push_back(not _head);
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
-			addClause(lits, value(boundlit) == l_False);
+			bool conflict = value(boundlit) == l_False;
+			auto c = addClause(lits, conflict);
+			if(conflict){
+				return c;
+			}
 		}
 	} else if (headval == l_False) {
 		//PROD < bound
@@ -1210,7 +1213,11 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 			lits.push_back(_head);
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
-			addClause(lits, value(boundlit) == l_False);
+			bool conflict = value(boundlit) == l_False;
+			auto c = addClause(lits, conflict);
+			if(conflict){
+				return c;
+			}
 		}
 	}
 
@@ -1273,7 +1280,10 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 				// In this situation (for all variables) with this head: propagate that abs(var) should be at least "stillneeded"
 				lits.push_back(headval == l_True ? not _head : _head);
 				lits.push_back(propagationlit);
-				addClause(lits, conflict);
+				auto c = addClause(lits, conflict);
+				if(conflict){
+					return c;
+				}
 			}
 		}
 	}
