@@ -730,7 +730,7 @@ litlist FDProdConstraint::varsContributingToMax(size_t excludedVar) const {
 	return varsContributingToMax(excludedVar, true);
 }
 litlist FDProdConstraint::varsContributingToMin(size_t excludedVar) const {
-	return varsContributingToMax(excludedVar, true);
+	return varsContributingToMin(excludedVar, true);
 }
 litlist FDProdConstraint::varsContributingToAbsVal() const {
 	return varsContributingToAbsVal(_vars.size());
