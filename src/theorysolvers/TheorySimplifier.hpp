@@ -180,9 +180,6 @@ public:
 	virtual void add(const MinimizeAgg& obj) {
 		internalAdd(obj);
 	}
-	virtual void add(const Symmetry& obj) {
-		internalAdd(obj);
-	}
 	virtual void add(const BoolVar& obj) {
 		internalAdd(obj);
 	}

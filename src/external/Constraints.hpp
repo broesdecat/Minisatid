@@ -112,13 +112,6 @@ public:
 	}
 };
 template<typename Remapper>
-class ExtAdd<Symmetry, Remapper> {
-public:
-	Symmetry extAdd(Remapper& r, const Symmetry& obj) {
-		return Symmetry(map(obj.symmetry, r));
-	}
-};
-template<typename Remapper>
 class ExtAdd<LazyGroundLit, Remapper> {
 public:
 	LazyGroundLit extAdd(Remapper& r, const LazyGroundLit& obj) {

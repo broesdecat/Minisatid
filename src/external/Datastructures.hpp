@@ -604,33 +604,6 @@ struct CPAllDiff: public Constraint {
 	}
 };
 
-class Symmetry: public Constraint {
-public:
-	// INVAR: symmetry satisfies the bijection constraint
-	// INVAR: the set of keys is also the set of values
-
-	std::map<Lit, Lit> symmetry;
-	Symmetry(const std::map<Lit, Lit>& s);
-	Symmetry(const std::vector<std::vector<Lit> >& s);
-
-	DATASTRUCTURE_DECLAREACCEPT
-
-	virtual std::vector<Atom> getAtoms() const {
-		std::vector<Atom> atoms;
-		for (auto litpair : symmetry) {
-			atoms.push_back(var(litpair.first));
-		}
-		return atoms;
-	}
-
-	void getCycles(std::vector<std::vector<Lit> >& dcn) const;
-
-	// These methods are needed to create const unordered_maps in a SymmetryPropagator
-	// TODO: better solution than returning by value?
-	std::unordered_map<Lit, Lit> getSymmetrical() const;
-	std::unordered_map<Lit, Lit> getInverse() const;
-};
-
 // POCO
 class LazyGrounder {
 public:

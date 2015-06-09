@@ -80,11 +80,6 @@ WHITESPACE	[\t\r ]*
 <theory>"\n"	{}
 
 <theory>"|"		{return ET::DELIM;}
-<theory>"["		{return ET::SYMMSTART;}
-<theory>"]"		{return ET::SYMMEND;}
-<theory>"("		{return ET::CYCLESTART;}
-<theory>")"		{return ET::CYCLEEND;}
-<theory>","		{return ET::SYMMDELIM;}
 
 <theory>^"Implication"	{return ET::IMPLICATION;}
 <theory>^"PARTIAL"		{return ET::PARTIAL;}

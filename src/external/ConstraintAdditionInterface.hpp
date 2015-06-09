@@ -50,9 +50,6 @@ public:
 	virtual void add(const MinimizeAgg&) {
 		UNHANDLED("aggregate minimization", getName())
 	}
-	virtual void add(const Symmetry&) {
-		UNHANDLED("symmetries", getName())
-	}
 	virtual void add(const BoolVar&) {
 		UNHANDLED("boolvar", getName())
 	}

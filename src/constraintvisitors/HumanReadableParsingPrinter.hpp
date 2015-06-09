@@ -133,25 +133,6 @@ public:
 		target() << mnm.type << "(set" << mnm.setid << ")\n";
 	}
 
-	void add(const Symmetry& symm) {
-		target() << "Added symmetry:\n\t";
-		std::vector<std::vector<MinisatID::Lit> > cycles;
-		symm.getCycles(cycles);
-		for (auto i = cycles.cbegin(); i < cycles.cend(); ++i) {
-			bool begin = true;
-			target() << "[";
-			for (auto j = i->cbegin(); j < i->cend(); ++j) {
-				if (not begin) {
-					target() << ", ";
-				}
-				begin = false;
-				target() << print(*j);
-			}
-			target() << "]";
-		}
-		target() << "\n";
-	}
-
 	void add(const IntVarEnum& var) {
 		target() << "Added integer variable " << print(var.varID) << " = { ";
 		printConcatBy(var.values, ", ", target());

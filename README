@@ -13,7 +13,6 @@ MinisatID is the search algorithm used in the knowledge base system IDP, support
 - Unfounded set detection algorithms to support inductive definitions (e.g. reachability).
 - Branch-and-bounds optimization.
 - Lazy clause generation for finite domain constraints (over integers).
-- Dynamic symmetry breaking using minisat-SPFS as backend (to be integrated soon).
 - Interface for incrementally adding any type of variable or constraint, minimally disturbing the current state (used in lazy grounding algorithms).
 - Developed by Broes De Cat and formerly by Maarten Mariën.
 
