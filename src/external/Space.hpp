@@ -74,7 +74,6 @@ public:
 	virtual void add(const MinimizeSubset&);
 	virtual void add(const OptimizeVar&);
 	virtual void add(const MinimizeAgg&);
-	virtual void add(const Symmetry&);
 	virtual void add(const BoolVar&);
 	virtual void add(const IntVarEnum&);
 	virtual void add(const IntVarRange&);

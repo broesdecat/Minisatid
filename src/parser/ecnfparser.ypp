@@ -123,7 +123,6 @@
     MinisatID::AggType aggr;
     MinisatID::AggSign sign;
     MinisatID::AggSem sem;
-    std::vector<std::vector<MinisatID::Lit> >* DCNSymmetry;
 	std::vector<std::string>*	vstr;
 	MinisatID::VarID varid;
 }
@@ -142,7 +141,7 @@
 %token ORSEM
 %token INTVAR INTVARDOM PARTIAL 
 %token CPSUM CPPROD ELEMENT COUNT DISTINCT DELIM BINTRI BINTRT IMPLICATION LEVEL
-%token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM SUBTHEORY
+%token SUBTHEORY
 
 %token <boolean> QUANTe
 %type <integer> number
@@ -154,9 +153,6 @@
 %type <varids> emptyvaridbody
 %type <vlits> body
 %type <vlws> wbody
-%type <vlits> cycle
-%type <DCNSymmetry> symmetry
-
 
 //Translation
 %token TRANSHEADER TRANSHEADER2
@@ -208,7 +204,6 @@ header	: 	/*empty*/
 		
 cnftheory:	/*empty*/
 		| 	cnftheory cnfclause
-		|	cnftheory symmetryblock
 		;
 			
 cnfclause: 	body ZERO	
@@ -248,7 +243,6 @@ ecnftheory	:	/* empty */
 			|	ecnftheory aggmnmz
 			|	ecnftheory intvar
 			|	ecnftheory cpconstraint
-			| 	ecnftheory symmetryblock
 			|	ecnftheory level
 			| 	ecnftheory subtheory
 			;
@@ -384,47 +378,7 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 				delete $2; delete $3;
 				CR(wrapper, set, theoryid);
 			}
-		;
-		
-// ECNF SYMMETRY SUPPORT
-symmetryblock
-		:	SYMMSTART symmetries SYMMEND
-			{
-				std::cerr << "block";
-			}
-		;
-symmetries
-		: symmetry
-			{
-				Symmetry symm(*$1);
-				CR(wrapper, symm, theoryid);
-				delete($1);
-			
-			}
-		| symmetries SYMMDELIM symmetry
-			{
-				Symmetry symm(*$3);
-				CR(wrapper, symm, theoryid);
-				delete($3);
-			}
-		;
-symmetry
-		: symmetry CYCLESTART cycle CYCLEEND
-			{
-				$$ = $1;
-				$$->push_back(*$3);
-			}
-		| CYCLESTART cycle CYCLEEND
-			{
-				$$ = new std::vector<std::vector<MinisatID::Lit> >(1,*$2);
-			}
-		;
-			
-
-cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete($3); }
-		|	NUMBER				{ $$ = new std::vector<MinisatID::Lit>(1,cLiteral($1));	}
-		;
-		
+		;		
 		
 // ECNF CONSTRAINT SUPPORT
 

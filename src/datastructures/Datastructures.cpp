@@ -118,7 +118,6 @@ DATASTRUCTURE_ACCEPT(Implication)
 DATASTRUCTURE_ACCEPT(Rule)
 DATASTRUCTURE_ACCEPT(Aggregate)
 DATASTRUCTURE_ACCEPT(WLSet)
-DATASTRUCTURE_ACCEPT(Symmetry)
 DATASTRUCTURE_ACCEPT(OptimizeVar)
 DATASTRUCTURE_ACCEPT(MinimizeSubset)
 DATASTRUCTURE_ACCEPT(MinimizeAgg)
@@ -136,61 +135,5 @@ DATASTRUCTURE_ACCEPT(LazyAddition)
 DATASTRUCTURE_ACCEPT(SubTheory)
 DATASTRUCTURE_ACCEPT(TwoValuedRequirement)
 DATASTRUCTURE_ACCEPT(LazyAtom)
-
-// constructor used when passing data from grounder to solver
-// TODO: check whether it satisfies the right constraints (e.g.: no literal is mapped to itself, commuting with negation) => currently solved in the getSymmetry method
-Symmetry::Symmetry(const std::map<Lit, Lit>& s)
-		: symmetry(s) {
-}
-
-// alternative constructor which takes disjoint cycles as input, used by the parser.
-// precondition: the input is actually a disjoint cycle (no literal present in two cycles)
-Symmetry::Symmetry(const std::vector<std::vector<Lit> >& s)
-		: symmetry(std::map<Lit, Lit>()) {
-	for (auto cycle : s) {
-		for (uint i = 0; i < cycle.size(); ++i) {
-			symmetry.insert( { cycle[i], cycle[(i + 1) % cycle.size()] });
-		}
-	}
-}
-
-// calculates a disjoint cycle data structure for this symmetry
-void Symmetry::getCycles(std::vector<std::vector<Lit> >& dcn) const {
-	dcn.clear();
-	std::set<Lit> literalsInCycles;
-	for (auto litpair : symmetry) {
-		Lit first = litpair.first;
-		if (literalsInCycles.count(first) == 0) {
-			std::vector<Lit> newCycle;
-			while (literalsInCycles.insert(first).second) {
-				newCycle.push_back(first);
-				first = symmetry.at(first);
-			}
-			dcn.push_back(newCycle);
-		}
-	}
-}
-
-std::unordered_map<Lit,Lit> Symmetry::getSymmetrical() const{
-	std::unordered_map<Lit,Lit> result;
-	for(auto litpair:symmetry){
-		if(litpair.first!=litpair.second){
-			result.insert({litpair.first,litpair.second});
-			result.insert({not litpair.first,not litpair.second});
-		}
-	}
-	return result;
-}
-
-std::unordered_map<Lit,Lit> Symmetry::getInverse() const{
-	std::unordered_map<Lit,Lit> result;
-	for(auto litpair:symmetry){
-		if(litpair.first!=litpair.second){
-			result.insert({litpair.second,litpair.first});
-			result.insert({not litpair.second,not litpair.first});
-		}
-	}
-	return result;
-}
 
 }

@@ -17,7 +17,6 @@
 #include "modules/IDSolver.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
-#include "modules/symmetry/Symmetry.hpp"
 #include "modules/BinConstr.hpp"
 #include "modules/FDAggConstraint.hpp"
 #include "modules/LazyImplication.hpp"
@@ -243,14 +242,6 @@ void PropagatorFactory::add(const OptimizeVar& formula) {
 	}
 	OptimStatement optim(formula.priority, it->second, formula.minimize);
 	getEngine().addOptimization(optim);
-}
-
-void PropagatorFactory::add(const Symmetry& formula) {
-	notifyMonitorsOfAdding(formula);
-
-	guaranteeAtRootLevel();
-
-	new SymmetryPropagator(getEnginep(), formula);
 }
 
 void PropagatorFactory::add(const IntVarRange& obj) {

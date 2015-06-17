@@ -126,30 +126,6 @@ public:
 		}
 	}
 
-	void add(const Symmetry& symm) {
-		std::vector<std::vector<MinisatID::Lit> > cycles;
-		symm.getCycles(cycles);
-		target() << "[";
-		bool symmbegin = true;
-		for (auto i = cycles.cbegin(); i < cycles.cend(); ++i) {
-			if (not symmbegin) {
-				target() << ", ";
-			}
-			symmbegin = false;
-			target() << "(";
-			bool cyclebegin = true;
-			for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
-				if (not cyclebegin) {
-					target() << ", ";
-				}
-				cyclebegin = false;
-				target() << toString(*j) << " ";
-			}
-			target() << ")";
-		}
-		target() << "]\n";
-	}
-
 	void add(const IntVarRange& range) {
 		if(range.partial){
 			target() <<PARTIALSTR <<" ";
