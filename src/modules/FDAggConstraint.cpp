@@ -1180,12 +1180,13 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 		if (realmin >= maxbound) {
 			lits.push_back(_head);
 			lits.push_back(not _bound->getLEQLit(maxbound));
-			return addClause(lits, false);
+			addClause(lits, false);
 		} else if (realmax < minbound) {
 			lits.push_back(not _head);
 			lits.push_back(not _bound->getGEQLit(minbound));
-			return addClause(lits, false);
+			addClause(lits, false);
 		}
+		return nullPtrClause;
 	}
 
 	// Optimize to stop early
