@@ -730,7 +730,7 @@ litlist FDProdConstraint::varsContributingToMax(size_t excludedVar) const {
 	return varsContributingToMax(excludedVar, true);
 }
 litlist FDProdConstraint::varsContributingToMin(size_t excludedVar) const {
-	return varsContributingToMax(excludedVar, true);
+	return varsContributingToMin(excludedVar, true);
 }
 litlist FDProdConstraint::varsContributingToAbsVal() const {
 	return varsContributingToAbsVal(_vars.size());
@@ -1201,7 +1201,11 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 			lits.push_back(not _head);
 			auto boundlit = _bound->getLEQLit(realmax);
 			lits.push_back(boundlit);
-			addClause(lits, value(boundlit) == l_False);
+			bool conflict = value(boundlit) == l_False;
+			auto c = addClause(lits, conflict);
+			if(conflict){
+				return c;
+			}
 		}
 	} else if (headval == l_False) {
 		//PROD < bound
@@ -1210,7 +1214,11 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 			lits.push_back(_head);
 			auto boundlit = _bound->getGEQLit(realmin);
 			lits.push_back(boundlit);
-			addClause(lits, value(boundlit) == l_False);
+			bool conflict = value(boundlit) == l_False;
+			auto c = addClause(lits, conflict);
+			if(conflict){
+				return c;
+			}
 		}
 	}
 
@@ -1273,7 +1281,10 @@ rClause FDProdConstraint::notifypropagateWithNeg(Weight minval, Weight maxval, W
 				// In this situation (for all variables) with this head: propagate that abs(var) should be at least "stillneeded"
 				lits.push_back(headval == l_True ? not _head : _head);
 				lits.push_back(propagationlit);
-				addClause(lits, conflict);
+				auto c = addClause(lits, conflict);
+				if(conflict){
+					return c;
+				}
 			}
 		}
 	}
