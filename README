@@ -12,13 +12,13 @@ MinisatID is the search algorithm used in the knowledge base system IDP, support
 - Efficient propagation for pseudo-boolean aggregate expressions (e.g. cardinality).
 - Unfounded set detection algorithms to support inductive definitions (e.g. reachability).
 - Branch-and-bounds optimization.
-- Lazy clause generation for finite domain constraints (over integers).
+- Lazy clause generation for finite domain constraints over integers.
 - Interface for incrementally adding any type of variable or constraint, minimally disturbing the current state (used in lazy grounding algorithms).
-- Developed by Broes De Cat and formerly by Maarten Mariën.
+- Developed by Broes De Cat and the KRR-group at KU Leuven (dtai.cs.kuleuven.be/krr).
 
 *** Installing and running the system
 Required software packages:
-- C and C++ compiler, supporting most of the C++11 standard. Examples are GCC 4.6 or higher, clang 3.2 or visual studio 11.
+- C and C++ compiler, the C++11 standard. Examples are GCC 4.6 or higher, clang 3.2 or visual studio 11.
 - Cmake build tools.
 - Bison 2.6 and Flex parser generator software.
 - Pdflatex and doxygen for building the documentation.
@@ -34,4 +34,4 @@ Building and installing is then achieved by executing the following commands:
 Alternatively, cmake-gui can be used as a graphical way to set cmake options.
 
 *** Further information
-For more information on using the system, please check out our website dtai.cs.kuleuven.be/krr/software/minisatid
+For more information on using the system, please check out our website dtai.cs.kuleuven.be/software/minisatid
