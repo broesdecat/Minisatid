@@ -105,7 +105,7 @@ void FindModels::execute(){
     printer->notifySolvingAborted();
     return;
   }else if(state==l_False){
-    printNoModels(clog, getOptions().verbosity);
+    printer->notifySolvingFinished();
     getSpace()->notifyUnsat();
     return;
   }else{ // model found :)
@@ -161,7 +161,7 @@ void FindOptimalModels::execute(){
 		printer->notifySolvingAborted();
 		return;
 	}else if(state==l_False){
-		printNoModels(clog, getOptions().verbosity);
+        printer->notifySolvingFinished();
 		getSpace()->notifyUnsat();
 		return;
 	}else{ // model found :)
