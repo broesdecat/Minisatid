@@ -44,6 +44,8 @@ else()
 	message("WARNING: this IntegerType may not be suitable for some input file. Consider using GMP")
 endif()
 
+addToCXX("-static-libstdc++")
+
 ### 32 bits
 option(32BITS "Compile for 32 bit architectures" OFF)
 if(32BITS)
