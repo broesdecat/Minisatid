@@ -84,7 +84,9 @@ public:
 private:
 	bool _outputvarsset;
 	std::set<Atom> _outputvars;
+	std::set<VarID> _outputvarids;
 public:
+	void addOutputVarId(const VarID& vid);
 	void addOutputVars(const std::vector<Atom>& outputvars);
 	bool isDecisionVar(Atom var); // This is confusing, seems to have the same functionality as "isDecided". Rename to canBeDecisionVar or allowedAsDecisionVar?
 	void notifyDecisionVar(Atom var);

@@ -88,6 +88,7 @@ public:
 	virtual void add(const TwoValuedRequirement&);
 	virtual void add(const SubTheory&);
 	virtual void add(const LazyAtom&);
+	virtual void add(const TwoValuedVarIdRequirement& o);
 
 	Value getTruthValue(const Lit& lit) const;
 

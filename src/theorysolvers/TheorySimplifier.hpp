@@ -214,6 +214,9 @@ public:
 	virtual void add(const TwoValuedRequirement& obj) {
 		internalAdd(obj);
 	}
+	virtual void add(const TwoValuedVarIdRequirement& obj) {
+		internalAdd(obj);
+	}
 	virtual void add(const SubTheory&) {
 		throw idpexception("Invalid code path");
 	}

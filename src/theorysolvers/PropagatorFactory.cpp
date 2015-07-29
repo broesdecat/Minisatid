@@ -672,6 +672,10 @@ void PropagatorFactory::add(const TwoValuedRequirement& object) {
 	getEngine().addOutputVars(object.atoms);
 }
 
+void PropagatorFactory::add(const TwoValuedVarIdRequirement& object) {
+	getEngine().addOutputVarId(object.vid);
+}
+
 void PropagatorFactory::add(const LazyAtom& object) {
 	notifyMonitorsOfAdding(object);
 	std::vector<IntView*> argvars;

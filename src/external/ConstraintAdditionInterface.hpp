@@ -86,6 +86,9 @@ public:
 	virtual void add(const TwoValuedRequirement&) {
 		UNHANDLED("Twovalued requirement", getName())
 	}
+	virtual void add(const TwoValuedVarIdRequirement&) {
+		UNHANDLED("Twovaluedvarid requirement", getName())
+	}
 	virtual void add(const SubTheory&) {
 		UNHANDLED("Subtheory", getName())
 	}

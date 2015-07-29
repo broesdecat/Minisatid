@@ -192,6 +192,7 @@ public:
 	void add(const LazyAddition& object);
 	void add(const TwoValuedRequirement& object);
 	void add(const LazyAtom& object);
+	void add(const TwoValuedVarIdRequirement& object);
 
 	SATVAL finish();
 

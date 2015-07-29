@@ -572,7 +572,13 @@ Lit PCSolver::getLit(VarID var, EqType eq, Weight bound){
 			ss<< toString(var) << "=" << bound;
 		}
 		setString(atom,ss.str());
-		return mkPosLit(atom);
+
+		auto outLit = mkPosLit(atom);
+		if(_outputvarids.count(var)>0){
+			vector<Atom> output = {atom};
+			this->addOutputVars(output);
+		}
+		return outLit;
 	}else{
 		return lit;
 	}
@@ -587,4 +593,8 @@ void PCSolver::notifyGroundingCall(){
 		maxCallsBeforeRestart *= 1.3;
 		getSolver().randomizedRestart();
 	}
+}
+
+void PCSolver::addOutputVarId(const VarID &vid) {
+	_outputvarids.insert(vid);
 }
