@@ -598,3 +598,7 @@ void PCSolver::notifyGroundingCall(){
 void PCSolver::addOutputVarId(const VarID &vid) {
 	_outputvarids.insert(vid);
 }
+
+bool PCSolver::isOutputVarId(const VarID &vid) {
+	return _outputvarids.count(vid)>0;
+}
