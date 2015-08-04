@@ -131,7 +131,8 @@ void LazyIntVar::updateBounds() {
 			unknown = true;
 		}
 		if(isTrue(leqlit.lit)){//First value for which var <= value holds is the upper bound of var.
-			newmax = min(leqlit.value, newmax);
+			newmax = min(leqlit.value, newmax); //In a strict sense, we don't need the min operation here.
+			break;
 		}
 	}
 
