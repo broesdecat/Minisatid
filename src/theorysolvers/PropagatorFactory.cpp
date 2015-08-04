@@ -245,6 +245,9 @@ void PropagatorFactory::add(const OptimizeVar& formula) {
 }
 
 void PropagatorFactory::add(const IntVarRange& obj) {
+	if(obj.partial && getEngine().isOutputVarId(obj.varID)){
+		getEngine().addOutputVars({obj.possiblynondenoting.getAtom()});
+	};
 	notifyMonitorsOfAdding(obj);
         if (intvars.find(obj.varID) != intvars.cend()) {
                 stringstream ss;
@@ -265,6 +268,9 @@ void PropagatorFactory::add(const BoolVar&) {
 }
 
 void PropagatorFactory::add(const IntVarEnum& obj) {
+	if(obj.partial && getEngine().isOutputVarId(obj.varID)){
+		getEngine().addOutputVars({obj.possiblynondenoting.getAtom()});
+	};
 	notifyMonitorsOfAdding(obj);
         if (intvars.find(obj.varID) != intvars.cend()) {
                 stringstream ss;
@@ -670,6 +676,10 @@ void PropagatorFactory::add(const TwoValuedRequirement& object) {
 		getEngine().getSATSolver()->setDecidable(atom, true);
 	}
 	getEngine().addOutputVars(object.atoms);
+}
+
+void PropagatorFactory::add(const TwoValuedVarIdRequirement& object) {
+	getEngine().addOutputVarId(object.vid);
 }
 
 void PropagatorFactory::add(const LazyAtom& object) {

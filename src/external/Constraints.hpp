@@ -139,6 +139,15 @@ public:
 		return TwoValuedRequirement(map(obj.atoms, r));
 	}
 };
+
+template<typename Remapper>
+class ExtAdd<TwoValuedVarIdRequirement, Remapper> {
+public:
+	TwoValuedVarIdRequirement extAdd(Remapper& r, const TwoValuedVarIdRequirement& obj) {
+		return TwoValuedVarIdRequirement(map(obj.vid,r));
+	}
+};
+
 template<typename Remapper>
 class ExtAdd<BoolVar, Remapper> {
 public:

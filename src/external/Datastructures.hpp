@@ -173,7 +173,7 @@ public:
 	// This allows constraint-independent code to check the existence of those literals
 	virtual std::vector<Atom> getAtoms() const = 0;
 
-	virtual void accept(ConstraintVisitor* visitor) = 0;
+	virtual void accept(ConstraintVisitor* ) = 0;
 	virtual void accept(Space* visitor) = 0;
 };
 
@@ -715,6 +715,23 @@ struct TwoValuedRequirement: public Constraint {
 	virtual std::vector<Atom> getAtoms() const {
 		return atoms;
 	}
+};
+
+struct TwoValuedVarIdRequirement: public Constraint {
+	VarID vid;
+
+	TwoValuedVarIdRequirement(VarID vid)
+			: vid(vid) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return {};
+	}
+
+	virtual ~TwoValuedVarIdRequirement() {}
+
 };
 
 class SubTheory: public Constraint {

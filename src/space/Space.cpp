@@ -105,6 +105,9 @@ void Space::add(const LazyAddition& o){
 void Space::add(const TwoValuedRequirement& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }
+void Space::add(const TwoValuedVarIdRequirement& o){
+	internalAdd(o, o.theoryid, *getEngine());
+}
 void Space::add(const SubTheory& o){
 	internalAdd(o, o.theoryid, *getEngine());
 }

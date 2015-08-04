@@ -205,6 +205,10 @@ public:
 		target() <<" should be two-valued in any model.\n";
 	}
 
+	void add(const TwoValuedVarIdRequirement& lg) {
+		target() << "VarId " << print(lg.vid) << " should be two-valued in any model.\n";
+	}
+
 	virtual void add(const LazyGroundImpl& lg) {
 		target() << "Added lazy " << (lg.impl.conjunction ? "conjunctive" : "disjunctive") << " implication " << ": " << print(lg.impl.head) << " "
 				<< lg.impl.type;
