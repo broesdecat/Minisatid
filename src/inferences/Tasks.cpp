@@ -412,7 +412,6 @@ literallist UnitPropagate::getEntailedLiterals() const {
 }
 
 void UnitPropagate::execute() {
-  space->finishParsing();
 	getSolver().addAssumptions(assumptions);
 	getSolver().solve(false);
 }
@@ -438,8 +437,6 @@ void UnitPropagate::writeOutEntailedLiterals() {
  * Transform
  */
 void Transform::execute() {
-  space->finishParsing();
-  
 	std::shared_ptr<ResMan> resfile(createResMan(getSpace()->getOptions().outputfile));
 	ostream output(resfile->getBuffer());
 	switch (outputlanguage) {

@@ -60,7 +60,6 @@ SearchEngine& ModelIterationTask::getSolver() const {
  * count the number of models => do not save models
  */
 void ModelIterationTask::initialise() {
-	space->getEngine()->finishParsing();
 	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
 		printer->notifySolvingFinished();
