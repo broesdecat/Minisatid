@@ -1,0 +1,3 @@
+var {0}: x :: output_var;
+constraint int_abs(x,x);
+solve satisfy;

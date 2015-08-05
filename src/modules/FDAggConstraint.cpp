@@ -658,7 +658,7 @@ void FDProdConstraint::initialize(const Lit& head, const std::vector<Lit>& condi
 	}
 
 	if (newweight == 0) {
-		add(CPSumWeighted(head, newconditions, { bound->getID() }, { 1 }, invertEqType(rel), newweight));
+		add(CPBinaryRel(head, bound->getID(), invertEqType(rel), 0));
 		notifyNotPresent();
 		return;
 	}
