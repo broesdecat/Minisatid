@@ -131,7 +131,6 @@ MXStatistics Space::getStats() const{
 }
 
 ModelExpand* Space::createModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions){
-  space->finishParsing();
   space->getEngine()->addAssumptions(map(assumptions, *space->getRemapper()));
   if(space->isOptimizationProblem()){
     return new MinisatID::FindOptimalModels(space, options);

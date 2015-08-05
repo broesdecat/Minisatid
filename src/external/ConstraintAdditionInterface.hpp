@@ -138,6 +138,8 @@ public:
 		return false;
 	}
 	void notifyFinishParsing();
+
+	virtual void finishParsing() {}
 };
 
 }
