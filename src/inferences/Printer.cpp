@@ -142,9 +142,7 @@ void Printer::solvingFinished() {
 		// NOTE: cannot request multiple optimal models in flatzinc
 		if (optimizing && modelmanager->hasOptimalModel() && modes.transformat == OutputFormat::FZ) {
 			printOptimalModelFound(output, modes.transformat);
-		}
-
-		if (nomoremodels) {
+		}else if (nomoremodels) {
 			printNoMoreModels(output, modes.transformat);
 		}
 	}
