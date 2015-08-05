@@ -111,34 +111,33 @@ Lit LazyIntVar::addVariable(Weight value){
  */
 
 void LazyIntVar::updateBounds() {
-	auto prev = origMinValue();
+	auto newmin = origMinValue();
+	auto newmax = origMaxValue();
+
 	auto unknown = false;
-	if(not possiblyHasImage()){
+	if(not possiblyHasImage()) {
 		return;
 	}
-	for (auto i = leqlits.cbegin(); i < leqlits.cend(); ++i) {
-		if (not isFalse(i->lit)) { // First non-false: then previous one +1 is lowest remaining value
-			if(isUnknown(i->lit)){
-				unknown = true;
-			}
-			break;
-		}
-		MAssert(i->value!=getMaxElem<int>());
-		prev = i->value+1;
-	}
-	currentmin = prev;
 
-	auto next = origMaxValue();
-	for (auto i = leqlits.crbegin(); i < leqlits.crend(); ++i) { // NOTE: reverse iterated!
-		if (not isTrue(i->lit)) { // First non true:  => previous is highest remaining value (LEQ!)
-			if(isUnknown(i->lit)){
-				unknown = true;
-			}
+	// leqlit: var <= value
+	// Prerequisite: leqlits are ordered from low value to high
+	for (auto leqlit:leqlits){
+		if(isFalse(leqlit.lit)){ //(Last value for which var <= value holds)+1 is the lower bound of var.
+			MAssert(leqlit.value != getMaxElem<Weight>());
+			newmin = max(leqlit.value+1, newmin);
+			unknown = false;
+		}
+		if(isUnknown(leqlit.lit)){ // If any leqlit is unknown after the last false, then set unknown  to true.
+			unknown = true;
+		}
+		if(isTrue(leqlit.lit)){//First value for which var <= value holds is the upper bound of var.
+			newmax = min(leqlit.value, newmax); //In a strict sense, we don't need the min operation here.
 			break;
 		}
-		next = i->value;
 	}
-	currentmax = next;
+
+	currentmin = newmin;
+	currentmax = newmax;
 
 	// TODO infinite case
 	// Note: Forces existence of the var TODO in fact enough if there is already SOME var in that interval!
