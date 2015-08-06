@@ -7,6 +7,17 @@ set (MinisatID_VERSION_MINOR 11)
 set (MinisatID_VERSION_PATCH 0)
 set (MinisatID_VERSION "${MinisatID_VERSION_MAJOR}.${MinisatID_VERSION_MINOR}.${MinisatID_VERSION_PATCH}")
 
+execute_process (COMMAND "git" "rev-parse" "HEAD"
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                RESULT_VARIABLE minisatid_git_result
+				ERROR_VARIABLE minisatid_git_error
+                OUTPUT_VARIABLE minisatid_git_hash)
+if (minisatid_git_result OR minisatid_git_error)
+  set (minisatid_git_hash "\"Source not version controlled.\"")
+endif (minisatid_git_result OR minisatid_git_error)
+
+string(STRIP ${minisatid_git_hash} minisatid_git_hash)
+
 ENABLE_TESTING()
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
@@ -89,6 +100,8 @@ MESSAGE(STATUS "build minisatid shared ${BUILD_SHARED_LIBS}")
 if(BUILD_MINISATID_STATIC)
 	MESSAGE(STATUS "build minisatid allstatic")
 endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D MINISATIDGITHASH=\\\"${minisatid_git_hash}\\\" ")
 
 MESSAGE(STATUS "MinisatID CXX flags: ")
 MESSAGE(STATUS "${CMAKE_CXX_FLAGS}")
