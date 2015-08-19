@@ -123,7 +123,9 @@ void LazyIntVar::updateBounds() {
 	// Prerequisite: leqlits are ordered from low value to high
 	for (auto leqlit:leqlits){
 		if(isFalse(leqlit.lit)){ //(Last value for which var <= value holds)+1 is the lower bound of var.
+#ifdef NOARBITPREC
 			MAssert(leqlit.value != getMaxElem<Weight>());
+#endif
 			newmin = max(leqlit.value+1, newmin);
 			unknown = false;
 		}
