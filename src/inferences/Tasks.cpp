@@ -381,16 +381,18 @@ Lit ModelExpand::invalidateVar(OptimStatement& optim) {
 
 	if(optim.minimize){
 		if (var->origMinValue() == bestvalue) {
+            internalAdd(Disjunction({var->getEQLit(bestvalue)}), getSolver().getBaseTheoryID(), getSolver());
 			return Minisat::lit_Undef;
 		}else{
-      return var->getLEQLit(bestvalue - 1);
-    }
+            return var->getLEQLit(bestvalue - 1);
+        }
 	}else{
 		if (var->origMaxValue() == bestvalue) {
+            internalAdd(Disjunction({var->getEQLit(bestvalue)}), getSolver().getBaseTheoryID(), getSolver());
 			return Minisat::lit_Undef;
 		}else{
-      return var->getGEQLit(bestvalue + 1);
-    }
+            return var->getGEQLit(bestvalue + 1);
+        }
 	}
 }
 
