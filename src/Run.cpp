@@ -280,6 +280,7 @@ void MinisatID::parseAndInitializeTheory(const std::string& inputfile, ExternalC
 	}
 
 	d->notifyFinishParsing();
+	d->finishParsing();
 
 	auto endparsing = cpuTime();
 	if (d->getOptions().verbosity > 1) {
