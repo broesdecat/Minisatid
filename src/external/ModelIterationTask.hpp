@@ -32,6 +32,10 @@ namespace MinisatID {
         void initialise();
         std::shared_ptr<Model> findNext();
         void notifyTerminateRequested();
+
+        void addAssumption(const Lit l, bool = true);
+        void removeAssumption(const Lit l, bool = true);
+
     private:
         bool terminated;
         bool modelsFound;

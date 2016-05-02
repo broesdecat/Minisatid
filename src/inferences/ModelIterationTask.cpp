@@ -47,6 +47,17 @@ SearchEngine& ModelIterationTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
+void ModelIterationTask::addAssumption(const Lit l, bool b) {
+	Lit l1 = getSpace()->getRemapper()->getLiteral(l);
+	l1.x  = (b)? l1.x : (-1)*l1.x;
+	getSolver().addAssumption(l1);
+}
+void ModelIterationTask::removeAssumption(const Lit l, bool b){
+	Lit l1 = getSpace()->getRemapper()->getLiteral(l);
+	l1.x  = (b)? l1.x : (-1)*l1.x;
+	getSolver().removeAssumption(l1);
+}
+
 /*
  * Possible answers:
  * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
