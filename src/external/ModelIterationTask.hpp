@@ -33,8 +33,8 @@ namespace MinisatID {
         std::shared_ptr<Model> findNext();
         void notifyTerminateRequested();
 
-        void addAssumption(const Lit l, bool = true);
-        void removeAssumption(const Lit l, bool = true);
+        Lit addAssumption(Atom, bool);
+        void removeAssumption(Lit);
 
     private:
         bool terminated;
