@@ -48,8 +48,8 @@ SearchEngine& ModelIterationTask::getSolver() const {
 }
 
 Lit ModelIterationTask::addAssumption(Atom l, bool b) {
-	Lit l1 = mkLit(l, b);
-	Lit assump = getSpace()->getRemapper()->getLiteral(l1);
+	Atom remapped = getSpace()->getRemapper()->getVar(l);
+	Lit assump = mkLit(remapped, !b);
 	getSolver().addAssumption(assump);
 	return assump;
 }
