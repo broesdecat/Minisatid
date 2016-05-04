@@ -47,11 +47,10 @@ SearchEngine& ModelIterationTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-Lit ModelIterationTask::addAssumption(Atom l, bool sign) {
+void ModelIterationTask::addAssumption(Atom l, bool sign) {
 	Atom remapped = getSpace()->getRemapper()->getVar(l);
 	Lit assump = mkLit(remapped, sign);
 	getSolver().addAssumption(assump);
-	return assump;
 }
 void ModelIterationTask::removeAssumption(Atom l, bool sign){
 	Atom remapped = getSpace()->getRemapper()->getVar(l);
