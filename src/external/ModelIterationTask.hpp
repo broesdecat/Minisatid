@@ -34,11 +34,10 @@ namespace MinisatID {
         void notifyTerminateRequested();
 
         Lit addAssumption(Atom, bool);
-        void removeAssumption(Lit);
+        void removeAssumption(Atom, bool);
+        void getOutOfUnsat();
 
     private:
-        bool terminated;
-        bool modelsFound;
         SolverOption modes;
 
         Space* space;
@@ -48,6 +47,8 @@ namespace MinisatID {
 
 	ModelManager* _solutions; 
 	Printer* printer;
+        bool terminated;
+        bool modelsFound;
         
         bool terminateRequested() const {
             return terminated;

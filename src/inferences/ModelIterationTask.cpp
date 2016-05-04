@@ -47,17 +47,24 @@ SearchEngine& ModelIterationTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-Lit ModelIterationTask::addAssumption(Atom l, bool b) {
+Lit ModelIterationTask::addAssumption(Atom l, bool sign) {
 	Atom remapped = getSpace()->getRemapper()->getVar(l);
-	Lit assump = mkLit(remapped, !b);
+	Lit assump = mkLit(remapped, sign);
 	getSolver().addAssumption(assump);
 	return assump;
 }
-void ModelIterationTask::removeAssumption(Lit l){
-	//Lit l1 = mkLit(l, b);
-	//getSolver().removeAssumption(l);
-	getSolver().clearAssumptions();
+void ModelIterationTask::removeAssumption(Atom l, bool sign){
+	Atom remapped = getSpace()->getRemapper()->getVar(l);
+	Lit assump = mkLit(remapped, sign);
+	getSolver().removeAssumption(assump);
+	getOutOfUnsat();
 }
+
+void ModelIterationTask::getOutOfUnsat() {
+	terminated = false;
+	getSolver().getOutOfUnsat();
+}
+
 
 /*
  * Possible answers:
