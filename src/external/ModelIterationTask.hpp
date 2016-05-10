@@ -35,6 +35,7 @@ namespace MinisatID {
 
         void addAssumption(Atom, bool);
         void removeAssumption(Atom, bool);
+        void addClause(const std::vector<std::pair<unsigned int,bool> >& lits);  // unsigned int is IDP atom (but sign is gone already)
         void getOutOfUnsat();
 
     private:
