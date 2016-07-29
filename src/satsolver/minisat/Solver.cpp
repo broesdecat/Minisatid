@@ -867,19 +867,20 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 	for (int i = trail.size() - 1; i >= trail_lim[0]; i--) {
 		Atom x = var(trail[i]);
 		if (seen[x]) {
-			auto explan = reason(x);
-			if(explan==CRef_Undef){
-				explan = getPCSolver().getExplanation(value(mkPosLit(x)) == l_True ? mkPosLit(x) : mkNegLit(x));
-			}
-			if (explan == CRef_Undef) {
-				MAssert(getLevel(x) > 0);
-				out_conflict.push(~trail[i]);
-			} else {
+			if(!isDecided(x)){
+				auto explan = reason(x);
+				if(explan==CRef_Undef){
+					explan = getPCSolver().getExplanation(trail[i]);
+				}
+				MAssert(explan!=CRef_Undef);
 				auto& c = ca[explan];
 				for (int j = 1; j < c.size(); j++)
-					if (getLevel(var(c[j])) > 0) {
-						seen[var(c[j])] = 1;
-					}
+				if (getLevel(var(c[j])) > 0) {
+					seen[var(c[j])] = 1;
+				}
+			}else{
+				MAssert(getLevel(x) > 0);
+				out_conflict.push(~trail[i]);
 			}
 			seen[x] = 0;
 		}
