@@ -857,7 +857,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
  |________________________________________________________________________________________________@*/
 void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 	out_conflict.clear();
-	out_conflict.push(p); // TODO: should this be put after decisionLevel 0 check?
+	out_conflict.push(p);
 
 	if (decisionLevel() == 0)
 		return;
@@ -870,7 +870,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 			if(!isDecided(x)){
 				auto explan = reason(x);
 				if(explan==CRef_Undef){
-					explan = getPCSolver().getExplanation(value(mkPosLit(x)) == l_True ? mkPosLit(x) : mkNegLit(x)); // TODO: lit to explain should be trail[i]
+					explan = getPCSolver().getExplanation(trail[i]);
 				}
 				MAssert(explan!=CRef_Undef);
 				auto& c = ca[explan];
