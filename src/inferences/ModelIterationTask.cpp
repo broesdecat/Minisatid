@@ -47,6 +47,32 @@ SearchEngine& ModelIterationTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
+void ModelIterationTask::addAssumption(Atom l, bool sign) {
+	Atom remapped = getSpace()->getRemapper()->getVar(l);
+	Lit assump = mkLit(remapped, sign);
+	getSolver().addAssumption(assump);
+}
+void ModelIterationTask::removeAssumption(Atom l, bool sign){
+	Atom remapped = getSpace()->getRemapper()->getVar(l);
+	Lit assump = mkLit(remapped, sign);
+	getSolver().removeAssumption(assump);
+	getOutOfUnsat();
+}
+
+void ModelIterationTask::addClause(const std::vector<std::pair<unsigned int,bool> >& lits){
+  Disjunction disj({});
+  for(auto l: lits){
+    disj.literals.push_back(mkLit(getSpace()->getRemapper()->getVar(l.first), l.second));
+  }
+  invalidateModel(disj);
+}
+
+void ModelIterationTask::getOutOfUnsat() {
+	terminated = false;
+	getSolver().getOutOfUnsat();
+}
+
+
 /*
  * Possible answers:
  * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
@@ -133,7 +159,7 @@ SATVAL ModelIterationTask::invalidateModel() {
  */
 SATVAL ModelIterationTask::invalidateModel(Disjunction& clause) {
 	if (getOptions().verbosity >= 3) {
-		clog << "Adding model-invalidating clause: [ ";
+		clog << "Adding model(s)-invalidating clause: [ ";
 		clog << getSpace()->toString(clause.literals);
 		clog << "]\n";
 	}
