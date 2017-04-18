@@ -194,7 +194,7 @@ namespace MinisatID {
 namespace MinisatID {
 #define NOARBITPREC
 
-typedef int Weight;
+typedef long long Weight;
 //FAST, NO OVERFLOW SUPPORT
 }
 
